@@ -5,9 +5,9 @@ namespace LanternKeeper
 public class CameraFollow : MonoBehaviour
 {
     [SerializeField] Transform target;
-    [SerializeField] Vector3 offset = new Vector3(0f, 7f, -9f);
+    [SerializeField] Vector3 offset = new Vector3(0f, 4f, -6f);
     [SerializeField] float smoothTime = 0.18f;
-    [SerializeField] float lookHeight = 1.2f;
+    [SerializeField] float lookHeight = 1.25f;
 
     Vector3 velocity;
 

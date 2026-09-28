@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float sprintMultiplier = 1.7f;
     [SerializeField] float sprintDrainMultiplier = 1.6f;
     [SerializeField] float gravity = -20f;
+    [SerializeField] float jumpHeight = 2.8f;
     [SerializeField] float turnSpeed = 12f;
     [SerializeField] float stepDistance = 2.3f;
 
@@ -22,7 +23,12 @@ public class PlayerController : MonoBehaviour
 
     public bool IsSprinting { get; private set; }
     public float HorizontalSpeed { get; private set; }
+    public float CurrentSpeed { get; private set; }
     public Vector3 LastSafePosition { get; private set; }
+    public bool UseDistanceFootsteps = true;
+
+    public static Vector2 ExternalMove;
+    public static bool ExternalSprint;
 
     void Awake()
     {
@@ -34,6 +40,8 @@ public class PlayerController : MonoBehaviour
             dust = dustTransform.GetComponent<ParticleSystem>();
         }
 
+        controller.slopeLimit = 50f;
+        controller.stepOffset = 0.45f;
         lastPosition = transform.position;
         LastSafePosition = transform.position;
     }
@@ -76,6 +84,13 @@ public class PlayerController : MonoBehaviour
             sprintHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
         }
 
+        if (ExternalMove.sqrMagnitude > 0.0001f)
+        {
+            inputX = ExternalMove.x;
+            inputZ = ExternalMove.y;
+            sprintHeld = ExternalSprint;
+        }
+
         IsSprinting = sprintHeld;
         if (lantern != null)
         {
@@ -109,6 +124,12 @@ public class PlayerController : MonoBehaviour
             verticalVelocity = -2f;
         }
 
+        bool jump = keyboard != null && !roundOver && keyboard.spaceKey.wasPressedThisFrame;
+        if (controller.isGrounded && jump)
+        {
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+
         verticalVelocity += gravity * Time.deltaTime;
         float speed = sprintHeld ? moveSpeed * sprintMultiplier : moveSpeed;
         Vector3 velocity = worldMove * speed;
@@ -126,6 +147,7 @@ public class PlayerController : MonoBehaviour
         flatDelta.y = 0f;
         float dt = Mathf.Max(Time.deltaTime, 0.0001f);
         HorizontalSpeed = flatDelta.magnitude / dt;
+        CurrentSpeed = HorizontalSpeed;
         lastPosition = transform.position;
 
         if (controller.isGrounded && transform.position.y > WaterHazard.SurfaceY + 0.35f)
@@ -148,9 +170,17 @@ public class PlayerController : MonoBehaviour
         emission.rateOverTime = moving ? 16f : 0f;
     }
 
+    public void OnFootstep()
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayFootstep(transform.position);
+        }
+    }
+
     void UpdateFootsteps()
     {
-        if (!controller.isGrounded || HorizontalSpeed < 0.8f)
+        if (!UseDistanceFootsteps || !controller.isGrounded || HorizontalSpeed < 0.8f)
         {
             return;
         }

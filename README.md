@@ -21,6 +21,7 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 | --- | --- |
 | WASD or arrow keys | Move |
 | Shift | Sprint. This burns lantern fuel faster |
+| Space | Jump. Two beacons sit on raised ground |
 | E | Light a beacon when you are standing next to it |
 | R | Restart the round |
 
@@ -33,3 +34,13 @@ Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths 
 - `Assets/Game/Prefabs/` — firefly and beacon prefabs
 - `Assets/Game/Materials/` — island and glow materials
 - `Packages/com.coplaydev.unity-mcp/` — local copy of MCP for Unity, used to drive the editor from Cursor
+
+## Credits
+
+- Keeper character: "Hooded Adventurer" by Quaternius, via Poly Pizza (https://poly.pizza/m/y9KWOVG21R). Licence CC0 1.0. The imported file is `Assets/Game/Models/Keeper/Keeper.fbx`.
+- Terrain textures, all CC0 from Poly Haven:
+  - Coast Sand 01 by Rob Tuytel (shore)
+  - Forrest Ground 01 by Rob Tuytel (forest ground)
+  - Stony Dirt Path by eye-candy.xyz (trail)
+  - Rock Face 03 by Dario Barresi and Rico Cilliers (cliff)
+  - Forest Leaves 02 by Rob Tuytel (moss)

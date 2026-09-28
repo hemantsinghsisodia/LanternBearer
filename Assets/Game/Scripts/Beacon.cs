@@ -12,14 +12,13 @@ public class Beacon : MonoBehaviour
     [SerializeField] float interactRange = 2.8f;
     [SerializeField] float fuelCost = 15f;
     [SerializeField] float safeRadius = 8f;
-    [SerializeField] float settleIntensity = 2.8f;
+    [SerializeField] float settleIntensity = 3.4f;
     [SerializeField] float settleRange = 16f;
-    [SerializeField] float columnHeight = 6f;
-    [SerializeField] float columnBaseY = 1.35f;
     [SerializeField] Light beaconLight;
     [SerializeField] ParticleSystem fire;
     [SerializeField] ParticleSystem embers;
-    [SerializeField] Transform lightColumn;
+    [SerializeField] ParticleSystem smoke;
+    [SerializeField] Transform flameRoot;
     [SerializeField] AudioSource whooshSource;
 
     public bool IsLit { get; private set; }
@@ -27,6 +26,7 @@ public class Beacon : MonoBehaviour
 
     Transform player;
     bool playerNear;
+    bool igniting;
 
     void Awake()
     {
@@ -46,19 +46,33 @@ public class Beacon : MonoBehaviour
 
         if (embers == null)
         {
-            Transform burst = transform.Find("Embers");
+            Transform burst = transform.Find("Flare");
+            if (burst == null)
+            {
+                burst = transform.Find("Embers");
+            }
+
             if (burst != null)
             {
                 embers = burst.GetComponent<ParticleSystem>();
             }
         }
 
-        if (lightColumn == null)
+        if (smoke == null)
         {
-            Transform column = transform.Find("LightColumn");
-            if (column != null)
+            Transform wisp = transform.Find("Smoke");
+            if (wisp != null)
             {
-                lightColumn = column;
+                smoke = wisp.GetComponent<ParticleSystem>();
+            }
+        }
+
+        if (flameRoot == null)
+        {
+            Transform flames = transform.Find("FlameRoot");
+            if (flames != null)
+            {
+                flameRoot = flames;
             }
         }
 
@@ -74,9 +88,15 @@ public class Beacon : MonoBehaviour
 
         StopQuiet(fire);
         StopQuiet(embers);
-        if (lightColumn != null)
+        if (flameRoot != null)
         {
-            lightColumn.gameObject.SetActive(false);
+            flameRoot.localScale = Vector3.zero;
+        }
+
+        Transform legacyColumn = transform.Find("LightColumn");
+        if (legacyColumn != null)
+        {
+            legacyColumn.gameObject.SetActive(false);
         }
     }
 
@@ -105,6 +125,11 @@ public class Beacon : MonoBehaviour
 
     void Update()
     {
+        if (IsLit)
+        {
+            FlickerAndSway();
+        }
+
         if (player == null || IsLit)
         {
             if (playerNear)
@@ -168,6 +193,7 @@ public class Beacon : MonoBehaviour
         IsLit = true;
         playerNear = false;
         NotifyNearby(false);
+        igniting = true;
         StartCoroutine(Ignite());
 
         if (GameManager.Instance != null)
@@ -197,44 +223,48 @@ public class Beacon : MonoBehaviour
             fire.Play();
         }
 
-        if (lightColumn != null)
+        if (smoke != null)
         {
-            lightColumn.gameObject.SetActive(true);
+            smoke.Play();
+        }
+
+        if (flameRoot != null)
+        {
+            flameRoot.gameObject.SetActive(true);
+            flameRoot.localScale = Vector3.zero;
         }
 
         if (beaconLight != null)
         {
             beaconLight.enabled = true;
-            beaconLight.color = new Color(1f, 0.62f, 0.28f);
+            beaconLight.color = new Color(1f, 0.58f, 0.22f);
         }
 
-        float growTime = 1.05f;
+        float growTime = 0.9f;
         float elapsed = 0f;
         while (elapsed < growTime)
         {
             elapsed += Time.deltaTime;
             float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / growTime));
-            float height = Mathf.Lerp(0.08f, columnHeight, u);
-            if (lightColumn != null)
+            float flash = Mathf.Sin(Mathf.Clamp01(elapsed / 0.28f) * Mathf.PI);
+            float scale = Mathf.Lerp(0f, 1f, u) * (1f + flash * 0.55f * (1f - u));
+            if (flameRoot != null)
             {
-                lightColumn.localScale = new Vector3(0.55f, height, 0.55f);
-                lightColumn.localPosition = new Vector3(0f, columnBaseY + height, 0f);
+                flameRoot.localScale = Vector3.one * scale;
             }
 
             if (beaconLight != null)
             {
-                float flash = Mathf.Sin(Mathf.Clamp01(elapsed / 0.35f) * Mathf.PI);
-                beaconLight.intensity = Mathf.Lerp(settleIntensity, 12f, flash * (1f - u));
-                beaconLight.range = Mathf.Lerp(5f, settleRange, u);
+                beaconLight.intensity = Mathf.Lerp(settleIntensity, 14f, flash * (1f - u));
+                beaconLight.range = Mathf.Lerp(4f, settleRange, u);
             }
 
             yield return null;
         }
 
-        if (lightColumn != null)
+        if (flameRoot != null)
         {
-            lightColumn.localScale = new Vector3(0.55f, columnHeight, 0.55f);
-            lightColumn.localPosition = new Vector3(0f, columnBaseY + columnHeight, 0f);
+            flameRoot.localScale = Vector3.one;
         }
 
         if (beaconLight != null)
@@ -243,6 +273,26 @@ public class Beacon : MonoBehaviour
             beaconLight.intensity = settleIntensity;
             beaconLight.range = settleRange;
         }
+
+        igniting = false;
+    }
+
+    void FlickerAndSway()
+    {
+        if (flameRoot != null && flameRoot.localScale.sqrMagnitude > 0.01f)
+        {
+            float sway = Mathf.Sin(Time.time * 1.7f) * 8f;
+            float gust = Mathf.Sin(Time.time * 0.7f + 0.4f) * 3f;
+            flameRoot.localRotation = Quaternion.Euler(gust * 0.35f, 0f, sway + gust);
+        }
+
+        if (igniting || beaconLight == null || !beaconLight.enabled)
+        {
+            return;
+        }
+
+        float noise = Mathf.PerlinNoise(Time.time * 7.5f, 0.35f);
+        beaconLight.intensity = settleIntensity * Mathf.Lerp(0.78f, 1.15f, noise);
     }
 
     void NotifyNearby(bool nearby)

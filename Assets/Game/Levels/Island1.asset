@@ -23,5 +23,6 @@ MonoBehaviour:
   mothCount: 4
   hiddenPathCount: 1
   fogColor: {r: 0.4, g: 0.52, b: 0.56, a: 1}
-  fogDensity: 0.016
+  fogDensity: 0.011
+  grassDetailDensity: 8
   nextLevelScene: Island2

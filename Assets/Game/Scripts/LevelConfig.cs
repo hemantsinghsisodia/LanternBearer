@@ -16,7 +16,8 @@ public class LevelConfig : ScriptableObject
     public int mothCount = 4;
     public int hiddenPathCount = 1;
     public Color fogColor = new Color(0.4f, 0.52f, 0.56f, 1f);
-    public float fogDensity = 0.016f;
+    public float fogDensity = 0.012f;
+    public int grassDetailDensity = 8;
     public string nextLevelScene = "";
 }
 }

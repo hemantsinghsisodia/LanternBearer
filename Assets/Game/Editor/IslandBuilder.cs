@@ -39,8 +39,8 @@ public static partial class IslandBuilder
     public static void CreateDefaultConfigs()
     {
         EnsureFolder("Assets/Game/Levels");
-        WriteConfig("Assets/Game/Levels/Island1.asset", "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.016f, "Island2");
-        WriteConfig("Assets/Game/Levels/Island2.asset", "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.02f, "");
+        WriteConfig("Assets/Game/Levels/Island1.asset", "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2");
+        WriteConfig("Assets/Game/Levels/Island2.asset", "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "");
         AssetDatabase.SaveAssets();
     }
 
@@ -69,7 +69,8 @@ public static partial class IslandBuilder
         preview.mothCount = 0;
         preview.hiddenPathCount = 0;
         preview.fogColor = new Color(0.4f, 0.52f, 0.56f, 1f);
-        preview.fogDensity = 0.02f;
+        preview.fogDensity = 0.013f;
+        preview.grassDetailDensity = 8;
         preview.nextLevelScene = "";
         BuildInternal(preview, false);
         Object.DestroyImmediate(preview);
@@ -109,7 +110,7 @@ public static partial class IslandBuilder
             ArtKit art = EnsureArt();
             EditorUtility.DisplayProgressBar("Lantern Keeper", "Shaping " + config.sceneName, 0.45f);
             Stage stage = new Stage();
-            BuildTerrain(config, art, terrainPath, stage);
+            BuildSculptedTerrain(config, art, terrainPath, stage);
             CreateWater(config, art, stage);
             CreateAtmosphere(config, art, stage);
             if (gameplay)
@@ -165,6 +166,7 @@ public static partial class IslandBuilder
         public int stones;
         public readonly List<Vector3> beaconSpots = new List<Vector3>();
         public readonly List<Vector3> islets = new List<Vector3>();
+        public readonly List<List<Vector2>> trails = new List<List<Vector2>>();
     }
 
     static void BuildTerrain(LevelConfig config, ArtKit art, string terrainPath, Stage stage)
@@ -372,9 +374,9 @@ public static partial class IslandBuilder
     {
         RenderSettings.skybox = art.sky;
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.05f, 0.07f, 0.16f);
-        RenderSettings.ambientEquatorColor = new Color(0.05f, 0.2f, 0.22f);
-        RenderSettings.ambientGroundColor = new Color(0.012f, 0.012f, 0.018f);
+        RenderSettings.ambientSkyColor = new Color(0.09f, 0.12f, 0.22f);
+        RenderSettings.ambientEquatorColor = new Color(0.1f, 0.28f, 0.28f);
+        RenderSettings.ambientGroundColor = new Color(0.03f, 0.028f, 0.035f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Exponential;
         RenderSettings.fogColor = config.fogColor;
@@ -383,8 +385,8 @@ public static partial class IslandBuilder
         GameObject moon = new GameObject("Moonlight");
         Light sun = moon.AddComponent<Light>();
         sun.type = LightType.Directional;
-        sun.color = new Color(0.75f, 0.84f, 1f);
-        sun.intensity = 0.85f;
+        sun.color = new Color(0.82f, 0.88f, 1f);
+        sun.intensity = 1.08f;
         sun.shadows = LightShadows.Soft;
         sun.shadowStrength = 0.65f;
         moon.transform.rotation = Quaternion.Euler(38f, -35f, 0f);
@@ -395,7 +397,7 @@ public static partial class IslandBuilder
         Light fillLight = fill.AddComponent<Light>();
         fillLight.type = LightType.Directional;
         fillLight.color = new Color(0.35f, 0.6f, 0.62f);
-        fillLight.intensity = 0.12f;
+        fillLight.intensity = 0.2f;
         fillLight.shadows = LightShadows.None;
         fill.transform.rotation = Quaternion.Euler(18f, 150f, 0f);
 
@@ -510,37 +512,40 @@ public static partial class IslandBuilder
         }
 
         data.renderPostProcessing = true;
-        cameraObject.transform.position = new Vector3(0f, 11f, -Mathf.Max(12f, radius * 0.45f));
+        cameraObject.transform.position = new Vector3(0f, 5.2f, -7.2f);
         cameraObject.transform.LookAt(new Vector3(0f, 2f, 0f));
     }
 
     static void PlaceBeacons(LevelConfig config, ArtKit art, Stage stage)
     {
         Transform parent = Folder("Beacons");
-        int isletCount = stage.islets.Count;
-        int mainCount = Mathf.Max(0, config.beaconCount - isletCount);
-        float start = (config.seed % 360) * Mathf.Deg2Rad + 0.7f;
-        for (int i = 0; i < mainCount; i++)
+        List<Vector3> planned = new List<Vector3>(stage.beaconSpots);
+        if (planned.Count == 0)
         {
-            float angle = start + i * Mathf.PI * 2f / Mathf.Max(1, mainCount);
-            float dist = config.islandRadius * (0.34f + 0.12f * (i % 3));
-            Vector3 spot = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-            spot.y = GroundY(stage.terrain, spot.x, spot.z);
-            if (spot.y < stage.waterY + 0.7f)
+            List<Vector2> fallback = PlanBeaconXZ(config, out _);
+            for (int i = 0; i < fallback.Count; i++)
             {
-                spot = new Vector3(Mathf.Cos(angle) * config.islandRadius * 0.28f, 0f, Mathf.Sin(angle) * config.islandRadius * 0.28f);
+                planned.Add(new Vector3(fallback[i].x, 0f, fallback[i].y));
+            }
+        }
+
+        stage.beaconSpots.Clear();
+        for (int i = 0; i < planned.Count; i++)
+        {
+            Vector3 spot = planned[i];
+            spot.y = GroundY(stage.terrain, spot.x, spot.z);
+            if (spot.y < stage.waterY + 0.55f)
+            {
+                Vector3 inward = new Vector3(spot.x, 0f, spot.z);
+                if (inward.sqrMagnitude > 0.01f)
+                {
+                    inward = inward.normalized * config.islandRadius * 0.28f;
+                }
+
+                spot = new Vector3(inward.x, 0f, inward.z);
                 spot.y = GroundY(stage.terrain, spot.x, spot.z);
             }
 
-            SpawnBeacon(art, parent, spot, true);
-            stage.beaconSpots.Add(spot);
-            stage.beacons++;
-        }
-
-        for (int i = 0; i < isletCount && stage.beacons < config.beaconCount; i++)
-        {
-            Vector3 spot = stage.islets[i];
-            spot.y = GroundY(stage.terrain, spot.x, spot.z);
             SpawnBeacon(art, parent, spot, true);
             stage.beaconSpots.Add(spot);
             stage.beacons++;
@@ -556,14 +561,14 @@ public static partial class IslandBuilder
         if (light != null)
         {
             light.enabled = true;
+            light.intensity = 3.4f;
+            light.range = 16f;
         }
 
-        Transform column = beacon.transform.Find("LightColumn");
-        if (column != null)
+        Transform flame = beacon.transform.Find("FlameRoot");
+        if (flame != null)
         {
-            column.gameObject.SetActive(true);
-            column.localScale = new Vector3(0.55f, 6f, 0.55f);
-            column.localPosition = new Vector3(0f, 1.35f + 6f, 0f);
+            flame.localScale = Vector3.one;
         }
 
         ParticleSystem[] particles = beacon.GetComponentsInChildren<ParticleSystem>(true);
@@ -726,6 +731,8 @@ public static partial class IslandBuilder
                 }
             }
         }
+
+        DressTrails(config, art, stage);
     }
 
     static bool NearSpot(List<Vector3> spots, float x, float z, float radius)
@@ -787,20 +794,45 @@ public static partial class IslandBuilder
         keeper.transform.position = position;
         if (!gameplay)
         {
+            PlayerController walker = keeper.GetComponent<PlayerController>();
+            if (walker != null)
+            {
+                walker.enabled = false;
+            }
+
+            CharacterController body = keeper.GetComponent<CharacterController>();
+            if (body != null)
+            {
+                body.enabled = false;
+            }
+
             return;
         }
 
         keeper.tag = "Player";
-        CharacterController controller = keeper.AddComponent<CharacterController>();
-        controller.height = 1.8f;
-        controller.radius = 0.32f;
-        controller.center = new Vector3(0f, 0.9f, 0f);
-        controller.stepOffset = 0.45f;
+        CharacterController controller = keeper.GetComponent<CharacterController>();
+        if (controller == null)
+        {
+            controller = keeper.AddComponent<CharacterController>();
+        }
+
+        controller.height = 1.7f;
+        controller.radius = 0.28f;
+        controller.center = new Vector3(0f, 0.88f, 0f);
+        controller.stepOffset = 0.4f;
         controller.slopeLimit = 52f;
-        keeper.AddComponent<PlayerController>();
-        Transform pivot = keeper.transform.Find("LanternPivot");
-        Transform lanternTransform = keeper.transform.Find("LanternPivot/Lantern");
-        if (pivot != null)
+        if (keeper.GetComponent<PlayerController>() == null)
+        {
+            keeper.AddComponent<PlayerController>();
+        }
+
+        if (keeper.GetComponent<KeeperAnimator>() == null)
+        {
+            keeper.AddComponent<KeeperAnimator>();
+        }
+        Transform pivot = FindDeep(keeper.transform, "LanternPivot");
+        Transform lanternTransform = pivot != null ? pivot.Find("Lantern") : null;
+        if (pivot != null && pivot.GetComponent<LanternSway>() == null)
         {
             LanternSway sway = pivot.gameObject.AddComponent<LanternSway>();
             SerializedObject swayObject = new SerializedObject(sway);
@@ -811,11 +843,19 @@ public static partial class IslandBuilder
         if (lanternTransform != null)
         {
             Light light = lanternTransform.GetComponentInChildren<Light>();
-            Lantern lantern = lanternTransform.gameObject.AddComponent<Lantern>();
+            Lantern lantern = lanternTransform.GetComponent<Lantern>();
+            if (lantern == null)
+            {
+                lantern = lanternTransform.gameObject.AddComponent<Lantern>();
+            }
             SerializedObject lanternObject = new SerializedObject(lantern);
             lanternObject.FindProperty("lanternLight").objectReferenceValue = light;
             lanternObject.ApplyModifiedPropertiesWithoutUndo();
-            LanternFlicker flicker = lanternTransform.gameObject.AddComponent<LanternFlicker>();
+            LanternFlicker flicker = lanternTransform.GetComponent<LanternFlicker>();
+            if (flicker == null)
+            {
+                flicker = lanternTransform.gameObject.AddComponent<LanternFlicker>();
+            }
             SerializedObject flickerObject = new SerializedObject(flicker);
             flickerObject.FindProperty("targetLight").objectReferenceValue = light;
             flickerObject.FindProperty("lantern").objectReferenceValue = lantern;
@@ -840,7 +880,8 @@ public static partial class IslandBuilder
         {
             SerializedObject followObject = new SerializedObject(follow);
             followObject.FindProperty("target").objectReferenceValue = keeper.transform;
-            followObject.FindProperty("offset").vector3Value = new Vector3(0f, 8f, -10.5f);
+            followObject.FindProperty("offset").vector3Value = new Vector3(0f, 4f, -6f);
+            followObject.FindProperty("lookHeight").floatValue = 1.25f;
             followObject.ApplyModifiedPropertiesWithoutUndo();
         }
     }
@@ -1099,6 +1140,25 @@ public static partial class IslandBuilder
         return font;
     }
 
+    static Transform FindDeep(Transform root, string name)
+    {
+        if (root.name == name)
+        {
+            return root;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindDeep(root.GetChild(i), name);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     static Transform Folder(string name)
     {
         GameObject folder = new GameObject(name);
@@ -1135,6 +1195,7 @@ public static partial class IslandBuilder
         config.hiddenPathCount = paths;
         config.fogColor = fog;
         config.fogDensity = density;
+        config.grassDetailDensity = 8;
         config.nextLevelScene = nextScene;
         EditorUtility.SetDirty(config);
         return config;

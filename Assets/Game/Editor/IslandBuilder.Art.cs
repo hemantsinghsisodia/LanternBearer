@@ -24,6 +24,14 @@ public static partial class IslandBuilder
         public Material moon;
         public Material unlit;
         public Material column;
+        public Material wood;
+        public Material iron;
+        public Material charred;
+        public Material smoke;
+        public Material flameA;
+        public Material flameB;
+        public Material flameC;
+        public Material heat;
         public Material silhouette;
         public Material path;
         public Material terrain;
@@ -34,7 +42,11 @@ public static partial class IslandBuilder
         public Sprite uiSprite;
         public TerrainLayer sandLayer;
         public TerrainLayer grassLayer;
+        public TerrainLayer dirtLayer;
         public TerrainLayer rockLayer;
+        public TerrainLayer mossLayer;
+        public Texture2D detailGrass;
+        public Texture2D detailReed;
         public VolumeProfile volume;
         public GameObject pineS;
         public GameObject pineM;
@@ -42,6 +54,9 @@ public static partial class IslandBuilder
         public GameObject rockA;
         public GameObject rockB;
         public GameObject grassTuft;
+        public GameObject pebble;
+        public GameObject log;
+        public GameObject stump;
         public GameObject mushroom;
         public GameObject mushroomGlow;
         public GameObject beacon;
@@ -125,6 +140,9 @@ public static partial class IslandBuilder
     static ArtKit EnsureArt()
     {
         EnsureFolder("Assets/Game/Textures");
+        EnsureFolder("Assets/Game/Textures/PolyHaven");
+        EnsureFolder("Assets/Game/Models");
+        EnsureFolder("Assets/Game/Models/Keeper");
         EnsureFolder("Assets/Game/Materials/Generated");
         EnsureFolder("Assets/Game/Levels/Layers");
         EnsureFolder("Assets/Game/Prefabs/Props");
@@ -135,19 +153,34 @@ public static partial class IslandBuilder
         Shader skyShader = Shader.Find("LanternKeeper/SkyGradient");
         Shader unlitShader = Shader.Find("LanternKeeper/SkyUnlitNoFog");
         Shader addShader = Shader.Find("LanternKeeper/AdditiveUnlit");
+        Shader flameShader = Shader.Find("LanternKeeper/Flame");
         Shader terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
-        if (lit == null || skyShader == null || unlitShader == null || addShader == null)
+        if (lit == null || skyShader == null || unlitShader == null || addShader == null || flameShader == null)
         {
             throw new System.InvalidOperationException("A Lantern Keeper shader is missing. Check the console for shader errors.");
         }
 
         ArtKit art = new ArtKit();
-        Texture2D sand = Noise("Assets/Game/Textures/Sand.png", new Color(0.74f, 0.66f, 0.42f), 0.12f, 64, 3);
-        Texture2D grassTex = Noise("Assets/Game/Textures/Grass.png", new Color(0.24f, 0.42f, 0.16f), 0.16f, 64, 9);
-        Texture2D rockTex = Noise("Assets/Game/Textures/Rock.png", new Color(0.42f, 0.42f, 0.44f), 0.14f, 64, 15);
+        Texture2D sand = PolyOrNoise("coast_sand_01_Diffuse.jpg", new Color(0.74f, 0.66f, 0.42f), 3);
+        Texture2D sandNormal = PolyOrNormal("coast_sand_01_nor_gl.jpg", 4);
+        Texture2D sandMask = SmoothnessMask("coast_sand_01_Rough.jpg", "Assets/Game/Textures/PolyHaven/coast_sand_01_mask.png", 5);
+        Texture2D grassTex = PolyOrNoise("forrest_ground_01_Diffuse.jpg", new Color(0.24f, 0.42f, 0.16f), 9);
+        Texture2D grassNormal = PolyOrNormal("forrest_ground_01_nor_gl.jpg", 10);
+        Texture2D grassMask = SmoothnessMask("forrest_ground_01_Rough.jpg", "Assets/Game/Textures/PolyHaven/forrest_ground_01_mask.png", 11);
+        Texture2D dirtTex = PolyOrNoise("stony_dirt_path_Diffuse.jpg", new Color(0.36f, 0.26f, 0.16f), 13);
+        Texture2D dirtNormal = PolyOrNormal("stony_dirt_path_nor_gl.jpg", 14);
+        Texture2D dirtMask = SmoothnessMask("stony_dirt_path_Rough.jpg", "Assets/Game/Textures/PolyHaven/stony_dirt_path_mask.png", 15);
+        Texture2D rockTex = PolyOrNoise("rock_face_03_Diffuse.jpg", new Color(0.42f, 0.42f, 0.44f), 17);
+        Texture2D rockNormal = PolyOrNormal("rock_face_03_nor_gl.jpg", 18);
+        Texture2D rockMask = SmoothnessMask("rock_face_03_Rough.jpg", "Assets/Game/Textures/PolyHaven/rock_face_03_mask.png", 19);
+        Texture2D mossTex = PolyOrNoise("forest_leaves_02_Diffuse.jpg", new Color(0.22f, 0.32f, 0.16f), 21);
+        Texture2D mossNormal = PolyOrNormal("forest_leaves_02_nor_gl.jpg", 22);
+        Texture2D mossMask = SmoothnessMask("forest_leaves_02_Rough.jpg", "Assets/Game/Textures/PolyHaven/forest_leaves_02_mask.png", 23);
         Texture2D waterTex = Noise("Assets/Game/Textures/Water.png", new Color(0.02f, 0.08f, 0.11f), 0.08f, 64, 21);
         Texture2D waterNormal = NormalMap("Assets/Game/Textures/WaterNormal.png", 64, 2.2f, 6);
         Texture2D blade = GrassBlade("Assets/Game/Textures/GrassBlade.png");
+        art.detailGrass = blade;
+        art.detailReed = ReedBlade("Assets/Game/Textures/ReedBlade.png");
         art.softCircle = SoftCircle("Assets/Game/Textures/SoftCircle.png");
         art.lanternSprite = SpriteTex("Assets/Game/Textures/LanternIcon.png", LanternIcon(64));
         art.arrowSprite = SpriteTex("Assets/Game/Textures/CompassArrow.png", ArrowIcon(64));
@@ -176,6 +209,18 @@ public static partial class IslandBuilder
         art.unlit = UnlitMat("Assets/Game/Materials/Generated/SkyUnlit.mat", unlitShader, Color.white);
         art.unlit.SetTexture("_BaseMap", art.softCircle);
         art.column = UnlitMat("Assets/Game/Materials/Generated/LightColumn.mat", addShader, new Color(1f, 0.55f, 0.16f, 0.38f));
+        art.wood = LitMat("Assets/Game/Materials/Generated/TorchWood.mat", lit, new Color(0.28f, 0.16f, 0.08f), 0.18f, 0f, Color.black);
+        art.iron = LitMat("Assets/Game/Materials/Generated/TorchIron.mat", lit, new Color(0.12f, 0.12f, 0.13f), 0.55f, 0.72f, Color.black);
+        art.charred = LitMat("Assets/Game/Materials/Generated/CharredCloth.mat", lit, new Color(0.05f, 0.04f, 0.035f), 0.08f, 0f, new Color(0.15f, 0.05f, 0.01f));
+        art.smoke = LitMat("Assets/Game/Materials/Generated/Smoke.mat", lit, new Color(0.18f, 0.18f, 0.2f, 0.22f), 0f, 0f, Color.black);
+        SetupTransparent(art.smoke);
+        art.flameA = FlameMat("Assets/Game/Materials/Generated/FlameA.mat", flameShader, 1.15f, 0f, 1.45f, 0.16f);
+        art.flameB = FlameMat("Assets/Game/Materials/Generated/FlameB.mat", flameShader, 1.7f, 0.7f, 1.2f, 0.2f);
+        art.flameC = FlameMat("Assets/Game/Materials/Generated/FlameC.mat", flameShader, 0.85f, 1.25f, 1.55f, 0.14f);
+        art.heat = FlameMat("Assets/Game/Materials/Generated/HeatShimmer.mat", flameShader, 2.4f, 0.3f, 0.22f, 0.28f);
+        art.heat.SetColor("_Core", new Color(1f, 0.85f, 0.55f, 0.15f));
+        art.heat.SetColor("_Mid", new Color(1f, 0.45f, 0.15f, 0.08f));
+        art.heat.SetColor("_Tip", new Color(0.4f, 0.05f, 0f, 0f));
         art.silhouette = LitMat("Assets/Game/Materials/Generated/Silhouette.mat", lit, new Color(0.02f, 0.025f, 0.03f), 0.05f, 0f, Color.black);
         art.path = LitMat("Assets/Game/Materials/Generated/PathStone.mat", lit, new Color(0.78f, 0.72f, 0.55f), 0.2f, 0f, Color.black);
         SetupTransparent(art.path);
@@ -189,9 +234,11 @@ public static partial class IslandBuilder
             art.terrain = LitMat("Assets/Game/Materials/Generated/TerrainLit.mat", terrainShader, Color.white, 0.1f, 0f, Color.black);
         }
 
-        art.sandLayer = Layer("Assets/Game/Levels/Layers/Sand.terrainlayer", sand, new Vector2(7f, 7f));
-        art.grassLayer = Layer("Assets/Game/Levels/Layers/Grass.terrainlayer", grassTex, new Vector2(8f, 8f));
-        art.rockLayer = Layer("Assets/Game/Levels/Layers/Rock.terrainlayer", rockTex, new Vector2(6f, 6f));
+        art.sandLayer = Layer("Assets/Game/Levels/Layers/Sand.terrainlayer", sand, sandNormal, sandMask, new Vector2(8f, 8f));
+        art.grassLayer = Layer("Assets/Game/Levels/Layers/Grass.terrainlayer", grassTex, grassNormal, grassMask, new Vector2(6f, 6f));
+        art.dirtLayer = Layer("Assets/Game/Levels/Layers/Dirt.terrainlayer", dirtTex, dirtNormal, dirtMask, new Vector2(5f, 5f));
+        art.rockLayer = Layer("Assets/Game/Levels/Layers/Rock.terrainlayer", rockTex, rockNormal, rockMask, new Vector2(6f, 6f));
+        art.mossLayer = Layer("Assets/Game/Levels/Layers/Moss.terrainlayer", mossTex, mossNormal, mossMask, new Vector2(6f, 6f));
         art.volume = EnsureVolume("Assets/Game/Materials/Generated/NightVolumeProfile.asset");
 
         art.pineS = SavePrefab(BuildPine(art, 1.05f), "Assets/Game/Prefabs/Props/PineSmall.prefab");
@@ -200,11 +247,15 @@ public static partial class IslandBuilder
         art.rockA = SavePrefab(BuildRock(art, false), "Assets/Game/Prefabs/Props/RockCluster.prefab");
         art.rockB = SavePrefab(BuildRock(art, true), "Assets/Game/Prefabs/Props/RockWide.prefab");
         art.grassTuft = SavePrefab(BuildGrass(art), "Assets/Game/Prefabs/Props/GrassTuft.prefab");
+        art.pebble = SavePrefab(BuildPebbles(art), "Assets/Game/Prefabs/Props/PebbleCluster.prefab");
+        art.log = SavePrefab(BuildLog(art), "Assets/Game/Prefabs/Props/FallenLog.prefab");
+        art.stump = SavePrefab(BuildStump(art), "Assets/Game/Prefabs/Props/Stump.prefab");
         art.mushroom = SavePrefab(BuildMushroom(art, false), "Assets/Game/Prefabs/Props/Mushroom.prefab");
         art.mushroomGlow = SavePrefab(BuildMushroom(art, true), "Assets/Game/Prefabs/Props/MushroomGlow.prefab");
         art.beacon = SavePrefab(BuildBeacon(art), "Assets/Game/Prefabs/Gameplay/Beacon.prefab");
         art.firefly = SavePrefab(BuildFirefly(art), "Assets/Game/Prefabs/Gameplay/Firefly.prefab");
         art.moth = SavePrefab(BuildMoth(art), "Assets/Game/Prefabs/Gameplay/Moth.prefab");
+        PrepareKeeperImport();
         art.keeper = SavePrefab(BuildKeeper(art), "Assets/Game/Prefabs/Characters/Keeper.prefab");
         AssetDatabase.SaveAssets();
         return art;
@@ -277,7 +328,7 @@ public static partial class IslandBuilder
         EditorUtility.SetDirty(mat);
     }
 
-    static TerrainLayer Layer(string path, Texture2D tex, Vector2 tile)
+    static TerrainLayer Layer(string path, Texture2D tex, Texture2D normal, Texture2D mask, Vector2 tile)
     {
         TerrainLayer layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
         if (layer == null)
@@ -287,6 +338,9 @@ public static partial class IslandBuilder
         }
 
         layer.diffuseTexture = tex;
+        layer.normalMapTexture = normal;
+        layer.maskMapTexture = mask;
+        layer.normalScale = normal != null ? 1f : 0f;
         layer.tileSize = tile;
         EditorUtility.SetDirty(layer);
         return layer;
@@ -566,7 +620,6 @@ public static partial class IslandBuilder
             Prim(PrimitiveType.Sphere, "C", root.transform, new Vector3(0.34f, 0.18f, -0.1f), new Vector3(0.32f, 0.24f, 0.3f), art.rock);
         }
 
-        StripColliders(root);
         return root;
     }
 
@@ -604,42 +657,76 @@ public static partial class IslandBuilder
     static GameObject BuildBeacon(ArtKit art)
     {
         GameObject root = new GameObject("Beacon");
-        Prim(PrimitiveType.Cylinder, "Base", root.transform, new Vector3(0f, 0.125f, 0f), new Vector3(1.15f, 0.125f, 1.15f), art.beaconStone);
-        Prim(PrimitiveType.Cylinder, "Step", root.transform, new Vector3(0f, 0.33f, 0f), new Vector3(0.82f, 0.08f, 0.82f), art.beaconStone);
-        Prim(PrimitiveType.Cylinder, "Pillar", root.transform, new Vector3(0f, 0.9f, 0f), new Vector3(0.28f, 0.45f, 0.28f), art.beaconStone);
-        Prim(PrimitiveType.Sphere, "Brazier", root.transform, new Vector3(0f, 1.46f, 0f), new Vector3(0.5f, 0.2f, 0.5f), art.beaconStone);
-        GameObject column = Prim(PrimitiveType.Cylinder, "LightColumn", root.transform, new Vector3(0f, 1.5f, 0f), new Vector3(0.55f, 0.08f, 0.55f), art.column);
-        StripColliders(column);
-        column.SetActive(false);
+        Prim(PrimitiveType.Cylinder, "Footing", root.transform, new Vector3(0f, 0.08f, 0f), new Vector3(0.72f, 0.08f, 0.72f), art.beaconStone);
+        Prim(PrimitiveType.Cylinder, "Pole", root.transform, new Vector3(0f, 1.46f, 0f), new Vector3(0.1f, 1.3f, 0.1f), art.wood);
+        Prim(PrimitiveType.Cylinder, "BandLow", root.transform, new Vector3(0f, 0.55f, 0f), new Vector3(0.16f, 0.02f, 0.16f), art.iron);
+        Prim(PrimitiveType.Cylinder, "BandMid", root.transform, new Vector3(0f, 1.45f, 0f), new Vector3(0.16f, 0.02f, 0.16f), art.iron);
+        Prim(PrimitiveType.Cylinder, "BandHigh", root.transform, new Vector3(0f, 2.35f, 0f), new Vector3(0.16f, 0.022f, 0.16f), art.iron);
+        float head = 2.58f;
+        Prim(PrimitiveType.Sphere, "Cloth", root.transform, new Vector3(0f, head, 0f), new Vector3(0.2f, 0.26f, 0.2f), art.charred);
+        Prim(PrimitiveType.Cube, "CageA", root.transform, new Vector3(0.12f, head, 0f), new Vector3(0.02f, 0.32f, 0.02f), art.iron);
+        Prim(PrimitiveType.Cube, "CageB", root.transform, new Vector3(-0.12f, head, 0f), new Vector3(0.02f, 0.32f, 0.02f), art.iron);
+        Prim(PrimitiveType.Cube, "CageC", root.transform, new Vector3(0f, head, 0.12f), new Vector3(0.02f, 0.32f, 0.02f), art.iron);
+        Prim(PrimitiveType.Cube, "CageD", root.transform, new Vector3(0f, head, -0.12f), new Vector3(0.02f, 0.32f, 0.02f), art.iron);
+        Prim(PrimitiveType.Cylinder, "CageRing", root.transform, new Vector3(0f, head + 0.16f, 0f), new Vector3(0.28f, 0.012f, 0.28f), art.iron);
 
-        GameObject flame = new GameObject("Flame");
-        flame.transform.SetParent(root.transform, false);
-        flame.transform.localPosition = new Vector3(0f, 1.62f, 0f);
-        MakeParticles(flame, art.column, 0.7f, 0.8f, 0.18f, new Color(1f, 0.55f, 0.15f, 0.8f), 18f, 0, true, false, 0.12f);
+        GameObject wisp = new GameObject("Wisp");
+        wisp.transform.SetParent(root.transform, false);
+        wisp.transform.localPosition = new Vector3(0f, head + 0.28f, 0f);
+        MakeParticles(wisp, art.unlit, 1.6f, 0.35f, 0.12f, new Color(0.75f, 0.75f, 0.78f, 0.22f), 4f, 0, true, true, 0.04f, true);
 
-        GameObject embers = new GameObject("Embers");
-        embers.transform.SetParent(root.transform, false);
-        embers.transform.localPosition = new Vector3(0f, 1.55f, 0f);
-        MakeParticles(embers, art.column, 1.1f, 2.2f, 0.12f, new Color(1f, 0.45f, 0.1f, 1f), 0f, 28, false, true, 0.2f);
+        GameObject flameRoot = new GameObject("FlameRoot");
+        flameRoot.transform.SetParent(root.transform, false);
+        flameRoot.transform.localPosition = new Vector3(0f, head + 0.12f, 0f);
+        Prim(PrimitiveType.Quad, "FlameA", flameRoot.transform, new Vector3(0f, 0.42f, 0f), new Vector3(0.42f, 0.95f, 1f), art.flameA);
+        Prim(PrimitiveType.Quad, "FlameB", flameRoot.transform, new Vector3(0f, 0.36f, 0f), new Vector3(0.3f, 0.78f, 1f), art.flameB);
+        Prim(PrimitiveType.Quad, "FlameC", flameRoot.transform, new Vector3(0f, 0.5f, 0f), new Vector3(0.5f, 1.08f, 1f), art.flameC);
+        Prim(PrimitiveType.Quad, "Heat", flameRoot.transform, new Vector3(0f, 0.28f, 0f), new Vector3(0.4f, 0.55f, 1f), art.heat);
+        StripColliders(flameRoot);
+
+        GameObject sparks = new GameObject("Sparks");
+        sparks.transform.SetParent(flameRoot.transform, false);
+        sparks.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+        ParticleSystem sparkSystem = MakeParticles(sparks, art.unlit, 0.9f, 1.4f, 0.07f, new Color(1f, 0.62f, 0.22f, 0.9f), 14f, 0, true, false, 0.04f);
+        ParticleSystem.ShapeModule sparkShape = sparkSystem.shape;
+        sparkShape.shapeType = ParticleSystemShapeType.Cone;
+        sparkShape.angle = 10f;
+
+        GameObject flare = new GameObject("Flare");
+        flare.transform.SetParent(root.transform, false);
+        flare.transform.localPosition = new Vector3(0f, head + 0.2f, 0f);
+        MakeParticles(flare, art.unlit, 0.45f, 2.4f, 0.12f, new Color(1f, 0.85f, 0.45f, 0.85f), 0f, 18, false, true, 0.08f);
+
+        GameObject smoke = new GameObject("Smoke");
+        smoke.transform.SetParent(flameRoot.transform, false);
+        smoke.transform.localPosition = new Vector3(0f, 0.4f, 0f);
+        MakeParticles(smoke, art.unlit, 2.2f, 0.45f, 0.22f, new Color(0.15f, 0.15f, 0.16f, 0.28f), 6f, 0, true, true, 0.05f);
 
         GameObject lightObject = new GameObject("BeaconLight");
-        lightObject.transform.SetParent(root.transform, false);
-        lightObject.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+        lightObject.transform.SetParent(flameRoot.transform, false);
+        lightObject.transform.localPosition = new Vector3(0f, 0.25f, 0f);
         Light light = lightObject.AddComponent<Light>();
         light.type = LightType.Point;
-        light.color = new Color(1f, 0.62f, 0.28f);
+        light.color = new Color(1f, 0.58f, 0.22f);
         light.range = 16f;
-        light.intensity = 2.8f;
+        light.intensity = 3.4f;
         light.shadows = LightShadows.None;
         light.enabled = false;
+        flameRoot.transform.localScale = Vector3.one;
 
         Beacon beacon = root.AddComponent<Beacon>();
         SerializedObject so = new SerializedObject(beacon);
         so.FindProperty("beaconLight").objectReferenceValue = light;
-        so.FindProperty("fire").objectReferenceValue = flame.GetComponent<ParticleSystem>();
-        so.FindProperty("embers").objectReferenceValue = embers.GetComponent<ParticleSystem>();
-        so.FindProperty("lightColumn").objectReferenceValue = column.transform;
+        so.FindProperty("fire").objectReferenceValue = sparkSystem;
+        so.FindProperty("embers").objectReferenceValue = flare.GetComponent<ParticleSystem>();
+        so.FindProperty("smoke").objectReferenceValue = smoke.GetComponent<ParticleSystem>();
+        so.FindProperty("flameRoot").objectReferenceValue = flameRoot.transform;
         so.ApplyModifiedPropertiesWithoutUndo();
+        StripColliders(root);
+        CapsuleCollider blocker = root.AddComponent<CapsuleCollider>();
+        blocker.center = new Vector3(0f, 1.35f, 0f);
+        blocker.height = 2.7f;
+        blocker.radius = 0.22f;
         return root;
     }
 
@@ -709,38 +796,20 @@ public static partial class IslandBuilder
 
     static GameObject BuildKeeper(ArtKit art)
     {
-        GameObject root = new GameObject("Keeper");
-        MakeCone("Cloak", root.transform, new Vector3(0f, 0.72f, 0f), new Vector3(0.72f, 0.62f, 0.72f), art.cloak, Quaternion.identity);
-        Prim(PrimitiveType.Sphere, "Hood", root.transform, new Vector3(0f, 1.42f, -0.02f), new Vector3(0.42f, 0.4f, 0.4f), art.cloak);
-        Prim(PrimitiveType.Sphere, "Head", root.transform, new Vector3(0f, 1.4f, 0.06f), Vector3.one * 0.2f, art.skin);
-        Prim(PrimitiveType.Sphere, "Hand", root.transform, new Vector3(0.24f, 0.95f, 0.18f), Vector3.one * 0.09f, art.skin);
-        GameObject pivot = new GameObject("LanternPivot");
-        pivot.transform.SetParent(root.transform, false);
-        pivot.transform.localPosition = new Vector3(0.28f, 0.92f, 0.28f);
-        GameObject lantern = Prim(PrimitiveType.Cube, "Lantern", pivot.transform, Vector3.zero, new Vector3(0.12f, 0.16f, 0.12f), art.lanternMat);
-        Prim(PrimitiveType.Cube, "Cap", lantern.transform, new Vector3(0f, 0.62f, 0f), new Vector3(0.7f, 0.18f, 0.7f), art.cloak);
-        GameObject lightObject = new GameObject("LanternLight");
-        lightObject.transform.SetParent(lantern.transform, false);
-        lightObject.transform.localPosition = new Vector3(0f, 0f, 0f);
-        Light light = lightObject.AddComponent<Light>();
-        light.type = LightType.Point;
-        light.color = new Color(1f, 0.64f, 0.28f);
-        light.range = 14f;
-        light.intensity = 4.2f;
-        light.shadows = LightShadows.None;
-        GameObject dust = new GameObject("Dust");
-        dust.transform.SetParent(root.transform, false);
-        dust.transform.localPosition = new Vector3(0f, 0.08f, 0f);
-        MakeParticles(dust, art.unlit, 0.55f, 0.35f, 0.35f, new Color(0.75f, 0.75f, 0.7f, 0.22f), 0f, 0, true, true, 0.2f);
-        StripColliders(root);
-        return root;
+        GameObject imported = BuildImportedKeeper(art);
+        if (imported != null)
+        {
+            return imported;
+        }
+
+        return BuildPrimitiveKeeper(art);
     }
 
-    static ParticleSystem MakeParticles(GameObject go, Material mat, float life, float speed, float size, Color color, float rate, int burst, bool loop, bool world, float radius)
+    static ParticleSystem MakeParticles(GameObject go, Material mat, float life, float speed, float size, Color color, float rate, int burst, bool loop, bool world, float radius, bool playAwake = false)
     {
         ParticleSystem system = go.AddComponent<ParticleSystem>();
         ParticleSystem.MainModule main = system.main;
-        main.playOnAwake = false;
+        main.playOnAwake = playAwake;
         main.loop = loop;
         main.startLifetime = life;
         main.startSpeed = speed;
