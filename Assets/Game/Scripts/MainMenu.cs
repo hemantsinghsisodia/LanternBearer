@@ -13,6 +13,7 @@ public class MainMenu : MonoBehaviour
 
     Button playButton;
     Button difficultyButton;
+    Button musicButton;
     Button island1Button;
     Button island2Button;
     Button quitButton;
@@ -24,6 +25,7 @@ public class MainMenu : MonoBehaviour
         Cache();
         Listen(playButton, Play);
         Listen(difficultyButton, Cycle);
+        Listen(musicButton, ToggleMusic);
         Listen(island1Button, Play);
         Listen(island2Button, PlayIsland2);
         Listen(quitButton, QuitGame);
@@ -34,6 +36,7 @@ public class MainMenu : MonoBehaviour
     {
         playButton = FindButton("PlayButton");
         difficultyButton = FindButton("DifficultyButton");
+        musicButton = FindButton("MusicButton");
         island1Button = FindButton("Island1Button");
         island2Button = FindButton("Island2Button");
         quitButton = FindButton("QuitButton");
@@ -47,6 +50,8 @@ public class MainMenu : MonoBehaviour
         {
             SetLabel(difficultyButton, "Difficulty: " + GameSettings.Current);
         }
+
+        RefreshMusicLabel();
 
         if (best1 != null)
         {
@@ -79,6 +84,25 @@ public class MainMenu : MonoBehaviour
         }
 
         SceneManager.LoadScene(Island2Scene);
+    }
+
+    void Update()
+    {
+        RefreshMusicLabel();
+    }
+
+    void ToggleMusic()
+    {
+        MusicPlayer.ToggleMute();
+        RefreshMusicLabel();
+    }
+
+    void RefreshMusicLabel()
+    {
+        if (musicButton != null)
+        {
+            SetLabel(musicButton, MusicPlayer.IsMuted ? "Music: Off" : "Music: On");
+        }
     }
 
     void Cycle()

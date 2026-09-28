@@ -24,6 +24,7 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 | Space | Jump. Two beacons sit on raised ground |
 | E | Light a beacon when you are standing next to it |
 | R | Restart the round |
+| M | Mute or unmute the music |
 
 Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths gather on the light and drain it faster; sprint away to shake them off. Some stepping stones only appear inside the lantern light. Light every beacon and the sky turns to dawn. If the lantern goes out, you lose. Your best time is saved for each island.
 
@@ -36,6 +37,11 @@ Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths 
 - `Packages/com.coplaydev.unity-mcp/` — local copy of MCP for Unity, used to drive the editor from Cursor
 
 ## Credits
+
+### Music
+
+- Calm Track by pmiller (CC0, OpenGameArt). https://opengameart.org/content/calm-track
+- Calm Piano 1 / Vaporware by The Cynic Project / cynicmusic.com (CC0). https://opengameart.org/content/calm-piano-1-vaporware
 
 - Keeper character: "Hooded Adventurer" by Quaternius, via Poly Pizza (https://poly.pizza/m/y9KWOVG21R). Licence CC0 1.0. The imported file is `Assets/Game/Models/Keeper/Keeper.fbx`.
 - Terrain textures, all CC0 from Poly Haven:

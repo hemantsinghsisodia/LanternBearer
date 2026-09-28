@@ -29,7 +29,7 @@ public class AudioManager : MonoBehaviour
         ambience.playOnAwake = false;
         ambience.loop = true;
         ambience.spatialBlend = 0f;
-        ambience.volume = 0.32f;
+        ambience.volume = 0.22f;
         ambience.clip = ProceduralAudio.Ambience();
         ambience.Play();
 

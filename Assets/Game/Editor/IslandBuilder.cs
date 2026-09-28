@@ -939,7 +939,7 @@ public static partial class IslandBuilder
         Font font = BuiltinFont();
         GameObject canvasObject = MakeCanvas("MenuCanvas");
         canvasObject.AddComponent<MainMenu>();
-        RectTransform panel = MakeRect(canvasObject.transform, "Panel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 760f));
+        RectTransform panel = MakeRect(canvasObject.transform, "Panel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
         panel.pivot = new Vector2(0f, 0.5f);
         Image panelImage = panel.gameObject.AddComponent<Image>();
         panelImage.sprite = art.uiSprite;
@@ -948,11 +948,12 @@ public static partial class IslandBuilder
         MakeText(panel, "Subtitle", "Light the beacons before the flame dies.", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(460f, 40f), new Color(0.8f, 0.86f, 0.9f), font, TextAnchor.MiddleCenter);
         MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, 150f));
         MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, 80f));
-        MakeButton(art, panel, "Island1Button", "Island 1", new Vector2(0f, 0f));
-        MakeText(panel, "BestIsland1", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -42f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "Island2Button", "Island 2", new Vector2(0f, -110f));
-        MakeText(panel, "BestIsland2", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -152f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, -230f));
+        MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, 10f));
+        MakeButton(art, panel, "Island1Button", "Island 1", new Vector2(0f, -70f));
+        MakeText(panel, "BestIsland1", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -112f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+        MakeButton(art, panel, "Island2Button", "Island 2", new Vector2(0f, -180f));
+        MakeText(panel, "BestIsland2", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -222f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, -300f));
     }
 
     static void CreateHud(ArtKit art, Stage stage)
