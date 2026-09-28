@@ -31,10 +31,15 @@ public static partial class IslandBuilder
         data.alphamapResolution = alphaResolution;
         data.baseMapResolution = 512;
         TerrainLayer[] layers = new[] { art.sandLayer, art.grassLayer, art.dirtLayer, art.rockLayer, art.mossLayer };
+        if (config.levelId == "island2")
+        {
+            layers = WarmKarooLayers(art);
+        }
+
         data.terrainLayers = layers;
         float[,,] alphamaps = PaintTerrain(heights, resolution, alphaResolution, config, stage.worldSize, stage.trails);
         data.SetAlphamaps(0, 0, alphamaps);
-        ApplyDetails(data, alphamaps, heights, resolution, config, stage.worldSize, art);
+        ApplyDetails(data, alphamaps, heights, resolution, config, stage.worldSize, art, stage.trails);
         UnityEditor.EditorUtility.SetDirty(data);
 
         GameObject terrainObject = Terrain.CreateTerrainGameObject(data);
@@ -356,6 +361,15 @@ public static partial class IslandBuilder
                 grass *= 1f - dirt * 0.8f;
                 moss *= 1f - dirt * 0.55f;
                 moss *= 1f - sand * 0.7f;
+                if (config.levelId == "island2")
+                {
+                    sand *= 1.45f;
+                    dirt *= 1.35f;
+                    grass *= 0.62f;
+                    moss *= 0.28f;
+                    rock *= 0.92f;
+                }
+
                 float sum = sand + grass + dirt + rock + moss;
                 if (sum < 0.001f)
                 {
@@ -394,35 +408,21 @@ public static partial class IslandBuilder
         return 1f - Mathf.SmoothStep(width * 0.35f, width, nearest);
     }
 
-    static void ApplyDetails(TerrainData data, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, ArtKit art)
+    static void ApplyDetails(TerrainData data, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, ArtKit art, List<List<Vector2>> trails)
     {
-        if (art.detailGrass == null && art.detailReed == null)
-        {
-            return;
-        }
-
         const int detailRes = 256;
         data.SetDetailResolution(detailRes, 16);
         List<DetailPrototype> prototypes = new List<DetailPrototype>();
-        int grassIndex = -1;
-        int reedIndex = -1;
-        if (art.detailGrass != null)
+        List<int[,]> layers = new List<int[,]>();
+        if (config.biome != null && config.biome.entries != null)
         {
-            grassIndex = prototypes.Count;
-            prototypes.Add(Billboard(art.detailGrass, new Color(0.32f, 0.52f, 0.2f), new Color(0.24f, 0.38f, 0.14f), 0.25f, 0.7f, 0.28f, 0.62f));
+            AddBiomeDetails(data, prototypes, layers, alphamaps, heights, heightRes, config, worldSize, trails, detailRes);
         }
-
-        if (art.detailReed != null)
-        {
-            reedIndex = prototypes.Count;
-            prototypes.Add(Billboard(art.detailReed, new Color(0.45f, 0.5f, 0.22f), new Color(0.28f, 0.32f, 0.14f), 0.55f, 1.25f, 0.18f, 0.36f));
-        }
-
-        data.detailPrototypes = prototypes.ToArray();
-        int density = config.grassDetailDensity <= 0 ? 8 : Mathf.Clamp(config.grassDetailDensity, 1, 16);
-        if (grassIndex >= 0)
+        else if (art.detailGrass != null)
         {
             int[,] grass = new int[detailRes, detailRes];
+            int density = config.grassDetailDensity <= 0 ? 8 : Mathf.Clamp(config.grassDetailDensity, 1, 16);
+            prototypes.Add(Billboard(art.detailGrass, new Color(0.32f, 0.52f, 0.2f), new Color(0.24f, 0.38f, 0.14f), 0.25f, 0.7f, 0.28f, 0.62f));
             for (int z = 0; z < detailRes; z++)
             {
                 for (int x = 0; x < detailRes; x++)
@@ -439,11 +439,12 @@ public static partial class IslandBuilder
                 }
             }
 
-            data.SetDetailLayer(0, 0, grassIndex, grass);
+            layers.Add(grass);
         }
 
-        if (reedIndex >= 0)
+        if (art.detailReed != null)
         {
+            prototypes.Add(Billboard(art.detailReed, new Color(0.45f, 0.5f, 0.22f), new Color(0.28f, 0.32f, 0.14f), 0.55f, 1.25f, 0.18f, 0.36f));
             int[,] reeds = new int[detailRes, detailRes];
             for (int z = 0; z < detailRes; z++)
             {
@@ -461,8 +462,194 @@ public static partial class IslandBuilder
                 }
             }
 
-            data.SetDetailLayer(0, 0, reedIndex, reeds);
+            layers.Add(reeds);
         }
+
+        if (prototypes.Count == 0)
+        {
+            return;
+        }
+
+        data.detailPrototypes = prototypes.ToArray();
+        for (int i = 0; i < layers.Count && i < prototypes.Count; i++)
+        {
+            data.SetDetailLayer(0, 0, i, layers[i]);
+        }
+    }
+
+    static void AddBiomeDetails(TerrainData data, List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes)
+    {
+        bool namaqualand = config.levelId == "island2";
+        BiomeEntry[] entries = config.biome.entries;
+        for (int e = 0; e < entries.Length; e++)
+        {
+            BiomeEntry entry = entries[e];
+            if (entry == null || entry.prefab == null)
+            {
+                continue;
+            }
+
+            if (entry.category != BiomeCategory.GroundCover && entry.category != BiomeCategory.Flower)
+            {
+                continue;
+            }
+
+            string prefabName = entry.prefab.name.ToLowerInvariant();
+            bool moss = prefabName.Contains("moss");
+            bool flower = entry.category == BiomeCategory.Flower;
+            prototypes.Add(MeshDetail(entry.prefab, entry.scaleRange.x, entry.scaleRange.y, namaqualand));
+            int[,] map = new int[detailRes, detailRes];
+            int density = Mathf.Clamp(entry.count, 1, 8);
+            for (int z = 0; z < detailRes; z++)
+            {
+                for (int x = 0; x < detailRes; x++)
+                {
+                    int hx = Mathf.Clamp(Mathf.RoundToInt(x / (float)(detailRes - 1) * (heightRes - 1)), 0, heightRes - 1);
+                    int hz = Mathf.Clamp(Mathf.RoundToInt(z / (float)(detailRes - 1) * (heightRes - 1)), 0, heightRes - 1);
+                    int ax = Mathf.Clamp(Mathf.RoundToInt(x / (float)(detailRes - 1) * (alphamaps.GetLength(1) - 1)), 0, alphamaps.GetLength(1) - 1);
+                    int az = Mathf.Clamp(Mathf.RoundToInt(z / (float)(detailRes - 1) * (alphamaps.GetLength(0) - 1)), 0, alphamaps.GetLength(0) - 1);
+                    float h = heights[hz, hx];
+                    if (h < WaterFraction + 0.05f)
+                    {
+                        continue;
+                    }
+
+                    Vector2 world = PixelToWorld(x, z, detailRes, worldSize);
+                    if (world.magnitude < 5f)
+                    {
+                        continue;
+                    }
+
+                    int hx2 = Mathf.Clamp(hx + 1, 0, heightRes - 1);
+                    int hz2 = Mathf.Clamp(hz + 1, 0, heightRes - 1);
+                    float run = worldSize / (heightRes - 1);
+                    float slope = Mathf.Max(Mathf.Abs(heights[hz, hx2] - h), Mathf.Abs(heights[hz2, hx] - h)) * config.hillHeight / run;
+                    float neighbor = (heights[hz, hx] + heights[hz, hx2] + heights[hz2, hx] + heights[Mathf.Max(0, hz - 1), hx]) * 0.25f;
+                    float hollow = Mathf.Clamp01((neighbor - h) * 10f);
+                    float sand = alphamaps[az, ax, 0];
+                    float grass = alphamaps[az, ax, 1];
+                    float trail = TrailMask(world, trails, 2.3f);
+                    float edge = Mathf.Sin(Mathf.Clamp01(trail) * Mathf.PI);
+                    int value = 0;
+                    if (moss)
+                    {
+                        if (!namaqualand && slope > 0.28f && sand < 0.35f)
+                        {
+                            value = Mathf.RoundToInt(density * Mathf.Clamp01(slope));
+                        }
+                        else if (namaqualand && slope > 0.55f && sand < 0.25f)
+                        {
+                            value = 1;
+                        }
+                    }
+                    else if (flower && !namaqualand)
+                    {
+                        if (edge > 0.35f && grass > 0.25f)
+                        {
+                            value = Mathf.RoundToInt(density * edge);
+                        }
+                    }
+                    else if (flower && namaqualand)
+                    {
+                        float carpet = hollow * 1.15f + (1f - Mathf.Clamp01(slope)) * 0.2f;
+                        if (sand < 0.55f && slope < 0.62f && carpet > 0.22f)
+                        {
+                            value = Mathf.RoundToInt(density * Mathf.Clamp01(carpet));
+                        }
+                    }
+                    else if (!namaqualand)
+                    {
+                        if (grass > 0.38f && sand < 0.4f)
+                        {
+                            value = Mathf.RoundToInt(density * grass * (0.4f + edge * 0.8f));
+                        }
+                    }
+                    else if (sand < 0.62f && slope < 0.7f && h > WaterFraction + 0.06f)
+                    {
+                        float cover = Mathf.Clamp01(hollow * 0.45f + 0.35f);
+                        value = Mathf.RoundToInt(density * cover * 0.55f);
+                    }
+
+                    map[z, x] = Mathf.Clamp(value, 0, 8);
+                }
+            }
+
+            layers.Add(map);
+        }
+    }
+
+    static DetailPrototype MeshDetail(GameObject prefab, float minScale, float maxScale, bool warm)
+    {
+        if (minScale <= 0.01f)
+        {
+            minScale = 0.85f;
+        }
+
+        if (maxScale < minScale)
+        {
+            maxScale = minScale;
+        }
+
+        DetailPrototype prototype = new DetailPrototype();
+        prototype.prototype = prefab;
+        prototype.usePrototypeMesh = true;
+        prototype.renderMode = DetailRenderMode.VertexLit;
+        prototype.useInstancing = true;
+        prototype.alignToGround = 0.75f;
+        prototype.healthyColor = Color.white;
+        prototype.dryColor = warm ? new Color(1f, 0.9f, 0.72f) : Color.white;
+        prototype.minHeight = minScale;
+        prototype.maxHeight = maxScale;
+        prototype.minWidth = minScale;
+        prototype.maxWidth = maxScale;
+        prototype.noiseSpread = 0.35f;
+        return prototype;
+    }
+
+    static TerrainLayer[] WarmKarooLayers(ArtKit art)
+    {
+        string folder = "Assets/Game/Levels/Layers/Karoo";
+        if (!UnityEditor.AssetDatabase.IsValidFolder(folder))
+        {
+            if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Game/Levels/Layers"))
+            {
+                UnityEditor.AssetDatabase.CreateFolder("Assets/Game/Levels", "Layers");
+            }
+
+            UnityEditor.AssetDatabase.CreateFolder("Assets/Game/Levels/Layers", "Karoo");
+        }
+
+        return new[]
+        {
+            TintLayer(art.sandLayer, folder + "/Sand.terrainlayer", new Color(0.1f, 0.05f, 0.015f), new Color(1.12f, 0.9f, 0.62f)),
+            TintLayer(art.grassLayer, folder + "/Grass.terrainlayer", new Color(0.12f, 0.08f, 0.02f), new Color(0.95f, 0.82f, 0.48f)),
+            TintLayer(art.dirtLayer, folder + "/Dirt.terrainlayer", new Color(0.14f, 0.07f, 0.02f), new Color(1.08f, 0.78f, 0.46f)),
+            art.rockLayer,
+            TintLayer(art.mossLayer, folder + "/Moss.terrainlayer", new Color(0.05f, 0.05f, 0.02f), new Color(0.55f, 0.58f, 0.4f))
+        };
+    }
+
+    static TerrainLayer TintLayer(TerrainLayer source, string path, Color min, Color max)
+    {
+        TerrainLayer layer = UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
+        if (layer == null)
+        {
+            layer = new TerrainLayer();
+            UnityEditor.EditorUtility.CopySerialized(source, layer);
+            UnityEditor.AssetDatabase.CreateAsset(layer, path);
+        }
+        else
+        {
+            layer.diffuseTexture = source.diffuseTexture;
+            layer.normalMapTexture = source.normalMapTexture;
+            layer.maskMapTexture = source.maskMapTexture;
+            layer.tileSize = source.tileSize;
+        }
+
+        layer.diffuseRemapMin = min;
+        layer.diffuseRemapMax = max;
+        UnityEditor.EditorUtility.SetDirty(layer);
+        return layer;
     }
 
     static DetailPrototype Billboard(Texture2D texture, Color healthy, Color dry, float minHeight, float maxHeight, float minWidth, float maxWidth)

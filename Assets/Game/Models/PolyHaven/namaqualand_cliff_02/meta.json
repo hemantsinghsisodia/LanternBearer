@@ -1,0 +1,20 @@
+{
+  "id": "namaqualand_cliff_02",
+  "authors": [
+    "Dario Barresi",
+    "Rico Cilliers"
+  ],
+  "category": "cliff",
+  "variants": [
+    {
+      "name": "namaqualand_cliff_02_a",
+      "tris": 24258,
+      "height": 7.187
+    }
+  ],
+  "textures": [
+    "namaqualand_cliff_02_albedo.png",
+    "namaqualand_cliff_02_normal.png",
+    "namaqualand_cliff_02_roughness.png"
+  ]
+}

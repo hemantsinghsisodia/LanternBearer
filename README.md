@@ -44,6 +44,21 @@ Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths 
 - Calm Piano 1 / Vaporware by The Cynic Project / cynicmusic.com (CC0). https://opengameart.org/content/calm-piano-1-vaporware
 
 - Keeper character: "Hooded Adventurer" by Quaternius, via Poly Pizza (https://poly.pizza/m/y9KWOVG21R). Licence CC0 1.0. The imported file is `Assets/Game/Models/Keeper/Keeper.fbx`.
+- Poly Haven models (CC0), used on the islands:
+  - pine_tree_01, fir_tree_01, pine_sapling_medium, pine_sapling_small, fir_sapling, fern_02, grass_medium_01, dandelion_01, celandine_01 — Rico Cilliers, Rob Tuytel
+  - tree_stump_01, tree_stump_02, dead_tree_trunk, pine_roots, moss_01 — Rob Tuytel
+  - dead_tree_trunk_02 — Jenelle van Heerden, Rico Cilliers
+  - dry_branches_medium_01, shrub_02, shrub_04, grass_medium_02, grass_bermuda_01, shrub_sorrel_01 — Rico Cilliers
+  - rock_moss_set_02 — Kless Gyzen
+  - namaqualand_boulder_02, dry_quiver_leaf — Greg Zaal, Rico Cilliers
+  - namaqualand_boulder_03, namaqualand_boulder_05 — Dario Barresi, Jenelle van Heerden
+  - namaqualand_cliff_02, quiver_tree_02 — Dario Barresi, Rico Cilliers
+  - namaqualand_boulder_04, didelta_spinosa, leipoldtia_schultzei, flower_heliophila — Jenelle van Heerden
+  - namaqualand_boulder_06, namaqualand_boulders_01, namaqualand_rocks_01, namaqualand_stones_01, bark_debris_01 — Greg Zaal, Jenelle van Heerden
+  - namaqualand_cliff_01 — Jenelle van Heerden, Rico Cilliers
+  - quiver_tree_01, dead_quiver_trunk — Dario Barresi, James Ray Cock, Rico Cilliers
+  - wild_rooibos_bush, cheiridopsis_succulent, crystalline_iceplant, flower_gazania — James Ray Cock, Jenelle van Heerden
+  - flower_ursinia, flower_empodium, flower_stinkkruid — Jenelle van Heerden, Rico Cilliers
 - Terrain textures, all CC0 from Poly Haven:
   - Coast Sand 01 by Rob Tuytel (shore)
   - Forrest Ground 01 by Rob Tuytel (forest ground)

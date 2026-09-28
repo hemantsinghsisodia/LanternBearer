@@ -1,0 +1,24 @@
+{
+  "id": "grass_bermuda_01",
+  "authors": [
+    "Rico Cilliers"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "grass_bermuda_01_geometry_medium_e",
+      "tris": 14,
+      "height": 0.2
+    },
+    {
+      "name": "grass_bermuda_01_medium_e",
+      "tris": 14,
+      "height": 0.2
+    }
+  ],
+  "textures": [
+    "grass_bermuda_01_albedo.png",
+    "grass_bermuda_01_normal.png",
+    "grass_bermuda_01_roughness.png"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "grass_medium_02",
+  "authors": [
+    "Rico Cilliers"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "grass_medium_02_c",
+      "tris": 622,
+      "height": 0.338
+    },
+    {
+      "name": "grass_medium_02_c_geo",
+      "tris": 622,
+      "height": 0.338
+    },
+    {
+      "name": "grass_medium_02_d",
+      "tris": 1274,
+      "height": 0.38
+    },
+    {
+      "name": "grass_medium_02_d_geo",
+      "tris": 1274,
+      "height": 0.38
+    },
+    {
+      "name": "grass_medium_02_b",
+      "tris": 900,
+      "height": 0.262
+    },
+    {
+      "name": "grass_medium_02_b_geo",
+      "tris": 900,
+      "height": 0.262
+    }
+  ],
+  "textures": [
+    "grass_medium_02_albedo.png",
+    "grass_medium_02_normal.png",
+    "grass_medium_02_roughness.png"
+  ]
+}

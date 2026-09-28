@@ -26,3 +26,4 @@ MonoBehaviour:
   fogDensity: 0.011
   grassDetailDensity: 8
   nextLevelScene: Island2
+  biome: {fileID: 11400000, guid: 3e1ef4cce0ad1234d85b28b57c100eb7, type: 2}

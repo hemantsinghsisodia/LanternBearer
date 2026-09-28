@@ -1,0 +1,40 @@
+{
+  "id": "flower_ursinia",
+  "authors": [
+    "Jenelle van Heerden",
+    "Rico Cilliers"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "flower_ursinia_a",
+      "tris": 2384,
+      "height": 0.28
+    },
+    {
+      "name": "flower_ursinia_b",
+      "tris": 830,
+      "height": 0.221
+    },
+    {
+      "name": "flower_ursinia_c",
+      "tris": 631,
+      "height": 0.252
+    },
+    {
+      "name": "flower_ursinia_d",
+      "tris": 362,
+      "height": 0.226
+    },
+    {
+      "name": "flower_ursinia_e",
+      "tris": 244,
+      "height": 0.125
+    }
+  ],
+  "textures": [
+    "flower_ursinia_albedo.png",
+    "flower_ursinia_normal.png",
+    "flower_ursinia_roughness.png"
+  ]
+}

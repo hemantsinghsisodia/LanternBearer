@@ -1,0 +1,45 @@
+{
+  "id": "fir_tree_01",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "tree",
+  "variants": [
+    {
+      "name": "fir_tree_01_a",
+      "tris": 48149,
+      "height": 8.0
+    },
+    {
+      "name": "fir_tree_01_b",
+      "tris": 41742,
+      "height": 5.941
+    },
+    {
+      "name": "fir_tree_01_c",
+      "tris": 22079,
+      "height": 6.141
+    }
+  ],
+  "textures": [
+    "fir_tree_01_bark_albedo.png",
+    "fir_tree_01_bark_normal.png",
+    "fir_tree_01_bark_roughness.png",
+    "fir_tree_01_trunk_a_albedo.png",
+    "fir_tree_01_trunk_a_normal.png",
+    "fir_tree_01_trunk_a_roughness.png",
+    "fir_tree_01_twig_albedo.png",
+    "fir_tree_01_twig_normal.png",
+    "fir_tree_01_twig_roughness.png",
+    "fir_tree_01_dead_branches_albedo.png",
+    "fir_tree_01_dead_branches_normal.png",
+    "fir_tree_01_dead_branches_roughness.png",
+    "fir_tree_01_trunk_b_albedo.png",
+    "fir_tree_01_trunk_b_normal.png",
+    "fir_tree_01_trunk_b_roughness.png",
+    "fir_tree_01_trunk_c_albedo.png",
+    "fir_tree_01_trunk_c_normal.png",
+    "fir_tree_01_trunk_c_roughness.png"
+  ]
+}

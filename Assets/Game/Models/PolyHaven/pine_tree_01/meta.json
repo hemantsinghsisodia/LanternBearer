@@ -1,0 +1,45 @@
+{
+  "id": "pine_tree_01",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "tree",
+  "variants": [
+    {
+      "name": "pine_tree_01_a",
+      "tris": 64137,
+      "height": 8.07
+    },
+    {
+      "name": "pine_tree_01_b",
+      "tris": 63062,
+      "height": 5.982
+    },
+    {
+      "name": "pine_tree_01_c",
+      "tris": 58489,
+      "height": 6.932
+    }
+  ],
+  "textures": [
+    "pine_tree_01_bark_albedo.png",
+    "pine_tree_01_bark_normal.png",
+    "pine_tree_01_bark_roughness.png",
+    "pine_tree_01_trunk_a_albedo.png",
+    "pine_tree_01_trunk_a_normal.png",
+    "pine_tree_01_trunk_a_roughness.png",
+    "pine_tree_01_twig_albedo.png",
+    "pine_tree_01_twig_normal.png",
+    "pine_tree_01_twig_roughness.png",
+    "pine_tree_01_dead_branches_albedo.png",
+    "pine_tree_01_dead_branches_normal.png",
+    "pine_tree_01_dead_branches_roughness.png",
+    "pine_tree_01_trunk_b_albedo.png",
+    "pine_tree_01_trunk_b_normal.png",
+    "pine_tree_01_trunk_b_roughness.png",
+    "pine_tree_01_trunk_c_albedo.png",
+    "pine_tree_01_trunk_c_normal.png",
+    "pine_tree_01_trunk_c_roughness.png"
+  ]
+}

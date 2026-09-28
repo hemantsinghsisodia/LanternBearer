@@ -1,0 +1,40 @@
+{
+  "id": "namaqualand_stones_01",
+  "authors": [
+    "Greg Zaal",
+    "Jenelle van Heerden"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_stones_01_a",
+      "tris": 316,
+      "height": 0.038
+    },
+    {
+      "name": "namaqualand_stones_01_b",
+      "tris": 1134,
+      "height": 0.084
+    },
+    {
+      "name": "namaqualand_stones_01_c",
+      "tris": 480,
+      "height": 0.057
+    },
+    {
+      "name": "namaqualand_stones_01_d",
+      "tris": 732,
+      "height": 0.037
+    },
+    {
+      "name": "namaqualand_stones_01_e",
+      "tris": 680,
+      "height": 0.077
+    }
+  ],
+  "textures": [
+    "namaqualand_stones_01_albedo.png",
+    "namaqualand_stones_01_normal.png",
+    "namaqualand_stones_01_roughness.png"
+  ]
+}

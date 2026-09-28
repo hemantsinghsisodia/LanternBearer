@@ -1,0 +1,46 @@
+{
+  "id": "wild_rooibos_bush",
+  "authors": [
+    "James Ray Cock",
+    "Jenelle van Heerden"
+  ],
+  "category": "undergrowth",
+  "variants": [
+    {
+      "name": "wild_rooibos_bush_a",
+      "tris": 2783,
+      "height": 0.7
+    },
+    {
+      "name": "wild_rooibos_bush_b",
+      "tris": 1500,
+      "height": 0.641
+    },
+    {
+      "name": "wild_rooibos_bush_c",
+      "tris": 990,
+      "height": 0.568
+    },
+    {
+      "name": "wild_rooibos_bush_d",
+      "tris": 620,
+      "height": 0.532
+    },
+    {
+      "name": "wild_rooibos_bush_e",
+      "tris": 304,
+      "height": 0.405
+    }
+  ],
+  "textures": [
+    "wild_rooibos_bush_twigs_albedo.png",
+    "wild_rooibos_bush_twigs_normal.png",
+    "wild_rooibos_bush_twigs_roughness.png",
+    "wild_rooibos_bush_leaves_albedo.png",
+    "wild_rooibos_bush_leaves_normal.png",
+    "wild_rooibos_bush_leaves_roughness.png",
+    "wild_rooibos_bush_albedo.png",
+    "wild_rooibos_bush_normal.png",
+    "wild_rooibos_bush_roughness.png"
+  ]
+}

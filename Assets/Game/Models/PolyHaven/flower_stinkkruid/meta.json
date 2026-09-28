@@ -1,0 +1,35 @@
+{
+  "id": "flower_stinkkruid",
+  "authors": [
+    "Jenelle van Heerden",
+    "Rico Cilliers"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "flower_stinkkruid_a",
+      "tris": 2424,
+      "height": 0.2
+    },
+    {
+      "name": "flower_stinkkruid_b",
+      "tris": 1345,
+      "height": 0.174
+    },
+    {
+      "name": "flower_stinkkruid_c",
+      "tris": 805,
+      "height": 0.17
+    },
+    {
+      "name": "flower_stinkkruid_d",
+      "tris": 938,
+      "height": 0.144
+    }
+  ],
+  "textures": [
+    "flower_stinkkruid_albedo.png",
+    "flower_stinkkruid_normal.png",
+    "flower_stinkkruid_roughness.png"
+  ]
+}

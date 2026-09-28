@@ -1,0 +1,24 @@
+{
+  "id": "quiver_tree_01",
+  "authors": [
+    "Dario Barresi",
+    "James Ray Cock",
+    "Rico Cilliers"
+  ],
+  "category": "tree",
+  "variants": [
+    {
+      "name": "quiver_tree_01_a",
+      "tris": 16816,
+      "height": 6.5
+    }
+  ],
+  "textures": [
+    "quiver_tree_01_leaf_albedo.png",
+    "quiver_tree_01_leaf_normal.png",
+    "quiver_tree_01_leaf_roughness.png",
+    "quiver_tree_01_trunk_albedo.png",
+    "quiver_tree_01_trunk_normal.png",
+    "quiver_tree_01_trunk_roughness.png"
+  ]
+}

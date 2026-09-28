@@ -1,0 +1,40 @@
+{
+  "id": "flower_empodium",
+  "authors": [
+    "Jenelle van Heerden",
+    "Rico Cilliers"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "flower_empodium_a",
+      "tris": 149,
+      "height": 0.22
+    },
+    {
+      "name": "flower_empodium_b",
+      "tris": 124,
+      "height": 0.158
+    },
+    {
+      "name": "flower_empodium_c",
+      "tris": 166,
+      "height": 0.146
+    },
+    {
+      "name": "flower_empodium_d",
+      "tris": 59,
+      "height": 0.14
+    },
+    {
+      "name": "flower_empodium_e",
+      "tris": 39,
+      "height": 0.122
+    }
+  ],
+  "textures": [
+    "flower_empodium_albedo.png",
+    "flower_empodium_normal.png",
+    "flower_empodium_roughness.png"
+  ]
+}

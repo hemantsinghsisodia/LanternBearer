@@ -1,0 +1,19 @@
+{
+  "id": "namaqualand_boulder_04",
+  "authors": [
+    "Jenelle van Heerden"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_boulder_04_a",
+      "tris": 7382,
+      "height": 1.904
+    }
+  ],
+  "textures": [
+    "namaqualand_boulder_04_albedo.png",
+    "namaqualand_boulder_04_normal.png",
+    "namaqualand_boulder_04_roughness.png"
+  ]
+}

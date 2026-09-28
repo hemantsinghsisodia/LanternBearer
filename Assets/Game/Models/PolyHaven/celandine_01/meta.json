@@ -1,0 +1,45 @@
+{
+  "id": "celandine_01",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "celandine_01_d",
+      "tris": 136,
+      "height": 0.172
+    },
+    {
+      "name": "celandine_01_geonodes_d",
+      "tris": 136,
+      "height": 0.172
+    },
+    {
+      "name": "celandine_01_b",
+      "tris": 106,
+      "height": 0.163
+    },
+    {
+      "name": "celandine_01_geonodes_b",
+      "tris": 106,
+      "height": 0.163
+    },
+    {
+      "name": "celandine_01_c",
+      "tris": 176,
+      "height": 0.2
+    },
+    {
+      "name": "celandine_01_geonodes_c",
+      "tris": 176,
+      "height": 0.2
+    }
+  ],
+  "textures": [
+    "celandine_01_albedo.png",
+    "celandine_01_normal.png",
+    "celandine_01_roughness.png"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "pine_roots",
+  "authors": [
+    "Rob Tuytel"
+  ],
+  "category": "deadwood",
+  "variants": [
+    {
+      "name": "pine_roots_a",
+      "tris": 16560,
+      "height": 0.144
+    },
+    {
+      "name": "pine_roots_b",
+      "tris": 16559,
+      "height": 0.147
+    }
+  ],
+  "textures": [
+    "pine_roots_a_albedo.png",
+    "pine_roots_a_normal.png",
+    "pine_roots_a_roughness.png",
+    "pine_roots_b_albedo.png",
+    "pine_roots_b_normal.png",
+    "pine_roots_b_roughness.png"
+  ]
+}

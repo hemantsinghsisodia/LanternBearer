@@ -19,5 +19,6 @@ public class LevelConfig : ScriptableObject
     public float fogDensity = 0.012f;
     public int grassDetailDensity = 8;
     public string nextLevelScene = "";
+    public Biome biome;
 }
 }

@@ -1,0 +1,29 @@
+{
+  "id": "didelta_spinosa",
+  "authors": [
+    "Jenelle van Heerden"
+  ],
+  "category": "undergrowth",
+  "variants": [
+    {
+      "name": "didelta_spinosa_large",
+      "tris": 18417,
+      "height": 0.45
+    },
+    {
+      "name": "didelta_spinosa_medium",
+      "tris": 18422,
+      "height": 0.279
+    },
+    {
+      "name": "didelta_spinosa_small",
+      "tris": 2478,
+      "height": 0.203
+    }
+  ],
+  "textures": [
+    "didelta_spinosa_albedo.png",
+    "didelta_spinosa_normal.png",
+    "didelta_spinosa_roughness.png"
+  ]
+}

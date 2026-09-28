@@ -2840,6 +2840,7 @@ MonoBehaviour:
   sprintMultiplier: 1.7
   sprintDrainMultiplier: 1.6
   gravity: -20
+  jumpHeight: 2.8
   turnSpeed: 12
   stepDistance: 2.3
   UseDistanceFootsteps: 1

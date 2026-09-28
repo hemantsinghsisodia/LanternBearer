@@ -1,0 +1,19 @@
+{
+  "id": "tree_stump_02",
+  "authors": [
+    "Rob Tuytel"
+  ],
+  "category": "deadwood",
+  "variants": [
+    {
+      "name": "tree_stump_02_a",
+      "tris": 16559,
+      "height": 0.523
+    }
+  ],
+  "textures": [
+    "tree_stump_02_albedo.png",
+    "tree_stump_02_normal.png",
+    "tree_stump_02_roughness.png"
+  ]
+}

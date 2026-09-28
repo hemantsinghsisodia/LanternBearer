@@ -1,0 +1,44 @@
+{
+  "id": "flower_heliophila",
+  "authors": [
+    "Jenelle van Heerden"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 45,
+      "height": 0.206
+    },
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 41,
+      "height": 0.165
+    },
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 73,
+      "height": 0.12
+    },
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 94,
+      "height": 0.3
+    },
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 95,
+      "height": 0.107
+    },
+    {
+      "name": "flower_heliophila_large_LOD3",
+      "tris": 64,
+      "height": 0.055
+    }
+  ],
+  "textures": [
+    "flower_heliophila_albedo.png",
+    "flower_heliophila_normal.png",
+    "flower_heliophila_roughness.png"
+  ]
+}

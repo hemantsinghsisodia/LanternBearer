@@ -1,0 +1,21 @@
+{
+  "id": "dead_quiver_trunk",
+  "authors": [
+    "Dario Barresi",
+    "James Ray Cock",
+    "Rico Cilliers"
+  ],
+  "category": "deadwood",
+  "variants": [
+    {
+      "name": "dead_quiver_trunk_a",
+      "tris": 2246,
+      "height": 1.993
+    }
+  ],
+  "textures": [
+    "dead_quiver_trunk_albedo.png",
+    "dead_quiver_trunk_normal.png",
+    "dead_quiver_trunk_roughness.png"
+  ]
+}

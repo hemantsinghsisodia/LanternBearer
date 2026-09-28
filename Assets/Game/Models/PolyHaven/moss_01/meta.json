@@ -1,0 +1,44 @@
+{
+  "id": "moss_01",
+  "authors": [
+    "Rob Tuytel"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "moss_01_a",
+      "tris": 6,
+      "height": 0.112
+    },
+    {
+      "name": "moss_01_01",
+      "tris": 6,
+      "height": 0.112
+    },
+    {
+      "name": "moss_01_d",
+      "tris": 4,
+      "height": 0.116
+    },
+    {
+      "name": "moss_01_03",
+      "tris": 4,
+      "height": 0.116
+    },
+    {
+      "name": "moss_01_c",
+      "tris": 6,
+      "height": 0.12
+    },
+    {
+      "name": "moss_01_05",
+      "tris": 6,
+      "height": 0.12
+    }
+  ],
+  "textures": [
+    "moss_01_albedo.png",
+    "moss_01_normal.png",
+    "moss_01_roughness.png"
+  ]
+}

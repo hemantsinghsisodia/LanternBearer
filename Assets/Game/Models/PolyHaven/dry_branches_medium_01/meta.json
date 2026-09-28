@@ -1,0 +1,29 @@
+{
+  "id": "dry_branches_medium_01",
+  "authors": [
+    "Rico Cilliers"
+  ],
+  "category": "deadwood",
+  "variants": [
+    {
+      "name": "dry_branches_medium_01_a",
+      "tris": 5933,
+      "height": 0.341
+    },
+    {
+      "name": "dry_branches_medium_01_b",
+      "tris": 5254,
+      "height": 0.142
+    },
+    {
+      "name": "dry_branches_medium_01_c",
+      "tris": 5616,
+      "height": 0.143
+    }
+  ],
+  "textures": [
+    "dry_branches_medium_01_albedo.png",
+    "dry_branches_medium_01_normal.png",
+    "dry_branches_medium_01_roughness.png"
+  ]
+}

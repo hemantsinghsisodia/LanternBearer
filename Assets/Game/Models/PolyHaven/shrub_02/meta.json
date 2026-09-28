@@ -1,0 +1,34 @@
+{
+  "id": "shrub_02",
+  "authors": [
+    "Rico Cilliers"
+  ],
+  "category": "undergrowth",
+  "variants": [
+    {
+      "name": "shrub_02_a",
+      "tris": 1495,
+      "height": 0.85
+    },
+    {
+      "name": "shrub_02_b",
+      "tris": 1030,
+      "height": 0.589
+    },
+    {
+      "name": "shrub_02_c",
+      "tris": 1862,
+      "height": 0.579
+    },
+    {
+      "name": "shrub_02_d",
+      "tris": 1060,
+      "height": 0.617
+    }
+  ],
+  "textures": [
+    "shrub_02_albedo.png",
+    "shrub_02_normal.png",
+    "shrub_02_roughness.png"
+  ]
+}

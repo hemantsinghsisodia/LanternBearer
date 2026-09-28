@@ -1,0 +1,35 @@
+{
+  "id": "fern_02",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "undergrowth",
+  "variants": [
+    {
+      "name": "fern_02_a",
+      "tris": 392,
+      "height": 0.335
+    },
+    {
+      "name": "fern_02_b",
+      "tris": 1192,
+      "height": 0.5
+    },
+    {
+      "name": "fern_02_c",
+      "tris": 1124,
+      "height": 0.408
+    },
+    {
+      "name": "fern_02_d",
+      "tris": 408,
+      "height": 0.249
+    }
+  ],
+  "textures": [
+    "fern_02_albedo.png",
+    "fern_02_normal.png",
+    "fern_02_roughness.png"
+  ]
+}

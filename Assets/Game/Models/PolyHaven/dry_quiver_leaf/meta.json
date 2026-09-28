@@ -1,0 +1,25 @@
+{
+  "id": "dry_quiver_leaf",
+  "authors": [
+    "Greg Zaal",
+    "Rico Cilliers"
+  ],
+  "category": "debris",
+  "variants": [
+    {
+      "name": "dry_quiver_leaf_a",
+      "tris": 3212,
+      "height": 0.424
+    },
+    {
+      "name": "dry_quiver_leaf_b",
+      "tris": 3680,
+      "height": 0.398
+    }
+  ],
+  "textures": [
+    "dry_quiver_leaf_albedo.png",
+    "dry_quiver_leaf_normal.png",
+    "dry_quiver_leaf_roughness.png"
+  ]
+}

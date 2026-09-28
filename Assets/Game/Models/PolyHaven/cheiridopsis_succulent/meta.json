@@ -1,0 +1,48 @@
+{
+  "id": "cheiridopsis_succulent",
+  "authors": [
+    "James Ray Cock",
+    "Jenelle van Heerden"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "cheiridopsis_succulent_f",
+      "tris": 992,
+      "height": 0.196
+    },
+    {
+      "name": "cheiridopsis_succulent_e",
+      "tris": 1606,
+      "height": 0.193
+    },
+    {
+      "name": "cheiridopsis_succulent_d",
+      "tris": 991,
+      "height": 0.207
+    },
+    {
+      "name": "cheiridopsis_succulent_h",
+      "tris": 2048,
+      "height": 0.22
+    },
+    {
+      "name": "cheiridopsis_succulent_a",
+      "tris": 142,
+      "height": 0.163
+    },
+    {
+      "name": "cheiridopsis_succulent_c",
+      "tris": 382,
+      "height": 0.16
+    }
+  ],
+  "textures": [
+    "cheiridopsis_succulent_albedo.png",
+    "cheiridopsis_succulent_normal.png",
+    "cheiridopsis_succulent_roughness.png",
+    "cheiridopsis_succulent_flower_albedo.png",
+    "cheiridopsis_succulent_flower_normal.png",
+    "cheiridopsis_succulent_flower_roughness.png"
+  ]
+}

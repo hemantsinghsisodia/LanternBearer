@@ -1,0 +1,20 @@
+{
+  "id": "quiver_tree_02",
+  "authors": [
+    "Dario Barresi",
+    "Rico Cilliers"
+  ],
+  "category": "tree",
+  "variants": [
+    {
+      "name": "quiver_tree_02_a",
+      "tris": 10258,
+      "height": 5.8
+    }
+  ],
+  "textures": [
+    "quiver_tree_02_albedo.png",
+    "quiver_tree_02_normal.png",
+    "quiver_tree_02_roughness.png"
+  ]
+}

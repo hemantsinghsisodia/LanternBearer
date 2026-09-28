@@ -1,0 +1,20 @@
+{
+  "id": "namaqualand_boulder_03",
+  "authors": [
+    "Dario Barresi",
+    "Jenelle van Heerden"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_boulder_03_a",
+      "tris": 8102,
+      "height": 1.347
+    }
+  ],
+  "textures": [
+    "namaqualand_boulder_03_albedo.png",
+    "namaqualand_boulder_03_normal.png",
+    "namaqualand_boulder_03_roughness.png"
+  ]
+}

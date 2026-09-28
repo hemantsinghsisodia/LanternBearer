@@ -1,0 +1,40 @@
+{
+  "id": "dandelion_01",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "dandelion_01_a",
+      "tris": 143,
+      "height": 0.32
+    },
+    {
+      "name": "dandelion_01_b",
+      "tris": 143,
+      "height": 0.228
+    },
+    {
+      "name": "dandelion_01_c",
+      "tris": 88,
+      "height": 0.185
+    },
+    {
+      "name": "dandelion_01_d",
+      "tris": 82,
+      "height": 0.113
+    },
+    {
+      "name": "dandelion_01_e",
+      "tris": 70,
+      "height": 0.087
+    }
+  ],
+  "textures": [
+    "dandelion_01_albedo.png",
+    "dandelion_01_normal.png",
+    "dandelion_01_roughness.png"
+  ]
+}

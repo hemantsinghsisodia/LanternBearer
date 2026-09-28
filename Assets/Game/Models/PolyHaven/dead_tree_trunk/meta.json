@@ -1,0 +1,19 @@
+{
+  "id": "dead_tree_trunk",
+  "authors": [
+    "Rob Tuytel"
+  ],
+  "category": "deadwood",
+  "variants": [
+    {
+      "name": "dead_tree_trunk_a",
+      "tris": 16560,
+      "height": 0.29
+    }
+  ],
+  "textures": [
+    "dead_tree_trunk_albedo.png",
+    "dead_tree_trunk_normal.png",
+    "dead_tree_trunk_roughness.png"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "namaqualand_boulder_02",
+  "authors": [
+    "Greg Zaal",
+    "Rico Cilliers"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_boulder_02_a",
+      "tris": 12245,
+      "height": 0.882
+    }
+  ],
+  "textures": [
+    "namaqualand_boulder_02_albedo.png",
+    "namaqualand_boulder_02_normal.png",
+    "namaqualand_boulder_02_roughness.png"
+  ]
+}

@@ -26,3 +26,4 @@ MonoBehaviour:
   fogDensity: 0.014
   grassDetailDensity: 8
   nextLevelScene: 
+  biome: {fileID: 11400000, guid: 67db5e691bdcd1c4bb2b413f116e4bc0, type: 2}

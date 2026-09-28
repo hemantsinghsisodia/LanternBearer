@@ -1,0 +1,33 @@
+{
+  "id": "pine_sapling_small",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "sapling",
+  "variants": [
+    {
+      "name": "pine_sapling_small_a",
+      "tris": 31516,
+      "height": 1.5
+    },
+    {
+      "name": "pine_sapling_small_b",
+      "tris": 31753,
+      "height": 1.5
+    },
+    {
+      "name": "pine_sapling_small_c",
+      "tris": 31501,
+      "height": 1.5
+    }
+  ],
+  "textures": [
+    "pine_sapling_small_bark_albedo.png",
+    "pine_sapling_small_bark_normal.png",
+    "pine_sapling_small_bark_roughness.png",
+    "pine_sapling_small_twig_albedo.png",
+    "pine_sapling_small_twig_normal.png",
+    "pine_sapling_small_twig_roughness.png"
+  ]
+}

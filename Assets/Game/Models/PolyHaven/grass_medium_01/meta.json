@@ -1,0 +1,45 @@
+{
+  "id": "grass_medium_01",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "grass_medium_01_geonodes_large_a",
+      "tris": 527,
+      "height": 0.415
+    },
+    {
+      "name": "grass_medium_01_large_a",
+      "tris": 527,
+      "height": 0.415
+    },
+    {
+      "name": "grass_medium_01_geonodes_large_c",
+      "tris": 539,
+      "height": 0.42
+    },
+    {
+      "name": "grass_medium_01_large_c",
+      "tris": 539,
+      "height": 0.42
+    },
+    {
+      "name": "grass_medium_01_geonodes_mid_c",
+      "tris": 184,
+      "height": 0.402
+    },
+    {
+      "name": "grass_medium_01_mid_c",
+      "tris": 184,
+      "height": 0.402
+    }
+  ],
+  "textures": [
+    "grass_medium_01_albedo.png",
+    "grass_medium_01_normal.png",
+    "grass_medium_01_roughness.png"
+  ]
+}

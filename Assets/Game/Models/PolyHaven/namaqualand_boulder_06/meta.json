@@ -1,0 +1,20 @@
+{
+  "id": "namaqualand_boulder_06",
+  "authors": [
+    "Greg Zaal",
+    "Jenelle van Heerden"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_boulder_06_a",
+      "tris": 13638,
+      "height": 0.651
+    }
+  ],
+  "textures": [
+    "namaqualand_boulder_06_albedo.png",
+    "namaqualand_boulder_06_normal.png",
+    "namaqualand_boulder_06_roughness.png"
+  ]
+}

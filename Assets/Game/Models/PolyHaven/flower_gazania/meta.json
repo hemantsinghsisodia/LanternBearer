@@ -1,0 +1,45 @@
+{
+  "id": "flower_gazania",
+  "authors": [
+    "James Ray Cock",
+    "Jenelle van Heerden"
+  ],
+  "category": "flower",
+  "variants": [
+    {
+      "name": "flower_gazania_f_LOD3",
+      "tris": 6,
+      "height": 0.158
+    },
+    {
+      "name": "flower_gazania_h_LOD3",
+      "tris": 8,
+      "height": 0.163
+    },
+    {
+      "name": "flower_gazania_a",
+      "tris": 47,
+      "height": 0.167
+    },
+    {
+      "name": "flower_gazania_f_LOD3",
+      "tris": 7,
+      "height": 0.172
+    },
+    {
+      "name": "flower_gazania_c_LOD3",
+      "tris": 5,
+      "height": 0.138
+    },
+    {
+      "name": "flower_gazania_b",
+      "tris": 45,
+      "height": 0.18
+    }
+  ],
+  "textures": [
+    "flower_gazania_albedo.png",
+    "flower_gazania_normal.png",
+    "flower_gazania_roughness.png"
+  ]
+}

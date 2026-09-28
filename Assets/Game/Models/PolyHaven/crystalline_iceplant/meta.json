@@ -1,0 +1,45 @@
+{
+  "id": "crystalline_iceplant",
+  "authors": [
+    "James Ray Cock",
+    "Jenelle van Heerden"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "crystalline_iceplant_h",
+      "tris": 177,
+      "height": 0.116
+    },
+    {
+      "name": "crystalline_iceplant_g",
+      "tris": 131,
+      "height": 0.102
+    },
+    {
+      "name": "crystalline_iceplant_c",
+      "tris": 82,
+      "height": 0.094
+    },
+    {
+      "name": "crystalline_iceplant_e",
+      "tris": 55,
+      "height": 0.09
+    },
+    {
+      "name": "crystalline_iceplant_d",
+      "tris": 217,
+      "height": 0.18
+    },
+    {
+      "name": "crystalline_iceplant_f",
+      "tris": 43,
+      "height": 0.052
+    }
+  ],
+  "textures": [
+    "crystalline_iceplant_albedo.png",
+    "crystalline_iceplant_normal.png",
+    "crystalline_iceplant_roughness.png"
+  ]
+}

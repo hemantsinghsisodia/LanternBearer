@@ -1,0 +1,20 @@
+{
+  "id": "namaqualand_cliff_01",
+  "authors": [
+    "Jenelle van Heerden",
+    "Rico Cilliers"
+  ],
+  "category": "cliff",
+  "variants": [
+    {
+      "name": "namaqualand_cliff_01_a",
+      "tris": 11794,
+      "height": 4.961
+    }
+  ],
+  "textures": [
+    "namaqualand_cliff_01_albedo.png",
+    "namaqualand_cliff_01_normal.png",
+    "namaqualand_cliff_01_roughness.png"
+  ]
+}

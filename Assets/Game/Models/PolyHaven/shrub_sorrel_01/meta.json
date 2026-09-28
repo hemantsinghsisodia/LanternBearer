@@ -1,0 +1,44 @@
+{
+  "id": "shrub_sorrel_01",
+  "authors": [
+    "Rico Cilliers"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "shrub_sorrel_01_j",
+      "tris": 34,
+      "height": 0.255
+    },
+    {
+      "name": "shrub_sorrel_01_e",
+      "tris": 260,
+      "height": 0.256
+    },
+    {
+      "name": "shrub_sorrel_01_i",
+      "tris": 32,
+      "height": 0.232
+    },
+    {
+      "name": "shrub_sorrel_01_b",
+      "tris": 210,
+      "height": 0.28
+    },
+    {
+      "name": "shrub_sorrel_01_g",
+      "tris": 36,
+      "height": 0.209
+    },
+    {
+      "name": "shrub_sorrel_01_h",
+      "tris": 36,
+      "height": 0.206
+    }
+  ],
+  "textures": [
+    "shrub_sorrel_01_albedo.png",
+    "shrub_sorrel_01_normal.png",
+    "shrub_sorrel_01_roughness.png"
+  ]
+}

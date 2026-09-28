@@ -1,0 +1,44 @@
+{
+  "id": "leipoldtia_schultzei",
+  "authors": [
+    "Jenelle van Heerden"
+  ],
+  "category": "ground",
+  "variants": [
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.17
+    },
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.169
+    },
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.171
+    },
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.18
+    },
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.159
+    },
+    {
+      "name": "leipoldtia_schultzei_Large_LOD2",
+      "tris": 36,
+      "height": 0.158
+    }
+  ],
+  "textures": [
+    "leipoldtia_schultzei_albedo.png",
+    "leipoldtia_schultzei_normal.png",
+    "leipoldtia_schultzei_roughness.png"
+  ]
+}

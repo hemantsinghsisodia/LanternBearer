@@ -1,0 +1,25 @@
+{
+  "id": "namaqualand_boulders_01",
+  "authors": [
+    "Greg Zaal",
+    "Jenelle van Heerden"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "namaqualand_boulders_01_a",
+      "tris": 2006,
+      "height": 0.251
+    },
+    {
+      "name": "namaqualand_boulders_01_b",
+      "tris": 3098,
+      "height": 0.21
+    }
+  ],
+  "textures": [
+    "namaqualand_boulders_01_albedo.png",
+    "namaqualand_boulders_01_normal.png",
+    "namaqualand_boulders_01_roughness.png"
+  ]
+}

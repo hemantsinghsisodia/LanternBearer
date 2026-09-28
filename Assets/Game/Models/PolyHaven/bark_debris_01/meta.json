@@ -1,0 +1,35 @@
+{
+  "id": "bark_debris_01",
+  "authors": [
+    "Greg Zaal",
+    "Jenelle van Heerden"
+  ],
+  "category": "debris",
+  "variants": [
+    {
+      "name": "bark_debris_01_a",
+      "tris": 3680,
+      "height": 0.064
+    },
+    {
+      "name": "bark_debris_01_b",
+      "tris": 3680,
+      "height": 0.088
+    },
+    {
+      "name": "bark_debris_01_c",
+      "tris": 3680,
+      "height": 0.096
+    },
+    {
+      "name": "bark_debris_01_d",
+      "tris": 3680,
+      "height": 0.109
+    }
+  ],
+  "textures": [
+    "bark_debris_01_albedo.png",
+    "bark_debris_01_normal.png",
+    "bark_debris_01_roughness.png"
+  ]
+}

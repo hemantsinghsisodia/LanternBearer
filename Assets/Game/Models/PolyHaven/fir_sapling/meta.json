@@ -1,0 +1,33 @@
+{
+  "id": "fir_sapling",
+  "authors": [
+    "Rico Cilliers",
+    "Rob Tuytel"
+  ],
+  "category": "sapling",
+  "variants": [
+    {
+      "name": "fir_sapling_a",
+      "tris": 51294,
+      "height": 1.888
+    },
+    {
+      "name": "fir_sapling_b",
+      "tris": 23161,
+      "height": 1.5
+    },
+    {
+      "name": "fir_sapling_c",
+      "tris": 51276,
+      "height": 1.5
+    }
+  ],
+  "textures": [
+    "fir_sapling_branches_albedo.png",
+    "fir_sapling_branches_normal.png",
+    "fir_sapling_branches_roughness.png",
+    "fir_sapling_twigs_albedo.png",
+    "fir_sapling_twigs_normal.png",
+    "fir_sapling_twigs_roughness.png"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "rock_moss_set_02",
+  "authors": [
+    "Kless Gyzen"
+  ],
+  "category": "rock",
+  "variants": [
+    {
+      "name": "rock_moss_set_02_rock10",
+      "tris": 8000,
+      "height": 0.768
+    },
+    {
+      "name": "rock_moss_set_02_rock12",
+      "tris": 7999,
+      "height": 0.736
+    },
+    {
+      "name": "rock_moss_set_02_rock09",
+      "tris": 7894,
+      "height": 0.61
+    },
+    {
+      "name": "rock_moss_set_02_rock08",
+      "tris": 8000,
+      "height": 0.529
+    },
+    {
+      "name": "rock_moss_set_02_rock07",
+      "tris": 9826,
+      "height": 1.097
+    },
+    {
+      "name": "rock_moss_set_02_rock13",
+      "tris": 7928,
+      "height": 1.256
+    }
+  ],
+  "textures": [
+    "rock_moss_set_02_albedo.png",
+    "rock_moss_set_02_normal.png",
+    "rock_moss_set_02_roughness.png"
+  ]
+}

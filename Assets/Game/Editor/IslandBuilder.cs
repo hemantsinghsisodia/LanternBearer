@@ -30,8 +30,10 @@ public static partial class IslandBuilder
     public static void BuildAll()
     {
         CreateDefaultConfigs();
-        Build(AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island1.asset"));
-        Build(AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island2.asset"));
+        LevelConfig island1 = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island1.asset");
+        Build(island1);
+        LevelConfig island2 = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island2.asset");
+        Build(island2);
         BuildMainMenu();
         ApplyBuildSettings();
     }
@@ -108,6 +110,12 @@ public static partial class IslandBuilder
             }
 
             ArtKit art = EnsureArt();
+            Biome resolvedBiome = ResolveBiome(config);
+            if (resolvedBiome != null)
+            {
+                config.biome = resolvedBiome;
+            }
+
             EditorUtility.DisplayProgressBar("Lantern Keeper", "Shaping " + config.sceneName, 0.45f);
             Stage stage = new Stage();
             BuildSculptedTerrain(config, art, terrainPath, stage);
@@ -673,6 +681,14 @@ public static partial class IslandBuilder
 
     static void Scatter(LevelConfig config, ArtKit art, Stage stage)
     {
+        Biome biome = ResolveBiome(config);
+        if (biome != null && biome.entries != null && biome.entries.Length > 0)
+        {
+            config.biome = biome;
+            ScatterBiome(config, art, stage);
+            return;
+        }
+
         Transform parent = Folder("Props");
         System.Random random = new System.Random(config.seed + 40);
         int pines = Mathf.RoundToInt(config.islandRadius * 0.65f);
@@ -733,6 +749,410 @@ public static partial class IslandBuilder
         }
 
         DressTrails(config, art, stage);
+    }
+
+    static Biome ResolveBiome(LevelConfig config)
+    {
+        if (config.biome != null && config.biome.entries != null && config.biome.entries.Length > 0)
+        {
+            return config.biome;
+        }
+
+        if (config.levelId == "island1")
+        {
+            return AssetDatabase.LoadAssetAtPath<Biome>("Assets/Game/Levels/Biomes/PineForest.asset");
+        }
+
+        if (config.levelId == "island2")
+        {
+            return AssetDatabase.LoadAssetAtPath<Biome>("Assets/Game/Levels/Biomes/Namaqualand.asset");
+        }
+
+        return null;
+    }
+
+    static void ScatterBiome(LevelConfig config, ArtKit art, Stage stage)
+    {
+        Transform parent = Folder("Props");
+        System.Random random = new System.Random(config.seed + 40);
+        float scale = config.islandRadius / 28f;
+        List<Vector3> trees = new List<Vector3>();
+        List<BiomeEntry> treeEntries = Entries(config, BiomeCategory.Tree);
+        List<BiomeEntry> saplingEntries = Entries(config, BiomeCategory.Sapling);
+        int treeTarget = ScaledTotal(treeEntries, scale);
+        int saplingTarget = ScaledTotal(saplingEntries, scale);
+        int treesPlaced = PlaceClusters(config, stage, parent, random, treeEntries, treeTarget, 3, 5, 2.4f, 6.2f, 3.1f, trees);
+        int saplingsPlaced = PlaceClusters(config, stage, parent, random, saplingEntries, saplingTarget, 2, 4, 1.6f, 4.2f, 2.2f, null);
+        int deadwood = PlaceNear(config, stage, parent, random, Entries(config, BiomeCategory.Deadwood), trees, scale, 1.4f, 3.6f);
+        int ferns = PlaceNamedNear(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), trees, scale, 1.1f, 3.2f, "fern");
+        int undergrowth = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), scale, "fern");
+        int rocks = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Rock), scale, null);
+        int pieces = PlaceCliff(config, stage, parent, random);
+        PlaceMushrooms(config, art, stage, parent, random);
+        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " setpieces=" + pieces);
+    }
+
+    static List<BiomeEntry> Entries(LevelConfig config, BiomeCategory category)
+    {
+        List<BiomeEntry> list = new List<BiomeEntry>();
+        BiomeEntry[] entries = config.biome.entries;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            if (entries[i] != null && entries[i].prefab != null && entries[i].category == category && entries[i].count > 0)
+            {
+                list.Add(entries[i]);
+            }
+        }
+
+        return list;
+    }
+
+    static int ScaledTotal(List<BiomeEntry> entries, float scale)
+    {
+        int total = 0;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            total += Mathf.Max(1, Mathf.RoundToInt(entries[i].count * scale));
+        }
+
+        return total;
+    }
+
+    static int PlaceClusters(LevelConfig config, Stage stage, Transform parent, System.Random random, List<BiomeEntry> entries, int target, int clusterMin, int clusterMax, float near, float far, float spacing, List<Vector3> planted)
+    {
+        if (entries.Count == 0 || target <= 0)
+        {
+            return 0;
+        }
+
+        int placed = 0;
+        int guard = 0;
+        while (placed < target && guard < target * 50)
+        {
+            guard++;
+            Vector3 center;
+            if (!SamplePoint(config, stage, random, entries[0], 7f, config.islandRadius * 0.78f, out center))
+            {
+                continue;
+            }
+
+            if (Mathf.PerlinNoise(center.x * 0.07f + config.seed, center.z * 0.07f) < 0.34f)
+            {
+                continue;
+            }
+
+            int cluster = random.Next(clusterMin, clusterMax + 1);
+            for (int i = 0; i < cluster && placed < target; i++)
+            {
+                float angle = (float)random.NextDouble() * Mathf.PI * 2f;
+                float radius = near + (float)random.NextDouble() * (far - near);
+                Vector3 pos = new Vector3(center.x + Mathf.Cos(angle) * radius, 0f, center.z + Mathf.Sin(angle) * radius);
+                BiomeEntry entry = entries[random.Next(0, entries.Count)];
+                if (!SampleAt(config, stage, entry, pos.x, pos.z, out pos))
+                {
+                    continue;
+                }
+
+                if (planted != null && NearSpot(planted, pos.x, pos.z, spacing))
+                {
+                    continue;
+                }
+
+                PlaceEntry(parent, random, entry, stage, pos);
+                if (planted != null)
+                {
+                    planted.Add(pos);
+                }
+
+                placed++;
+            }
+        }
+
+        return placed;
+    }
+
+    static int PlaceNear(LevelConfig config, Stage stage, Transform parent, System.Random random, List<BiomeEntry> entries, List<Vector3> anchors, float scale, float minDist, float maxDist)
+    {
+        return PlaceNearFiltered(config, stage, parent, random, entries, anchors, scale, minDist, maxDist, null);
+    }
+
+    static int PlaceNamedNear(LevelConfig config, Stage stage, Transform parent, System.Random random, List<BiomeEntry> entries, List<Vector3> anchors, float scale, float minDist, float maxDist, string namePart)
+    {
+        return PlaceNearFiltered(config, stage, parent, random, entries, anchors, scale, minDist, maxDist, namePart);
+    }
+
+    static int PlaceNearFiltered(LevelConfig config, Stage stage, Transform parent, System.Random random, List<BiomeEntry> entries, List<Vector3> anchors, float scale, float minDist, float maxDist, string namePart)
+    {
+        if (anchors == null || anchors.Count == 0)
+        {
+            return 0;
+        }
+
+        int placed = 0;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (namePart != null && entries[i].prefab.name.ToLowerInvariant().IndexOf(namePart.ToLowerInvariant(), System.StringComparison.Ordinal) < 0)
+            {
+                continue;
+            }
+
+            int count = Mathf.Max(1, Mathf.RoundToInt(entries[i].count * scale));
+            int guard = 0;
+            int made = 0;
+            while (made < count && guard < count * 20)
+            {
+                guard++;
+                Vector3 anchor = anchors[random.Next(0, anchors.Count)];
+                float angle = (float)random.NextDouble() * Mathf.PI * 2f;
+                float radius = minDist + (float)random.NextDouble() * (maxDist - minDist);
+                Vector3 pos;
+                if (!SampleAt(config, stage, entries[i], anchor.x + Mathf.Cos(angle) * radius, anchor.z + Mathf.Sin(angle) * radius, out pos))
+                {
+                    continue;
+                }
+
+                PlaceEntry(parent, random, entries[i], stage, pos);
+                made++;
+                placed++;
+            }
+        }
+
+        return placed;
+    }
+
+    static int PlaceScattered(LevelConfig config, Stage stage, Transform parent, System.Random random, List<BiomeEntry> entries, float scale, string skipName)
+    {
+        int placed = 0;
+        List<Vector3> spots = new List<Vector3>();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (skipName != null && entries[i].prefab.name.ToLowerInvariant().IndexOf(skipName.ToLowerInvariant(), System.StringComparison.Ordinal) >= 0)
+            {
+                continue;
+            }
+
+            int count = Mathf.Max(1, Mathf.RoundToInt(entries[i].count * scale));
+            int guard = 0;
+            int made = 0;
+            while (made < count && guard < count * 30)
+            {
+                guard++;
+                Vector3 pos;
+                if (!SamplePoint(config, stage, random, entries[i], 6f, config.islandRadius * 0.8f, out pos))
+                {
+                    continue;
+                }
+
+                if (NearSpot(spots, pos.x, pos.z, entries[i].category == BiomeCategory.Rock ? 2.4f : 1.6f))
+                {
+                    continue;
+                }
+
+                PlaceEntry(parent, random, entries[i], stage, pos);
+                spots.Add(pos);
+                made++;
+                placed++;
+            }
+        }
+
+        return placed;
+    }
+
+    static int PlaceCliff(LevelConfig config, Stage stage, Transform parent, System.Random random)
+    {
+        if (config.levelId != "island2")
+        {
+            return 0;
+        }
+
+        BiomeEntry piece = null;
+        BiomeEntry[] entries = config.biome.entries;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            if (entries[i] != null && entries[i].prefab != null && entries[i].category == BiomeCategory.SetPiece && entries[i].count > 0)
+            {
+                piece = entries[i];
+                break;
+            }
+        }
+
+        if (piece == null)
+        {
+            return 0;
+        }
+
+        float cliffAngle = (config.seed % 360) * Mathf.Deg2Rad;
+        Vector3 pos = Vector3.zero;
+        bool found = false;
+        for (float dist = 0.66f; dist >= 0.48f && !found; dist -= 0.04f)
+        {
+            for (int nudge = 0; nudge < 7 && !found; nudge++)
+            {
+                float angle = cliffAngle + (nudge - 3) * 0.08f;
+                float reach = config.islandRadius * dist;
+                float x = Mathf.Cos(angle) * reach;
+                float z = Mathf.Sin(angle) * reach;
+                float y = GroundY(stage.terrain, x, z);
+                if (y < stage.waterY + 0.5f)
+                {
+                    continue;
+                }
+
+                if (NearSpot(stage.beaconSpots, x, z, 4f))
+                {
+                    continue;
+                }
+
+                pos = new Vector3(x, y - 0.35f, z);
+                found = true;
+                cliffAngle = angle;
+            }
+        }
+
+        if (!found)
+        {
+            return 0;
+        }
+
+        Vector3 outward = new Vector3(Mathf.Cos(cliffAngle), 0f, Mathf.Sin(cliffAngle));
+        PlacePrefab(piece.prefab, parent, pos, Quaternion.LookRotation(outward, Vector3.up));
+        return 1;
+    }
+
+    static void PlaceMushrooms(LevelConfig config, ArtKit art, Stage stage, Transform parent, System.Random random)
+    {
+        int mushrooms = Mathf.RoundToInt(config.islandRadius * 0.32f);
+        int guard = 0;
+        while (mushrooms > 0 && guard < 5000)
+        {
+            guard++;
+            float angle = (float)random.NextDouble() * Mathf.PI * 2f;
+            float dist = 6.5f + (float)random.NextDouble() * (config.islandRadius * 0.62f);
+            float x = Mathf.Cos(angle) * dist;
+            float z = Mathf.Sin(angle) * dist;
+            if (Blocked(stage, x, z, 5f, 4f, 1.5f))
+            {
+                continue;
+            }
+
+            float y = GroundY(stage.terrain, x, z);
+            if (y < stage.waterY + 0.55f)
+            {
+                continue;
+            }
+
+            GameObject prefab = random.Next(0, 3) == 0 ? art.mushroomGlow : art.mushroom;
+            PlacePrefab(prefab, parent, new Vector3(x, y, z), Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f));
+            mushrooms--;
+        }
+    }
+
+    static void PlaceEntry(Transform parent, System.Random random, BiomeEntry entry, Stage stage, Vector3 pos)
+    {
+        float yaw = (float)random.NextDouble() * 360f;
+        Quaternion rotation = Quaternion.Euler(0f, yaw, 0f);
+        if (entry.alignToSlope && stage.terrain != null)
+        {
+            Vector3 origin = stage.terrain.transform.position;
+            Vector3 size = stage.terrain.terrainData.size;
+            float u = Mathf.Clamp01((pos.x - origin.x) / size.x);
+            float v = Mathf.Clamp01((pos.z - origin.z) / size.z);
+            Vector3 normal = stage.terrain.terrainData.GetInterpolatedNormal(u, v);
+            Vector3 tilt = Vector3.Slerp(Vector3.up, normal, 0.65f);
+            rotation = Quaternion.FromToRotation(Vector3.up, tilt) * Quaternion.Euler(0f, yaw, 0f);
+        }
+
+        GameObject placed = PlacePrefab(entry.prefab, parent, pos, rotation);
+        float min = entry.scaleRange.x <= 0f ? 1f : entry.scaleRange.x;
+        float max = entry.scaleRange.y <= 0f ? min : entry.scaleRange.y;
+        float scaleValue = Mathf.Lerp(min, max, (float)random.NextDouble());
+        placed.transform.localScale = Vector3.one * scaleValue;
+    }
+
+    static bool SamplePoint(LevelConfig config, Stage stage, System.Random random, BiomeEntry entry, float minRadius, float maxRadius, out Vector3 pos)
+    {
+        float angle = (float)random.NextDouble() * Mathf.PI * 2f;
+        float dist = minRadius + (float)random.NextDouble() * Mathf.Max(0.5f, maxRadius - minRadius);
+        return SampleAt(config, stage, entry, Mathf.Cos(angle) * dist, Mathf.Sin(angle) * dist, out pos);
+    }
+
+    static bool SampleAt(LevelConfig config, Stage stage, BiomeEntry entry, float x, float z, out Vector3 pos)
+    {
+        pos = Vector3.zero;
+        float flat = Mathf.Sqrt(x * x + z * z);
+        if (flat > config.islandRadius * 0.84f)
+        {
+            return false;
+        }
+
+        if (Blocked(stage, x, z, 5f, 4f, 1.5f))
+        {
+            return false;
+        }
+
+        float y = GroundY(stage.terrain, x, z);
+        if (y < stage.waterY + 0.45f)
+        {
+            return false;
+        }
+
+        float slope = SlopeAt(stage, x, z, y);
+        float norm = config.hillHeight > 0.01f ? y / config.hillHeight : 0f;
+        if (entry.limitSlope && (slope < entry.minSlope || slope > entry.maxSlope))
+        {
+            return false;
+        }
+
+        if (entry.limitHeight && (norm < entry.minHeight || norm > entry.maxHeight))
+        {
+            return false;
+        }
+
+        pos = new Vector3(x, y, z);
+        return true;
+    }
+
+    static float SlopeAt(Stage stage, float x, float z, float y)
+    {
+        float dx = Mathf.Abs(GroundY(stage.terrain, x + 1.3f, z) - y);
+        float dz = Mathf.Abs(GroundY(stage.terrain, x, z + 1.3f) - y);
+        return Mathf.Max(dx, dz) / 1.3f;
+    }
+
+    static bool Blocked(Stage stage, float x, float z, float spawnClear, float beaconClear, float trailClear)
+    {
+        float dx = x - stage.spawn.x;
+        float dz = z - stage.spawn.z;
+        if (dx * dx + dz * dz < spawnClear * spawnClear)
+        {
+            return true;
+        }
+
+        if (NearSpot(stage.beaconSpots, x, z, beaconClear))
+        {
+            return true;
+        }
+
+        return NearTrail(stage, x, z, trailClear);
+    }
+
+    static bool NearTrail(Stage stage, float x, float z, float radius)
+    {
+        Vector2 point = new Vector2(x, z);
+        for (int i = 0; i < stage.trails.Count; i++)
+        {
+            List<Vector2> path = stage.trails[i];
+            for (int s = 1; s < path.Count; s++)
+            {
+                float unused;
+                if (DistanceToSegment(point, path[s - 1], path[s], out unused) < radius)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     static bool NearSpot(List<Vector3> spots, float x, float z, float radius)
