@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -36,6 +37,14 @@ public static partial class IslandBuilder
         public Material path;
         public Material terrain;
         public Material sky;
+        public Material foam;
+        public Material beam;
+        public Material lamp;
+        public bool hdriSky;
+        public Cubemap nightCube;
+        public Cubemap dawnCube;
+        public Vector3 moonDirection;
+        public Vector3 dawnDirection;
         public Texture2D softCircle;
         public Sprite lanternSprite;
         public Sprite arrowSprite;
@@ -115,6 +124,14 @@ public static partial class IslandBuilder
         }
 
         vertices[segments + 1] = new Vector3(0f, -1f, 0f);
+        Vector2[] uv = new Vector2[segments + 2];
+        uv[0] = new Vector2(0.5f, 1f);
+        uv[segments + 1] = new Vector2(0.5f, 0f);
+        for (int i = 0; i < segments; i++)
+        {
+            uv[i + 1] = new Vector2(i / (float)segments, 0.15f);
+        }
+
         int[] triangles = new int[segments * 6];
         int cursor = 0;
         for (int i = 0; i < segments; i++)
@@ -131,6 +148,7 @@ public static partial class IslandBuilder
         Mesh mesh = new Mesh();
         mesh.name = "LanternCone";
         mesh.vertices = vertices;
+        mesh.uv = uv;
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
         coneMesh = mesh;
@@ -140,6 +158,8 @@ public static partial class IslandBuilder
     static ArtKit EnsureArt()
     {
         EnsureFolder("Assets/Game/Textures");
+        EnsureFolder("Assets/Game/Textures/Generated");
+        EnsureFolder("Assets/Game/Textures/Sky");
         EnsureFolder("Assets/Game/Textures/PolyHaven");
         EnsureFolder("Assets/Game/Models");
         EnsureFolder("Assets/Game/Models/Keeper");
@@ -155,7 +175,11 @@ public static partial class IslandBuilder
         Shader addShader = Shader.Find("LanternKeeper/AdditiveUnlit");
         Shader flameShader = Shader.Find("LanternKeeper/Flame");
         Shader terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
-        if (lit == null || skyShader == null || unlitShader == null || addShader == null || flameShader == null)
+        Shader waterShader = Shader.Find("LanternKeeper/Water");
+        Shader silhouetteShader = Shader.Find("LanternKeeper/Silhouette");
+        Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
+        Shader skyBlend = Shader.Find("LanternKeeper/SkyBlend");
+        if (lit == null || skyShader == null || unlitShader == null || addShader == null || flameShader == null || waterShader == null || silhouetteShader == null || hazeShader == null || skyBlend == null)
         {
             throw new System.InvalidOperationException("A Lantern Keeper shader is missing. Check the console for shader errors.");
         }
@@ -176,8 +200,9 @@ public static partial class IslandBuilder
         Texture2D mossTex = PolyOrNoise("forest_leaves_02_Diffuse.jpg", new Color(0.22f, 0.32f, 0.16f), 21);
         Texture2D mossNormal = PolyOrNormal("forest_leaves_02_nor_gl.jpg", 22);
         Texture2D mossMask = SmoothnessMask("forest_leaves_02_Rough.jpg", "Assets/Game/Textures/PolyHaven/forest_leaves_02_mask.png", 23);
-        Texture2D waterTex = Noise("Assets/Game/Textures/Water.png", new Color(0.02f, 0.08f, 0.11f), 0.08f, 64, 21);
-        Texture2D waterNormal = NormalMap("Assets/Game/Textures/WaterNormal.png", 64, 2.2f, 6);
+        Texture2D waterNormalA = TileableNormal("Assets/Game/Textures/Generated/WaterNormalA.png", 256, 3f, 0.35f, 2.6f);
+        Texture2D waterNormalB = TileableNormal("Assets/Game/Textures/Generated/WaterNormalB.png", 256, 5f, 1.8f, 3.1f);
+        Texture2D foamNoise = TileableFoam("Assets/Game/Textures/Generated/FoamNoise.png", 256);
         Texture2D blade = GrassBlade("Assets/Game/Textures/GrassBlade.png");
         art.detailGrass = blade;
         art.detailReed = ReedBlade("Assets/Game/Textures/ReedBlade.png");
@@ -198,13 +223,24 @@ public static partial class IslandBuilder
         SetupCutout(art.grass);
         art.mushroomStem = LitMat("Assets/Game/Materials/Generated/MushroomStem.mat", lit, new Color(0.78f, 0.74f, 0.66f), 0.3f, 0f, Color.black);
         art.mushroomCap = LitMat("Assets/Game/Materials/Generated/MushroomCap.mat", lit, new Color(0.15f, 0.55f, 0.62f), 0.45f, 0f, new Color(0.15f, 2.4f, 2.6f));
-        art.water = LitMat("Assets/Game/Materials/Generated/Water.mat", lit, new Color(0.015f, 0.07f, 0.1f), 0.94f, 0.04f, Color.black);
-        art.water.SetTexture("_BaseMap", waterTex);
-        art.water.SetTexture("_BumpMap", waterNormal);
-        art.water.SetFloat("_BumpScale", 0.35f);
-        art.water.EnableKeyword("_NORMALMAP");
-        art.water.SetTextureScale("_BaseMap", new Vector2(12f, 12f));
-        art.water.SetTextureScale("_BumpMap", new Vector2(8f, 8f));
+        art.water = ShaderMat("Assets/Game/Materials/Generated/Water.mat", waterShader);
+        art.water.SetTexture("_NormalA", waterNormalA);
+        art.water.SetTexture("_NormalB", waterNormalB);
+        art.water.SetTexture("_FoamNoise", foamNoise);
+        art.water.SetColor("_ShallowColor", new Color(0.2f, 0.62f, 0.58f, 0.42f));
+        art.water.SetColor("_DeepColor", new Color(0.012f, 0.05f, 0.09f, 0.9f));
+        art.water.SetColor("_FoamColor", new Color(0.78f, 0.86f, 0.84f, 0.8f));
+        art.water.SetFloat("_NormalScale", 0.28f);
+        art.water.SetFloat("_DepthFade", 2.4f);
+        art.water.SetFloat("_Refraction", 0.03f);
+        art.water.SetFloat("_FoamDepth", 1.6f);
+        art.water.SetFloat("_Glitter", 0.55f);
+        art.water.SetFloat("_SkyExposure", 1.5f);
+        art.water.SetFloat("_DawnExposure", 1.2f);
+        art.water.SetFloat("_WaveAmp", 8f);
+        art.water.SetFloat("_FadeStart", 520f);
+        art.water.SetFloat("_FadeEnd", 630f);
+        art.water.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
         art.moon = UnlitMat("Assets/Game/Materials/Generated/Moon.mat", unlitShader, new Color(2.7f, 2.5f, 2.15f, 1f));
         art.unlit = UnlitMat("Assets/Game/Materials/Generated/SkyUnlit.mat", unlitShader, Color.white);
         art.unlit.SetTexture("_BaseMap", art.softCircle);
@@ -222,13 +258,45 @@ public static partial class IslandBuilder
         art.heat.SetColor("_Mid", new Color(1f, 0.45f, 0.15f, 0.08f));
         art.heat.SetColor("_Tip", new Color(0.4f, 0.05f, 0f, 0f));
         art.silhouette = LitMat("Assets/Game/Materials/Generated/Silhouette.mat", lit, new Color(0.02f, 0.025f, 0.03f), 0.05f, 0f, Color.black);
+        art.foam = UnlitMat("Assets/Game/Materials/Generated/StoneFoam.mat", unlitShader, new Color(0.82f, 0.9f, 0.92f, 0.55f));
+        art.foam.SetTexture("_BaseMap", art.softCircle);
+        art.beam = UnlitMat("Assets/Game/Materials/Generated/LighthouseBeam.mat", addShader, new Color(1f, 0.94f, 0.78f, 0.08f));
+        art.lamp = UnlitMat("Assets/Game/Materials/Generated/LighthouseLamp.mat", unlitShader, new Color(3.2f, 2.4f, 1.5f, 1f));
         art.path = LitMat("Assets/Game/Materials/Generated/PathStone.mat", lit, new Color(0.78f, 0.72f, 0.55f), 0.2f, 0f, Color.black);
         SetupTransparent(art.path);
-        art.sky = UnlitMat("Assets/Game/Materials/Generated/NightSky.mat", skyShader, Color.white);
-        art.sky.SetColor("_Top", new Color(0.015f, 0.03f, 0.09f, 1f));
-        art.sky.SetColor("_Horizon", new Color(0.08f, 0.24f, 0.28f, 1f));
-        art.sky.SetColor("_Ground", new Color(0.005f, 0.006f, 0.012f, 1f));
-        art.sky.SetFloat("_Exponent", 1.55f);
+        Cubemap nightCube = LoadSkyCubemap("Assets/Game/Textures/Sky/qwantani_moonrise_puresky_2k.hdr");
+        Cubemap dawnCube = LoadSkyCubemap("Assets/Game/Textures/Sky/qwantani_dawn_puresky_2k.hdr");
+        art.nightCube = nightCube;
+        art.dawnCube = dawnCube;
+        art.hdriSky = nightCube != null && dawnCube != null;
+        if (art.hdriSky)
+        {
+            art.sky = ShaderMat("Assets/Game/Materials/Generated/NightSky.mat", skyBlend);
+            art.sky.SetTexture("_NightCube", nightCube);
+            art.sky.SetTexture("_DawnCube", dawnCube);
+            art.sky.SetFloat("_Blend", 0f);
+            art.sky.SetFloat("_Exposure", 1.5f);
+            art.sky.SetFloat("_DawnExposure", 1.2f);
+            art.sky.SetFloat("_Rotation", 0f);
+            art.sky.SetColor("_Tint", Color.white);
+            art.sky.SetColor("_HazeColor", new Color(0.07f, 0.16f, 0.2f, 1f));
+            art.sky.SetFloat("_Haze", 0.48f);
+            art.water.SetTexture("_SkyCube", nightCube);
+            art.water.SetTexture("_DawnCube", dawnCube);
+            art.moonDirection = BrightestCubemapDirection(nightCube);
+            art.dawnDirection = BrightestCubemapDirection(dawnCube);
+            ApplySkyExposure(art.sky, art.water);
+            Debug.Log("HDRI sky night=qwantani_moonrise_puresky dawn=qwantani_dawn_puresky moon=" + art.moonDirection);
+        }
+        else
+        {
+            art.sky = UnlitMat("Assets/Game/Materials/Generated/NightSky.mat", skyShader, Color.white);
+            art.sky.SetColor("_Top", new Color(0.015f, 0.03f, 0.09f, 1f));
+            art.sky.SetColor("_Horizon", new Color(0.08f, 0.24f, 0.28f, 1f));
+            art.sky.SetColor("_Ground", new Color(0.005f, 0.006f, 0.012f, 1f));
+            art.sky.SetFloat("_Exponent", 1.55f);
+            Debug.LogWarning("HDRI sky missing. Using SkyGradient.");
+        }
         if (terrainShader != null)
         {
             art.terrain = LitMat("Assets/Game/Materials/Generated/TerrainLit.mat", terrainShader, Color.white, 0.1f, 0f, Color.black);
@@ -832,6 +900,444 @@ public static partial class IslandBuilder
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
         system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         return system;
+    }
+
+    static Material ShaderMat(string path, Shader shader)
+    {
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat != null && mat.shader != shader)
+        {
+            AssetDatabase.DeleteAsset(path);
+            mat = null;
+        }
+
+        if (mat == null)
+        {
+            mat = new Material(shader);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = shader;
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
+    static Texture2D TileableNormal(string path, int size, float frequency, float phase, float strength)
+    {
+        float[,] height = new float[size, size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size;
+                float v = y / (float)size;
+                float h = Mathf.Sin((u * frequency + v * (frequency * 0.37f) + phase) * Mathf.PI * 2f);
+                h += 0.45f * Mathf.Sin((u * (frequency + 3f) - v * (frequency + 1f) + phase * 1.7f) * Mathf.PI * 2f);
+                h += 0.22f * Mathf.Sin((u * (frequency * 2f) + v * 5f + phase) * Mathf.PI * 2f);
+                height[y, x] = h;
+            }
+        }
+
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float left = height[y, (x + size - 1) % size];
+                float right = height[y, (x + 1) % size];
+                float down = height[(y + size - 1) % size, x];
+                float up = height[(y + 1) % size, x];
+                Vector3 normal = new Vector3((left - right) * strength, (down - up) * strength, 1f).normalized;
+                tex.SetPixel(x, y, new Color(normal.x * 0.5f + 0.5f, normal.y * 0.5f + 0.5f, normal.z * 0.5f + 0.5f, 1f));
+            }
+        }
+
+        tex.Apply();
+        return SaveTexture(path, tex, true, false, true);
+    }
+
+    static Texture2D TileableFoam(string path, int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)size;
+                float v = y / (float)size;
+                float n = 0.5f + 0.5f * Mathf.Sin((u * 4f + v * 2f) * Mathf.PI * 2f);
+                n += 0.35f * (0.5f + 0.5f * Mathf.Sin((u * 9f - v * 7f) * Mathf.PI * 2f));
+                n += 0.2f * (0.5f + 0.5f * Mathf.Sin((u * 15f + v * 13f) * Mathf.PI * 2f));
+                n = Mathf.Clamp01(n / 1.55f);
+                float g = 0.5f + 0.5f * Mathf.Sin((u * 6f - v * 5f + 0.4f) * Mathf.PI * 2f);
+                g += 0.3f * (0.5f + 0.5f * Mathf.Sin((u * 11f + v * 3f) * Mathf.PI * 2f));
+                g = Mathf.Clamp01(g / 1.3f);
+                tex.SetPixel(x, y, new Color(n, g, n, 1f));
+            }
+        }
+
+        tex.Apply();
+        Texture2D saved = SaveTexture(path, tex, false, false, true);
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer != null)
+        {
+            importer.sRGBTexture = false;
+            importer.alphaIsTransparency = false;
+            importer.SaveAndReimport();
+            saved = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        return saved;
+    }
+
+    static Cubemap LoadSkyCubemap(string assetPath)
+    {
+        if (!System.IO.File.Exists(assetPath))
+        {
+            return null;
+        }
+
+        AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+        TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+        if (importer == null)
+        {
+            return null;
+        }
+
+        bool ready = importer.textureShape == TextureImporterShape.TextureCube
+            && importer.generateCubemap == TextureImporterGenerateCubemap.Cylindrical
+            && importer.mipmapEnabled
+            && importer.isReadable
+            && !importer.sRGBTexture
+            && importer.textureCompression == TextureImporterCompression.Compressed;
+        if (!ready)
+        {
+            importer.textureShape = TextureImporterShape.TextureCube;
+            importer.generateCubemap = TextureImporterGenerateCubemap.Cylindrical;
+            importer.sRGBTexture = false;
+            importer.mipmapEnabled = true;
+            importer.isReadable = true;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.filterMode = FilterMode.Trilinear;
+            importer.maxTextureSize = 2048;
+            importer.SaveAndReimport();
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Cubemap>(assetPath);
+    }
+
+    static Vector3 BrightestCubemapDirection(Cubemap cube)
+    {
+        if (cube == null)
+        {
+            return Vector3.zero;
+        }
+
+        float best = -1f;
+        Vector3 bestDir = Vector3.zero;
+        int size = cube.width;
+        int step = size > 768 ? 2 : 1;
+        try
+        {
+            for (int faceIndex = 0; faceIndex < 6; faceIndex++)
+            {
+                CubemapFace face = (CubemapFace)faceIndex;
+                Color[] pixels = cube.GetPixels(face, 0);
+                if (pixels == null)
+                {
+                    continue;
+                }
+
+                for (int y = 0; y < size; y += step)
+                {
+                    for (int x = 0; x < size; x += step)
+                    {
+                        int index = y * size + x;
+                        if (index < 0 || index >= pixels.Length)
+                        {
+                            continue;
+                        }
+
+                        Color color = pixels[index];
+                        float lum = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
+                        if (lum > best)
+                        {
+                            best = lum;
+                            float u = (x + 0.5f) / size;
+                            float v = (y + 0.5f) / size;
+                            bestDir = CubemapDirection(face, u, v);
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("Could not read the sky cubemap. " + exception.Message);
+            return Vector3.zero;
+        }
+
+        return bestDir.sqrMagnitude > 0.01f ? bestDir.normalized : Vector3.zero;
+    }
+
+    static Vector3 CubemapDirection(CubemapFace face, float u, float v)
+    {
+        float sc = u * 2f - 1f;
+        float tc = v * 2f - 1f;
+        Vector3 direction;
+        switch (face)
+        {
+            case CubemapFace.PositiveX:
+                direction = new Vector3(1f, -tc, -sc);
+                break;
+            case CubemapFace.NegativeX:
+                direction = new Vector3(-1f, -tc, sc);
+                break;
+            case CubemapFace.PositiveY:
+                direction = new Vector3(sc, 1f, tc);
+                break;
+            case CubemapFace.NegativeY:
+                direction = new Vector3(sc, -1f, -tc);
+                break;
+            case CubemapFace.PositiveZ:
+                direction = new Vector3(sc, -tc, 1f);
+                break;
+            default:
+                direction = new Vector3(-sc, -tc, -1f);
+                break;
+        }
+
+        return direction.normalized;
+    }
+
+    static Vector3 LightEulerFromSkyDirection(Vector3 skyDirection)
+    {
+        if (skyDirection.sqrMagnitude < 0.2f)
+        {
+            return new Vector3(10f, 28f, 0f);
+        }
+
+        Vector3 forward = -skyDirection.normalized;
+        Vector3 up = Mathf.Abs(Vector3.Dot(forward, Vector3.up)) > 0.92f ? Vector3.forward : Vector3.up;
+        return Quaternion.LookRotation(forward, up).eulerAngles;
+    }
+
+    static void ApplySkyExposure(Material sky, Material water)
+    {
+        if (sky == null)
+        {
+            return;
+        }
+
+        Cubemap nightCube = sky.GetTexture("_NightCube") as Cubemap;
+        Cubemap dawnCube = sky.GetTexture("_DawnCube") as Cubemap;
+        Color nightColor;
+        float nightLum;
+        int nightCount;
+        SampleHorizon(nightCube, 32f, 70f, out nightColor, out nightLum, out nightCount);
+        Color nightGlow;
+        float nightGlowLum;
+        int nightGlowCount;
+        SampleHorizon(nightCube, 4f, 16f, out nightGlow, out nightGlowLum, out nightGlowCount);
+        Color dawnColor;
+        float dawnLum;
+        int dawnCount;
+        SampleHorizon(dawnCube, 4f, 16f, out dawnColor, out dawnLum, out dawnCount);
+        Color dawnBody;
+        float dawnBodyLum;
+        int dawnBodyCount;
+        SampleHorizon(dawnCube, 28f, 60f, out dawnBody, out dawnBodyLum, out dawnBodyCount);
+
+        float nightExposure = 1.5f;
+        if (nightLum > 0.0008f)
+        {
+            float maxChannel = Mathf.Max(nightColor.r, Mathf.Max(nightColor.g, nightColor.b));
+            float desired = Mathf.Clamp(nightLum * 0.38f * 4f, 0.08f, 0.36f);
+            nightExposure = desired / nightLum;
+            if (maxChannel > 0.0001f)
+            {
+                nightExposure = Mathf.Min(nightExposure, 0.85f / maxChannel);
+            }
+
+            float glowMax = Mathf.Max(nightGlow.r, Mathf.Max(nightGlow.g, nightGlow.b));
+            if (glowMax > 0.05f)
+            {
+                nightExposure = Mathf.Min(nightExposure, 0.5f / glowMax);
+            }
+
+            nightExposure = Mathf.Clamp(nightExposure, 0.45f, 0.65f);
+        }
+
+        float dawnExposure = 0.55f;
+        if (dawnLum > 0.0008f)
+        {
+            float maxChannel = Mathf.Max(dawnColor.r, Mathf.Max(dawnColor.g, dawnColor.b));
+            dawnExposure = 1.05f / Mathf.Max(maxChannel, 0.05f);
+            float bodyMax = Mathf.Max(dawnBody.r, Mathf.Max(dawnBody.g, dawnBody.b));
+            if (dawnBodyLum > 0.0008f && bodyMax * dawnExposure > 0.95f)
+            {
+                dawnExposure = 0.9f / Mathf.Max(bodyMax, 0.0001f);
+            }
+
+            dawnExposure = Mathf.Clamp(dawnExposure, 0.25f, 2.2f);
+        }
+
+        if (sky.HasProperty("_Exposure"))
+        {
+            sky.SetFloat("_Exposure", nightExposure);
+        }
+
+        if (sky.HasProperty("_DawnExposure"))
+        {
+            sky.SetFloat("_DawnExposure", dawnExposure);
+        }
+
+        if (sky.HasProperty("_Blend"))
+        {
+            sky.SetFloat("_Blend", 0f);
+        }
+
+        if (sky.HasProperty("_Haze"))
+        {
+            sky.SetFloat("_Haze", 0.48f);
+        }
+
+        if (nightCube != null && sky.HasProperty("_MoonDir"))
+        {
+            Vector3 moon = BrightestCubemapDirection(nightCube);
+            if (moon.sqrMagnitude > 0.2f)
+            {
+                sky.SetVector("_MoonDir", new Vector4(moon.x, moon.y, moon.z, 0f));
+            }
+        }
+
+        if (water != null)
+        {
+            water.SetFloat("_SkyExposure", nightExposure);
+            water.SetFloat("_WaveAmp", 8f);
+            water.SetFloat("_FoamDepth", 1.6f);
+            if (water.HasProperty("_DawnExposure"))
+            {
+                water.SetFloat("_DawnExposure", dawnExposure);
+            }
+
+            if (water.HasProperty("_FadeStart"))
+            {
+                water.SetFloat("_FadeStart", 520f);
+                water.SetFloat("_FadeEnd", 630f);
+            }
+
+            if (dawnCube != null)
+            {
+                water.SetTexture("_DawnCube", dawnCube);
+            }
+
+            EditorUtility.SetDirty(water);
+        }
+
+        EditorUtility.SetDirty(sky);
+        Debug.Log("Sky exposure night=" + nightExposure.ToString("0.00")
+            + " dawn=" + dawnExposure.ToString("0.00")
+            + " nightLum=" + nightLum.ToString("0.000")
+            + " dawnLum=" + dawnLum.ToString("0.000")
+            + " nightRGB=" + nightColor
+            + " dawnRGB=" + dawnColor
+            + " dawnBody=" + dawnBody
+            + " samples=" + nightCount + "/" + dawnCount + "/" + dawnBodyCount);
+    }
+
+    static void SampleHorizon(Cubemap cube, float minDegrees, float maxDegrees, out Color average, out float luminance, out int count)
+    {
+        average = Color.black;
+        luminance = 0f;
+        count = 0;
+        if (cube == null)
+        {
+            return;
+        }
+
+        var colors = new List<Color>(1024);
+        int size = cube.width;
+        int step = Mathf.Max(1, size / 64);
+        float minY = Mathf.Sin(minDegrees * Mathf.Deg2Rad);
+        float maxY = Mathf.Sin(maxDegrees * Mathf.Deg2Rad);
+        try
+        {
+            for (int faceIndex = 0; faceIndex < 6; faceIndex++)
+            {
+                CubemapFace face = (CubemapFace)faceIndex;
+                Color[] pixels = cube.GetPixels(face, 0);
+                if (pixels == null)
+                {
+                    continue;
+                }
+
+                for (int y = 0; y < size; y += step)
+                {
+                    for (int x = 0; x < size; x += step)
+                    {
+                        int index = y * size + x;
+                        if (index < 0 || index >= pixels.Length)
+                        {
+                            continue;
+                        }
+
+                        float u = (x + 0.5f) / size;
+                        float v = (y + 0.5f) / size;
+                        Vector3 direction = CubemapDirection(face, u, v);
+                        if (direction.y < minY || direction.y > maxY)
+                        {
+                            continue;
+                        }
+
+                        colors.Add(pixels[index]);
+                    }
+                }
+            }
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("Sky horizon sample failed. " + exception.Message);
+            return;
+        }
+
+        if (colors.Count < 8)
+        {
+            return;
+        }
+
+        colors.Sort((a, b) => Luminance(a).CompareTo(Luminance(b)));
+        int start = colors.Count / 8;
+        int end = colors.Count - start;
+        double r = 0;
+        double g = 0;
+        double b = 0;
+        double lum = 0;
+        int used = 0;
+        for (int i = start; i < end; i++)
+        {
+            Color color = colors[i];
+            r += color.r;
+            g += color.g;
+            b += color.b;
+            lum += Luminance(color);
+            used++;
+        }
+
+        if (used == 0)
+        {
+            return;
+        }
+
+        average = new Color((float)(r / used), (float)(g / used), (float)(b / used), 1f);
+        luminance = (float)(lum / used);
+        count = used;
+    }
+
+    static float Luminance(Color color)
+    {
+        return color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
     }
 }
 }

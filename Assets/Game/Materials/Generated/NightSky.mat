@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: NightSky
-  m_Shader: {fileID: 4800000, guid: b0291b444c891fe41afb73642bc8007c, type: 3}
+  m_Shader: {fileID: 4800000, guid: de62d1c16f2442943afa2fa6800f4981, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,13 +22,25 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _DawnCube:
+        m_Texture: {fileID: 8900000, guid: 338bf39625694da4c928f775dfd18245, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NightCube:
+        m_Texture: {fileID: 8900000, guid: 48184b61da43d9946bf306e4072cf7e5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Exponent: 1.55
+    - _Blend: 0
+    - _DawnExposure: 0.50091803
+    - _Exposure: 0.45
+    - _Haze: 0.48
+    - _Rotation: 0
     m_Colors:
-    - _Ground: {r: 0.005, g: 0.006, b: 0.012, a: 1}
-    - _Horizon: {r: 0.08, g: 0.24, b: 0.28, a: 1}
-    - _Top: {r: 0.015, g: 0.03, b: 0.09, a: 1}
+    - _HazeColor: {r: 0.07, g: 0.16, b: 0.2, a: 1}
+    - _MoonDir: {r: 0.57133484, g: 0.23850353, b: 0.7852978, a: 0}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

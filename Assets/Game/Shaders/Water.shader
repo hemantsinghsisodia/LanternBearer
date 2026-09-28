@@ -1,0 +1,260 @@
+Shader "LanternKeeper/Water"
+{
+    Properties
+    {
+        _ShallowColor ("Shallow", Color) = (0.2, 0.62, 0.58, 0.4)
+        _DeepColor ("Deep", Color) = (0.012, 0.05, 0.09, 0.9)
+        _FoamColor ("Foam", Color) = (0.78, 0.86, 0.84, 0.8)
+        _NormalA ("Normal A", 2D) = "bump" {}
+        _NormalB ("Normal B", 2D) = "bump" {}
+        _FoamNoise ("Foam Noise", 2D) = "white" {}
+        _SkyCube ("Sky", Cube) = "" {}
+        _DawnCube ("Dawn", Cube) = "" {}
+        _NormalScale ("Normal Scale", Float) = 0.28
+        _DepthFade ("Depth Fade", Float) = 2.4
+        _Refraction ("Refraction", Float) = 0.03
+        _FoamDepth ("Foam Depth", Float) = 1.6
+        _Glitter ("Glitter", Float) = 0.55
+        _SkyExposure ("Sky Exposure", Float) = 1.5
+        _DawnExposure ("Dawn Exposure", Float) = 1.2
+        _WaveAmp ("Wave Amp", Float) = 8
+        _FadeStart ("Ring Start", Float) = 520
+        _FadeEnd ("Ring End", Float) = 630
+    }
+    SubShader
+    {
+        Tags
+        {
+            "RenderType" = "Transparent"
+            "Queue" = "Transparent"
+            "RenderPipeline" = "UniversalPipeline"
+        }
+        Blend SrcAlpha OneMinusSrcAlpha
+        ZWrite Off
+        Cull Back
+        Pass
+        {
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #define _SCREENSPACEREFLECTIONS_OFF
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Fog.hlsl"
+
+            float4 _ShallowColor;
+            float4 _DeepColor;
+            float4 _FoamColor;
+            float _NormalScale;
+            float _DepthFade;
+            float _Refraction;
+            float _FoamDepth;
+            float _Glitter;
+            float _SkyExposure;
+            float _DawnExposure;
+            float _WaveAmp;
+            float _FadeStart;
+            float _FadeEnd;
+            float _LanternSkyBlend;
+            float4 _WaterTint;
+
+            TEXTURE2D(_NormalA);
+            SAMPLER(sampler_NormalA);
+            TEXTURE2D(_NormalB);
+            SAMPLER(sampler_NormalB);
+            TEXTURE2D(_FoamNoise);
+            SAMPLER(sampler_FoamNoise);
+            TEXTURECUBE(_SkyCube);
+            SAMPLER(sampler_SkyCube);
+            TEXTURECUBE(_DawnCube);
+            SAMPLER(sampler_DawnCube);
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+                float3 absoluteWS : TEXCOORD1;
+                float3 normalWS : TEXCOORD2;
+                float eyeDepth : TEXCOORD3;
+            };
+
+            void AccumulateGerstner(float3 p, float2 dir, float amplitude, float wavelength, float steepness, float speed, float time, inout float3 offset, inout float3 normal)
+            {
+                float k = 6.2831853 / wavelength;
+                float c = sqrt(9.8 / k);
+                float2 d = normalize(dir);
+                float f = k * (dot(d, p.xz) - c * speed * time);
+                float s = sin(f);
+                float co = cos(f);
+                offset.x += d.x * (steepness * amplitude) * co;
+                offset.y += amplitude * s;
+                offset.z += d.y * (steepness * amplitude) * co;
+                normal.x -= d.x * k * amplitude * co;
+                normal.z -= d.y * k * amplitude * co;
+                normal.y -= steepness * k * amplitude * s;
+            }
+
+            void Waves(float3 p, float time, out float3 offset, out float3 normal)
+            {
+                offset = 0;
+                normal = float3(0, 1, 0);
+                float amp = _WaveAmp;
+                AccumulateGerstner(p, float2(1.0, 0.08), 0.112 * amp, 42.0, 0.2, 0.35, time, offset, normal);
+                AccumulateGerstner(p, float2(1.0, 0.22), 0.028 * amp, 34.0, 0.26, 0.7, time, offset, normal);
+                AccumulateGerstner(p, float2(-0.82, -0.36), 0.016 * amp, 22.0, 0.24, 0.75, time, offset, normal);
+                AccumulateGerstner(p, float2(-0.32, 0.95), 0.011 * amp, 14.0, 0.22, 0.9, time, offset, normal);
+                normal = normalize(normal);
+            }
+
+            float3 CompressNight(float3 hdr)
+            {
+                float luma = max(dot(hdr, float3(0.2126, 0.7152, 0.0722)), 1e-4);
+                float extra = max(luma - 0.35, 0.0);
+                float mapped = luma + extra * (1.0 / (1.0 + extra * 0.55) - 1.0);
+                hdr *= mapped / luma;
+                return hdr * float3(0.58, 0.66, 0.92);
+            }
+
+            float3 SampleSky(float3 dir)
+            {
+                float3 night = CompressNight(SAMPLE_TEXTURECUBE_LOD(_SkyCube, sampler_SkyCube, dir, 0).rgb);
+                float3 dawn = SAMPLE_TEXTURECUBE_LOD(_DawnCube, sampler_DawnCube, dir, 0).rgb;
+                float blend = saturate(_LanternSkyBlend);
+                float exposure = lerp(_SkyExposure, _DawnExposure, blend);
+                return lerp(night, dawn, blend) * exposure;
+            }
+
+            float3 TintOrWhite(float3 tint)
+            {
+                float peak = max(tint.r, max(tint.g, tint.b));
+                return lerp(float3(1, 1, 1), tint, saturate(peak * 8));
+            }
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float3 absoluteWS = GetAbsolutePositionWS(positionWS);
+                float3 offset;
+                float3 normalWS;
+                Waves(absoluteWS, _Time.y, offset, normalWS);
+                positionWS += offset;
+                absoluteWS += offset;
+                output.positionWS = positionWS;
+                output.absoluteWS = absoluteWS;
+                output.normalWS = normalWS;
+                output.positionCS = TransformWorldToHClip(positionWS);
+                output.eyeDepth = -TransformWorldToView(positionWS).z;
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                float time = _Time.y;
+                float3 absoluteWS = input.absoluteWS;
+                float eye = length(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
+                float ripple = lerp(1.15, 0.85, smoothstep(40.0, 240.0, eye));
+                float normalLod = min(eye * 0.008, 1.6);
+                float2 uv1 = absoluteWS.xz * 0.11 + float2(time * 0.08, time * 0.05);
+                float2 uv2 = absoluteWS.xz * 0.19 + float2(-time * 0.06, time * 0.07);
+                float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalA, sampler_NormalA, uv1, normalLod));
+                float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalB, sampler_NormalB, uv2, normalLod));
+                float3 nTS = normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
+                nTS.xy *= ripple;
+                nTS = normalize(nTS);
+
+                float3 up = normalize(input.normalWS);
+                float3 tangent = normalize(cross(float3(0, 0, 1), up));
+                float3 bitangent = cross(up, tangent);
+                float3 normalWS = normalize(tangent * nTS.x + bitangent * nTS.y + up * nTS.z);
+
+                float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                float rawDepth = SampleSceneDepth(screenUV);
+                float sceneEye = LinearEyeDepth(rawDepth, _ZBufferParams);
+                float diff = sceneEye - input.eyeDepth;
+                float depth01 = saturate(diff / max(_DepthFade, 0.01));
+                float shore = saturate(diff / 0.32);
+                #if UNITY_REVERSED_Z
+                if (rawDepth <= 0.0001)
+                #else
+                if (rawDepth >= 0.9999)
+                #endif
+                {
+                    depth01 = 1.0;
+                    shore = 1.0;
+                }
+
+                float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
+                Light mainLight = GetMainLight();
+                float3 lightDir = normalize(mainLight.direction);
+                float ndotv = saturate(dot(normalWS, viewDir));
+                float fresnel = 0.02 + 0.98 * pow(1.0 - ndotv, 5.0);
+
+                float3 shallow = _ShallowColor.rgb;
+                float3 deep = _DeepColor.rgb;
+                float3 water = lerp(shallow, deep, depth01);
+                float shallowness = 1.0 - depth01;
+                float2 refractUV = screenUV + normalWS.xz * _Refraction * shallowness;
+                float3 refracted = SampleSceneColor(refractUV);
+                water = lerp(water, refracted, shallowness * shore * 0.45 * (1.0 - fresnel));
+
+                float3 reflectNormal = normalize(float3(normalWS.x * 2.6, normalWS.y, normalWS.z * 2.6));
+                float3 reflectDir = reflect(-viewDir, reflectNormal);
+                float3 probe = GlossyEnvironmentReflection(reflectDir, 0.02, 1);
+                float3 sky = SampleSky(reflectDir);
+                float skyPeak = max(sky.r, max(sky.g, sky.b));
+                float3 env = skyPeak > 0.02 ? sky : probe;
+                float2 lightFlat = lightDir.xz;
+                float lightLen = max(length(lightFlat), 0.001);
+                lightFlat /= lightLen;
+                float along = dot(absoluteWS.xz, lightFlat);
+                float across = lightFlat.x * absoluteWS.z - lightFlat.y * absoluteWS.x;
+                float3 flatReflect = reflect(-viewDir, float3(0.0, 1.0, 0.0));
+                float streak = pow(saturate(dot(flatReflect, lightDir)), 4.0);
+                float nAcross = SAMPLE_TEXTURE2D_LOD(_FoamNoise, sampler_FoamNoise, float2(along * 1.2, across * 18.0) + float2(time * 0.02, 0.0), 0).r;
+                float nFine = SAMPLE_TEXTURE2D_LOD(_FoamNoise, sampler_FoamNoise, float2(along * 2.4, across * 40.0) + float2(0.0, -time * 0.03), 0).g;
+                float fleck = step(0.55, frac(nAcross * 6.0 + nFine * 3.0));
+                float highlight = max(env.r, max(env.g, env.b));
+                if (highlight > 0.1 && streak > 0.05)
+                {
+                    env *= fleck;
+                }
+                water = lerp(water, env, fresnel);
+                water += mainLight.color.rgb * fleck * streak * _Glitter * 3.0;
+
+                float foamNoise = SAMPLE_TEXTURE2D(_FoamNoise, sampler_FoamNoise, absoluteWS.xz * 0.055 + float2(time * 0.03, time * 0.014)).g;
+                float foamReach = max(_FoamDepth, 0.05);
+                float foam = saturate(1.0 - diff / foamReach);
+                foam *= smoothstep(0.32, 0.7, foamNoise);
+                foam *= shore;
+                water = lerp(water, _FoamColor.rgb, foam * _FoamColor.a);
+
+                float3 tint = TintOrWhite(_WaterTint.rgb);
+                water *= tint;
+
+                float fogFactor = ComputeFogFactor(input.positionCS.z);
+                float3 fogged = MixFog(water, fogFactor);
+                water = lerp(water, fogged, 0.32);
+
+                float radial = length(absoluteWS.xz);
+                float ring = smoothstep(_FadeStart, _FadeEnd, radial);
+                float3 skyAhead = SampleSky(-viewDir);
+                water = lerp(water, skyAhead, ring);
+
+                float alpha = lerp(_ShallowColor.a, 0.92, depth01);
+                alpha *= shore;
+                alpha = max(alpha, foam * 0.7);
+                return half4(water, saturate(alpha));
+            }
+            ENDHLSL
+        }
+    }
+}

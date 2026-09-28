@@ -351,40 +351,25 @@ public static partial class IslandBuilder
         return origin.y + terrain.terrainData.GetInterpolatedHeight(u, v);
     }
 
-    static void CreateWater(LevelConfig config, ArtKit art, Stage stage)
-    {
-        GameObject water = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        water.name = "Water";
-        water.transform.position = new Vector3(0f, stage.waterY, 0f);
-        water.transform.localScale = new Vector3(52f, 1f, 52f);
-        Renderer renderer = water.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.sharedMaterial = art.water;
-        }
-
-        StripColliders(water);
-        water.AddComponent<WaterScroll>();
-
-        GameObject volume = new GameObject("WaterVolume");
-        volume.transform.position = new Vector3(0f, stage.waterY - 3f, 0f);
-        BoxCollider box = volume.AddComponent<BoxCollider>();
-        box.isTrigger = true;
-        box.size = new Vector3(520f, 6f, 520f);
-        WaterHazard hazard = volume.AddComponent<WaterHazard>();
-        SerializedObject so = new SerializedObject(hazard);
-        so.FindProperty("surfaceY").floatValue = stage.waterY;
-        so.FindProperty("penalty").floatValue = 10f;
-        so.ApplyModifiedPropertiesWithoutUndo();
-    }
-
     static void CreateAtmosphere(LevelConfig config, ArtKit art, Stage stage)
     {
         RenderSettings.skybox = art.sky;
-        RenderSettings.ambientMode = AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = new Color(0.09f, 0.12f, 0.22f);
         RenderSettings.ambientEquatorColor = new Color(0.1f, 0.28f, 0.28f);
         RenderSettings.ambientGroundColor = new Color(0.03f, 0.028f, 0.035f);
+        if (art.hdriSky)
+        {
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 0.18f;
+            RenderSettings.reflectionIntensity = 1f;
+            DynamicGI.UpdateEnvironment();
+        }
+        else
+        {
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientIntensity = 1f;
+        }
+
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Exponential;
         RenderSettings.fogColor = config.fogColor;
@@ -397,7 +382,15 @@ public static partial class IslandBuilder
         sun.intensity = 1.08f;
         sun.shadows = LightShadows.Soft;
         sun.shadowStrength = 0.65f;
-        moon.transform.rotation = Quaternion.Euler(38f, -35f, 0f);
+        if (art.moonDirection.sqrMagnitude > 0.25f)
+        {
+            moon.transform.rotation = Quaternion.LookRotation(-art.moonDirection.normalized, Mathf.Abs(art.moonDirection.y) > 0.92f ? Vector3.forward : Vector3.up);
+        }
+        else
+        {
+            moon.transform.rotation = Quaternion.Euler(38f, -35f, 0f);
+        }
+
         RenderSettings.sun = sun;
         stage.sun = sun;
 
@@ -418,8 +411,14 @@ public static partial class IslandBuilder
 
         GameObject sky = new GameObject("Sky");
         stage.stars = CreateStars(sky.transform, art);
-        CreateMoon(sky.transform, art);
-        CreateHillRing(art, config.seed);
+        if (art.hdriSky)
+        {
+            stage.stars.gameObject.SetActive(false);
+        }
+
+        CreateHorizon(config, art, stage);
+        CreateReflectionProbe(stage);
+        DawnSequence.ApplyNightGlobals();
         CreateMist(art, stage);
         CreateCameraShell(stage, config.islandRadius);
     }
@@ -449,33 +448,6 @@ public static partial class IslandBuilder
         renderer.sharedMaterial = art.unlit;
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
         return stars.AddComponent<StarTwinkle>();
-    }
-
-    static void CreateMoon(Transform parent, ArtKit art)
-    {
-        GameObject moon = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        moon.name = "Moon";
-        moon.transform.SetParent(parent, false);
-        moon.transform.position = new Vector3(72f, 58f, 34f);
-        moon.transform.localScale = Vector3.one * 11f;
-        moon.GetComponent<Renderer>().sharedMaterial = art.moon;
-        StripColliders(moon);
-    }
-
-    static void CreateHillRing(ArtKit art, int seed)
-    {
-        GameObject ring = new GameObject("Silhouettes");
-        System.Random random = new System.Random(seed + 9);
-        for (int i = 0; i < 16; i++)
-        {
-            float angle = i * Mathf.PI * 2f / 16f;
-            float radius = 150f + (float)random.NextDouble() * 12f;
-            float height = 8f + (float)random.NextDouble() * 10f;
-            Vector3 pos = new Vector3(Mathf.Cos(angle) * radius, -4f, Mathf.Sin(angle) * radius);
-            MakeCone("Hill" + i, ring.transform, pos, new Vector3(10f, height, 10f), art.silhouette, Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f));
-        }
-
-        StripColliders(ring);
     }
 
     static void CreateMist(ArtKit art, Stage stage)
@@ -508,7 +480,7 @@ public static partial class IslandBuilder
         cameraObject.tag = "MainCamera";
         Camera camera = cameraObject.AddComponent<Camera>();
         camera.nearClipPlane = 0.08f;
-        camera.farClipPlane = 600f;
+        camera.farClipPlane = 900f;
         camera.fieldOfView = 58f;
         camera.clearFlags = CameraClearFlags.Skybox;
         camera.allowHDR = true;
@@ -675,6 +647,17 @@ public static partial class IslandBuilder
                 stone.GetComponent<Renderer>().sharedMaterial = art.path;
                 stone.AddComponent<LightRevealed>();
                 stage.stones++;
+
+                GameObject foam = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                foam.name = "StoneFoam";
+                foam.transform.SetParent(parent, true);
+                foam.transform.position = pos + new Vector3(0f, 0.06f, 0f);
+                foam.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                foam.transform.localScale = new Vector3(2.35f, 2.35f, 1f);
+                foam.GetComponent<Renderer>().sharedMaterial = art.foam;
+                foam.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                StripColliders(foam);
+                foam.AddComponent<LightRevealed>();
             }
         }
     }
@@ -1326,6 +1309,11 @@ public static partial class IslandBuilder
         dawnObject.FindProperty("sun").objectReferenceValue = stage.sun;
         dawnObject.FindProperty("stars").objectReferenceValue = stage.stars;
         dawnObject.FindProperty("duration").floatValue = 6f;
+        if (art.dawnDirection.sqrMagnitude > 0.25f)
+        {
+            dawnObject.FindProperty("dawnEuler").vector3Value = LightEulerFromSkyDirection(art.dawnDirection);
+        }
+
         dawnObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject fxObject = new SerializedObject(fx);

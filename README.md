@@ -65,3 +65,10 @@ Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths 
   - Stony Dirt Path by eye-candy.xyz (trail)
   - Rock Face 03 by Dario Barresi and Rico Cilliers (cliff)
   - Forest Leaves 02 by Rob Tuytel (moss)
+
+### Skies
+
+Poly Haven CC0 HDRIs, by Greg Zaal and Jarod Guest:
+
+- Qwantani Moonrise Pure Sky (night) — https://polyhaven.com/a/qwantani_moonrise_puresky
+- Qwantani Dawn Pure Sky (dawn) — https://polyhaven.com/a/qwantani_dawn_puresky
