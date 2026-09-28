@@ -10,6 +10,8 @@ public static partial class IslandBuilder
 {
     const string KeeperFbxPath = "Assets/Game/Models/Keeper/Keeper.fbx";
     const string KeeperControllerPath = "Assets/Game/Models/Keeper/Keeper.controller";
+    const string KeeperPrefabPath = "Assets/Game/Prefabs/Characters/Keeper.prefab";
+    const string KeeperTextureFolder = "Assets/Game/Models/Keeper/Textures";
 
     static bool keeperImportReady;
 
@@ -34,11 +36,74 @@ public static partial class IslandBuilder
         importer.animationType = ModelImporterAnimationType.Generic;
         importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
         ApplyKeeperLoops(importer);
+        ExtractKeeperTextures(importer);
         importer.SaveAndReimport();
         Debug.Log("Keeper uses a Generic avatar. The Poly Pizza rig parents Foot.L and Foot.R to Root, so a Humanoid avatar cannot map LeftFoot.");
 
         EnsureKeeperController();
         keeperImportReady = true;
+    }
+
+    static void ExtractKeeperTextures(ModelImporter importer)
+    {
+        SerializedObject serialized = new SerializedObject(importer);
+        SerializedProperty embedded = serialized.FindProperty("m_HasEmbeddedTextures");
+        bool hasEmbedded = embedded != null && embedded.boolValue;
+        string looseFolder = FindLooseKeeperTextureFolder();
+        if (hasEmbedded)
+        {
+            EnsureFolder(KeeperTextureFolder);
+            bool extracted = importer.ExtractTextures(KeeperTextureFolder);
+            Debug.Log("Extracted embedded keeper textures into " + KeeperTextureFolder + " (" + extracted + ").");
+            return;
+        }
+
+        if (looseFolder == null)
+        {
+            Debug.Log("Keeper FBX has no embedded textures and no loose maps beside the model.");
+            return;
+        }
+
+        SerializedProperty search = serialized.FindProperty("m_SearchTexturesGlobally");
+        if (search != null && !search.boolValue)
+        {
+            search.boolValue = true;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        Debug.Log("Keeper texture search widened for loose maps in " + looseFolder + ".");
+    }
+
+    static string FindLooseKeeperTextureFolder()
+    {
+        string fbm = "Assets/Game/Models/Keeper/Keeper.fbm";
+        if (FolderHasTextures(fbm))
+        {
+            return fbm;
+        }
+
+        if (FolderHasTextures(KeeperTextureFolder))
+        {
+            return KeeperTextureFolder;
+        }
+
+        if (FolderHasTextures("Assets/Game/Models/Keeper"))
+        {
+            return "Assets/Game/Models/Keeper";
+        }
+
+        return null;
+    }
+
+    static bool FolderHasTextures(string folder)
+    {
+        if (!AssetDatabase.IsValidFolder(folder))
+        {
+            return false;
+        }
+
+        string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { folder });
+        return guids != null && guids.Length > 0;
     }
 
     static void ApplyKeeperLoops(ModelImporter importer)
@@ -266,11 +331,16 @@ public static partial class IslandBuilder
 
     static void TintKeeper(GameObject root)
     {
+        List<Texture2D> albedoMaps = new List<Texture2D>();
+        List<Texture2D> normalMaps = new List<Texture2D>();
+        CollectKeeperMaps(albedoMaps, normalMaps);
+        Debug.Log("Keeper texture library: albedo=" + albedoMaps.Count + " normal=" + normalMaps.Count + ".");
         Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < renderers.Length; i++)
         {
             Material[] source = renderers[i].sharedMaterials;
             Material[] tinted = new Material[source.Length];
+            List<string> missing = new List<string>();
             for (int m = 0; m < source.Length; m++)
             {
                 if (source[m] == null)
@@ -291,16 +361,172 @@ public static partial class IslandBuilder
                     copy.CopyPropertiesFromMaterial(source[m]);
                 }
 
-                WarmNight(copy, renderers[i].gameObject.name);
+                string assigned = AssignKeeperMaps(copy, source[m], renderers[i].gameObject.name, albedoMaps, normalMaps);
+                WarmNight(copy, renderers[i].gameObject.name, source[m].name);
                 EditorUtility.SetDirty(copy);
                 tinted[m] = copy;
+                if (!MaterialHasAlbedo(copy))
+                {
+                    missing.Add(source[m].name);
+                }
+                else if (assigned.Length > 0)
+                {
+                    Debug.Log("Keeper " + renderers[i].gameObject.name + " " + source[m].name + " " + assigned);
+                }
             }
 
             renderers[i].sharedMaterials = tinted;
+            if (missing.Count > 0)
+            {
+                Debug.LogWarning("Keeper renderer " + renderers[i].gameObject.name + " has no albedo on " + string.Join(", ", missing.ToArray()) + ". Using a flat colour fallback.");
+            }
         }
     }
 
-    static void WarmNight(Material material, string rendererName)
+    static void CollectKeeperMaps(List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
+    {
+        string[] folders = { "Assets/Game/Models/Keeper" };
+        for (int f = 0; f < folders.Length; f++)
+        {
+            if (!AssetDatabase.IsValidFolder(folders[f]))
+            {
+                continue;
+            }
+
+            string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { folders[f] });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                AddKeeperMap(AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[i])), albedoMaps, normalMaps);
+            }
+        }
+
+        Object[] embedded = AssetDatabase.LoadAllAssetsAtPath(KeeperFbxPath);
+        for (int i = 0; i < embedded.Length; i++)
+        {
+            AddKeeperMap(embedded[i] as Texture2D, albedoMaps, normalMaps);
+        }
+    }
+
+    static void AddKeeperMap(Texture2D texture, List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
+    {
+        if (texture == null || albedoMaps.Contains(texture) || normalMaps.Contains(texture))
+        {
+            return;
+        }
+
+        if (IsKeeperNormalName(texture.name))
+        {
+            normalMaps.Add(texture);
+        }
+        else
+        {
+            albedoMaps.Add(texture);
+        }
+    }
+
+    static bool IsKeeperNormalName(string textureName)
+    {
+        string lower = textureName.ToLowerInvariant();
+        return lower.Contains("normal") || lower.Contains("nrm") || lower.Contains("bump") || lower.EndsWith("_n");
+    }
+
+    static string AssignKeeperMaps(Material copy, Material source, string rendererName, List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
+    {
+        Texture albedo = TextureOn(source, "_BaseMap");
+        if (albedo == null)
+        {
+            albedo = TextureOn(source, "_MainTex");
+        }
+
+        Texture normal = TextureOn(source, "_BumpMap");
+        if (albedo == null)
+        {
+            albedo = PickKeeperMap(albedoMaps, source.name, rendererName);
+        }
+
+        if (normal == null)
+        {
+            normal = PickKeeperMap(normalMaps, source.name, rendererName);
+        }
+
+        string report = "";
+        if (albedo != null && copy.HasProperty("_BaseMap"))
+        {
+            copy.SetTexture("_BaseMap", albedo);
+            if (copy.HasProperty("_MainTex"))
+            {
+                copy.SetTexture("_MainTex", albedo);
+            }
+
+            report = "albedo=" + albedo.name;
+        }
+
+        if (normal != null && copy.HasProperty("_BumpMap"))
+        {
+            copy.SetTexture("_BumpMap", normal);
+            if (copy.HasProperty("_BumpScale"))
+            {
+                copy.SetFloat("_BumpScale", 1f);
+            }
+
+            copy.EnableKeyword("_NORMALMAP");
+            report += (report.Length > 0 ? " " : "") + "normal=" + normal.name;
+        }
+
+        return report;
+    }
+
+    static Texture TextureOn(Material material, string property)
+    {
+        if (material == null || !material.HasProperty(property))
+        {
+            return null;
+        }
+
+        return material.GetTexture(property);
+    }
+
+    static Texture2D PickKeeperMap(List<Texture2D> maps, string materialName, string rendererName)
+    {
+        if (maps.Count == 0)
+        {
+            return null;
+        }
+
+        string material = materialName.ToLowerInvariant();
+        string renderer = rendererName.ToLowerInvariant();
+        for (int i = 0; i < maps.Count; i++)
+        {
+            string name = maps[i].name.ToLowerInvariant();
+            if (material.Length > 0 && name.Contains(material))
+            {
+                return maps[i];
+            }
+        }
+
+        for (int i = 0; i < maps.Count; i++)
+        {
+            string name = maps[i].name.ToLowerInvariant();
+            if (renderer.Length > 0 && name.Contains(renderer))
+            {
+                return maps[i];
+            }
+        }
+
+        if (maps.Count == 1)
+        {
+            return maps[0];
+        }
+
+        return null;
+    }
+
+    static bool MaterialHasAlbedo(Material material)
+    {
+        return material != null && material.HasProperty("_BaseMap") && material.GetTexture("_BaseMap") != null;
+    }
+
+    static void WarmNight(Material material, string rendererName, string sourceName)
     {
         string property = material.HasProperty("_BaseColor") ? "_BaseColor" : material.HasProperty("_Color") ? "_Color" : "";
         if (property.Length == 0)
@@ -308,23 +534,55 @@ public static partial class IslandBuilder
             return;
         }
 
-        Color color = material.GetColor(property);
         string name = rendererName.ToLowerInvariant();
-        if (name.Contains("head"))
+        string slot = sourceName == null ? "" : sourceName.ToLowerInvariant();
+        Color color = material.GetColor(property);
+        if (MaterialHasAlbedo(material))
+        {
+            if (!IsNearWhite(color))
+            {
+                color = Color.white;
+            }
+        }
+        else if (name.Contains("head"))
         {
             color = Color.Lerp(color, new Color(0.64f, 0.46f, 0.35f), 0.62f);
         }
         else if (name.Contains("feet"))
         {
-            color = Color.Lerp(color, new Color(0.3f, 0.16f, 0.09f), 0.55f);
+            color = slot.Contains("dark") ? new Color(0.3f, 0.17f, 0.1f) : new Color(0.4f, 0.24f, 0.14f);
         }
         else if (name.Contains("leg"))
         {
-            color = Color.Lerp(color, new Color(0.1f, 0.09f, 0.11f), 0.5f);
+            color = new Color(0.22f, 0.2f, 0.22f);
+        }
+        else if (slot.Contains("skin"))
+        {
+            color = new Color(0.64f, 0.46f, 0.35f);
+        }
+        else if (slot.Contains("gold"))
+        {
+            color = new Color(0.62f, 0.42f, 0.16f);
+        }
+        else if (slot.Contains("metal"))
+        {
+            color = new Color(0.4f, 0.4f, 0.42f);
+        }
+        else if (slot.Contains("white"))
+        {
+            color = new Color(0.68f, 0.62f, 0.54f);
+        }
+        else if (slot.Contains("light"))
+        {
+            color = new Color(0.5f, 0.34f, 0.24f);
+        }
+        else if (slot.Contains("dark") || slot == "brown")
+        {
+            color = new Color(0.34f, 0.22f, 0.15f);
         }
         else
         {
-            color = Color.Lerp(color, new Color(0.24f, 0.13f, 0.08f), 0.42f);
+            color = new Color(0.42f, 0.28f, 0.2f);
         }
 
         color.a = 1f;
@@ -333,6 +591,11 @@ public static partial class IslandBuilder
         {
             material.SetFloat("_Smoothness", name.Contains("head") ? 0.28f : 0.18f);
         }
+    }
+
+    static bool IsNearWhite(Color color)
+    {
+        return color.r >= 0.82f && color.g >= 0.82f && color.b >= 0.82f;
     }
 
     static string Sanitize(string value)
@@ -406,13 +669,145 @@ public static partial class IslandBuilder
         GameObject lightObject = new GameObject("LanternLight");
         lightObject.transform.SetParent(lantern.transform, false);
         Light light = lightObject.AddComponent<Light>();
+        ConfigureLanternPoint(light);
+        PlaceLanternLight(lightObject.transform, hand, root);
+        lantern.AddComponent<Lantern>();
+        StripColliders(pivot);
+        EnsureChestFill(root);
+    }
+
+    static void ConfigureLanternPoint(Light light)
+    {
         light.type = LightType.Point;
         light.color = new Color(1f, 0.64f, 0.28f);
         light.range = 14f;
         light.intensity = 4.2f;
         light.shadows = LightShadows.None;
-        lantern.AddComponent<Lantern>();
-        StripColliders(pivot);
+    }
+
+    static void PlaceLanternLight(Transform lightTransform, Transform hand, Transform root)
+    {
+        Vector3 outward = hand.position - root.position;
+        outward.y = 0.12f;
+        if (outward.sqrMagnitude < 0.0004f)
+        {
+            outward = Vector3.right;
+        }
+
+        lightTransform.position = hand.position + outward.normalized * 0.32f + Vector3.up * 0.05f;
+    }
+
+    static void EnsureChestFill(Transform root)
+    {
+        Transform chest = FindDeep(root, "Chest");
+        Transform anchor = chest != null ? chest : root;
+        Transform existing = FindDeep(root, "ChestFill");
+        GameObject fillObject = existing != null ? existing.gameObject : new GameObject("ChestFill");
+        if (existing == null)
+        {
+            fillObject.transform.SetParent(anchor, false);
+        }
+
+        Vector3 forward = Vector3.forward;
+        Vector3 side = Vector3.right;
+        if (chest != null)
+        {
+            forward = chest.forward;
+            side = chest.right;
+        }
+
+        forward.y = 0f;
+        side.y = 0f;
+        if (forward.sqrMagnitude < 0.01f)
+        {
+            forward = Vector3.forward;
+        }
+
+        if (side.sqrMagnitude < 0.01f)
+        {
+            side = Vector3.right;
+        }
+
+        Vector3 origin = chest != null ? chest.position : root.position + Vector3.up * 1.25f;
+        // Outside the cloak, behind and to the left of the chest. The third-person camera
+        // sits behind the keeper, so this is the cloth that otherwise stays unlit.
+        fillObject.transform.position = origin - forward.normalized * 0.48f - side.normalized * 0.36f + Vector3.up * 0.12f;
+        Light fill = fillObject.GetComponent<Light>();
+        if (fill == null)
+        {
+            fill = fillObject.AddComponent<Light>();
+        }
+
+        fill.type = LightType.Point;
+        fill.color = new Color(1f, 0.64f, 0.28f);
+        fill.range = 2.8f;
+        fill.intensity = 1.15f;
+        fill.shadows = LightShadows.None;
+    }
+
+    [MenuItem("Lantern Keeper/Refresh Keeper Look")]
+    public static void RefreshKeeperLook()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Exit Play mode before refreshing the keeper.");
+            return;
+        }
+
+        keeperImportReady = false;
+        PrepareKeeperImport();
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(KeeperFbxPath);
+        if (model == null)
+        {
+            Debug.LogError("Keeper model is missing.");
+            return;
+        }
+
+        GameObject temp = (GameObject)PrefabUtility.InstantiatePrefab(model);
+        TintKeeper(temp);
+        Object.DestroyImmediate(temp);
+
+        GameObject contents = PrefabUtility.LoadPrefabContents(KeeperPrefabPath);
+        try
+        {
+            Animator animator = contents.GetComponentInChildren<Animator>();
+            if (animator != null)
+            {
+                animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(KeeperControllerPath);
+            }
+
+            Transform hand = FindDeep(contents.transform, "Wrist.R");
+            if (hand == null)
+            {
+                hand = FindDeep(contents.transform, "RightHand");
+            }
+
+            if (hand == null)
+            {
+                hand = contents.transform;
+            }
+
+            Transform lanternLight = FindDeep(contents.transform, "LanternLight");
+            if (lanternLight != null)
+            {
+                PlaceLanternLight(lanternLight, hand, contents.transform);
+                Light point = lanternLight.GetComponent<Light>();
+                if (point != null)
+                {
+                    ConfigureLanternPoint(point);
+                }
+            }
+
+            EnsureChestFill(contents.transform);
+            PrefabUtility.SaveAsPrefabAsset(contents, KeeperPrefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(contents);
+        }
+
+        AssetDatabase.SaveAssets();
+        Debug.Log("Refreshed keeper materials and lantern lights on " + KeeperPrefabPath);
     }
 
     static void AttachDust(ArtKit art, Transform root)
