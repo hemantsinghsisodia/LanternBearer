@@ -9,10 +9,10 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    const string BestTimeKey = "LanternKeeperBestTime";
-
     [SerializeField] int beaconsToWin = 5;
     [SerializeField] Lantern lantern;
+    [SerializeField] string levelId = "island1";
+    [SerializeField] string nextLevelScene = "";
 
     int litCount;
     int nearbyUnlit;
@@ -24,8 +24,11 @@ public class GameManager : MonoBehaviour
     public int BeaconsToWin => beaconsToWin;
     public bool ShowInteractPrompt => nearbyUnlit > 0 && !roundOver;
     public bool IsRoundOver => roundOver;
+    public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
+    public string LevelId => string.IsNullOrEmpty(levelId) ? SceneManager.GetActiveScene().name : levelId;
+    public string NextLevelScene => nextLevelScene;
 
     public event Action<int, int> BeaconsChanged;
     public event Action PromptChanged;
@@ -35,15 +38,7 @@ public class GameManager : MonoBehaviour
 
     public float BestTime
     {
-        get
-        {
-            if (!PlayerPrefs.HasKey(BestTimeKey))
-            {
-                return -1f;
-            }
-
-            return PlayerPrefs.GetFloat(BestTimeKey);
-        }
+        get { return GameSettings.GetBestTime(LevelId); }
     }
 
     void Awake()
@@ -87,7 +82,7 @@ public class GameManager : MonoBehaviour
 
         if (!roundOver && lantern != null && lantern.Fuel <= 0f)
         {
-            OnFuelDepleted();
+            Lose();
         }
 
         if (roundOver)
@@ -147,6 +142,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void Lose()
+    {
+        OnFuelDepleted();
+    }
+
     void OnFuelDepleted()
     {
         if (roundOver)
@@ -161,18 +161,32 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void Win()
+    public void Win()
     {
-        roundOver = true;
-        won = true;
-
-        float previousBest = BestTime;
-        if (previousBest < 0f || elapsed < previousBest)
+        if (roundOver)
         {
-            PlayerPrefs.SetFloat(BestTimeKey, elapsed);
-            PlayerPrefs.Save();
+            return;
         }
 
+        roundOver = true;
+        GameSettings.TryRecordBest(LevelId, elapsed);
+        GameSettings.MarkWon(LevelId);
+
+        DawnSequence dawn = FindAnyObjectByType<DawnSequence>();
+        if (dawn != null)
+        {
+            DawnPlaying = true;
+            dawn.Play(FinishWin);
+            return;
+        }
+
+        FinishWin();
+    }
+
+    void FinishWin()
+    {
+        DawnPlaying = false;
+        won = true;
         if (WonGame != null)
         {
             WonGame.Invoke();
@@ -181,6 +195,11 @@ public class GameManager : MonoBehaviour
 
     public static string FormatTime(float seconds)
     {
+        if (seconds < 0f)
+        {
+            return "--:--";
+        }
+
         int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
         int minutes = total / 60;
         int secs = total % 60;

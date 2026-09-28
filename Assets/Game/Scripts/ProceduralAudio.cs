@@ -1,0 +1,190 @@
+using UnityEngine;
+
+namespace LanternKeeper
+{
+public static class ProceduralAudio
+{
+    const int Rate = 22050;
+
+    static AudioClip firefly;
+    static AudioClip beacon;
+    static AudioClip footstep;
+    static AudioClip moth;
+    static AudioClip ambience;
+    static AudioClip heartbeat;
+
+    public static AudioClip FireflyChime()
+    {
+        if (firefly != null)
+        {
+            return firefly;
+        }
+
+        int length = Rate;
+        float[] data = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Exp(-time * 4.2f);
+            float tone = 0.62f * Mathf.Sin(2f * Mathf.PI * 880f * time);
+            tone += 0.32f * Mathf.Sin(2f * Mathf.PI * 1320f * time);
+            data[i] = tone * envelope * 0.7f;
+        }
+
+        firefly = Clip("FireflyChime", data);
+        return firefly;
+    }
+
+    public static AudioClip BeaconWhoosh()
+    {
+        if (beacon != null)
+        {
+            return beacon;
+        }
+
+        int length = (int)(Rate * 1.1f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(19);
+        float low = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float rise = Mathf.Sin(Mathf.Clamp01(time / 0.85f) * Mathf.PI);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.86f + noise * 0.14f;
+            float thump = Mathf.Exp(-time * 10f) * Mathf.Sin(2f * Mathf.PI * 70f * time);
+            data[i] = (low * rise * 0.75f + thump * 0.85f) * 0.8f;
+        }
+
+        beacon = Clip("BeaconWhoosh", data);
+        return beacon;
+    }
+
+    public static AudioClip Footstep()
+    {
+        if (footstep != null)
+        {
+            return footstep;
+        }
+
+        int length = (int)(Rate * 0.12f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(4);
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Exp(-time * 38f);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            data[i] = noise * envelope * 0.55f;
+        }
+
+        footstep = Clip("Footstep", data);
+        return footstep;
+    }
+
+    public static AudioClip MothFlutter()
+    {
+        if (moth != null)
+        {
+            return moth;
+        }
+
+        int length = Rate;
+        float[] data = new float[length];
+        System.Random random = new System.Random(11);
+        float noise = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            noise = noise * 0.65f + sample * 0.35f;
+            float flutter = 0.35f + 0.65f * Mathf.Abs(Mathf.Sin(2f * Mathf.PI * 28f * time));
+            data[i] = noise * flutter * 0.45f;
+        }
+
+        moth = Clip("MothFlutter", data);
+        return moth;
+    }
+
+    public static AudioClip Ambience()
+    {
+        if (ambience != null)
+        {
+            return ambience;
+        }
+
+        int length = Rate * 4;
+        float[] data = new float[length];
+        System.Random random = new System.Random(23);
+        float wind = 0f;
+        float gust = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            wind = wind * 0.985f + sample * 0.015f;
+            gust = gust * 0.997f + wind;
+            float chirp = 0f;
+            float cycle = time % 0.42f;
+            if (cycle < 0.045f)
+            {
+                float env = Mathf.Sin((cycle / 0.045f) * Mathf.PI);
+                chirp = env * Mathf.Sin(2f * Mathf.PI * 4100f * time) * 0.22f;
+                chirp += env * Mathf.Sin(2f * Mathf.PI * 4700f * time) * 0.08f;
+            }
+
+            float second = (time + 0.18f) % 0.73f;
+            if (second < 0.03f)
+            {
+                float env = Mathf.Sin((second / 0.03f) * Mathf.PI);
+                chirp += env * Mathf.Sin(2f * Mathf.PI * 3600f * time) * 0.12f;
+            }
+
+            data[i] = gust * 0.35f + chirp;
+        }
+
+        ambience = Clip("Ambience", data);
+        return ambience;
+    }
+
+    public static AudioClip Heartbeat()
+    {
+        if (heartbeat != null)
+        {
+            return heartbeat;
+        }
+
+        int length = Rate;
+        float[] data = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float first = Pulse(time, 0.05f);
+            float second = Pulse(time, 0.28f);
+            data[i] = (first + second * 0.75f) * 0.8f;
+        }
+
+        heartbeat = Clip("Heartbeat", data);
+        return heartbeat;
+    }
+
+    static float Pulse(float time, float at)
+    {
+        float delta = time - at;
+        if (delta < 0f || delta > 0.12f)
+        {
+            return 0f;
+        }
+
+        return Mathf.Exp(-delta * 28f) * Mathf.Sin(2f * Mathf.PI * 58f * delta);
+    }
+
+    static AudioClip Clip(string clipName, float[] data)
+    {
+        AudioClip clip = AudioClip.Create(clipName, data.Length, 1, Rate, false);
+        clip.SetData(data, 0);
+        clip.name = clipName;
+        return clip;
+    }
+}
+}

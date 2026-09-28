@@ -6,7 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Game/Scenes/LanternKeeper.unity
-    guid: 3fd29752845e1d846b5111cd485843ef
+    path: Assets/Game/Scenes/MainMenu.unity
+    guid: 7f324d52c21fdcb408744e027dc6184f
+  - enabled: 1
+    path: Assets/Game/Scenes/Island1.unity
+    guid: 6e56444362c95724fa01c0dc732d913c
+  - enabled: 1
+    path: Assets/Game/Scenes/Island2.unity
+    guid: 4989f54031d568e4ab788495fd939169
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
