@@ -472,6 +472,10 @@ public class MothSpawner : MonoBehaviour
         whisper.spatialBlend = 0f;
         whisper.volume = 0f;
         whisper.clip = ProceduralAudio.MothWhisper();
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.RouteSfx(whisper);
+        }
     }
 
     float ResolveRadius()

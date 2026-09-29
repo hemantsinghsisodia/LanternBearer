@@ -906,6 +906,13 @@ MonoBehaviour:
   surfaceY: 1.5
   penalty: 10
   rescueCooldown: 1.25
+  fadeSeconds: 0.4
+  inputLockSeconds: 0.5
+  splash: {fileID: 0}
+  player: {fileID: 0}
+  lantern: {fileID: 0}
+  hud: {fileID: 0}
+  cameraFollow: {fileID: 0}
 --- !u!65 &122340421
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3177,7 +3184,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
       cycleCount: 1
-      repeatInterval: 0.0001
+      repeatInterval: 0.01
       probability: 1
   SizeModule:
     enabled: 0
@@ -8292,6 +8299,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d671f489da088dd418721629aa163e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.AudioManager
+  lantern: {fileID: 0}
+  mixer: {fileID: 24100000, guid: 41964b23c91399747b93c10a0bcf67a6, type: 2}
 --- !u!4 &1286369136
 Transform:
   m_ObjectHideFlags: 0
@@ -13851,7 +13860,7 @@ MonoBehaviour:
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 58
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1

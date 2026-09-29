@@ -267,6 +267,330 @@ public static class ProceduralAudio
         return heartbeat;
     }
 
+    const int VariantCount = 4;
+
+    static AudioClip[] grassSteps;
+    static AudioClip[] dirtSteps;
+    static AudioClip[] rockSteps;
+    static AudioClip[] sandSteps;
+    static AudioClip[] chimes;
+    static AudioClip[] beacons;
+    static AudioClip[] splashes;
+    static AudioClip[] fizzles;
+    static AudioClip crackle;
+
+    public static int SurfaceVariantCount => VariantCount;
+
+    public static AudioClip FootstepVariant(int surface, int variant)
+    {
+        AudioClip[] bank = Bank(surface);
+        int index = variant < 0 ? 0 : variant;
+        if (index >= bank.Length)
+        {
+            index = bank.Length - 1;
+        }
+
+        return bank[index];
+    }
+
+    public static AudioClip ChimeVariant(int variant)
+    {
+        EnsureChimes();
+        return chimes[ClampVariant(variant, chimes.Length)];
+    }
+
+    public static AudioClip BeaconVariant(int variant)
+    {
+        EnsureBeacons();
+        return beacons[ClampVariant(variant, beacons.Length)];
+    }
+
+    public static AudioClip SplashVariant(int variant)
+    {
+        EnsureSplashes();
+        return splashes[ClampVariant(variant, splashes.Length)];
+    }
+
+    public static AudioClip FizzleVariant(int variant)
+    {
+        EnsureFizzles();
+        return fizzles[ClampVariant(variant, fizzles.Length)];
+    }
+
+    public static AudioClip CrackleLoop()
+    {
+        if (crackle != null)
+        {
+            return crackle;
+        }
+
+        int length = Rate * 2;
+        float[] data = new float[length];
+        System.Random random = new System.Random(71);
+        float low = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.94f + sample * 0.06f;
+            float pop = 0f;
+            if (random.NextDouble() > 0.985)
+            {
+                pop = ((float)random.NextDouble() * 2f - 1f) * 0.85f;
+            }
+
+            float hum = Mathf.Sin(2f * Mathf.PI * 90f * time) * 0.04f;
+            data[i] = low * 0.35f + pop + hum;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.02f));
+        crackle = Clip("LanternCrackle", data);
+        return crackle;
+    }
+
+    static AudioClip[] Bank(int surface)
+    {
+        if (surface == 1)
+        {
+            EnsureDirt();
+            return dirtSteps;
+        }
+
+        if (surface == 2)
+        {
+            EnsureRock();
+            return rockSteps;
+        }
+
+        if (surface == 3)
+        {
+            EnsureSand();
+            return sandSteps;
+        }
+
+        EnsureGrass();
+        return grassSteps;
+    }
+
+    static void EnsureGrass()
+    {
+        if (grassSteps != null)
+        {
+            return;
+        }
+
+        grassSteps = new AudioClip[VariantCount];
+        for (int i = 0; i < VariantCount; i++)
+        {
+            grassSteps[i] = NoiseStep("Step_Grass_" + i, 40 + i * 17, 0.15f, 18f, 0.78f, 0.22f);
+        }
+    }
+
+    static void EnsureDirt()
+    {
+        if (dirtSteps != null)
+        {
+            return;
+        }
+
+        dirtSteps = new AudioClip[VariantCount];
+        for (int i = 0; i < VariantCount; i++)
+        {
+            dirtSteps[i] = NoiseStep("Step_Dirt_" + i, 80 + i * 13, 0.11f, 32f, 0.48f, 0.5f);
+        }
+    }
+
+    static void EnsureRock()
+    {
+        if (rockSteps != null)
+        {
+            return;
+        }
+
+        rockSteps = new AudioClip[VariantCount];
+        for (int i = 0; i < VariantCount; i++)
+        {
+            rockSteps[i] = NoiseStep("Step_Rock_" + i, 120 + i * 11, 0.055f, 62f, 0.12f, 0.9f);
+        }
+    }
+
+    static void EnsureSand()
+    {
+        if (sandSteps != null)
+        {
+            return;
+        }
+
+        sandSteps = new AudioClip[VariantCount];
+        for (int i = 0; i < VariantCount; i++)
+        {
+            sandSteps[i] = NoiseStep("Step_Sand_" + i, 160 + i * 19, 0.2f, 12f, 0.9f, 0.08f);
+        }
+    }
+
+    static void EnsureChimes()
+    {
+        if (chimes != null)
+        {
+            return;
+        }
+
+        float[] tones = { 740f, 880f, 1046f };
+        chimes = new AudioClip[tones.Length];
+        for (int v = 0; v < tones.Length; v++)
+        {
+            int length = Rate;
+            float[] data = new float[length];
+            float fundamental = tones[v];
+            for (int i = 0; i < length; i++)
+            {
+                float time = i / (float)Rate;
+                float envelope = Mathf.Exp(-time * (3.6f + v * 0.4f));
+                float tone = 0.62f * Mathf.Sin(2f * Mathf.PI * fundamental * time);
+                tone += 0.32f * Mathf.Sin(2f * Mathf.PI * fundamental * 1.5f * time);
+                data[i] = tone * envelope * 0.7f;
+            }
+
+            chimes[v] = Clip("Chime_" + v, data);
+        }
+    }
+
+    static void EnsureBeacons()
+    {
+        if (beacons != null)
+        {
+            return;
+        }
+
+        int[] seeds = { 19, 29, 41 };
+        beacons = new AudioClip[seeds.Length];
+        for (int v = 0; v < seeds.Length; v++)
+        {
+            int length = (int)(Rate * 1.1f);
+            float[] data = new float[length];
+            System.Random random = new System.Random(seeds[v]);
+            float low = 0f;
+            float thumpHz = 62f + v * 14f;
+            for (int i = 0; i < length; i++)
+            {
+                float time = i / (float)Rate;
+                float rise = Mathf.Sin(Mathf.Clamp01(time / 0.85f) * Mathf.PI);
+                float noise = (float)random.NextDouble() * 2f - 1f;
+                low = low * 0.86f + noise * 0.14f;
+                float thump = Mathf.Exp(-time * 10f) * Mathf.Sin(2f * Mathf.PI * thumpHz * time);
+                data[i] = (low * rise * 0.75f + thump * 0.85f) * 0.8f;
+            }
+
+            beacons[v] = Clip("Beacon_" + v, data);
+        }
+    }
+
+    static void EnsureSplashes()
+    {
+        if (splashes != null)
+        {
+            return;
+        }
+
+        int[] seeds = { 47, 59, 73 };
+        splashes = new AudioClip[seeds.Length];
+        for (int v = 0; v < seeds.Length; v++)
+        {
+            int length = (int)(Rate * (0.36f + v * 0.05f));
+            float[] data = new float[length];
+            System.Random random = new System.Random(seeds[v]);
+            for (int i = 0; i < length; i++)
+            {
+                float time = i / (float)Rate;
+                float envelope = Mathf.Exp(-time * (6.5f + v));
+                float noise = (float)random.NextDouble() * 2f - 1f;
+                float bubble = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(480f - v * 40f, 140f, time / 0.42f) * time) * Mathf.Exp(-time * 9f);
+                data[i] = (noise * 0.55f + bubble * 0.4f) * envelope;
+            }
+
+            splashes[v] = Clip("Splash_" + v, data);
+        }
+    }
+
+    static void EnsureFizzles()
+    {
+        if (fizzles != null)
+        {
+            return;
+        }
+
+        int[] seeds = { 31, 37, 53 };
+        fizzles = new AudioClip[seeds.Length];
+        for (int v = 0; v < seeds.Length; v++)
+        {
+            int length = (int)(Rate * 0.28f);
+            float[] data = new float[length];
+            System.Random random = new System.Random(seeds[v]);
+            float sputterHz = 18f + v * 7f;
+            for (int i = 0; i < length; i++)
+            {
+                float time = i / (float)Rate;
+                float envelope = Mathf.Exp(-time * 11f);
+                float noise = (float)random.NextDouble() * 2f - 1f;
+                float sputter = Mathf.Abs(Mathf.Sin(2f * Mathf.PI * sputterHz * time)) > 0.45f ? 1f : 0.05f;
+                float spark = Mathf.Sin(2f * Mathf.PI * (160f + v * 30f) * time) * Mathf.Exp(-time * 16f);
+                data[i] = (noise * 0.65f * sputter + spark * 0.25f) * envelope * 0.8f;
+            }
+
+            fizzles[v] = Clip("Fizzle_" + v, data);
+        }
+    }
+
+    static AudioClip NoiseStep(string clipName, int seed, float seconds, float decay, float lowpass, float brightness)
+    {
+        int length = Mathf.Max(8, (int)(Rate * seconds));
+        float[] data = new float[length];
+        System.Random random = new System.Random(seed);
+        float low = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Exp(-time * decay);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * lowpass + noise * (1f - lowpass);
+            float click = i < 12 ? noise * brightness : 0f;
+            data[i] = (low * (1f - brightness * 0.5f) + click) * envelope * 0.7f;
+        }
+
+        return Clip(clipName, data);
+    }
+
+    static int ClampVariant(int variant, int count)
+    {
+        if (variant < 0)
+        {
+            return 0;
+        }
+
+        if (variant >= count)
+        {
+            return count - 1;
+        }
+
+        return variant;
+    }
+
+    static void FadeEdges(float[] data, int fade)
+    {
+        int length = data.Length;
+        if (fade <= 0 || fade * 2 >= length)
+        {
+            return;
+        }
+
+        for (int i = 0; i < fade; i++)
+        {
+            float u = i / (float)fade;
+            data[i] *= u;
+            data[length - 1 - i] *= u;
+        }
+    }
+
     static float Pulse(float time, float at)
     {
         float delta = time - at;

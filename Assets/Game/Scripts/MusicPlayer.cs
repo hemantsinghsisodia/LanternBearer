@@ -25,8 +25,11 @@ public class MusicPlayer : MonoBehaviour
     float fadeElapsed;
     bool fading;
     bool sceneRefsResolved;
+    bool mixerRouted;
 
     public static MusicPlayer Instance { get; private set; }
+    public AudioSource FirstMusic => sourceA;
+    public AudioSource SecondMusic => sourceB;
 
     public static bool IsMuted
     {
@@ -116,6 +119,26 @@ public class MusicPlayer : MonoBehaviour
 
         TickFade();
         ApplyVolumes();
+        RouteMixer();
+    }
+
+    void RouteMixer()
+    {
+        if (mixerRouted || AudioManager.Instance == null || AudioManager.Instance.MusicGroup == null)
+        {
+            return;
+        }
+
+        mixerRouted = true;
+        if (sourceA != null)
+        {
+            sourceA.outputAudioMixerGroup = AudioManager.Instance.MusicGroup;
+        }
+
+        if (sourceB != null)
+        {
+            sourceB.outputAudioMixerGroup = AudioManager.Instance.MusicGroup;
+        }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -249,7 +272,7 @@ public class MusicPlayer : MonoBehaviour
 
         if (DawnActive())
         {
-            return 1.3f;
+            return 1f;
         }
 
         if (LowFuel())

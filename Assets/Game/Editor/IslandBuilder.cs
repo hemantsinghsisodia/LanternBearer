@@ -7,6 +7,7 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
+using TMPro;
 
 namespace LanternKeeper
 {
@@ -1307,7 +1308,8 @@ public static partial class IslandBuilder
     {
         GameObject systems = new GameObject("Systems");
         GameManager manager = systems.AddComponent<GameManager>();
-        systems.AddComponent<AudioManager>();
+        AudioManager audio = systems.AddComponent<AudioManager>();
+        AssignMixer(audio);
         DawnSequence dawn = systems.AddComponent<DawnSequence>();
         LowFuelFX fx = systems.AddComponent<LowFuelFX>();
         MothSpawner spawner = systems.AddComponent<MothSpawner>();
@@ -1356,7 +1358,7 @@ public static partial class IslandBuilder
 
     static void CreateMenu(ArtKit art, Stage stage)
     {
-        new GameObject("Systems").AddComponent<AudioManager>();
+        AssignMixer(new GameObject("Systems").AddComponent<AudioManager>());
         CreateCameraMenu(stage);
         EnsureEventSystem();
         Font font = BuiltinFont();
@@ -1382,51 +1384,69 @@ public static partial class IslandBuilder
     static void CreateHud(ArtKit art, Stage stage)
     {
         EnsureEventSystem();
-        Font font = BuiltinFont();
+        EnsureHudSprites();
         GameObject canvasObject = MakeCanvas("HUD");
         HUD hud = canvasObject.AddComponent<HUD>();
         canvasObject.AddComponent<BeaconCompass>();
+        Sprite circle = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/UI/HudCircle.png");
+        Sprite glow = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/UI/HudGlow.png");
+        if (circle == null)
+        {
+            circle = art.uiSprite;
+        }
 
-        RectTransform fuel = MakeRect(canvasObject.transform, "FuelMeter", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -36f), new Vector2(64f, 112f));
+        RectTransform fuel = MakeRect(canvasObject.transform, "FuelMeter", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -28f), new Vector2(120f, 120f));
         fuel.pivot = new Vector2(0f, 1f);
-        Image frame = fuel.gameObject.AddComponent<Image>();
-        frame.sprite = art.lanternSprite != null ? art.lanternSprite : art.uiSprite;
-        frame.color = new Color(0.45f, 0.32f, 0.16f, 0.95f);
-        fuel.gameObject.AddComponent<Mask>().showMaskGraphic = true;
-        RectTransform fill = MakeRect(fuel, "FuelFill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        fill.offsetMin = new Vector2(8f, 10f);
-        fill.offsetMax = new Vector2(-8f, -16f);
+        RectTransform glowRect = MakeRect(fuel, "FuelGlow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150f, 150f));
+        Image glowImage = glowRect.gameObject.AddComponent<Image>();
+        glowImage.sprite = glow != null ? glow : circle;
+        glowImage.color = new Color(1f, 0.55f, 0.16f, 0.4f);
+        glowImage.raycastTarget = false;
+
+        RectTransform track = MakeRect(fuel, "FuelTrack", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
+        Image trackImage = track.gameObject.AddComponent<Image>();
+        trackImage.sprite = circle;
+        trackImage.color = new Color(0.12f, 0.08f, 0.05f, 0.9f);
+        trackImage.raycastTarget = false;
+
+        RectTransform fill = MakeRect(fuel, "FuelFill", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
         Image fillImage = fill.gameObject.AddComponent<Image>();
-        fillImage.sprite = art.uiSprite;
+        fillImage.sprite = circle;
         fillImage.color = new Color(1f, 0.62f, 0.22f, 1f);
         fillImage.type = Image.Type.Filled;
-        fillImage.fillMethod = Image.FillMethod.Vertical;
-        fillImage.fillOrigin = (int)Image.OriginVertical.Bottom;
+        fillImage.fillMethod = Image.FillMethod.Radial360;
+        fillImage.fillOrigin = (int)Image.Origin360.Bottom;
+        fillImage.fillClockwise = true;
         fillImage.fillAmount = 1f;
+        fillImage.raycastTarget = false;
 
-        RectTransform ghost = MakeRect(fill, "FuelCostGhost", new Vector2(0f, 0.85f), Vector2.one, Vector2.zero, Vector2.zero);
-        ghost.offsetMin = Vector2.zero;
-        ghost.offsetMax = Vector2.zero;
+        RectTransform ghost = MakeRect(fuel, "FuelCostGhost", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
         Image ghostImage = ghost.gameObject.AddComponent<Image>();
-        ghostImage.sprite = art.uiSprite;
+        ghostImage.sprite = circle;
         ghostImage.color = new Color(0.15f, 0.07f, 0.03f, 0.82f);
+        ghostImage.type = Image.Type.Filled;
+        ghostImage.fillMethod = Image.FillMethod.Radial360;
+        ghostImage.fillOrigin = (int)Image.Origin360.Bottom;
+        ghostImage.fillClockwise = true;
+        ghostImage.fillAmount = 0f;
         ghostImage.raycastTarget = false;
         ghost.gameObject.SetActive(false);
 
-        RectTransform dots = MakeRect(canvasObject.transform, "BeaconDots", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -48f), new Vector2(240f, 28f));
+        RectTransform dots = MakeRect(canvasObject.transform, "BeaconDots", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(170f, -48f), new Vector2(280f, 28f));
         dots.pivot = new Vector2(0f, 1f);
         HorizontalLayoutGroup layout = dots.gameObject.AddComponent<HorizontalLayoutGroup>();
-        layout.spacing = 8f;
+        layout.spacing = 10f;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childControlWidth = false;
         layout.childControlHeight = false;
 
-        Text timer = MakeText(canvasObject.transform, "TimerText", "00:00", 32, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -28f), new Vector2(220f, 48f), new Color(0.9f, 0.93f, 0.95f), font, TextAnchor.MiddleRight);
+        Color ink = new Color(0.96f, 0.93f, 0.86f, 1f);
+        TMP_Text timer = MakeTmp(canvasObject.transform, "TimerText", "00:00", 32, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -28f), new Vector2(240f, 52f), ink, TextAlignmentOptions.MidlineRight);
         timer.rectTransform.pivot = new Vector2(1f, 1f);
-        Text prompt = MakeText(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(560f, 48f), new Color(1f, 0.9f, 0.7f), font, TextAnchor.MiddleCenter);
+        TMP_Text prompt = MakeTmp(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(680f, 56f), new Color(1f, 0.9f, 0.7f, 1f), TextAlignmentOptions.Center);
         prompt.gameObject.SetActive(false);
 
-        Text status = MakeText(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -168f), new Vector2(320f, 64f), new Color(1f, 0.86f, 0.55f), font, TextAnchor.UpperLeft);
+        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(380f, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
         status.rectTransform.pivot = new Vector2(0f, 1f);
 
         RectTransform fade = MakeRect(canvasObject.transform, "FadeOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -1446,55 +1466,52 @@ public static partial class IslandBuilder
         deathImage.color = new Color(0f, 0f, 0f, 0f);
         deathImage.raycastTarget = false;
 
-        Text penalty = MakeText(canvasObject.transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -70f), new Vector2(140f, 40f), new Color(1f, 0.28f, 0.2f, 1f), font, TextAnchor.MiddleLeft);
+        TMP_Text penalty = MakeTmp(canvasObject.transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(168f, -64f), new Vector2(160f, 44f), new Color(1f, 0.28f, 0.2f, 1f), TextAlignmentOptions.MidlineLeft);
         penalty.rectTransform.pivot = new Vector2(0f, 1f);
         penalty.gameObject.SetActive(false);
 
-        RectTransform compass = MakeRect(canvasObject.transform, "Compass", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(90f, 88f));
-        compass.pivot = new Vector2(0.5f, 1f);
-        RectTransform arrow = MakeRect(compass, "Arrow", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(36f, 36f));
-        arrow.pivot = new Vector2(0.5f, 1f);
-        Image arrowImage = arrow.gameObject.AddComponent<Image>();
-        arrowImage.sprite = art.arrowSprite != null ? art.arrowSprite : art.uiSprite;
-        arrowImage.color = new Color(1f, 0.82f, 0.4f, 1f);
-        MakeText(compass, "Distance", "0m", 18, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(80f, 24f), Color.white, font, TextAnchor.MiddleCenter);
+        RectTransform markers = MakeRect(canvasObject.transform, "EdgeMarkers", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        markers.offsetMin = Vector2.zero;
+        markers.offsetMax = Vector2.zero;
 
-        GameObject win = MakePanel(art, canvasObject.transform, "WinPanel", "The island wakes", font);
-        MakeText(win.transform, "WinDetail", "Time 00:00", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(460f, 80f), Color.white, font, TextAnchor.MiddleCenter);
-        MakeButton(art, win.transform, "RetryButton", "Retry", new Vector2(-220f, -140f), new Vector2(200f, 52f));
-        MakeButton(art, win.transform, "NextButton", "Next Island", new Vector2(0f, -140f), new Vector2(220f, 52f));
-        MakeButton(art, win.transform, "MenuButton", "Menu", new Vector2(220f, -140f), new Vector2(200f, 52f));
+        GameObject win = MakePanel(art, canvasObject.transform, "WinPanel", "The island wakes");
+        MakeTmp(win.transform, "WinDetail", "Time 00:00", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(680f, 90f), ink, TextAlignmentOptions.Center);
+        MakeHudButton(art, win.transform, "RetryButton", "Retry", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 28f), new Vector2(210f, 52f));
+        MakeHudButton(art, win.transform, "NextButton", "Next Island", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(230f, 52f));
+        MakeHudButton(art, win.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
         win.SetActive(false);
 
-        GameObject lose = MakePanel(art, canvasObject.transform, "LosePanel", "The flame went out", font);
-        MakeText(lose.transform, "LoseDetail", "The lantern went out.", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(460f, 80f), Color.white, font, TextAnchor.MiddleCenter);
-        MakeButton(art, lose.transform, "RetryButton", "Retry", new Vector2(-220f, -140f), new Vector2(200f, 52f));
-        MakeButton(art, lose.transform, "NextButton", "Next Island", new Vector2(0f, -140f), new Vector2(220f, 52f));
-        MakeButton(art, lose.transform, "MenuButton", "Menu", new Vector2(220f, -140f), new Vector2(200f, 52f));
+        GameObject lose = MakePanel(art, canvasObject.transform, "LosePanel", "The flame went out");
+        MakeTmp(lose.transform, "LoseDetail", "The lantern went out.", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(680f, 90f), ink, TextAlignmentOptions.Center);
+        MakeHudButton(art, lose.transform, "RetryButton", "Retry", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 28f), new Vector2(210f, 52f));
+        MakeHudButton(art, lose.transform, "NextButton", "Next Island", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(230f, 52f));
+        MakeHudButton(art, lose.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
         lose.SetActive(false);
 
-        GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused", font);
-        MakeButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0f, 40f), new Vector2(280f, 52f));
-        MakeButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0f, -30f), new Vector2(280f, 52f));
-        MakeButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0f, -100f), new Vector2(280f, 52f));
+        GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused");
+        RectTransform pauseRect = pause.GetComponent<RectTransform>();
+        pauseRect.sizeDelta = new Vector2(560f, 420f);
+        MakeHudButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 48f), new Vector2(300f, 52f));
+        MakeHudButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -24f), new Vector2(300f, 52f));
+        MakeHudButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -96f), new Vector2(300f, 52f));
         pause.SetActive(false);
 
         BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
         SerializedObject compassObject = new SerializedObject(compassScript);
-        compassObject.FindProperty("arrow").objectReferenceValue = arrow;
-        compassObject.FindProperty("distanceText").objectReferenceValue = compass.Find("Distance").GetComponent<Text>();
+        compassObject.FindProperty("markerRoot").objectReferenceValue = markers;
         compassObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject hudObject = new SerializedObject(hud);
         hudObject.FindProperty("fuelFill").objectReferenceValue = fillImage;
+        hudObject.FindProperty("fuelGlow").objectReferenceValue = glowImage;
         hudObject.FindProperty("fuelMeter").objectReferenceValue = fuel;
         hudObject.FindProperty("beaconDots").objectReferenceValue = dots;
         hudObject.FindProperty("promptText").objectReferenceValue = prompt;
-        hudObject.FindProperty("timerText").objectReferenceValue = canvasObject.transform.Find("TimerText").GetComponent<Text>();
+        hudObject.FindProperty("timerText").objectReferenceValue = timer;
         hudObject.FindProperty("winPanel").objectReferenceValue = win;
         hudObject.FindProperty("losePanel").objectReferenceValue = lose;
-        hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<Text>();
-        hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<Text>();
+        hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<TMP_Text>();
+        hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
         hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
         hudObject.FindProperty("statusText").objectReferenceValue = status;
@@ -1504,14 +1521,14 @@ public static partial class IslandBuilder
         hudObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
-    static GameObject MakePanel(ArtKit art, Transform parent, string name, string title, Font font)
+    static GameObject MakePanel(ArtKit art, Transform parent, string name, string title)
     {
-        RectTransform rect = MakeRect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 420f));
+        RectTransform rect = MakeRect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820f, 440f));
         Image image = rect.gameObject.AddComponent<Image>();
         image.sprite = art.uiSprite;
         image.type = Image.Type.Sliced;
         image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-        MakeText(rect, "Title", title, 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(500f, 56f), new Color(1f, 0.82f, 0.45f), font, TextAnchor.MiddleCenter);
+        MakeTmp(rect, "Title", title, 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(720f, 64f), new Color(1f, 0.82f, 0.45f, 1f), TextAlignmentOptions.Center);
         return rect.gameObject;
     }
 
@@ -1566,6 +1583,60 @@ public static partial class IslandBuilder
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
         return text;
+    }
+
+    static TMP_Text MakeTmp(Transform parent, string name, string value, int size, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color, TextAlignmentOptions alignment)
+    {
+        RectTransform rect = MakeRect(parent, name, anchorMin, anchorMax, position, box);
+        TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        TMP_FontAsset font = TMP_Settings.defaultFontAsset;
+        if (font == null)
+        {
+            font = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        }
+
+        text.font = font;
+        Material face = Resources.Load<Material>("Fonts & Materials/LiberationSans SDF - Outline");
+        if (face != null)
+        {
+            text.fontSharedMaterial = face;
+        }
+
+        text.text = value;
+        text.fontSize = size;
+        text.color = color;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Overflow;
+        text.raycastTarget = false;
+        text.richText = false;
+        return text;
+    }
+
+    static Button MakeHudButton(ArtKit art, Transform parent, string name, string label, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
+    {
+        RectTransform rect = MakeRect(parent, name, anchorMin, anchorMax, position, size);
+        rect.pivot = pivot;
+        Image image = rect.gameObject.AddComponent<Image>();
+        image.sprite = art.uiSprite;
+        image.type = Image.Type.Sliced;
+        image.color = new Color(0.14f, 0.16f, 0.2f, 1f);
+        Button button = rect.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        ColorBlock colors = button.colors;
+        colors.highlightedColor = new Color(0.85f, 0.55f, 0.25f, 1f);
+        colors.pressedColor = new Color(1f, 0.7f, 0.3f, 1f);
+        colors.disabledColor = new Color(0.2f, 0.2f, 0.22f, 0.6f);
+        button.colors = colors;
+        MakeTmp(rect, "Label", label, 22, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.96f, 0.93f, 0.86f, 1f), TextAlignmentOptions.Center);
+        RectTransform labelRect = rect.Find("Label") as RectTransform;
+        if (labelRect != null)
+        {
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+        }
+
+        return button;
     }
 
     static Button MakeButton(ArtKit art, Transform parent, string name, string label, Vector2 position)

@@ -178,6 +178,11 @@ public class GameManager : MonoBehaviour
 
         paused = true;
         Time.timeScale = 0f;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.TransitionMix(true, "pause");
+        }
+
         AudioListener.pause = true;
     }
 
@@ -208,6 +213,10 @@ public class GameManager : MonoBehaviour
         paused = false;
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.TransitionMix(false, "resume");
+        }
     }
 
     void ResolveSceneRefs()
@@ -327,6 +336,7 @@ public class GameManager : MonoBehaviour
         ResolveSceneRefs();
         if (AudioManager.Instance != null)
         {
+            AudioManager.Instance.TransitionMix(true, "loss");
             AudioManager.Instance.PlayDying();
         }
 
@@ -395,6 +405,10 @@ public class GameManager : MonoBehaviour
         roundOver = true;
         GameSettings.TryRecordBest(LevelId, elapsed);
         GameSettings.MarkWon(LevelId);
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.TransitionMix(true, "win");
+        }
 
         ResolveSceneRefs();
         if (dawn != null)

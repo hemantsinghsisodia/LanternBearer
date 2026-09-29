@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -20,29 +21,35 @@ public class HUD : MonoBehaviour
     static readonly Color ShakeColor = new Color(1f, 0.28f, 0.16f, 1f);
 
     static Sprite whiteSprite;
+    static Sprite circleSprite;
+    static Sprite glowSprite;
+    static TMP_FontAsset hudFont;
+    static Material hudFace;
 
     [SerializeField] Image fuelFill;
     [SerializeField] Image fuelCostGhost;
+    [SerializeField] Image fuelGlow;
     [SerializeField] RectTransform fuelMeter;
     [SerializeField] RectTransform beaconDots;
-    [SerializeField] Text promptText;
-    [SerializeField] Text timerText;
+    [SerializeField] TMP_Text promptText;
+    [SerializeField] TMP_Text timerText;
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
     [SerializeField] GameObject pausePanel;
-    [SerializeField] Text winDetailText;
-    [SerializeField] Text loseDetailText;
-    [SerializeField] Text statusText;
+    [SerializeField] TMP_Text winDetailText;
+    [SerializeField] TMP_Text loseDetailText;
+    [SerializeField] TMP_Text statusText;
     [SerializeField] Image fadeOverlay;
     [SerializeField] Image deathOverlay;
-    [SerializeField] Text penaltyText;
+    [SerializeField] TMP_Text penaltyText;
     [SerializeField] Lantern lantern;
 
     Image[] dots;
+    Image[] dotGlows;
+    float[] dotFlare;
     bool bound;
     bool missingResolved;
     bool lanternResolved;
-    bool promptOverflow;
     bool promptShaking;
     bool ghostStyled;
     int shownSecond = int.MinValue;
@@ -61,6 +68,13 @@ public class HUD : MonoBehaviour
     Vector2 penaltyHome;
     bool penaltyHomeReady;
     Coroutine penaltyRoutine;
+    bool penaltyGain;
+    bool fuelReady;
+    float displayedFuel = 1f;
+    float fuelVelocity;
+    float lastNorm = 1f;
+    float gainFlash;
+    bool panelsAudited;
     static Sprite vignetteSprite;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
@@ -98,9 +112,34 @@ public class HUD : MonoBehaviour
         GameManager manager = GameManager.Instance;
         if (lantern != null && fuelFill != null)
         {
-            fuelFill.fillAmount = lantern.FuelNormalized;
-            PulseFuel(lantern.FuelNormalized);
+            float target = lantern.FuelNormalized;
+            if (!fuelReady)
+            {
+                displayedFuel = target;
+                lastNorm = target;
+                fuelVelocity = 0f;
+                fuelReady = true;
+            }
+            else
+            {
+            float smoothed = Mathf.SmoothDamp(displayedFuel, target, ref fuelVelocity, 0.3f);
+            if (Mathf.Abs(smoothed - displayedFuel) > 0.0005f)
+            {
+                displayedFuel = smoothed;
+                fuelFill.fillAmount = displayedFuel;
+            }
+            else
+            {
+                displayedFuel = target;
+                fuelVelocity = 0f;
+            }
+            }
+
+            PulseFuel(target);
+            TickGainFlash();
         }
+
+        TickDots();
 
         if (manager == null)
         {
@@ -147,6 +186,10 @@ public class HUD : MonoBehaviour
         manager.TimeChanged += OnTimeChanged;
         if (lantern != null)
         {
+            displayedFuel = lantern.FuelNormalized;
+            lastNorm = displayedFuel;
+            fuelVelocity = 0f;
+            fuelReady = true;
             lantern.FuelChanged += OnFuelChanged;
             OnFuelChanged(lantern.FuelNormalized);
         }
@@ -283,30 +326,84 @@ public class HUD : MonoBehaviour
 
     void EnsureFuelGhost()
     {
-        if (fuelCostGhost != null || fuelFill == null)
+        if (fuelFill == null)
         {
             return;
         }
 
-        Transform existing = fuelFill.transform.Find("FuelCostGhost");
-        if (existing != null)
+        PrepareRadial(fuelFill);
+        if (fuelCostGhost == null)
         {
-            fuelCostGhost = existing.GetComponent<Image>();
-            return;
+            Transform existing = fuelFill.transform.parent != null ? fuelFill.transform.parent.Find("FuelCostGhost") : null;
+            if (existing == null)
+            {
+                existing = fuelFill.transform.Find("FuelCostGhost");
+            }
+
+            if (existing != null)
+            {
+                fuelCostGhost = existing.GetComponent<Image>();
+            }
         }
 
-        GameObject ghostObject = new GameObject("FuelCostGhost", typeof(RectTransform), typeof(Image));
-        ghostObject.transform.SetParent(fuelFill.transform, false);
-        RectTransform rect = ghostObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 0.85f);
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-        fuelCostGhost = ghostObject.GetComponent<Image>();
-        fuelCostGhost.sprite = fuelFill.sprite != null ? fuelFill.sprite : White();
-        fuelCostGhost.color = GhostColor;
-        fuelCostGhost.raycastTarget = false;
-        ghostObject.SetActive(false);
+        if (fuelCostGhost == null && fuelMeter != null)
+        {
+            GameObject ghostObject = new GameObject("FuelCostGhost", typeof(RectTransform), typeof(Image));
+            ghostObject.transform.SetParent(fuelMeter, false);
+            fuelCostGhost = ghostObject.GetComponent<Image>();
+            ghostObject.SetActive(false);
+        }
+
+        if (fuelCostGhost != null)
+        {
+            PrepareRadial(fuelCostGhost);
+            fuelCostGhost.color = GhostColor;
+            fuelCostGhost.raycastTarget = false;
+        }
+
+        if (fuelGlow == null && fuelMeter != null)
+        {
+            Transform existingGlow = fuelMeter.Find("FuelGlow");
+            if (existingGlow != null)
+            {
+                fuelGlow = existingGlow.GetComponent<Image>();
+            }
+        }
+
+        if (fuelGlow == null && fuelMeter != null)
+        {
+            GameObject glowObject = new GameObject("FuelGlow", typeof(RectTransform), typeof(Image));
+            glowObject.transform.SetParent(fuelMeter, false);
+            glowObject.transform.SetAsFirstSibling();
+            fuelGlow = glowObject.GetComponent<Image>();
+        }
+
+        if (fuelGlow != null)
+        {
+            RectTransform glowRect = fuelGlow.rectTransform;
+            glowRect.anchorMin = new Vector2(0.5f, 0.5f);
+            glowRect.anchorMax = new Vector2(0.5f, 0.5f);
+            glowRect.pivot = new Vector2(0.5f, 0.5f);
+            glowRect.sizeDelta = new Vector2(150f, 150f);
+            fuelGlow.sprite = Glow();
+            fuelGlow.raycastTarget = false;
+            fuelGlow.color = new Color(1f, 0.55f, 0.16f, 0.45f);
+        }
+    }
+
+    static void PrepareRadial(Image image)
+    {
+        image.sprite = Circle();
+        image.type = Image.Type.Filled;
+        image.fillMethod = Image.FillMethod.Radial360;
+        image.fillOrigin = (int)Image.Origin360.Bottom;
+        image.fillClockwise = true;
+        RectTransform rect = image.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(86f, 86f);
+        rect.anchoredPosition = Vector2.zero;
     }
 
     void EnsurePausePanel()
@@ -323,7 +420,6 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        Font font = BuiltinFont();
         Sprite sprite = PanelSprite();
         GameObject panel = new GameObject("PausePanel", typeof(RectTransform), typeof(Image));
         panel.transform.SetParent(transform, false);
@@ -332,16 +428,16 @@ public class HUD : MonoBehaviour
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(720f, 420f);
+        rect.sizeDelta = new Vector2(560f, 420f);
         Image image = panel.GetComponent<Image>();
         image.sprite = sprite;
         image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
         image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
 
-        MakeRuntimeText(rect, "Title", "Paused", 36, font, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(500f, 56f), new Color(1f, 0.82f, 0.45f));
-        MakeRuntimeButton(rect, "ResumeButton", "Resume", font, sprite, new Vector2(0f, 40f));
-        MakeRuntimeButton(rect, "RestartButton", "Restart", font, sprite, new Vector2(0f, -30f));
-        MakeRuntimeButton(rect, "MenuButton", "Main Menu", font, sprite, new Vector2(0f, -100f));
+        MakeRuntimeText(rect, "Title", "Paused", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
+        MakeRuntimeButton(rect, "ResumeButton", "Resume", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 48f), new Vector2(300f, 52f));
+        MakeRuntimeButton(rect, "RestartButton", "Restart", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -24f), new Vector2(300f, 52f));
+        MakeRuntimeButton(rect, "MenuButton", "Main Menu", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -96f), new Vector2(300f, 52f));
         panel.SetActive(false);
         pausePanel = panel;
         buttonsWired = false;
@@ -370,11 +466,9 @@ public class HUD : MonoBehaviour
             penaltyText = FindText("FuelPenalty");
         }
 
-        Font font = BuiltinFont();
         if (statusText == null)
         {
-            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, font, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -168f), new Vector2(280f, 64f), new Color(1f, 0.86f, 0.55f));
-            statusText.alignment = TextAnchor.UpperLeft;
+            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(360f, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
             statusText.rectTransform.pivot = new Vector2(0f, 1f);
         }
 
@@ -393,8 +487,7 @@ public class HUD : MonoBehaviour
 
         if (penaltyText == null)
         {
-            penaltyText = MakeRuntimeText(transform, "FuelPenalty", "-10", 28, font, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -70f), new Vector2(120f, 40f), new Color(1f, 0.28f, 0.2f, 0f));
-            penaltyText.alignment = TextAnchor.MiddleLeft;
+            penaltyText = MakeRuntimeText(transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(150f, -78f), new Vector2(140f, 40f), new Color(1f, 0.28f, 0.2f, 0f), TextAlignmentOptions.MidlineLeft);
             penaltyText.rectTransform.pivot = new Vector2(0f, 1f);
             penaltyText.gameObject.SetActive(false);
         }
@@ -444,6 +537,11 @@ public class HUD : MonoBehaviour
 
     public void ShowFuelPenalty(string label)
     {
+        ShowFuelPopup(label, false);
+    }
+
+    void ShowFuelPopup(string label, bool gain)
+    {
         EnsureWidgets();
         if (penaltyText == null)
         {
@@ -455,6 +553,7 @@ public class HUD : MonoBehaviour
             StopCoroutine(penaltyRoutine);
         }
 
+        penaltyGain = gain;
         penaltyRoutine = StartCoroutine(PenaltyTween(label));
     }
 
@@ -476,7 +575,7 @@ public class HUD : MonoBehaviour
             elapsed += Time.deltaTime;
             float unit = Mathf.Clamp01(elapsed / duration);
             rect.anchoredPosition = penaltyHome + new Vector2(0f, 42f * unit);
-            Color color = new Color(1f, 0.25f, 0.18f, 1f);
+            Color color = penaltyGain ? new Color(1f, 0.92f, 0.5f, 1f) : new Color(1f, 0.25f, 0.18f, 1f);
             color.a = 1f - Mathf.Clamp01((unit - 0.4f) / 0.6f);
             penaltyText.color = color;
             yield return null;
@@ -588,67 +687,34 @@ public class HUD : MonoBehaviour
         BindButton(pausePanel, "RestartButton", Retry);
         BindButton(pausePanel, "MenuButton", GoMenu);
         buttonsWired = true;
-        FitEndButtons();
+        AuditPanels();
         RefreshNextButtons(false);
     }
 
-    void FitEndButtons()
+    void AuditPanels()
     {
-        FitPanel(winPanel);
-        FitPanel(losePanel);
+        if (panelsAudited)
+        {
+            return;
+        }
+
+        panelsAudited = true;
+        AuditPanel(winPanel);
+        AuditPanel(losePanel);
+        AuditPanel(pausePanel);
     }
 
-    void FitPanel(GameObject panel)
+    void AuditPanel(GameObject panel)
     {
         if (panel == null)
         {
             return;
         }
 
-        Image panelImage = panel.GetComponent<Image>();
-        if (panelImage != null && panelImage.sprite != null)
-        {
-            panelImage.type = Image.Type.Sliced;
-        }
-
         RectTransform panelRect = panel.GetComponent<RectTransform>();
-        if (panelRect != null)
+        if (panelRect == null || panelRect.rect.width < 200f || panelRect.rect.height < 160f)
         {
-            panelRect.sizeDelta = new Vector2(720f, 420f);
-        }
-
-        FitButton(panel, "RetryButton", new Vector2(-220f, -140f), new Vector2(200f, 52f));
-        FitButton(panel, "NextButton", new Vector2(0f, -140f), new Vector2(220f, 52f));
-        FitButton(panel, "MenuButton", new Vector2(220f, -140f), new Vector2(200f, 52f));
-    }
-
-    void FitButton(GameObject panel, string name, Vector2 position, Vector2 size)
-    {
-        Button button = FindButton(panel, name);
-        if (button == null)
-        {
-            return;
-        }
-
-        RectTransform rect = button.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-        }
-
-        Image image = button.GetComponent<Image>();
-        if (image != null && image.sprite != null)
-        {
-            image.type = Image.Type.Sliced;
-        }
-
-        Text label = button.GetComponentInChildren<Text>();
-        if (label != null)
-        {
-            label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 14;
-            label.resizeTextMaxSize = 22;
+            Debug.LogWarning("HUD panel layout looks undersized: " + panel.name, panel);
         }
     }
 
@@ -685,9 +751,10 @@ public class HUD : MonoBehaviour
     void PulseFuel(float normalized)
     {
         Color warm = new Color(1f, 0.62f, 0.22f, 1f);
+        float pulse = 0.2f;
         if (normalized < 0.2f)
         {
-            float pulse = 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.time * 6f));
+            pulse = 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.time * 6f));
             warm = Color.Lerp(warm, new Color(1f, 0.15f, 0.1f, 1f), pulse);
             if (fuelMeter != null)
             {
@@ -700,7 +767,39 @@ public class HUD : MonoBehaviour
             fuelMeter.localScale = Vector3.one;
         }
 
-        fuelFill.color = warm;
+        if (fuelFill.color != warm)
+        {
+            fuelFill.color = warm;
+        }
+
+        if (fuelGlow == null)
+        {
+            return;
+        }
+
+        float glowPulse = normalized < 0.2f ? pulse : 0.35f;
+        float alpha = 0.28f + glowPulse * 0.5f + gainFlash;
+        float scale = 1f + (normalized < 0.2f ? glowPulse * 0.22f : 0f) + gainFlash * 0.35f;
+        Color glow = new Color(1f, 0.62f, 0.22f, Mathf.Clamp01(alpha));
+        if (fuelGlow.color != glow)
+        {
+            fuelGlow.color = glow;
+        }
+
+        if (Mathf.Abs(fuelGlow.rectTransform.localScale.x - scale) > 0.01f)
+        {
+            fuelGlow.rectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+    }
+
+    void TickGainFlash()
+    {
+        if (gainFlash <= 0f)
+        {
+            return;
+        }
+
+        gainFlash = Mathf.Max(0f, gainFlash - Time.deltaTime * 1.4f);
     }
 
     void EnsureDots(int count)
@@ -720,14 +819,30 @@ public class HUD : MonoBehaviour
             Destroy(beaconDots.GetChild(i).gameObject);
         }
 
+        paintedLit = int.MinValue;
         dots = new Image[count];
+        dotGlows = new Image[count];
+        dotFlare = new float[count];
         for (int i = 0; i < count; i++)
         {
             GameObject dot = new GameObject("Dot" + i, typeof(RectTransform), typeof(Image));
             dot.transform.SetParent(beaconDots, false);
             RectTransform rect = dot.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(18f, 18f);
-            dots[i] = dot.GetComponent<Image>();
+            Image image = dot.GetComponent<Image>();
+            image.sprite = Circle();
+            image.raycastTarget = false;
+            dots[i] = image;
+
+            GameObject glow = new GameObject("Glow", typeof(RectTransform), typeof(Image));
+            glow.transform.SetParent(dot.transform, false);
+            RectTransform glowRect = glow.GetComponent<RectTransform>();
+            glowRect.sizeDelta = new Vector2(36f, 36f);
+            Image glowImage = glow.GetComponent<Image>();
+            glowImage.sprite = Glow();
+            glowImage.color = new Color(1f, 0.55f, 0.16f, 0f);
+            glowImage.raycastTarget = false;
+            dotGlows[i] = glowImage;
         }
     }
 
@@ -738,6 +853,7 @@ public class HUD : MonoBehaviour
             return;
         }
 
+        int previous = paintedLit;
         for (int i = 0; i < dots.Length; i++)
         {
             if (dots[i] == null)
@@ -745,18 +861,63 @@ public class HUD : MonoBehaviour
                 continue;
             }
 
-            dots[i].color = i < lit ? DotLit : DotDim;
+            bool on = i < lit;
+            dots[i].color = on ? DotLit : DotDim;
+            if (dotGlows != null && dotGlows[i] != null)
+            {
+                dotGlows[i].color = new Color(1f, 0.55f, 0.16f, on ? 0.75f : 0f);
+            }
+
+            if (previous >= 0 && on && i >= previous)
+            {
+                dotFlare[i] = 0.4f;
+                dots[i].rectTransform.localScale = new Vector3(1.5f, 1.5f, 1f);
+            }
         }
 
         paintedLit = lit;
     }
 
+    void TickDots()
+    {
+        if (dotFlare == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < dotFlare.Length; i++)
+        {
+            if (dotFlare[i] <= 0f || dots[i] == null)
+            {
+                continue;
+            }
+
+            dotFlare[i] = Mathf.Max(0f, dotFlare[i] - Time.deltaTime);
+            float unit = 1f - dotFlare[i] / 0.4f;
+            float scale = Mathf.Lerp(1.5f, 1f, unit);
+            dots[i].rectTransform.localScale = new Vector3(scale, scale, 1f);
+            Color flash = Color.Lerp(new Color(1f, 0.95f, 0.7f, 1f), DotLit, unit);
+            dots[i].color = flash;
+        }
+    }
+
     void OnFuelChanged(float normalized)
     {
-        if (fuelFill != null)
+        if (!fuelReady)
         {
-            fuelFill.fillAmount = normalized;
+            displayedFuel = normalized;
+            lastNorm = normalized;
+            fuelReady = true;
+            return;
         }
+
+        if (normalized > lastNorm + 0.08f)
+        {
+            gainFlash = 0.55f;
+            ShowFuelPopup("+20", true);
+        }
+
+        lastNorm = normalized;
     }
 
     void OnBeaconsChanged(int lit, int target)
@@ -829,13 +990,7 @@ public class HUD : MonoBehaviour
 
         if (rect.sizeDelta.x < 520f)
         {
-            rect.sizeDelta = new Vector2(560f, Mathf.Max(48f, rect.sizeDelta.y));
-        }
-
-        if (!promptOverflow)
-        {
-            promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            promptOverflow = true;
+            rect.sizeDelta = new Vector2(640f, Mathf.Max(52f, rect.sizeDelta.y));
         }
 
         int cost = Mathf.RoundToInt(nearest.FuelCost);
@@ -894,8 +1049,9 @@ public class HUD : MonoBehaviour
         float to = 0f;
         if (show)
         {
-            from = Mathf.Clamp01((lantern.Fuel - nearest.FuelCost) / lantern.MaxFuel);
-            to = Mathf.Clamp01(lantern.Fuel / lantern.MaxFuel);
+            float cost = nearest.FuelCost / lantern.MaxFuel;
+            to = displayedFuel;
+            from = Mathf.Clamp01(displayedFuel - cost);
             show = to - from > 0.01f;
         }
 
@@ -911,19 +1067,17 @@ public class HUD : MonoBehaviour
 
         if (!ghostStyled)
         {
+            PrepareRadial(fuelCostGhost);
             fuelCostGhost.color = GhostColor;
             fuelCostGhost.raycastTarget = false;
             ghostStyled = true;
         }
 
-        RectTransform rect = fuelCostGhost.rectTransform;
-        rect.anchorMin = new Vector2(0f, from);
-        rect.anchorMax = new Vector2(1f, to);
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-        if (rect.parent != null && rect.GetSiblingIndex() != rect.parent.childCount - 1)
+        fuelCostGhost.fillAmount = Mathf.Clamp01(to - from);
+        fuelCostGhost.rectTransform.localEulerAngles = new Vector3(0f, 0f, -from * 360f);
+        if (fuelCostGhost.transform.parent != null && fuelFill != null && fuelCostGhost.transform.GetSiblingIndex() < fuelFill.transform.GetSiblingIndex())
         {
-            rect.SetAsLastSibling();
+            fuelCostGhost.transform.SetSiblingIndex(fuelFill.transform.GetSiblingIndex() + 1);
         }
     }
 
@@ -1107,7 +1261,7 @@ public class HUD : MonoBehaviour
         return null;
     }
 
-    Text FindText(string objectName)
+    TMP_Text FindText(string objectName)
     {
         Transform found = FindNamed(objectName);
         if (found == null)
@@ -1115,7 +1269,7 @@ public class HUD : MonoBehaviour
             return null;
         }
 
-        return found.GetComponent<Text>();
+        return found.GetComponent<TMP_Text>();
     }
 
     Image FindImage(string objectName)
@@ -1129,9 +1283,10 @@ public class HUD : MonoBehaviour
         return found.GetComponent<Image>();
     }
 
-    static Text MakeRuntimeText(Transform parent, string name, string value, int size, Font font, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color)
+    static TMP_Text MakeRuntimeText(Transform parent, string name, string value, int size, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color, TextAlignmentOptions alignment)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
+        EnsureFont();
+        GameObject go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(parent, false);
         RectTransform rect = go.GetComponent<RectTransform>();
         rect.anchorMin = anchorMin;
@@ -1139,28 +1294,22 @@ public class HUD : MonoBehaviour
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
         rect.sizeDelta = box;
-        Text text = go.GetComponent<Text>();
-        text.font = font;
+        TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
+        Style(text, size, color, alignment);
         text.text = value;
-        text.fontSize = size;
-        text.color = color;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.horizontalOverflow = HorizontalWrapMode.Overflow;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.raycastTarget = false;
         return text;
     }
 
-    static void MakeRuntimeButton(Transform parent, string name, string label, Font font, Sprite sprite, Vector2 position)
+    static void MakeRuntimeButton(Transform parent, string name, string label, Sprite sprite, Vector2 anchor, Vector2 position, Vector2 size)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         RectTransform rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
-        rect.sizeDelta = new Vector2(280f, 52f);
+        rect.sizeDelta = size;
         Image image = go.GetComponent<Image>();
         image.sprite = sprite;
         image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
@@ -1172,13 +1321,47 @@ public class HUD : MonoBehaviour
         colors.pressedColor = new Color(1f, 0.7f, 0.3f, 1f);
         colors.disabledColor = new Color(0.2f, 0.2f, 0.22f, 0.6f);
         button.colors = colors;
-        MakeRuntimeText(rect, "Label", label, 22, font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(1f, 0.92f, 0.78f));
+        MakeRuntimeText(rect, "Label", label, 22, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.96f, 0.93f, 0.86f, 1f), TextAlignmentOptions.Center);
         RectTransform labelRect = rect.Find("Label") as RectTransform;
         if (labelRect != null)
         {
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
         }
+    }
+
+    static void EnsureFont()
+    {
+        if (hudFont != null)
+        {
+            return;
+        }
+
+        hudFont = TMP_Settings.defaultFontAsset;
+        if (hudFont == null)
+        {
+            hudFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        }
+
+        hudFace = Resources.Load<Material>("Fonts & Materials/LiberationSans SDF - Outline");
+    }
+
+    static void Style(TMP_Text text, int size, Color color, TextAlignmentOptions alignment)
+    {
+        EnsureFont();
+        text.font = hudFont;
+        if (hudFace != null)
+        {
+            text.fontSharedMaterial = hudFace;
+        }
+
+        text.fontSize = size;
+        text.color = color;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.overflowMode = TextOverflowModes.Overflow;
+        text.raycastTarget = false;
+        text.richText = false;
     }
 
     Sprite PanelSprite()
@@ -1200,17 +1383,6 @@ public class HUD : MonoBehaviour
         return White();
     }
 
-    static Font BuiltinFont()
-    {
-        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (font == null)
-        {
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        }
-
-        return font;
-    }
-
     static Sprite White()
     {
         if (whiteSprite != null)
@@ -1224,6 +1396,53 @@ public class HUD : MonoBehaviour
         whiteSprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
         whiteSprite.name = "HUDWhite";
         return whiteSprite;
+    }
+
+    static Sprite Circle()
+    {
+        if (circleSprite != null)
+        {
+            return circleSprite;
+        }
+
+        circleSprite = Disc(64, 0.46f, 0.02f, "HUDCircle");
+        return circleSprite;
+    }
+
+    static Sprite Glow()
+    {
+        if (glowSprite != null)
+        {
+            return glowSprite;
+        }
+
+        glowSprite = Disc(64, 0.08f, 0.48f, "HUDGlow");
+        return glowSprite;
+    }
+
+    static Sprite Disc(int size, float solid, float feather, string spriteName)
+    {
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.wrapMode = TextureWrapMode.Clamp;
+        Color[] pixels = new Color[size * size];
+        float radius = size * 0.5f;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f - radius) / radius;
+                float dy = (y + 0.5f - radius) / radius;
+                float dist = Mathf.Sqrt(dx * dx + dy * dy);
+                float alpha = 1f - Mathf.InverseLerp(solid, solid + feather, dist);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply(false);
+        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        sprite.name = spriteName;
+        return sprite;
     }
 }
 }
