@@ -35,6 +35,10 @@ public static partial class IslandBuilder
         {
             layers = WarmKarooLayers(art);
         }
+        else
+        {
+            layers[1] = TintForestGrass(art.grassLayer);
+        }
 
         data.terrainLayers = layers;
         float[,,] alphamaps = PaintTerrain(heights, resolution, alphaResolution, config, stage.worldSize, stage.trails);
@@ -54,8 +58,8 @@ public static partial class IslandBuilder
         stage.terrain.drawInstanced = true;
         stage.terrain.basemapDistance = 280f;
         stage.terrain.heightmapPixelError = 4f;
-        stage.terrain.detailObjectDistance = 48f;
-        stage.terrain.detailObjectDensity = 0.85f;
+        stage.terrain.detailObjectDistance = 20f;
+        stage.terrain.detailObjectDensity = 1.0f;
         stage.waterY = WaterFraction * config.hillHeight;
         stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
     }
@@ -414,9 +418,10 @@ public static partial class IslandBuilder
         data.SetDetailResolution(detailRes, 16);
         List<DetailPrototype> prototypes = new List<DetailPrototype>();
         List<int[,]> layers = new List<int[,]>();
+        int carpetLayers = 0;
         if (config.biome != null && config.biome.entries != null)
         {
-            AddBiomeDetails(data, prototypes, layers, alphamaps, heights, heightRes, config, worldSize, trails, detailRes);
+            carpetLayers = AddBiomeDetails(data, prototypes, layers, alphamaps, heights, heightRes, config, worldSize, trails, detailRes);
         }
         else if (art.detailGrass != null)
         {
@@ -477,7 +482,7 @@ public static partial class IslandBuilder
         }
     }
 
-    static void AddBiomeDetails(TerrainData data, List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes)
+    static int AddBiomeDetails(TerrainData data, List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes)
     {
         bool namaqualand = config.levelId == "island2";
         BiomeEntry[] entries = config.biome.entries;
@@ -495,6 +500,11 @@ public static partial class IslandBuilder
             }
 
             string prefabName = entry.prefab.name.ToLowerInvariant();
+            if (!namaqualand && HiddenUnderCarpet(prefabName))
+            {
+                continue;
+            }
+
             bool moss = prefabName.Contains("moss");
             bool flower = entry.category == BiomeCategory.Flower;
             prototypes.Add(MeshDetail(entry.prefab, entry.scaleRange.x, entry.scaleRange.y, namaqualand));
@@ -586,6 +596,145 @@ public static partial class IslandBuilder
 
             layers.Add(map);
         }
+
+        return AddPackGrassCarpet(prototypes, layers, alphamaps, heights, heightRes, config, worldSize, trails, detailRes, namaqualand);
+    }
+
+    static bool HiddenUnderCarpet(string prefabName)
+    {
+        if (prefabName.Contains("moss"))
+        {
+            return false;
+        }
+
+        if (prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel"))
+        {
+            return true;
+        }
+
+        return prefabName.Contains("np_grass");
+    }
+
+    static int AddPackGrassCarpet(List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes, bool namaqualand)
+    {
+        const string folder = "Assets/Game/Prefabs/NaturePack/GroundCover/";
+        GameObject clump = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(folder + "np_grass_20.prefab");
+        GameObject fine = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(folder + "np_grass_06.prefab");
+        if (clump == null)
+        {
+            Debug.LogWarning("Pack grass carpet skipped; np_grass_20 is missing.");
+            return 0;
+        }
+
+        int added = 0;
+
+        int[,] clumpMap = new int[detailRes, detailRes];
+        int[,] fineMap = null;
+        DetailPrototype clumpPrototype = MeshDetail(clump, 1.05f, 1.55f, namaqualand);
+        clumpPrototype.density = namaqualand ? 1.7f : 3f;
+        clumpPrototype.minWidth = 1.6f;
+        clumpPrototype.maxWidth = 2.4f;
+        clumpPrototype.minHeight = 1.05f;
+        clumpPrototype.maxHeight = 1.55f;
+
+        prototypes.Add(clumpPrototype);
+        added++;
+
+        for (int z = 0; z < detailRes; z++)
+        {
+            for (int x = 0; x < detailRes; x++)
+            {
+                int hx = Mathf.Clamp(Mathf.RoundToInt(x / (float)(detailRes - 1) * (heightRes - 1)), 0, heightRes - 1);
+                int hz = Mathf.Clamp(Mathf.RoundToInt(z / (float)(detailRes - 1) * (heightRes - 1)), 0, heightRes - 1);
+                int ax = Mathf.Clamp(Mathf.RoundToInt(x / (float)(detailRes - 1) * (alphamaps.GetLength(1) - 1)), 0, alphamaps.GetLength(1) - 1);
+                int az = Mathf.Clamp(Mathf.RoundToInt(z / (float)(detailRes - 1) * (alphamaps.GetLength(0) - 1)), 0, alphamaps.GetLength(0) - 1);
+                float h = heights[hz, hx];
+                if (h < WaterFraction + 0.05f)
+                {
+                    continue;
+                }
+
+                Vector2 world = PixelToWorld(x, z, detailRes, worldSize);
+                if (world.magnitude < 5f)
+                {
+                    continue;
+                }
+
+                int hx2 = Mathf.Clamp(hx + 1, 0, heightRes - 1);
+                int hz2 = Mathf.Clamp(hz + 1, 0, heightRes - 1);
+                float run = worldSize / (heightRes - 1);
+                float slope = Mathf.Max(Mathf.Abs(heights[hz, hx2] - h), Mathf.Abs(heights[hz2, hx] - h)) * config.hillHeight / run;
+                float neighbor = (heights[hz, hx] + heights[hz, hx2] + heights[hz2, hx] + heights[Mathf.Max(0, hz - 1), hx]) * 0.25f;
+                float hollow = Mathf.Clamp01((neighbor - h) * 10f);
+                float sand = alphamaps[az, ax, 0];
+                if (!namaqualand)
+                {
+                    if (sand >= 0.55f || slope >= 1.05f)
+                    {
+                        continue;
+                    }
+
+                    float trail = TrailMask(world, trails, 2.3f);
+                    int count = 255;
+                    if (trail > 0.82f)
+                    {
+                        count = 0;
+                    }
+                    else if (trail > 0.62f)
+                    {
+                        count = Mathf.Max(1, Mathf.RoundToInt(255f * (1f - Mathf.InverseLerp(0.62f, 0.82f, trail))));
+                    }
+
+                    count = Mathf.Clamp(count, 0, 255);
+                    if (count <= 0)
+                    {
+                        continue;
+                    }
+
+                    clumpMap[z, x] = count;
+                }
+                else if (sand < 0.4f && slope < 0.55f)
+                {
+                    float clumpNoise = Mathf.PerlinNoise(world.x * 0.1f + 6.4f, world.y * 0.1f);
+                    bool inHollow = hollow > 0.16f && clumpNoise > 0.38f;
+                    bool gentle = slope < 0.28f && clumpNoise > 0.64f;
+                    if (!inHollow && !gentle)
+                    {
+                        continue;
+                    }
+
+                    float amount = inHollow ? Mathf.Clamp01(hollow * 0.75f + clumpNoise * 0.35f) : clumpNoise;
+                    int count = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(36f, 64f, amount)), 0, 255);
+                    clumpMap[z, x] = count;
+                }
+            }
+        }
+
+        layers.Add(clumpMap);
+        if (fineMap != null && fine != null)
+        {
+            layers.Add(fineMap);
+        }
+
+        int peak = 0;
+        for (int z = 0; z < detailRes; z++)
+        {
+            for (int x = 0; x < detailRes; x++)
+            {
+                if (clumpMap[z, x] > peak)
+                {
+                    peak = clumpMap[z, x];
+                }
+
+                if (fineMap != null && fineMap[z, x] > peak)
+                {
+                    peak = fineMap[z, x];
+                }
+            }
+        }
+
+        Debug.Log("Pack grass carpet " + config.levelId + " peak=" + peak + " warm=" + namaqualand + " layers=" + added);
+        return added;
     }
 
     static DetailPrototype MeshDetail(GameObject prefab, float minScale, float maxScale, bool warm)
@@ -637,6 +786,11 @@ public static partial class IslandBuilder
             art.rockLayer,
             TintLayer(art.mossLayer, folder + "/Moss.terrainlayer", new Color(0.05f, 0.05f, 0.02f), new Color(0.55f, 0.58f, 0.4f))
         };
+    }
+
+    static TerrainLayer TintForestGrass(TerrainLayer source)
+    {
+        return TintLayer(source, "Assets/Game/Levels/Layers/ForestGrass.terrainlayer", new Color(0.04f, 0.08f, 0.03f), new Color(0.78f, 0.98f, 0.7f));
     }
 
     static TerrainLayer TintLayer(TerrainLayer source, string path, Color min, Color max)

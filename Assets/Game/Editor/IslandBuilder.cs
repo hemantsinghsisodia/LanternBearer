@@ -1046,6 +1046,15 @@ public static partial class IslandBuilder
         }
 
         GameObject placed = PlacePrefab(entry.prefab, parent, pos, rotation);
+        if (entry.category == BiomeCategory.GroundCover || entry.category == BiomeCategory.Undergrowth || entry.category == BiomeCategory.Flower)
+        {
+            Renderer[] renderers = placed.GetComponentsInChildren<Renderer>(true);
+            for (int r = 0; r < renderers.Length; r++)
+            {
+                renderers[r].shadowCastingMode = ShadowCastingMode.Off;
+            }
+        }
+
         float min = entry.scaleRange.x <= 0f ? 1f : entry.scaleRange.x;
         float max = entry.scaleRange.y <= 0f ? min : entry.scaleRange.y;
         float scaleValue = Mathf.Lerp(min, max, (float)random.NextDouble());
