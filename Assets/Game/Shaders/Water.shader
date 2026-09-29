@@ -219,27 +219,18 @@ Shader "LanternKeeper/Water"
                 float3 sky = SampleSky(reflectDir);
                 float skyPeak = max(sky.r, max(sky.g, sky.b));
                 float3 env = skyPeak > 0.02 ? sky : probe;
-                float2 lightFlat = lightDir.xz;
-                float lightLen = max(length(lightFlat), 0.001);
-                lightFlat /= lightLen;
-                float along = dot(absoluteWS.xz, lightFlat);
-                float across = lightFlat.x * absoluteWS.z - lightFlat.y * absoluteWS.x;
                 float3 flatReflect = reflect(-viewDir, float3(0.0, 1.0, 0.0));
-                float streak = pow(saturate(dot(flatReflect, lightDir)), 4.0);
-                float nAcross = SAMPLE_TEXTURE2D_LOD(_FoamNoise, sampler_FoamNoise, float2(along * 1.2, across * 18.0) + float2(time * 0.02, 0.0), 0).r;
-                float nFine = SAMPLE_TEXTURE2D_LOD(_FoamNoise, sampler_FoamNoise, float2(along * 2.4, across * 40.0) + float2(0.0, -time * 0.03), 0).g;
-                float fleck = step(0.55, frac(nAcross * 6.0 + nFine * 3.0));
-                float highlight = max(env.r, max(env.g, env.b));
-                if (highlight > 0.1 && streak > 0.05)
-                {
-                    env *= fleck;
-                }
+                float path = smoothstep(0.55, 0.95, saturate(dot(flatReflect, lightDir)));
+                float glintAlign = saturate(dot(reflectDir, lightDir));
+                float tight = pow(glintAlign, 180.0);
+                float glow = pow(glintAlign, 24.0);
+                float sparkle = saturate(glow * 0.75 + tight * 0.25);
                 water = lerp(water, env, fresnel);
                 water *= lerp(1.0, 1.0 + ripplePatch * 0.48, nearRipple);
                 water += ripplePatch * 0.06 * nearRipple;
                 float moonShade = saturate(dot(normalWS, lightDir));
                 water += mainLight.color.rgb * moonShade * 0.22;
-                water += mainLight.color.rgb * fleck * streak * _Glitter * 3.0;
+                water += mainLight.color.rgb * sparkle * path * _Glitter * 1.5;
 
                 float foamReach = 8.0;
                 float foam = saturate(1.0 - diff / foamReach);
