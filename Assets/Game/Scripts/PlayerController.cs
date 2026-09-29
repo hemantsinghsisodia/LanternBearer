@@ -11,24 +11,45 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float sprintDrainMultiplier = 1.6f;
     [SerializeField] float gravity = -20f;
     [SerializeField] float jumpHeight = 2.8f;
-    [SerializeField] float turnSpeed = 12f;
+    [Tooltip("Seconds to reach full speed on the ground.")]
+    [SerializeField] float acceleration = 0.12f;
+    [Tooltip("Seconds to stop on the ground.")]
+    [SerializeField] float deceleration = 0.10f;
+    [Tooltip("Air acceleration and braking as a fraction of the ground response. Lower is slower.")]
+    [SerializeField] float airControl = 0.6f;
+    [SerializeField] float rotationSpeed = 720f;
+    [SerializeField] float coyoteTime = 0.12f;
+    [SerializeField] float jumpBufferTime = 0.15f;
     [SerializeField] float stepDistance = 2.3f;
 
     CharacterController controller;
     Lantern lantern;
     ParticleSystem dust;
+    Vector3 planarVelocity;
     Vector3 lastPosition;
     float verticalVelocity;
     float walked;
+    float coyoteTimer;
+    float jumpBufferTimer;
+    float brakeFrom;
+    bool jumpLocked;
+    bool wasOnGround;
+    bool wasSlowing;
 
     public bool IsSprinting { get; private set; }
     public float HorizontalSpeed { get; private set; }
     public float CurrentSpeed { get; private set; }
+    public float PlanarSpeed => planarVelocity.magnitude;
+    public float VerticalVelocity => verticalVelocity;
+    public bool IsGrounded { get; private set; }
+    public bool JumpedThisFrame { get; private set; }
+    public bool LandedThisFrame { get; private set; }
     public Vector3 LastSafePosition { get; private set; }
     public bool UseDistanceFootsteps = true;
 
     public static Vector2 ExternalMove;
     public static bool ExternalSprint;
+    public static bool ExternalJump;
 
     void Awake()
     {
@@ -53,8 +74,12 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        JumpedThisFrame = false;
+        LandedThisFrame = false;
+
         if (GameManager.Instance != null && GameManager.Instance.IsPaused)
         {
+            ExternalJump = false;
             IsSprinting = false;
             HorizontalSpeed = 0f;
             CurrentSpeed = 0f;
@@ -67,30 +92,32 @@ public class PlayerController : MonoBehaviour
         float inputX = 0f;
         float inputZ = 0f;
         bool sprintHeld = false;
+        bool jumpPressed = false;
 
         if (keyboard != null && !roundOver)
         {
-            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)
+            if (keyboard.aKey.isPressed)
             {
                 inputX -= 1f;
             }
 
-            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)
+            if (keyboard.dKey.isPressed)
             {
                 inputX += 1f;
             }
 
-            if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed)
+            if (keyboard.sKey.isPressed)
             {
                 inputZ -= 1f;
             }
 
-            if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
+            if (keyboard.wKey.isPressed)
             {
                 inputZ += 1f;
             }
 
             sprintHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+            jumpPressed = keyboard.spaceKey.wasPressedThisFrame;
         }
 
         if (ExternalMove.sqrMagnitude > 0.0001f)
@@ -100,10 +127,20 @@ public class PlayerController : MonoBehaviour
             sprintHeld = ExternalSprint;
         }
 
-        IsSprinting = sprintHeld;
+        if (ExternalJump && !roundOver)
+        {
+            jumpPressed = true;
+            ExternalJump = false;
+        }
+        else if (ExternalJump)
+        {
+            ExternalJump = false;
+        }
+
+        IsSprinting = sprintHeld && !roundOver;
         if (lantern != null)
         {
-            lantern.SetDrainModifier(this, sprintHeld ? sprintDrainMultiplier : 1f);
+            lantern.SetDrainModifier(this, IsSprinting ? sprintDrainMultiplier : 1f);
         }
 
         Vector3 input = new Vector3(inputX, 0f, inputZ);
@@ -112,51 +149,87 @@ public class PlayerController : MonoBehaviour
             input.Normalize();
         }
 
-        Vector3 worldMove = input;
-        Camera view = Camera.main;
-        if (view != null)
+        Vector3 worldMove = CameraRelative(input);
+        float dt = Time.deltaTime;
+        bool onGround = controller.isGrounded && verticalVelocity <= 0.05f;
+        IsGrounded = onGround;
+        if (onGround)
         {
-            Vector3 forward = view.transform.forward;
-            forward.y = 0f;
-            Vector3 right = view.transform.right;
-            right.y = 0f;
-            if (forward.sqrMagnitude > 0.001f && right.sqrMagnitude > 0.001f)
+            if (!wasOnGround && verticalVelocity < -3.5f)
             {
-                forward.Normalize();
-                right.Normalize();
-                worldMove = forward * input.z + right * input.x;
+                LandedThisFrame = true;
+                BurstLandingDust();
             }
-        }
 
-        if (controller.isGrounded && verticalVelocity < 0f)
-        {
+            jumpLocked = false;
+            coyoteTimer = coyoteTime;
             verticalVelocity = -2f;
         }
-
-        bool jump = keyboard != null && !roundOver && keyboard.spaceKey.wasPressedThisFrame;
-        if (controller.isGrounded && jump)
+        else
         {
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            coyoteTimer = Mathf.Max(0f, coyoteTimer - dt);
         }
 
-        verticalVelocity += gravity * Time.deltaTime;
-        float speed = sprintHeld ? moveSpeed * sprintMultiplier : moveSpeed;
-        Vector3 velocity = worldMove * speed;
-        velocity.y = verticalVelocity;
-        controller.Move(velocity * Time.deltaTime);
+        wasOnGround = onGround;
 
-        Vector3 look = worldMove;
+        if (jumpPressed)
+        {
+            jumpBufferTimer = jumpBufferTime;
+        }
+        else
+        {
+            jumpBufferTimer = Mathf.Max(0f, jumpBufferTimer - dt);
+        }
+
+        if (!jumpLocked && jumpBufferTimer > 0f && coyoteTimer > 0f)
+        {
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            jumpLocked = true;
+            coyoteTimer = 0f;
+            jumpBufferTimer = 0f;
+            JumpedThisFrame = true;
+            LandedThisFrame = false;
+            IsGrounded = false;
+        }
+
+        float targetSpeed = IsSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
+        Vector3 targetVelocity = worldMove * targetSpeed;
+        bool slowing = targetVelocity.sqrMagnitude + 0.01f < planarVelocity.sqrMagnitude
+            || (planarVelocity.sqrMagnitude > 0.01f && Vector3.Dot(planarVelocity, targetVelocity) < 0f);
+        if (slowing && !wasSlowing)
+        {
+            brakeFrom = planarVelocity.magnitude;
+        }
+
+        wasSlowing = slowing;
+        float response = slowing ? deceleration : acceleration;
+        float span = slowing ? Mathf.Max(brakeFrom, 0.01f) : Mathf.Max(targetSpeed, 0.01f);
+        float rate = span / Mathf.Max(response, 0.01f);
+        if (!onGround)
+        {
+            rate *= Mathf.Clamp(airControl, 0.05f, 1f);
+        }
+
+        planarVelocity = Vector3.MoveTowards(planarVelocity, targetVelocity, rate * dt);
+
+        verticalVelocity += gravity * dt;
+        Vector3 velocity = planarVelocity;
+        velocity.y = verticalVelocity;
+        controller.Move(velocity * dt);
+
+        Vector3 look = planarVelocity.sqrMagnitude > 0.04f ? planarVelocity : worldMove;
+        look.y = 0f;
         if (look.sqrMagnitude > 0.01f)
         {
-            Quaternion facing = Quaternion.LookRotation(look, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, facing, turnSpeed * Time.deltaTime);
+            Quaternion facing = Quaternion.LookRotation(look.normalized, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, facing, rotationSpeed * dt);
         }
 
         Vector3 flatDelta = transform.position - lastPosition;
         flatDelta.y = 0f;
-        float dt = Mathf.Max(Time.deltaTime, 0.0001f);
-        HorizontalSpeed = flatDelta.magnitude / dt;
-        CurrentSpeed = HorizontalSpeed;
+        float stepDt = Mathf.Max(dt, 0.0001f);
+        HorizontalSpeed = flatDelta.magnitude / stepDt;
+        CurrentSpeed = planarVelocity.magnitude;
         lastPosition = transform.position;
 
         if (controller.isGrounded && transform.position.y > WaterHazard.SurfaceY + 0.35f)
@@ -164,8 +237,55 @@ public class PlayerController : MonoBehaviour
             LastSafePosition = transform.position;
         }
 
-        UpdateDust(worldMove.sqrMagnitude > 0.01f && controller.isGrounded);
+        UpdateDust(planarVelocity.sqrMagnitude > 0.04f && controller.isGrounded);
         UpdateFootsteps();
+    }
+
+    Vector3 CameraRelative(Vector3 input)
+    {
+        if (input.sqrMagnitude < 0.0001f)
+        {
+            return Vector3.zero;
+        }
+
+        Camera view = Camera.main;
+        if (view == null)
+        {
+            return input;
+        }
+
+        float yaw;
+        CameraFollow follow = view.GetComponent<CameraFollow>();
+        if (CameraFollow.UseExternalYaw)
+        {
+            yaw = CameraFollow.ExternalYaw;
+        }
+        else if (follow != null)
+        {
+            yaw = follow.Yaw;
+        }
+        else
+        {
+            Vector3 forward = view.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.001f)
+            {
+                return input;
+            }
+
+            yaw = Quaternion.LookRotation(forward.normalized, Vector3.up).eulerAngles.y;
+        }
+
+        Quaternion facing = Quaternion.Euler(0f, yaw, 0f);
+        return facing * input;
+    }
+
+    void BurstLandingDust()
+    {
+        if (dust != null)
+        {
+            dust.Emit(14);
+        }
     }
 
     void UpdateDust(bool moving)

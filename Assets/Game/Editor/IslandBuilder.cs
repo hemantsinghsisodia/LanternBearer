@@ -1292,8 +1292,10 @@ public static partial class IslandBuilder
         {
             SerializedObject followObject = new SerializedObject(follow);
             followObject.FindProperty("target").objectReferenceValue = keeper.transform;
-            followObject.FindProperty("offset").vector3Value = new Vector3(0f, 4f, -6f);
-            followObject.FindProperty("lookHeight").floatValue = 1.25f;
+            followObject.FindProperty("pivotHeight").floatValue = 1.6f;
+            followObject.FindProperty("distance").floatValue = 6f;
+            followObject.FindProperty("minPitch").floatValue = -10f;
+            followObject.FindProperty("maxPitch").floatValue = 55f;
             followObject.ApplyModifiedPropertiesWithoutUndo();
         }
     }

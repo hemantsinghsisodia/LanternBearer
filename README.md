@@ -19,11 +19,14 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 
 | Key | Action |
 | --- | --- |
-| WASD or arrow keys | Move |
+| WASD | Move, relative to the camera |
+| Mouse | Orbit the camera while the cursor is locked |
+| Left / Right arrows | Rotate the camera |
+| Right stick | Orbit the camera |
 | Shift | Sprint. This burns lantern fuel faster |
 | Space | Jump. Two beacons sit on raised ground |
 | E | Light a beacon when you are standing next to it. The prompt shows the fuel cost |
-| Esc or P | Pause. Resume, restart, or return to the main menu |
+| Esc or P | Pause. Resume, restart, or return to the main menu. The cursor unlocks while paused |
 | R | Retry from the win or lose screen |
 | M | Mute or unmute the music |
 

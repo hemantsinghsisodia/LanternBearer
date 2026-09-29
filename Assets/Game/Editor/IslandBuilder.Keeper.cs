@@ -200,6 +200,9 @@ public static partial class IslandBuilder
 
         AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(KeeperControllerPath);
         controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
+        controller.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
+        controller.AddParameter("VerticalSpeed", AnimatorControllerParameterType.Float);
+        controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
         BlendTree tree = new BlendTree();
         tree.name = "Locomotion";
         tree.blendType = BlendTreeType.Simple1D;
