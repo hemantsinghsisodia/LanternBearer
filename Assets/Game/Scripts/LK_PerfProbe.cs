@@ -69,6 +69,7 @@ public class LK_PerfProbe : MonoBehaviour
         drawCalls = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Draw Calls Count");
         setPass = ProfilerRecorder.StartNew(ProfilerCategory.Render, "SetPass Calls Count");
         triangles = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Triangles Count");
+        Debug.Log("LK_PerfProbe quality=" + GraphicsQuality.Current);
         if (SceneManager.GetActiveScene().name != "Island1")
         {
             SceneManager.LoadScene("Island1");
@@ -188,7 +189,8 @@ public class LK_PerfProbe : MonoBehaviour
             + " gpuFrameMs=" + gpuMs.ToString("0.00")
             + " drawCalls=" + Last(drawCalls)
             + " setPass=" + Last(setPass)
-            + " triangles=" + Last(triangles);
+            + " triangles=" + Last(triangles)
+            + " quality=" + GraphicsQuality.Current;
         File.WriteAllText(path, report);
         Debug.Log(report);
     }

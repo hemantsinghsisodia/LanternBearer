@@ -42,6 +42,10 @@ When the lantern reaches zero, the light gutters and a vignette closes over abou
 
 Your best time is saved for each island.
 
+## Graphics presets
+
+Low, Medium, High, and Ultra presets are in the project. Medium is the default and is today's look. The graphics menu comes in a later step.
+
 ## Project layout
 
 - `Assets/Game/Scenes/` — the playable scene

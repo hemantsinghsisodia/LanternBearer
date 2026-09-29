@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 458c6bb98ee70634bad290fdc2d9eef3, type: 3}
+  m_Name: GraphicsProfileSet
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.GraphicsProfileSet
+  low: {fileID: 11400000, guid: e2a2eadcd44e0904c966b90cef772819, type: 2}
+  medium: {fileID: 11400000, guid: 2654e706d8ccb204e8dbfab0c98002f1, type: 2}
+  high: {fileID: 11400000, guid: c532ce4671b09c842a85e99eef893dc5, type: 2}
+  ultra: {fileID: 11400000, guid: bd17a9a0e699b294e8616ff6c7d18c26, type: 2}

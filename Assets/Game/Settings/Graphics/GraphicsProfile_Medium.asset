@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66ef071acab59d54882003e1ec5ea876, type: 3}
+  m_Name: GraphicsProfile_Medium
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.GraphicsProfile
+  level: 1
+  renderScale: 1
+  msaaSampleCount: 1
+  supportsHdr: 1
+  cameraAntialiasing: 0
+  postProcessing: 1
+  shadowDistance: 50
+  shadowCascadeCount: 4
+  mainLightShadowmapResolution: 2048
+  supportsSoftShadows: 1
+  softShadowQuality: 3
+  additionalLightsPerObject: 4
+  additionalLightShadowsSupported: 1
+  pointLightShadows: 0
+  glowLightCap: 0
+  grassDrawDistance: 20
+  grassDensity: 1
+  terrainPixelError: 4
+  terrainBasemapDistance: 280
+  treeLodBias: 1
+  grassBending: 1
+  lodBias: 2
+  waterRipples: 1
+  waterShoreFoam: 1
+  waterDepthTexture: 1
+  waterGlint: 0.55
+  waterDetailLayer: 0
+  waterRippleRange: 1
+  waterFoamReach: 1.6
+  waterReflectionProbe: 0
+  keeperRim: 1
+  chestFillLight: 1
+  keeperSelfShadow: 1
+  keeperAlwaysAnimate: 0
+  lanternSoftShadowOnKeeper: 0
+  distantMountains: 1
+  hazeLayers: 1
+  extraRidges: 0
+  finerHaze: 0
+  cameraFarPlane: 900
+  particleCountMultiplier: 1
