@@ -56,6 +56,47 @@ public static class GameSettings
         }
     }
 
+    public static float BeaconDrainBonusPerLit
+    {
+        get
+        {
+            if (Current == Difficulty.Easy)
+            {
+                return 0.05f;
+            }
+
+            if (Current == Difficulty.Hard)
+            {
+                return 0.11f;
+            }
+
+            return 0.08f;
+        }
+    }
+
+    public static float SafeZoneDrainMultiplier
+    {
+        get { return 0.35f; }
+    }
+
+    public static int MaxMoths
+    {
+        get
+        {
+            if (Current == Difficulty.Easy)
+            {
+                return 8;
+            }
+
+            if (Current == Difficulty.Hard)
+            {
+                return 16;
+            }
+
+            return 12;
+        }
+    }
+
     public static float BeaconFuelCost
     {
         get

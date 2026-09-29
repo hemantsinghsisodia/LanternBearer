@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -26,6 +27,10 @@ public class HUD : MonoBehaviour
     [SerializeField] GameObject pausePanel;
     [SerializeField] Text winDetailText;
     [SerializeField] Text loseDetailText;
+    [SerializeField] Text statusText;
+    [SerializeField] Image fadeOverlay;
+    [SerializeField] Image deathOverlay;
+    [SerializeField] Text penaltyText;
 
     Lantern lantern;
     Image[] dots;
@@ -34,6 +39,15 @@ public class HUD : MonoBehaviour
     float shakeRemaining;
     Vector2 promptHome;
     bool promptHomeReady;
+    Vector2 penaltyHome;
+    bool penaltyHomeReady;
+    Coroutine penaltyRoutine;
+    static Sprite vignetteSprite;
+
+    public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
+    public float DeathAmount { get; private set; }
+    public string StatusLine => statusText != null ? statusText.text : "";
+    public string PenaltyLine => penaltyText != null && penaltyText.gameObject.activeInHierarchy ? penaltyText.text : "";
 
     void OnEnable()
     {
@@ -41,6 +55,7 @@ public class HUD : MonoBehaviour
         BindIfNeeded();
         EnsureFuelGhost();
         EnsurePausePanel();
+        EnsureWidgets();
         WireButtons();
         HidePanels();
     }
@@ -56,6 +71,7 @@ public class HUD : MonoBehaviour
         BindIfNeeded();
         EnsureFuelGhost();
         EnsurePausePanel();
+        EnsureWidgets();
         GameManager manager = GameManager.Instance;
         if (lantern != null && fuelFill != null)
         {
@@ -79,6 +95,7 @@ public class HUD : MonoBehaviour
         RefreshPrompt(manager);
         UpdateGhost(manager);
         UpdatePausePanel(manager);
+        RefreshStatus();
 
         if (manager.Won)
         {
@@ -289,6 +306,209 @@ public class HUD : MonoBehaviour
         pausePanel = panel;
         buttonsWired = false;
         WireButtons();
+    }
+
+    public void EnsureWidgets()
+    {
+        if (statusText == null)
+        {
+            statusText = FindText("StatusText");
+        }
+
+        if (fadeOverlay == null)
+        {
+            fadeOverlay = FindImage("FadeOverlay");
+        }
+
+        if (deathOverlay == null)
+        {
+            deathOverlay = FindImage("DeathOverlay");
+        }
+
+        if (penaltyText == null)
+        {
+            penaltyText = FindText("FuelPenalty");
+        }
+
+        Font font = BuiltinFont();
+        if (statusText == null)
+        {
+            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, font, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -168f), new Vector2(280f, 64f), new Color(1f, 0.86f, 0.55f));
+            statusText.alignment = TextAnchor.UpperLeft;
+            statusText.rectTransform.pivot = new Vector2(0f, 1f);
+        }
+
+        if (fadeOverlay == null)
+        {
+            fadeOverlay = MakeOverlay("FadeOverlay", null);
+        }
+
+        fadeOverlay.sprite = White();
+        fadeOverlay.type = Image.Type.Simple;
+
+        if (deathOverlay == null)
+        {
+            deathOverlay = MakeOverlay("DeathOverlay", VignetteSprite());
+        }
+
+        if (penaltyText == null)
+        {
+            penaltyText = MakeRuntimeText(transform, "FuelPenalty", "-10", 28, font, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -70f), new Vector2(120f, 40f), new Color(1f, 0.28f, 0.2f, 0f));
+            penaltyText.alignment = TextAnchor.MiddleLeft;
+            penaltyText.rectTransform.pivot = new Vector2(0f, 1f);
+            penaltyText.gameObject.SetActive(false);
+        }
+    }
+
+    public void SetFadeAlpha(float alpha)
+    {
+        EnsureWidgets();
+        if (fadeOverlay == null)
+        {
+            return;
+        }
+
+        Color color = Color.black;
+        color.a = Mathf.Clamp01(alpha);
+        fadeOverlay.color = color;
+        fadeOverlay.raycastTarget = false;
+        fadeOverlay.enabled = color.a > 0.01f;
+    }
+
+    public void SetDeathAmount(float amount)
+    {
+        EnsureWidgets();
+        DeathAmount = Mathf.Clamp01(amount);
+        if (deathOverlay == null)
+        {
+            return;
+        }
+
+        deathOverlay.sprite = VignetteSprite();
+        deathOverlay.type = Image.Type.Simple;
+        deathOverlay.preserveAspect = false;
+        Color color = Color.black;
+        color.a = DeathAmount;
+        deathOverlay.color = color;
+        deathOverlay.raycastTarget = false;
+        deathOverlay.enabled = DeathAmount > 0.01f;
+        if (DeathAmount > 0.45f && fadeOverlay != null)
+        {
+            float fill = Mathf.InverseLerp(0.45f, 1f, DeathAmount);
+            Color black = Color.black;
+            black.a = fill;
+            fadeOverlay.color = black;
+            fadeOverlay.enabled = fill > 0.01f;
+        }
+    }
+
+    public void ShowFuelPenalty(string label)
+    {
+        EnsureWidgets();
+        if (penaltyText == null)
+        {
+            return;
+        }
+
+        if (penaltyRoutine != null)
+        {
+            StopCoroutine(penaltyRoutine);
+        }
+
+        penaltyRoutine = StartCoroutine(PenaltyTween(label));
+    }
+
+    IEnumerator PenaltyTween(string label)
+    {
+        penaltyText.gameObject.SetActive(true);
+        penaltyText.text = label;
+        RectTransform rect = penaltyText.rectTransform;
+        if (!penaltyHomeReady)
+        {
+            penaltyHome = rect.anchoredPosition;
+            penaltyHomeReady = true;
+        }
+
+        float elapsed = 0f;
+        const float duration = 0.9f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float unit = Mathf.Clamp01(elapsed / duration);
+            rect.anchoredPosition = penaltyHome + new Vector2(0f, 42f * unit);
+            Color color = new Color(1f, 0.25f, 0.18f, 1f);
+            color.a = 1f - Mathf.Clamp01((unit - 0.4f) / 0.6f);
+            penaltyText.color = color;
+            yield return null;
+        }
+
+        penaltyText.gameObject.SetActive(false);
+        penaltyRoutine = null;
+    }
+
+    void RefreshStatus()
+    {
+        if (statusText == null || lantern == null)
+        {
+            return;
+        }
+
+        string line = "Drain x" + lantern.EscalationMultiplier.ToString("0.00") + "   Moths " + Moth.LivingCount();
+        if (lantern.InSafeLight)
+        {
+            line += "\nSafe light";
+        }
+
+        statusText.text = line;
+        statusText.color = lantern.InSafeLight ? new Color(1f, 0.86f, 0.45f) : new Color(1f, 0.78f, 0.48f);
+    }
+
+    Image MakeOverlay(string name, Sprite sprite)
+    {
+        GameObject overlay = new GameObject(name, typeof(RectTransform), typeof(Image));
+        overlay.transform.SetParent(transform, false);
+        overlay.transform.SetAsFirstSibling();
+        RectTransform rect = overlay.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        Image image = overlay.GetComponent<Image>();
+        image.sprite = sprite != null ? sprite : White();
+        image.color = new Color(0f, 0f, 0f, 0f);
+        image.raycastTarget = false;
+        overlay.SetActive(true);
+        return image;
+    }
+
+    static Sprite VignetteSprite()
+    {
+        if (vignetteSprite != null)
+        {
+            return vignetteSprite;
+        }
+
+        const int size = 256;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.wrapMode = TextureWrapMode.Clamp;
+        Color[] pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f) / size - 0.5f;
+                float dy = (y + 0.5f) / size - 0.5f;
+                float radius = Mathf.Sqrt(dx * dx + dy * dy) * 2f;
+                float alpha = Mathf.SmoothStep(0.02f, 0.7f, radius);
+                pixels[y * size + x] = new Color(0f, 0f, 0f, alpha);
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply(false);
+        vignetteSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        vignetteSprite.name = "DeathVignette";
+        return vignetteSprite;
     }
 
     void WireButtons()
@@ -804,7 +1024,7 @@ public class HUD : MonoBehaviour
         return found.GetComponent<Image>();
     }
 
-    static void MakeRuntimeText(Transform parent, string name, string value, int size, Font font, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color)
+    static Text MakeRuntimeText(Transform parent, string name, string value, int size, Font font, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
         go.transform.SetParent(parent, false);
@@ -823,6 +1043,7 @@ public class HUD : MonoBehaviour
         text.horizontalOverflow = HorizontalWrapMode.Overflow;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
+        return text;
     }
 
     static void MakeRuntimeButton(Transform parent, string name, string label, Font font, Sprite sprite, Vector2 position)

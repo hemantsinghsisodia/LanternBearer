@@ -526,7 +526,9 @@ public static partial class IslandBuilder
                 spot.y = GroundY(stage.terrain, spot.x, spot.z);
             }
 
-            SpawnBeacon(art, parent, spot, true);
+            GameObject beaconObject = SpawnBeacon(art, parent, spot, true);
+            Beacon placed = beaconObject != null ? beaconObject.GetComponent<Beacon>() : null;
+            BeaconSafeRing.Ensure(placed);
             stage.beaconSpots.Add(spot);
             stage.beacons++;
         }
@@ -1334,6 +1336,7 @@ public static partial class IslandBuilder
         SerializedObject mothObject = new SerializedObject(spawner);
         mothObject.FindProperty("baseCount").intValue = config.mothCount;
         mothObject.FindProperty("mothPrefab").objectReferenceValue = art.moth;
+        mothObject.FindProperty("islandRadius").floatValue = config.islandRadius;
         mothObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -1422,6 +1425,30 @@ public static partial class IslandBuilder
         Text prompt = MakeText(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(560f, 48f), new Color(1f, 0.9f, 0.7f), font, TextAnchor.MiddleCenter);
         prompt.gameObject.SetActive(false);
 
+        Text status = MakeText(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(48f, -168f), new Vector2(320f, 64f), new Color(1f, 0.86f, 0.55f), font, TextAnchor.UpperLeft);
+        status.rectTransform.pivot = new Vector2(0f, 1f);
+
+        RectTransform fade = MakeRect(canvasObject.transform, "FadeOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        fade.offsetMin = Vector2.zero;
+        fade.offsetMax = Vector2.zero;
+        Image fadeImage = fade.gameObject.AddComponent<Image>();
+        fadeImage.sprite = art.uiSprite;
+        fadeImage.color = new Color(0f, 0f, 0f, 0f);
+        fadeImage.raycastTarget = false;
+        fade.SetAsFirstSibling();
+
+        RectTransform death = MakeRect(canvasObject.transform, "DeathOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        death.offsetMin = Vector2.zero;
+        death.offsetMax = Vector2.zero;
+        Image deathImage = death.gameObject.AddComponent<Image>();
+        deathImage.sprite = art.uiSprite;
+        deathImage.color = new Color(0f, 0f, 0f, 0f);
+        deathImage.raycastTarget = false;
+
+        Text penalty = MakeText(canvasObject.transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -70f), new Vector2(140f, 40f), new Color(1f, 0.28f, 0.2f, 1f), font, TextAnchor.MiddleLeft);
+        penalty.rectTransform.pivot = new Vector2(0f, 1f);
+        penalty.gameObject.SetActive(false);
+
         RectTransform compass = MakeRect(canvasObject.transform, "Compass", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(90f, 88f));
         compass.pivot = new Vector2(0.5f, 1f);
         RectTransform arrow = MakeRect(compass, "Arrow", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -8f), new Vector2(36f, 36f));
@@ -1469,6 +1496,10 @@ public static partial class IslandBuilder
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<Text>();
         hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
         hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
+        hudObject.FindProperty("statusText").objectReferenceValue = status;
+        hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
+        hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
+        hudObject.FindProperty("penaltyText").objectReferenceValue = penalty;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
     }
 

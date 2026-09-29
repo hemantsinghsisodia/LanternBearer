@@ -46,6 +46,41 @@ public class CameraFollow : MonoBehaviour
         snapped = false;
     }
 
+    public void SnapBehind()
+    {
+        if (target == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                target = player.transform;
+            }
+        }
+
+        if (target == null)
+        {
+            return;
+        }
+
+        yaw = target.eulerAngles.y;
+        pitch = 22f;
+        currentDistance = distance;
+        distanceVelocity = 0f;
+        cameraVelocity = Vector3.zero;
+        snapped = true;
+        Vector3 pivot = target.position + Vector3.up * pivotHeight;
+        Quaternion orbit = Quaternion.Euler(pitch, yaw, 0f);
+        Vector3 direction = orbit * Vector3.back;
+        float allowed = KeepAboveGround(pivot, direction, ResolveDistance(pivot, direction, distance));
+        currentDistance = allowed;
+        transform.position = pivot + direction * currentDistance;
+        Vector3 look = pivot - transform.position;
+        if (look.sqrMagnitude > 0.0001f)
+        {
+            transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+        }
+    }
+
     void Awake()
     {
         collisionMask = ~0;

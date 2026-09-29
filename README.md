@@ -30,7 +30,17 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 | R | Retry from the win or lose screen |
 | M | Mute or unmute the music |
 
-Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths gather on the light and drain it faster; sprint away to shake them off. Some stepping stones only appear inside the lantern light. Light every beacon and the sky turns to dawn. If the lantern goes out, you lose. Your best time is saved for each island.
+Walk into fireflies to refill the lantern. Moths still drain it when they get close; sprint away to shake them off. Some stepping stones only appear inside the lantern light. Light every beacon and the sky turns to dawn. Lighting a beacon spends fuel and raises the drain: Easy adds 5% of the base drain per lit beacon, Normal adds 8%, and Hard adds 11%, on top of that difficulty's drain multiplier. Each lit beacon also calls one more moth, up to 8, 12, or 16 moths. Moths spawn at the dark outer edge of the island, fade in, and stay about 1.4 m above the ground. They steer around trees, rocks, and cliffs. Near a moth the lantern dims, and one whisper grows louder the closer they get. They fade out when the round ends.
+
+A lit beacon keeps a soft ring about 8 m across. Standing inside it shows "Safe light", slows the lantern to 35% drain, and keeps moths out. Overlapping rings do not stack.
+
+Fireflies only settle again on gentle ground inside the island, away from water, steep slopes, cliffs, and nearby props, and they prefer a spot away from you.
+
+Falling in the water plays a splash, fades the screen, and returns you to the last flat safe patch with the camera behind you. It costs 10 fuel, shown as "-10" on the meter. Your input pauses for a short moment.
+
+When the lantern reaches zero, the light gutters and a vignette closes over about 1.5 seconds before the lose panel. Pause stays closed during that sequence. R does not restart until the panel is up, and it ignores the first half-second so a stray press does not reload the island. You cannot win once the fuel is gone.
+
+Your best time is saved for each island.
 
 ## Project layout
 

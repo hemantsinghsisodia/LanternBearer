@@ -13,19 +13,37 @@ public class Lantern : MonoBehaviour
     [SerializeField] float maxIntensity = 4.2f;
     [SerializeField] float minRange = 3.5f;
     [SerializeField] float maxRange = 14f;
+    [SerializeField] float proximityDimStrength = 0.65f;
 
     readonly Dictionary<UnityEngine.Object, float> modifiers = new Dictionary<UnityEngine.Object, float>();
     readonly List<UnityEngine.Object> staleModifiers = new List<UnityEngine.Object>();
 
     float fuel;
     float difficultyDrain = 1f;
+    float escalation = 1f;
+    float loggedEscalation = -1f;
+    float proximityDim;
+    float deathIntensity = -1f;
     bool depleted;
+    bool drainFrozen;
+    bool inSafeLight;
 
     public float Fuel => fuel;
     public float MaxFuel => maxFuel;
     public float FuelNormalized => maxFuel <= 0f ? 0f : fuel / maxFuel;
     public float Radius => lanternLight != null ? lanternLight.range : maxRange;
     public float BaseIntensity { get; private set; }
+    public float BaseDrainPerSecond => drainPerSecond;
+    public float DifficultyDrain => difficultyDrain;
+    public float EscalationMultiplier => escalation;
+    public float CurrentDrainMultiplier { get; private set; }
+    public bool InSafeLight => inSafeLight;
+    public bool DrainFrozen { get { return drainFrozen; } set { drainFrozen = value; } }
+    public bool IsDepleted => depleted;
+    public float ProximityDim => proximityDim;
+    public bool DeathLightActive => deathIntensity >= 0f;
+    public float DeathLight => deathIntensity;
+    public float ProximityScale => Mathf.Lerp(1f, 1f - proximityDimStrength, proximityDim);
 
     public event Action<float> FuelChanged;
     public event Action FuelDepleted;
@@ -52,17 +70,26 @@ public class Lantern : MonoBehaviour
 
     void Update()
     {
+        RefreshDrainScale();
+        if (drainFrozen || (GameManager.Instance != null && GameManager.Instance.IsDying))
+        {
+            ApplyLight();
+            return;
+        }
+
         if (depleted)
         {
+            ApplyLight();
             return;
         }
 
         if (GameManager.Instance != null && GameManager.Instance.IsRoundOver)
         {
+            ApplyLight();
             return;
         }
 
-        float drain = drainPerSecond * difficultyDrain * ModifierProduct() * Time.deltaTime;
+        float drain = drainPerSecond * CurrentDrainMultiplier * Time.deltaTime;
         SetFuel(fuel - drain);
         if (fuel > 0f)
         {
@@ -83,6 +110,54 @@ public class Lantern : MonoBehaviour
         }
     }
 
+    public void SetProximityDim(float amount)
+    {
+        proximityDim = Mathf.Clamp01(amount);
+    }
+
+    public void SetDeathIntensity(float intensity)
+    {
+        deathIntensity = Mathf.Max(0f, intensity);
+        ApplyLight();
+    }
+
+    void RefreshDrainScale()
+    {
+        int lit = GameManager.Instance != null ? GameManager.Instance.LitCount : 0;
+        escalation = 1f + lit * GameSettings.BeaconDrainBonusPerLit;
+        inSafeLight = InsideAnySafeZone();
+        float safe = inSafeLight ? GameSettings.SafeZoneDrainMultiplier : 1f;
+        CurrentDrainMultiplier = difficultyDrain * escalation * ModifierProduct() * safe;
+        if (Mathf.Abs(escalation - loggedEscalation) > 0.001f)
+        {
+            loggedEscalation = escalation;
+            Debug.Log("Drain multiplier x" + escalation.ToString("0.00")
+                + " full x" + CurrentDrainMultiplier.ToString("0.00")
+                + " difficulty x" + difficultyDrain.ToString("0.00"));
+        }
+    }
+
+    bool InsideAnySafeZone()
+    {
+        Vector3 position = transform.position;
+        PlayerController body = GetComponentInParent<PlayerController>();
+        if (body != null)
+        {
+            position = body.transform.position;
+        }
+
+        for (int i = 0; i < Beacon.All.Count; i++)
+        {
+            Beacon beacon = Beacon.All[i];
+            if (beacon != null && beacon.ContainsSafe(position))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void SetDrainModifier(UnityEngine.Object source, float multiplier)
     {
         if (source == null)
@@ -90,7 +165,7 @@ public class Lantern : MonoBehaviour
             return;
         }
 
-        if (multiplier <= 1.001f)
+        if (multiplier < 0f || Mathf.Abs(multiplier - 1f) <= 0.001f)
         {
             modifiers.Remove(source);
             return;
@@ -186,9 +261,16 @@ public class Lantern : MonoBehaviour
             return;
         }
 
+        if (deathIntensity >= 0f)
+        {
+            lanternLight.intensity = deathIntensity;
+            lanternLight.enabled = deathIntensity > 0.02f;
+            return;
+        }
+
         float amount = FuelNormalized;
         BaseIntensity = Mathf.Lerp(minIntensity, maxIntensity, amount);
-        lanternLight.intensity = BaseIntensity;
+        lanternLight.intensity = BaseIntensity * ProximityScale;
         lanternLight.range = Mathf.Lerp(minRange, maxRange, amount);
         lanternLight.enabled = amount > 0.01f;
     }

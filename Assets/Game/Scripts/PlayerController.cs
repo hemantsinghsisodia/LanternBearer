@@ -21,6 +21,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float coyoteTime = 0.12f;
     [SerializeField] float jumpBufferTime = 0.15f;
     [SerializeField] float stepDistance = 2.3f;
+    [SerializeField] float safeCheckInterval = 0.25f;
+    [SerializeField] float safeEdgeRadius = 1.5f;
+    [SerializeField] float safeWaterMargin = 0.45f;
+    [SerializeField] float safeSlope = 0.85f;
 
     CharacterController controller;
     Lantern lantern;
@@ -32,6 +36,7 @@ public class PlayerController : MonoBehaviour
     float coyoteTimer;
     float jumpBufferTimer;
     float brakeFrom;
+    float nextSafeCheck;
     bool jumpLocked;
     bool wasOnGround;
     bool wasSlowing;
@@ -77,12 +82,20 @@ public class PlayerController : MonoBehaviour
         JumpedThisFrame = false;
         LandedThisFrame = false;
 
-        if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+        GameManager manager = GameManager.Instance;
+        if (manager != null && (manager.IsPaused || manager.ControlsLocked || manager.IsDying || manager.IsRoundOver))
         {
+            ExternalMove = Vector2.zero;
             ExternalJump = false;
             IsSprinting = false;
             HorizontalSpeed = 0f;
             CurrentSpeed = 0f;
+            planarVelocity = Vector3.zero;
+            if (lantern != null)
+            {
+                lantern.SetDrainModifier(this, 1f);
+            }
+
             UpdateDust(false);
             return;
         }
@@ -232,13 +245,82 @@ public class PlayerController : MonoBehaviour
         CurrentSpeed = planarVelocity.magnitude;
         lastPosition = transform.position;
 
-        if (controller.isGrounded && transform.position.y > WaterHazard.SurfaceY + 0.35f)
-        {
-            LastSafePosition = transform.position;
-        }
+        TryRecordSafe();
 
         UpdateDust(planarVelocity.sqrMagnitude > 0.04f && controller.isGrounded);
         UpdateFootsteps();
+    }
+
+    void TryRecordSafe()
+    {
+        if (Time.time < nextSafeCheck)
+        {
+            return;
+        }
+
+        nextSafeCheck = Time.time + safeCheckInterval;
+        if (!controller.isGrounded)
+        {
+            return;
+        }
+
+        if (transform.position.y <= WaterHazard.SurfaceY + safeWaterMargin)
+        {
+            return;
+        }
+
+        Vector3 normal;
+        if (!GroundNormal(out normal) || normal.y <= safeSlope)
+        {
+            return;
+        }
+
+        if (!ClearOfEdge())
+        {
+            return;
+        }
+
+        LastSafePosition = transform.position;
+    }
+
+    bool GroundNormal(out Vector3 normal)
+    {
+        normal = Vector3.up;
+        Vector3 origin = transform.position + Vector3.up * 0.35f;
+        RaycastHit hit;
+        if (Physics.Raycast(origin, Vector3.down, out hit, 2.2f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (hit.collider != null && !hit.collider.transform.IsChildOf(transform))
+            {
+                normal = hit.normal;
+                return true;
+            }
+        }
+
+        float height;
+        return TerrainQuery.TrySample(transform.position, out height, out normal);
+    }
+
+    bool ClearOfEdge()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            float angle = i * Mathf.PI * 2f / 8f;
+            Vector3 sample = transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * safeEdgeRadius;
+            float height;
+            Vector3 normal;
+            if (!TerrainQuery.TrySample(sample, out height, out normal))
+            {
+                return false;
+            }
+
+            if (height < WaterHazard.SurfaceY + safeWaterMargin)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     Vector3 CameraRelative(Vector3 input)

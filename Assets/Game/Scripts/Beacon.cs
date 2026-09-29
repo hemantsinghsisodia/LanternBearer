@@ -25,6 +25,7 @@ public class Beacon : MonoBehaviour
     public static event Action LightFailed;
 
     public bool IsLit { get; private set; }
+    public float ZoneRadius => safeRadius;
     public float SafeRadius => IsLit ? safeRadius : 0f;
     public float FuelCost => fuelCost;
 
@@ -156,6 +157,8 @@ public class Beacon : MonoBehaviour
         {
             player = playerObject.transform;
         }
+
+        BeaconSafeRing.Ensure(this);
     }
 
     void Update()
@@ -176,7 +179,7 @@ public class Beacon : MonoBehaviour
             return;
         }
 
-        if (GameManager.Instance != null && GameManager.Instance.IsRoundOver)
+        if (GameManager.Instance != null && (GameManager.Instance.IsRoundOver || GameManager.Instance.IsDying))
         {
             return;
         }
@@ -205,6 +208,11 @@ public class Beacon : MonoBehaviour
         }
     }
 
+    public bool ContainsSafe(Vector3 worldPosition)
+    {
+        return BlocksMoth(worldPosition);
+    }
+
     public bool BlocksMoth(Vector3 worldPosition)
     {
         if (!IsLit)
@@ -224,7 +232,7 @@ public class Beacon : MonoBehaviour
             return false;
         }
 
-        if (GameManager.Instance != null && (GameManager.Instance.IsPaused || GameManager.Instance.IsRoundOver))
+        if (GameManager.Instance != null && (GameManager.Instance.IsPaused || GameManager.Instance.IsRoundOver || GameManager.Instance.IsDying))
         {
             return false;
         }

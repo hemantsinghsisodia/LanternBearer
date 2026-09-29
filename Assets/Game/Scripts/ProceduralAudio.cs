@@ -13,6 +13,9 @@ public static class ProceduralAudio
     static AudioClip ambience;
     static AudioClip heartbeat;
     static AudioClip fizzle;
+    static AudioClip splash;
+    static AudioClip whisper;
+    static AudioClip dying;
 
     public static AudioClip FireflyChime()
     {
@@ -170,6 +173,77 @@ public static class ProceduralAudio
 
         fizzle = Clip("Fizzle", data);
         return fizzle;
+    }
+
+    public static AudioClip Splash()
+    {
+        if (splash != null)
+        {
+            return splash;
+        }
+
+        int length = (int)(Rate * 0.42f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(47);
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Exp(-time * 7.5f);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            float bubble = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(420f, 180f, time) * time) * Mathf.Exp(-time * 9f);
+            data[i] = (noise * 0.55f + bubble * 0.4f) * envelope;
+        }
+
+        splash = Clip("Splash", data);
+        return splash;
+    }
+
+    public static AudioClip MothWhisper()
+    {
+        if (whisper != null)
+        {
+            return whisper;
+        }
+
+        int length = Rate * 2;
+        float[] data = new float[length];
+        System.Random random = new System.Random(53);
+        float noise = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            noise = noise * 0.92f + sample * 0.08f;
+            float flutter = 0.45f + 0.55f * Mathf.Abs(Mathf.Sin(2f * Mathf.PI * 9f * time));
+            float tone = Mathf.Sin(2f * Mathf.PI * 180f * time) * 0.08f;
+            data[i] = (noise * flutter + tone) * 0.55f;
+        }
+
+        whisper = Clip("MothWhisper", data);
+        return whisper;
+    }
+
+    public static AudioClip LanternDying()
+    {
+        if (dying != null)
+        {
+            return dying;
+        }
+
+        int length = (int)(Rate * 1.3f);
+        float[] data = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Sin(Mathf.Clamp01(time / 1.15f) * Mathf.PI) * Mathf.Exp(-time * 1.1f);
+            float freq = Mathf.Lerp(320f, 90f, time / 1.3f);
+            float tone = Mathf.Sin(2f * Mathf.PI * freq * time);
+            float crackle = Mathf.Abs(Mathf.Sin(2f * Mathf.PI * 17f * time)) > 0.82f ? 0.25f : 0f;
+            data[i] = (tone * 0.55f + crackle) * envelope * 0.7f;
+        }
+
+        dying = Clip("LanternDying", data);
+        return dying;
     }
 
     public static AudioClip Heartbeat()

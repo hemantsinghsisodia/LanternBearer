@@ -84,6 +84,8 @@ public class LowFuelFX : MonoBehaviour
             amount += Mathf.Abs(Mathf.Sin(Time.time * 6f)) * 0.1f;
         }
 
+        amount += lantern.ProximityDim * 0.22f;
+
         vignette.intensity.Override(Mathf.Clamp01(amount));
         if (color != null)
         {

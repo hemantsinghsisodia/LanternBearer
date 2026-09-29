@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -14,6 +15,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] Lantern lantern;
     [SerializeField] string levelId = "island1";
     [SerializeField] string nextLevelScene = "";
+    [SerializeField] float deathSeconds = 1.5f;
+    [SerializeField] float restartGrace = 0.5f;
 
     readonly HashSet<Beacon> nearbyBeacons = new HashSet<Beacon>();
     readonly List<Beacon> nearbyScratch = new List<Beacon>();
@@ -23,6 +26,9 @@ public class GameManager : MonoBehaviour
     bool roundOver;
     bool won;
     bool paused;
+    bool dying;
+    bool controlsLocked;
+    float restartUnlockTime = float.PositiveInfinity;
     Beacon nearestBeacon;
 
     public int LitCount => litCount;
@@ -31,6 +37,11 @@ public class GameManager : MonoBehaviour
     public bool ShowInteractPrompt => nearestBeacon != null && !roundOver && !paused;
     public bool IsRoundOver => roundOver;
     public bool IsPaused => paused;
+    public bool IsDying => dying;
+    public bool ControlsLocked => controlsLocked;
+    public float DeathStartedUnscaled { get; private set; }
+    public float LoseShownUnscaled { get; private set; }
+    public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && Time.unscaledTime >= restartUnlockTime;
     public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
@@ -89,7 +100,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (!roundOver && lantern != null && lantern.Fuel <= 0f)
+        if (!roundOver && !dying && lantern != null && lantern.Fuel <= 0f && !lantern.DrainFrozen)
         {
             Lose();
         }
@@ -124,21 +135,37 @@ public class GameManager : MonoBehaviour
             {
                 Resume();
             }
-            else if (!roundOver && !DawnPlaying)
+            else if (!roundOver && !DawnPlaying && !dying)
             {
                 Pause();
             }
         }
 
-        if (!paused && roundOver && !DawnPlaying && keyboard.rKey.wasPressedThisFrame)
+        if (RestartAllowed && keyboard.rKey.wasPressedThisFrame)
         {
             RestartLevel();
         }
     }
 
+    public void SetControlsLocked(bool locked)
+    {
+        controlsLocked = locked;
+    }
+
+    public bool DebugPressRestart()
+    {
+        if (!RestartAllowed)
+        {
+            return false;
+        }
+
+        RestartLevel();
+        return true;
+    }
+
     public void Pause()
     {
-        if (paused || roundOver || DawnPlaying)
+        if (paused || roundOver || DawnPlaying || dying)
         {
             return;
         }
@@ -225,10 +252,25 @@ public class GameManager : MonoBehaviour
         SelectNearest();
         litCount++;
         RaiseBeacons();
-        if (litCount >= beaconsToWin)
+        if (CanWin())
         {
             Win();
         }
+    }
+
+    bool CanWin()
+    {
+        if (roundOver || dying || won)
+        {
+            return false;
+        }
+
+        if (lantern != null && lantern.Fuel <= 0f)
+        {
+            return false;
+        }
+
+        return litCount >= beaconsToWin;
     }
 
     public void Lose()
@@ -238,12 +280,69 @@ public class GameManager : MonoBehaviour
 
     void OnFuelDepleted()
     {
-        if (roundOver)
+        if (roundOver || dying || won)
         {
             return;
         }
 
+        dying = true;
+        controlsLocked = true;
+        DeathStartedUnscaled = Time.unscaledTime;
+        StartCoroutine(DeathSequence());
+    }
+
+    IEnumerator DeathSequence()
+    {
+        HUD hud = FindAnyObjectByType<HUD>();
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayDying();
+        }
+
+        float duration = Mathf.Max(0.2f, deathSeconds);
+        float elapsedDeath = 0f;
+        while (elapsedDeath < duration)
+        {
+            elapsedDeath += Time.unscaledDeltaTime;
+            float unit = Mathf.Clamp01(elapsedDeath / duration);
+            if (hud != null)
+            {
+                hud.SetDeathAmount(unit);
+            }
+
+            if (lantern != null)
+            {
+                if (unit < 0.62f)
+                {
+                    float flicker = Mathf.Abs(Mathf.Sin(elapsedDeath * 28f));
+                    float amp = Mathf.Lerp(3.2f, 0.2f, unit / 0.62f);
+                    lantern.SetDeathIntensity(flicker * amp);
+                }
+                else
+                {
+                    float fade = 1f - Mathf.InverseLerp(0.62f, 1f, unit);
+                    lantern.SetDeathIntensity(fade * 0.35f);
+                }
+            }
+
+            yield return null;
+        }
+
+        if (lantern != null)
+        {
+            lantern.SetDeathIntensity(0f);
+        }
+
+        if (hud != null)
+        {
+            hud.SetDeathAmount(1f);
+        }
+
         roundOver = true;
+        dying = false;
+        controlsLocked = false;
+        LoseShownUnscaled = Time.unscaledTime;
+        restartUnlockTime = LoseShownUnscaled + restartGrace;
         if (LostGame != null)
         {
             LostGame.Invoke();
@@ -252,7 +351,12 @@ public class GameManager : MonoBehaviour
 
     public void Win()
     {
-        if (roundOver)
+        if (roundOver || dying)
+        {
+            return;
+        }
+
+        if (lantern != null && lantern.Fuel <= 0f)
         {
             return;
         }

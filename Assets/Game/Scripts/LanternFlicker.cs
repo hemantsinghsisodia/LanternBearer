@@ -27,6 +27,13 @@ public class LanternFlicker : MonoBehaviour
             return;
         }
 
+        if (lantern.DeathLightActive)
+        {
+            targetLight.intensity = lantern.DeathLight;
+            targetLight.enabled = lantern.DeathLight > 0.02f;
+            return;
+        }
+
         float fuel = lantern.FuelNormalized;
         float amp = Mathf.Lerp(0.05f, 0.28f, 1f - fuel);
         float speed = 6f;
@@ -38,7 +45,7 @@ public class LanternFlicker : MonoBehaviour
 
         float noise = Mathf.PerlinNoise(Time.time * speed, 0.37f);
         float wobble = 1f - amp + (amp * noise * 2f);
-        targetLight.intensity = Mathf.Max(0.05f, lantern.BaseIntensity * wobble);
+        targetLight.intensity = Mathf.Max(0.05f, lantern.BaseIntensity * wobble * lantern.ProximityScale);
     }
 }
 }

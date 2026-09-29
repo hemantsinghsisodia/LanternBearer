@@ -89,6 +89,21 @@ public class AudioManager : MonoBehaviour
         PlayOneShot(ProceduralAudio.Footstep(), position, 0.32f);
     }
 
+    public void PlaySplash(Vector3 position)
+    {
+        PlayOneShot(ProceduralAudio.Splash(), position, 0.85f);
+    }
+
+    public void PlayDying()
+    {
+        if (oneShots == null)
+        {
+            return;
+        }
+
+        oneShots.PlayOneShot(ProceduralAudio.LanternDying(), 0.65f);
+    }
+
     public void PlayFizzle()
     {
         if (oneShots == null)
