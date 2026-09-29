@@ -5,16 +5,20 @@ namespace LanternKeeper
 public class LightRevealed : MonoBehaviour
 {
     const float MoveEpsilonSqr = 0.0004f;
+    const float RevealEpsilon = 0.002f;
 
     [SerializeField] Lantern lantern;
 
     Renderer[] renderers;
     Collider[] colliders;
+    bool[] dissolve;
+    Color[] fadeColors;
     MaterialPropertyBlock block;
+    bool hasFade;
     Vector3 sampledPosition;
     float sampledRadius = -1f;
     float sampledIntensity = -1f;
-    float appliedAlpha = -1f;
+    float appliedReveal = -1f;
     bool appliedShow;
     bool appliedSolid;
     bool appliedOnce;
@@ -23,12 +27,55 @@ public class LightRevealed : MonoBehaviour
     static bool loggedFallback;
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     static readonly int ColorId = Shader.PropertyToID("_Color");
+    static readonly int DissolveId = Shader.PropertyToID("_LKDissolve");
+
+    public float Reveal { get; private set; }
+    public bool CollidersEnabled { get; private set; }
+    public static float SolidThreshold => RevealMath.SolidReveal;
+
+    public static float EvaluateReveal(Vector3 point, Vector3 lanternPosition, float radius)
+    {
+        return RevealMath.Evaluate(point, lanternPosition, radius);
+    }
 
     void Awake()
     {
         renderers = GetComponentsInChildren<Renderer>(true);
         colliders = GetComponentsInChildren<Collider>(true);
         block = new MaterialPropertyBlock();
+        dissolve = new bool[renderers.Length];
+        fadeColors = new Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            Material material = renderer.sharedMaterial;
+            bool usesDissolve = material != null && material.HasProperty(DissolveId);
+            dissolve[i] = usesDissolve;
+            if (usesDissolve)
+            {
+                continue;
+            }
+
+            hasFade = true;
+            if (material != null && material.HasProperty(BaseColorId))
+            {
+                fadeColors[i] = material.GetColor(BaseColorId);
+            }
+            else if (material != null && material.HasProperty(ColorId))
+            {
+                fadeColors[i] = material.GetColor(ColorId);
+            }
+            else
+            {
+                fadeColors[i] = Color.white;
+            }
+        }
+
         Apply(0f);
     }
 
@@ -44,7 +91,9 @@ public class LightRevealed : MonoBehaviour
         sampledRadius = lantern.Radius;
         sampledIntensity = lantern.BaseIntensity;
         haveSample = true;
-        Apply(CurrentAlpha());
+        float reveal = CurrentReveal();
+        Reveal = reveal;
+        Apply(reveal);
     }
 
     void ResolveLantern()
@@ -96,43 +145,35 @@ public class LightRevealed : MonoBehaviour
         sampledPosition = position;
         sampledRadius = radius;
         sampledIntensity = intensity;
-        Apply(CurrentAlpha());
+        float reveal = CurrentReveal();
+        Reveal = reveal;
+        Apply(reveal);
     }
 
     public void RefreshVisibility()
     {
         haveSample = false;
-        Apply(CurrentAlpha());
+        float reveal = CurrentReveal();
+        Reveal = reveal;
+        Apply(reveal);
     }
 
-    float CurrentAlpha()
+    float CurrentReveal()
     {
         if (lantern == null)
         {
             return 0f;
         }
 
-        float radius = lantern.Radius;
-        if (radius < 0.2f)
-        {
-            return 0f;
-        }
-
-        float distance = Vector3.Distance(transform.position, lantern.transform.position);
-        if (distance >= radius)
-        {
-            return 0f;
-        }
-
-        return Mathf.Clamp01(1.15f * (1f - distance / radius));
+        return RevealMath.Evaluate(transform.position, lantern.transform.position, lantern.Radius);
     }
 
-    void Apply(float alpha)
+    void Apply(float reveal)
     {
-        bool show = alpha > 0.05f;
-        bool solid = alpha > 0.32f;
-        bool alphaSame = appliedOnce && Mathf.Abs(alpha - appliedAlpha) < 0.002f;
-        if (appliedOnce && show == appliedShow && solid == appliedSolid && (!show || alphaSame))
+        bool show = reveal > 0.001f;
+        bool solid = reveal >= RevealMath.SolidReveal;
+        bool revealSame = appliedOnce && Mathf.Abs(reveal - appliedReveal) < RevealEpsilon;
+        if (appliedOnce && show == appliedShow && solid == appliedSolid && (!hasFade || revealSame))
         {
             return;
         }
@@ -140,10 +181,10 @@ public class LightRevealed : MonoBehaviour
         appliedOnce = true;
         appliedShow = show;
         appliedSolid = solid;
-        appliedAlpha = alpha;
+        appliedReveal = reveal;
+        CollidersEnabled = solid;
         if (renderers != null)
         {
-            Color color = new Color(0.82f, 0.76f, 0.62f, alpha);
             for (int i = 0; i < renderers.Length; i++)
             {
                 Renderer renderer = renderers[i];
@@ -152,13 +193,20 @@ public class LightRevealed : MonoBehaviour
                     continue;
                 }
 
-                renderer.enabled = show;
-                if (!show)
-                {
-                    continue;
-                }
+        renderer.enabled = show;
+        if (!show || dissolve == null || dissolve[i])
+        {
+            continue;
+        }
 
-                renderer.GetPropertyBlock(block);
+        if (block == null)
+        {
+            block = new MaterialPropertyBlock();
+        }
+
+        Color color = fadeColors[i];
+        color.a *= reveal;
+        renderer.GetPropertyBlock(block);
                 block.SetColor(BaseColorId, color);
                 block.SetColor(ColorId, color);
                 renderer.SetPropertyBlock(block);

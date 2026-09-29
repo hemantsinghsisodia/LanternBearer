@@ -30,6 +30,12 @@ public class Lantern : MonoBehaviour
     bool drainFrozen;
     bool inSafeLight;
     PlayerController owner;
+    Vector3 publishedPosition;
+    float publishedRadius = -1f;
+    bool revealPublished;
+    static readonly int LanternPosId = Shader.PropertyToID("_LKLanternPos");
+    static readonly int LanternRadiusId = Shader.PropertyToID("_LKLanternRadius");
+    static readonly int RevealInnerId = Shader.PropertyToID("_LKRevealInner");
 
     public float Fuel => fuel;
     public float MaxFuel => maxFuel;
@@ -61,6 +67,12 @@ public class Lantern : MonoBehaviour
         fuel = maxFuel;
         owner = GetComponentInParent<PlayerController>();
         ApplyLight();
+        PublishRevealGlobals();
+    }
+
+    void LateUpdate()
+    {
+        PublishRevealGlobals();
     }
 
     void Start()
@@ -296,6 +308,27 @@ public class Lantern : MonoBehaviour
         lanternLight.intensity = BaseIntensity * ProximityScale;
         lanternLight.range = Mathf.Lerp(minRange, maxRange, amount);
         lanternLight.enabled = amount > 0.01f;
+        PublishRevealGlobals();
+    }
+
+    void PublishRevealGlobals()
+    {
+        Vector3 position = transform.position;
+        float radius = lanternLight != null ? lanternLight.range : maxRange;
+        bool moved = !revealPublished
+            || (position - publishedPosition).sqrMagnitude > 0.0004f
+            || Mathf.Abs(radius - publishedRadius) > 0.01f;
+        if (!moved)
+        {
+            return;
+        }
+
+        revealPublished = true;
+        publishedPosition = position;
+        publishedRadius = radius;
+        Shader.SetGlobalVector(LanternPosId, new Vector4(position.x, position.y, position.z, 0f));
+        Shader.SetGlobalFloat(LanternRadiusId, radius);
+        Shader.SetGlobalFloat(RevealInnerId, RevealMath.InnerFraction);
     }
 }
 }

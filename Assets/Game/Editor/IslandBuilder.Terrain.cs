@@ -630,6 +630,10 @@ public static partial class IslandBuilder
         {
             clump = DryGrassPrefab(clump);
         }
+        else
+        {
+            clump = BendGrassPrefab(clump);
+        }
 
         int added = 0;
 
@@ -765,31 +769,138 @@ public static partial class IslandBuilder
         return added;
     }
 
-    static GameObject DryGrassPrefab(GameObject source)
+    public static void RefreshGrassBendPrototypes()
     {
-        const string matPath = "Assets/Game/Levels/Layers/DryGrass.mat";
-        const string prefabPath = "Assets/Game/Levels/Layers/DryGrassClump.prefab";
-        Material sourceMat = source.GetComponentInChildren<MeshRenderer>().sharedMaterial;
-        Material mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
-        if (mat == null)
+        GameObject source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/NaturePack/GroundCover/np_grass_20.prefab");
+        if (source == null)
         {
-            mat = new Material(sourceMat);
-            UnityEditor.AssetDatabase.CreateAsset(mat, matPath);
-        }
-        else
-        {
-            mat.CopyPropertiesFromMaterial(sourceMat);
+            Debug.LogError("Pack grass np_grass_20 is missing.");
+            return;
         }
 
-        mat.SetColor("_BaseColor", new Color(1.8f, 1.15f, 0.45f));
-        UnityEditor.EditorUtility.SetDirty(mat);
+        GameObject cool = BendGrassPrefab(source);
+        GameObject warm = DryGrassPrefab(source);
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("t:TerrainData", new[] { "Assets/Game" });
+        int swapped = 0;
+        for (int g = 0; g < guids.Length; g++)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[g]);
+            TerrainData data = UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainData>(path);
+            if (data == null || data.detailPrototypes == null || data.detailPrototypes.Length == 0)
+            {
+                continue;
+            }
+
+            DetailPrototype[] prototypes = data.detailPrototypes;
+            bool changed = false;
+            for (int i = 0; i < prototypes.Length; i++)
+            {
+                GameObject prototype = prototypes[i].prototype;
+                if (prototype == null)
+                {
+                    continue;
+                }
+
+                string protoName = prototype.name;
+                bool packGrass = protoName.IndexOf("np_grass_20") >= 0 || protoName.IndexOf("GrassBend") >= 0 || protoName.IndexOf("DryGrass") >= 0;
+                if (!packGrass)
+                {
+                    continue;
+                }
+
+                bool warmTint = protoName.IndexOf("Dry") >= 0 || (prototypes[i].dryColor.r > prototypes[i].dryColor.b + 0.2f && prototypes[i].dryColor.g < 0.8f);
+                GameObject replacement = warmTint ? warm : cool;
+                if (replacement == null || prototype == replacement)
+                {
+                    continue;
+                }
+
+                prototypes[i].prototype = replacement;
+                prototypes[i].usePrototypeMesh = true;
+                prototypes[i].useInstancing = true;
+                changed = true;
+                swapped++;
+            }
+
+            if (!changed)
+            {
+                continue;
+            }
+
+            int resolution = data.detailResolution;
+            int[][,] saved = new int[prototypes.Length][,];
+            int oldSum = 0;
+            for (int i = 0; i < prototypes.Length; i++)
+            {
+                saved[i] = data.GetDetailLayer(0, 0, resolution, resolution, i);
+                for (int z = 0; z < resolution; z++)
+                {
+                    for (int x = 0; x < resolution; x++)
+                    {
+                        oldSum += saved[i][z, x];
+                    }
+                }
+            }
+
+            data.detailPrototypes = prototypes;
+            int newSum = 0;
+            for (int i = 0; i < prototypes.Length; i++)
+            {
+                int[,] layer = data.GetDetailLayer(0, 0, resolution, resolution, i);
+                for (int z = 0; z < resolution; z++)
+                {
+                    for (int x = 0; x < resolution; x++)
+                    {
+                        newSum += layer[z, x];
+                    }
+                }
+            }
+
+            if (oldSum > 0 && newSum == 0)
+            {
+                for (int i = 0; i < saved.Length; i++)
+                {
+                    data.SetDetailLayer(0, 0, i, saved[i]);
+                }
+            }
+
+            UnityEditor.EditorUtility.SetDirty(data);
+            Debug.Log("Grass bend prototypes on " + path + " sum " + oldSum + " -> " + (newSum == 0 && oldSum > 0 ? oldSum : newSum));
+        }
+
+        UnityEditor.AssetDatabase.SaveAssets();
+        Debug.Log("Grass bend prototype refresh swapped " + swapped + ".");
+    }
+
+    static GameObject BendGrassPrefab(GameObject source)
+    {
+        return GrassBendPrefab(source, false, "Assets/Game/Levels/Layers/GrassBend.mat", "Assets/Game/Levels/Layers/GrassBendClump.prefab", "GrassBendClump", Color.white);
+    }
+
+    static GameObject DryGrassPrefab(GameObject source)
+    {
+        return GrassBendPrefab(source, true, "Assets/Game/Levels/Layers/DryGrass.mat", "Assets/Game/Levels/Layers/DryGrassClump.prefab", "DryGrassClump", new Color(1.8f, 1.15f, 0.45f));
+    }
+
+    static GameObject GrassBendPrefab(GameObject source, bool warm, string matPath, string prefabPath, string prefabName, Color tint)
+    {
+        Material sourceMat = source.GetComponentInChildren<MeshRenderer>().sharedMaterial;
+        Material mat = EnsureGrassBendMaterial(sourceMat, matPath, tint);
+        if (mat == null || mat.shader == null || mat.shader.name != "LanternKeeper/GrassBend")
+        {
+            Debug.LogError("Grass bend material was not created. Keeping " + source.name + ".");
+            return source;
+        }
 
         GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
         if (prefab == null)
         {
             GameObject instance = UnityEngine.Object.Instantiate(source);
-            instance.name = "DryGrassClump";
-            instance.GetComponentInChildren<MeshRenderer>().sharedMaterial = mat;
+            instance.name = prefabName;
+            MeshRenderer created = instance.GetComponentInChildren<MeshRenderer>();
+            created.sharedMaterial = mat;
+            created.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            created.receiveShadows = false;
             prefab = UnityEditor.PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
             UnityEngine.Object.DestroyImmediate(instance);
         }
@@ -798,10 +909,55 @@ public static partial class IslandBuilder
             MeshRenderer renderer = prefab.GetComponentInChildren<MeshRenderer>();
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
             UnityEditor.EditorUtility.SetDirty(prefab);
         }
 
+        if (warm)
+        {
+            UnityEditor.EditorUtility.SetDirty(mat);
+        }
+
         return prefab;
+    }
+
+    static Material EnsureGrassBendMaterial(Material source, string path, Color tint)
+    {
+        Shader shader = Shader.Find("LanternKeeper/GrassBend");
+        if (shader == null)
+        {
+            Debug.LogError("LanternKeeper/GrassBend is missing.");
+            return null;
+        }
+
+        Material mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
+        {
+            mat = new Material(shader);
+            UnityEditor.AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = shader;
+        Texture albedo = source != null && source.HasProperty("_BaseMap") ? source.GetTexture("_BaseMap") : null;
+        Texture normal = source != null && source.HasProperty("_BumpMap") ? source.GetTexture("_BumpMap") : null;
+        float cutoff = 0.4f;
+        if (source != null && source.HasProperty("_Cutoff"))
+        {
+            cutoff = source.GetFloat("_Cutoff");
+        }
+
+        mat.SetTexture("_BaseMap", albedo);
+        mat.SetTexture("_BumpMap", normal);
+        mat.SetColor("_BaseColor", tint);
+        mat.SetFloat("_Cutoff", cutoff);
+        mat.SetFloat("_BumpScale", 1f);
+        mat.SetFloat("_TipHeight", 0.42f);
+        mat.enableInstancing = true;
+        mat.doubleSidedGI = true;
+        mat.SetOverrideTag("RenderType", "TransparentCutout");
+        mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+        UnityEditor.EditorUtility.SetDirty(mat);
+        return mat;
     }
 
     static DetailPrototype MeshDetail(GameObject prefab, float minScale, float maxScale, bool warm)

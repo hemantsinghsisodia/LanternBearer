@@ -428,6 +428,7 @@ MonoBehaviour:
   maxIntensity: 4.2
   minRange: 3.5
   maxRange: 14
+  proximityDimStrength: 0.65
 --- !u!1 &8813283961652447622
 GameObject:
   m_ObjectHideFlags: 0
@@ -2904,6 +2905,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.KeeperAnimator
   animator: {fileID: 2541679264743839663}
   speedParameter: Speed
+  groundedParameter: Grounded
+  verticalSpeedParameter: VerticalSpeed
+  jumpParameter: Jump
+  speedDampTime: 0.1
+  landDuration: 0.12
+  landSquash: 0.92
 --- !u!143 &8429091316355011494
 CharacterController:
   m_ObjectHideFlags: 0
@@ -2946,6 +2953,16 @@ MonoBehaviour:
   sprintDrainMultiplier: 1.6
   gravity: -20
   jumpHeight: 2.8
-  turnSpeed: 12
+  acceleration: 0.12
+  deceleration: 0.1
+  airControl: 0.6
+  rotationSpeed: 720
+  coyoteTime: 0.12
+  jumpBufferTime: 0.15
   stepDistance: 2.3
+  safeCheckInterval: 0.25
+  safeEdgeRadius: 1.5
+  safeWaterMargin: 0.45
+  safeSlope: 0.85
   UseDistanceFootsteps: 1
+  cameraFollow: {fileID: 0}

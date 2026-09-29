@@ -26,8 +26,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float safeWaterMargin = 0.45f;
     [SerializeField] float safeSlope = 0.85f;
 
+    public const float GrassBendRadius = 1.4f;
+
     CharacterController controller;
     Lantern lantern;
+    Vector3 grassSample;
+    bool grassSampled;
+    static readonly int PlayerPosId = Shader.PropertyToID("_LKPlayerPos");
+    static readonly int PlayerRadiusId = Shader.PropertyToID("_LKPlayerRadius");
     ParticleSystem dust;
     Vector3 planarVelocity;
     Vector3 lastPosition;
@@ -428,6 +434,20 @@ public class PlayerController : MonoBehaviour
         {
             AudioManager.Instance.PlayFootstep(transform.position);
         }
+    }
+
+    void LateUpdate()
+    {
+        Vector3 position = transform.position;
+        if (grassSampled && (position - grassSample).sqrMagnitude <= 0.0004f)
+        {
+            return;
+        }
+
+        grassSampled = true;
+        grassSample = position;
+        Shader.SetGlobalVector(PlayerPosId, new Vector4(position.x, position.y, position.z, 0f));
+        Shader.SetGlobalFloat(PlayerRadiusId, GrassBendRadius);
     }
 }
 }

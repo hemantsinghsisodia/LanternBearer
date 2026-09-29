@@ -540,6 +540,7 @@ public static partial class IslandBuilder
         string name = rendererName.ToLowerInvariant();
         string slot = sourceName == null ? "" : sourceName.ToLowerInvariant();
         Color color = material.GetColor(property);
+        bool cloth = false;
         if (MaterialHasAlbedo(material))
         {
             if (!IsNearWhite(color))
@@ -565,7 +566,8 @@ public static partial class IslandBuilder
         }
         else if (slot.Contains("gold"))
         {
-            color = new Color(0.62f, 0.42f, 0.16f);
+            cloth = true;
+            color = new Color(0.5f, 0.44f, 0.38f);
         }
         else if (slot.Contains("metal"))
         {
@@ -577,23 +579,59 @@ public static partial class IslandBuilder
         }
         else if (slot.Contains("light"))
         {
-            color = new Color(0.5f, 0.34f, 0.24f);
+            cloth = true;
+            color = new Color(0.46f, 0.4f, 0.36f);
         }
         else if (slot.Contains("dark") || slot == "brown")
         {
-            color = new Color(0.34f, 0.22f, 0.15f);
+            cloth = true;
+            color = new Color(0.38f, 0.34f, 0.3f);
         }
         else
         {
-            color = new Color(0.42f, 0.28f, 0.2f);
+            cloth = true;
+            color = new Color(0.44f, 0.39f, 0.34f);
         }
 
         color.a = 1f;
-        material.SetColor(property, color);
+        ApplyKeeperLit(material, cloth);
+        if (material.HasProperty(property))
+        {
+            material.SetColor(property, color);
+        }
+
         if (material.HasProperty("_Smoothness"))
         {
             material.SetFloat("_Smoothness", name.Contains("head") ? 0.28f : 0.18f);
         }
+    }
+
+    static void ApplyKeeperLit(Material material, bool cloth)
+    {
+        Shader shader = Shader.Find("LanternKeeper/KeeperLit");
+        if (shader == null)
+        {
+            Debug.LogError("LanternKeeper/KeeperLit is missing. Keeper kept its previous shader.");
+            return;
+        }
+
+        Texture albedo = material.HasProperty("_BaseMap") ? material.GetTexture("_BaseMap") : null;
+        Texture normal = material.HasProperty("_BumpMap") ? material.GetTexture("_BumpMap") : null;
+        material.shader = shader;
+        if (albedo != null)
+        {
+            material.SetTexture("_BaseMap", albedo);
+        }
+
+        if (normal != null)
+        {
+            material.SetTexture("_BumpMap", normal);
+        }
+
+        material.SetFloat("_Desaturate", cloth ? 0.28f : 0f);
+        material.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        material.SetFloat("_RimPower", 2.4f);
+        material.SetFloat("_RimStrength", 0.7f);
     }
 
     static bool IsNearWhite(Color color)

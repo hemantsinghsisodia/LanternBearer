@@ -179,7 +179,8 @@ public static partial class IslandBuilder
         Shader silhouetteShader = Shader.Find("LanternKeeper/Silhouette");
         Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
         Shader skyBlend = Shader.Find("LanternKeeper/SkyBlend");
-        if (lit == null || skyShader == null || unlitShader == null || addShader == null || flameShader == null || waterShader == null || silhouetteShader == null || hazeShader == null || skyBlend == null)
+        Shader pathReveal = Shader.Find("LanternKeeper/PathReveal");
+        if (lit == null || skyShader == null || unlitShader == null || addShader == null || flameShader == null || waterShader == null || silhouetteShader == null || hazeShader == null || skyBlend == null || pathReveal == null)
         {
             throw new System.InvalidOperationException("A Lantern Keeper shader is missing. Check the console for shader errors.");
         }
@@ -259,8 +260,8 @@ public static partial class IslandBuilder
         art.foam.SetTexture("_BaseMap", art.softCircle);
         art.beam = UnlitMat("Assets/Game/Materials/Generated/LighthouseBeam.mat", addShader, new Color(1f, 0.94f, 0.78f, 0.08f));
         art.lamp = UnlitMat("Assets/Game/Materials/Generated/LighthouseLamp.mat", unlitShader, new Color(3.2f, 2.4f, 1.5f, 1f));
-        art.path = LitMat("Assets/Game/Materials/Generated/PathStone.mat", lit, new Color(0.78f, 0.72f, 0.55f), 0.2f, 0f, Color.black);
-        SetupTransparent(art.path);
+        ApplyPathRevealMaterial();
+        art.path = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Materials/Generated/PathStone.mat");
         Cubemap nightCube = LoadSkyCubemap("Assets/Game/Textures/Sky/qwantani_moonrise_puresky_2k.hdr");
         Cubemap dawnCube = LoadSkyCubemap("Assets/Game/Textures/Sky/qwantani_dawn_puresky_2k.hdr");
         art.nightCube = nightCube;
@@ -324,6 +325,28 @@ public static partial class IslandBuilder
         art.keeper = SavePrefab(BuildKeeper(art), "Assets/Game/Prefabs/Characters/Keeper.prefab");
         AssetDatabase.SaveAssets();
         return art;
+    }
+
+    public static void ApplyPathRevealMaterial()
+    {
+        Shader shader = Shader.Find("LanternKeeper/PathReveal");
+        if (shader == null)
+        {
+            Debug.LogError("LanternKeeper/PathReveal is missing.");
+            return;
+        }
+
+        Material mat = LitMat("Assets/Game/Materials/Generated/PathStone.mat", shader, new Color(0.78f, 0.72f, 0.55f, 1f), 0.2f, 0f, Color.black);
+        mat.SetColor("_RimColor", new Color(1f, 0.58f, 0.24f, 1f));
+        mat.SetFloat("_RimStrength", 1.65f);
+        mat.SetFloat("_LKDissolve", 1f);
+        mat.SetOverrideTag("RenderType", "TransparentCutout");
+        mat.renderQueue = (int)RenderQueue.AlphaTest;
+        mat.SetShaderPassEnabled("ShadowCaster", true);
+        mat.SetShaderPassEnabled("DepthOnly", true);
+        mat.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        EditorUtility.SetDirty(mat);
     }
 
     static Material LitMat(string path, Shader shader, Color color, float smoothness, float metallic, Color emission)
