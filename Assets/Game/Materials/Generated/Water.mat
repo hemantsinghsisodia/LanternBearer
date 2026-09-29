@@ -28,15 +28,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _FoamNoise:
-        m_Texture: {fileID: 2800000, guid: 8a3c77ec8c48fef49a790c3bbaa29b77, type: 3}
+        m_Texture: {fileID: 2800000, guid: a821abda2c4747c479827fba07aa7559, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalA:
-        m_Texture: {fileID: 2800000, guid: 718fc9d83d0aa1144ab01ae34648b2b9, type: 3}
+        m_Texture: {fileID: 2800000, guid: cca27f7e83cf99d4fba696ef2cc490de, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalB:
-        m_Texture: {fileID: 2800000, guid: 17e9493e60ce2fe4e8263cc6518e608f, type: 3}
+        m_Texture: {fileID: 2800000, guid: ff222cea2e1a11e438dbd39e205493ae, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SkyCube:
@@ -56,8 +56,8 @@ Material:
     - _SkyExposure: 0.45
     - _WaveAmp: 8
     m_Colors:
-    - _DeepColor: {r: 0.012, g: 0.05, b: 0.09, a: 0.9}
+    - _DeepColor: {r: 0.016, g: 0.055, b: 0.064, a: 0.9}
     - _FoamColor: {r: 0.78, g: 0.86, b: 0.84, a: 0.8}
-    - _ShallowColor: {r: 0.2, g: 0.62, b: 0.58, a: 0.42}
+    - _ShallowColor: {r: 0.105, g: 0.344, b: 0.402, a: 0.42}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -200,9 +200,10 @@ public static partial class IslandBuilder
         Texture2D mossTex = PolyOrNoise("forest_leaves_02_Diffuse.jpg", new Color(0.22f, 0.32f, 0.16f), 21);
         Texture2D mossNormal = PolyOrNormal("forest_leaves_02_nor_gl.jpg", 22);
         Texture2D mossMask = SmoothnessMask("forest_leaves_02_Rough.jpg", "Assets/Game/Textures/PolyHaven/forest_leaves_02_mask.png", 23);
-        Texture2D waterNormalA = TileableNormal("Assets/Game/Textures/Generated/WaterNormalA.png", 256, 3f, 0.35f, 2.6f);
-        Texture2D waterNormalB = TileableNormal("Assets/Game/Textures/Generated/WaterNormalB.png", 256, 5f, 1.8f, 3.1f);
-        Texture2D foamNoise = TileableFoam("Assets/Game/Textures/Generated/FoamNoise.png", 256);
+        Texture2D waterNormalA;
+        Texture2D waterNormalB;
+        Texture2D foamNoise;
+        LoadWaterMaps(out waterNormalA, out waterNormalB, out foamNoise);
         Texture2D blade = GrassBlade("Assets/Game/Textures/GrassBlade.png");
         art.detailGrass = blade;
         art.detailReed = ReedBlade("Assets/Game/Textures/ReedBlade.png");
@@ -224,11 +225,7 @@ public static partial class IslandBuilder
         art.mushroomStem = LitMat("Assets/Game/Materials/Generated/MushroomStem.mat", lit, new Color(0.78f, 0.74f, 0.66f), 0.3f, 0f, Color.black);
         art.mushroomCap = LitMat("Assets/Game/Materials/Generated/MushroomCap.mat", lit, new Color(0.15f, 0.55f, 0.62f), 0.45f, 0f, new Color(0.15f, 2.4f, 2.6f));
         art.water = ShaderMat("Assets/Game/Materials/Generated/Water.mat", waterShader);
-        art.water.SetTexture("_NormalA", waterNormalA);
-        art.water.SetTexture("_NormalB", waterNormalB);
-        art.water.SetTexture("_FoamNoise", foamNoise);
-        art.water.SetColor("_ShallowColor", new Color(0.2f, 0.62f, 0.58f, 0.42f));
-        art.water.SetColor("_DeepColor", new Color(0.012f, 0.05f, 0.09f, 0.9f));
+        ApplyWaterLook(art.water, waterNormalA, waterNormalB, foamNoise);
         art.water.SetColor("_FoamColor", new Color(0.78f, 0.86f, 0.84f, 0.8f));
         art.water.SetFloat("_NormalScale", 0.28f);
         art.water.SetFloat("_DepthFade", 2.4f);
@@ -920,6 +917,90 @@ public static partial class IslandBuilder
         mat.shader = shader;
         EditorUtility.SetDirty(mat);
         return mat;
+    }
+
+    static void LoadWaterMaps(out Texture2D normalA, out Texture2D normalB, out Texture2D foam)
+    {
+        normalA = LoadBakedWater("Assets/Game/Textures/Water/WaterRippleNormalA.png", true);
+        normalB = LoadBakedWater("Assets/Game/Textures/Water/WaterRippleNormalB.png", true);
+        foam = LoadBakedWater("Assets/Game/Textures/Water/WaterFoam.png", false);
+        if (normalA == null)
+        {
+            normalA = TileableNormal("Assets/Game/Textures/Generated/WaterNormalA.png", 256, 3f, 0.35f, 2.6f);
+        }
+
+        if (normalB == null)
+        {
+            normalB = TileableNormal("Assets/Game/Textures/Generated/WaterNormalB.png", 256, 5f, 1.8f, 3.1f);
+        }
+
+        if (foam == null)
+        {
+            foam = TileableFoam("Assets/Game/Textures/Generated/FoamNoise.png", 256);
+        }
+    }
+
+    static void ApplyWaterLook(Material water, Texture2D normalA, Texture2D normalB, Texture2D foam)
+    {
+        water.SetTexture("_NormalA", normalA);
+        water.SetTexture("_NormalB", normalB);
+        water.SetTexture("_FoamNoise", foam);
+        // Pack absorption (0.210, 0.688, 0.805), darkened so the night lake stays teal rather than daylight cyan.
+        water.SetColor("_ShallowColor", new Color(0.105f, 0.344f, 0.402f, 0.42f));
+        water.SetColor("_DeepColor", new Color(0.016f, 0.055f, 0.064f, 0.9f));
+        EditorUtility.SetDirty(water);
+    }
+
+    static void ApplyBakedWater(Material water)
+    {
+        if (water == null)
+        {
+            return;
+        }
+
+        Texture2D normalA;
+        Texture2D normalB;
+        Texture2D foam;
+        LoadWaterMaps(out normalA, out normalB, out foam);
+        ApplyWaterLook(water, normalA, normalB, foam);
+    }
+
+    static Texture2D LoadBakedWater(string path, bool normal)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer != null)
+        {
+            bool typeOk = normal
+                ? importer.textureType == TextureImporterType.NormalMap && !importer.convertToNormalmap
+                : importer.textureType == TextureImporterType.Default;
+            bool ready = typeOk
+                && importer.mipmapEnabled
+                && importer.wrapMode == TextureWrapMode.Repeat
+                && importer.maxTextureSize == 1024
+                && !importer.sRGBTexture
+                && importer.textureCompression == TextureImporterCompression.Uncompressed;
+            if (!ready)
+            {
+                importer.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+                importer.convertToNormalmap = false;
+                importer.sRGBTexture = false;
+                importer.mipmapEnabled = true;
+                importer.wrapMode = TextureWrapMode.Repeat;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.maxTextureSize = 1024;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.alphaIsTransparency = false;
+                importer.SaveAndReimport();
+            }
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
     static Texture2D TileableNormal(string path, int size, float frequency, float phase, float strength)

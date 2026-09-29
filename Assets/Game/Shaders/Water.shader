@@ -2,8 +2,8 @@ Shader "LanternKeeper/Water"
 {
     Properties
     {
-        _ShallowColor ("Shallow", Color) = (0.2, 0.62, 0.58, 0.4)
-        _DeepColor ("Deep", Color) = (0.012, 0.05, 0.09, 0.9)
+        _ShallowColor ("Shallow", Color) = (0.105, 0.344, 0.402, 0.42)
+        _DeepColor ("Deep", Color) = (0.016, 0.055, 0.064, 0.9)
         _FoamColor ("Foam", Color) = (0.78, 0.86, 0.84, 0.8)
         _NormalA ("Normal A", 2D) = "bump" {}
         _NormalB ("Normal B", 2D) = "bump" {}
@@ -31,7 +31,7 @@ Shader "LanternKeeper/Water"
         }
         Blend SrcAlpha OneMinusSrcAlpha
         ZWrite Off
-        Cull Back
+        Cull Off
         Pass
         {
             HLSLPROGRAM
@@ -163,12 +163,12 @@ Shader "LanternKeeper/Water"
                 float eye = length(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
                 float ripple = lerp(1.15, 0.85, smoothstep(40.0, 240.0, eye));
                 float normalLod = min(eye * 0.008, 1.6);
-                float2 uv1 = absoluteWS.xz * 0.11 + float2(time * 0.08, time * 0.05);
-                float2 uv2 = absoluteWS.xz * 0.19 + float2(-time * 0.06, time * 0.07);
+                float2 uv1 = absoluteWS.xz * 0.032 + float2(time * 0.014, time * 0.008);
+                float2 uv2 = absoluteWS.xz * 0.048 + float2(-time * 0.011, time * 0.012);
                 float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalA, sampler_NormalA, uv1, normalLod));
                 float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalB, sampler_NormalB, uv2, normalLod));
                 float3 nTS = normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
-                nTS.xy *= ripple;
+                nTS.xy *= ripple * 1.8;
                 nTS = normalize(nTS);
 
                 float3 up = normalize(input.normalWS);
@@ -190,6 +190,7 @@ Shader "LanternKeeper/Water"
                 {
                     depth01 = 1.0;
                     shore = 1.0;
+                    diff = 80.0;
                 }
 
                 float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
@@ -205,6 +206,12 @@ Shader "LanternKeeper/Water"
                 float2 refractUV = screenUV + normalWS.xz * _Refraction * shallowness;
                 float3 refracted = SampleSceneColor(refractUV);
                 water = lerp(water, refracted, shallowness * shore * 0.45 * (1.0 - fresnel));
+
+                float nearRipple = 1.0 - smoothstep(40.0, 120.0, eye);
+                float2 foamUv = absoluteWS.xz * 0.042 + float2(time * 0.012, time * 0.006);
+                float foamField = SAMPLE_TEXTURE2D(_FoamNoise, sampler_FoamNoise, foamUv).g;
+                float ripplePatch = n1.x * 0.38 + n1.y * 0.28 + n2.x * 0.26 + n2.y * 0.18;
+                ripplePatch += (foamField - 0.3) * 1.15;
 
                 float3 reflectNormal = normalize(float3(normalWS.x * 2.6, normalWS.y, normalWS.z * 2.6));
                 float3 reflectDir = reflect(-viewDir, reflectNormal);
@@ -228,13 +235,15 @@ Shader "LanternKeeper/Water"
                     env *= fleck;
                 }
                 water = lerp(water, env, fresnel);
+                water *= lerp(1.0, 1.0 + ripplePatch * 0.48, nearRipple);
+                water += ripplePatch * 0.06 * nearRipple;
+                float moonShade = saturate(dot(normalWS, lightDir));
+                water += mainLight.color.rgb * moonShade * 0.22;
                 water += mainLight.color.rgb * fleck * streak * _Glitter * 3.0;
 
-                float foamNoise = SAMPLE_TEXTURE2D(_FoamNoise, sampler_FoamNoise, absoluteWS.xz * 0.055 + float2(time * 0.03, time * 0.014)).g;
-                float foamReach = max(_FoamDepth, 0.05);
+                float foamReach = 8.0;
                 float foam = saturate(1.0 - diff / foamReach);
-                foam *= smoothstep(0.32, 0.7, foamNoise);
-                foam *= shore;
+                foam *= smoothstep(0.12, 0.48, foamField);
                 water = lerp(water, _FoamColor.rgb, foam * _FoamColor.a);
 
                 float3 tint = TintOrWhite(_WaterTint.rgb);
