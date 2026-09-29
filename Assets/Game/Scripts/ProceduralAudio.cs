@@ -12,6 +12,7 @@ public static class ProceduralAudio
     static AudioClip moth;
     static AudioClip ambience;
     static AudioClip heartbeat;
+    static AudioClip fizzle;
 
     public static AudioClip FireflyChime()
     {
@@ -145,6 +146,30 @@ public static class ProceduralAudio
 
         ambience = Clip("Ambience", data);
         return ambience;
+    }
+
+    public static AudioClip Fizzle()
+    {
+        if (fizzle != null)
+        {
+            return fizzle;
+        }
+
+        int length = (int)(Rate * 0.28f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(31);
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float envelope = Mathf.Exp(-time * 11f);
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            float sputter = Mathf.Abs(Mathf.Sin(2f * Mathf.PI * 23f * time)) > 0.45f ? 1f : 0.05f;
+            float spark = Mathf.Sin(2f * Mathf.PI * 180f * time) * Mathf.Exp(-time * 16f);
+            data[i] = (noise * 0.65f * sputter + spark * 0.25f) * envelope * 0.8f;
+        }
+
+        fizzle = Clip("Fizzle", data);
+        return fizzle;
     }
 
     public static AudioClip Heartbeat()

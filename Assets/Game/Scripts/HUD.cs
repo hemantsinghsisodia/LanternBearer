@@ -6,13 +6,24 @@ namespace LanternKeeper
 {
 public class HUD : MonoBehaviour
 {
+    const float PromptShakeDuration = 0.3f;
+
+    static readonly Color PromptColor = new Color(1f, 0.9f, 0.7f, 1f);
+    static readonly Color WarningColor = new Color(1f, 0.38f, 0.28f, 1f);
+    static readonly Color FlashColor = new Color(1f, 0.05f, 0.04f, 1f);
+    static readonly Color GhostColor = new Color(0.15f, 0.07f, 0.03f, 0.82f);
+
+    static Sprite whiteSprite;
+
     [SerializeField] Image fuelFill;
+    [SerializeField] Image fuelCostGhost;
     [SerializeField] RectTransform fuelMeter;
     [SerializeField] RectTransform beaconDots;
     [SerializeField] Text promptText;
     [SerializeField] Text timerText;
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
+    [SerializeField] GameObject pausePanel;
     [SerializeField] Text winDetailText;
     [SerializeField] Text loseDetailText;
 
@@ -20,22 +31,31 @@ public class HUD : MonoBehaviour
     Image[] dots;
     bool bound;
     bool buttonsWired;
+    float shakeRemaining;
+    Vector2 promptHome;
+    bool promptHomeReady;
 
     void OnEnable()
     {
+        Beacon.LightFailed += OnLightFailed;
         BindIfNeeded();
+        EnsureFuelGhost();
+        EnsurePausePanel();
         WireButtons();
         HidePanels();
     }
 
     void OnDisable()
     {
+        Beacon.LightFailed -= OnLightFailed;
         Unbind();
     }
 
     void Update()
     {
         BindIfNeeded();
+        EnsureFuelGhost();
+        EnsurePausePanel();
         GameManager manager = GameManager.Instance;
         if (lantern != null && fuelFill != null)
         {
@@ -56,16 +76,9 @@ public class HUD : MonoBehaviour
             timerText.text = GameManager.FormatTime(manager.Elapsed);
         }
 
-        if (promptText != null)
-        {
-            bool show = manager.ShowInteractPrompt && !manager.IsRoundOver;
-            if (promptText.gameObject.activeSelf != show)
-            {
-                promptText.gameObject.SetActive(show);
-            }
-
-            promptText.text = "Press E";
-        }
+        RefreshPrompt(manager);
+        UpdateGhost(manager);
+        UpdatePausePanel(manager);
 
         if (manager.Won)
         {
@@ -140,6 +153,11 @@ public class HUD : MonoBehaviour
             fuelFill = FindImage("FuelFill");
         }
 
+        if (fuelCostGhost == null)
+        {
+            fuelCostGhost = FindImage("FuelCostGhost");
+        }
+
         if (fuelMeter == null)
         {
             Transform meter = FindNamed("FuelMeter");
@@ -186,6 +204,15 @@ public class HUD : MonoBehaviour
             }
         }
 
+        if (pausePanel == null)
+        {
+            Transform panel = FindNamed("PausePanel");
+            if (panel != null)
+            {
+                pausePanel = panel.gameObject;
+            }
+        }
+
         if (winDetailText == null)
         {
             winDetailText = FindText("WinDetail");
@@ -195,6 +222,73 @@ public class HUD : MonoBehaviour
         {
             loseDetailText = FindText("LoseDetail");
         }
+    }
+
+    void EnsureFuelGhost()
+    {
+        if (fuelCostGhost != null || fuelFill == null)
+        {
+            return;
+        }
+
+        Transform existing = fuelFill.transform.Find("FuelCostGhost");
+        if (existing != null)
+        {
+            fuelCostGhost = existing.GetComponent<Image>();
+            return;
+        }
+
+        GameObject ghostObject = new GameObject("FuelCostGhost", typeof(RectTransform), typeof(Image));
+        ghostObject.transform.SetParent(fuelFill.transform, false);
+        RectTransform rect = ghostObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 0.85f);
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        fuelCostGhost = ghostObject.GetComponent<Image>();
+        fuelCostGhost.sprite = fuelFill.sprite != null ? fuelFill.sprite : White();
+        fuelCostGhost.color = GhostColor;
+        fuelCostGhost.raycastTarget = false;
+        ghostObject.SetActive(false);
+    }
+
+    void EnsurePausePanel()
+    {
+        if (pausePanel != null)
+        {
+            return;
+        }
+
+        Transform existing = FindNamed("PausePanel");
+        if (existing != null)
+        {
+            pausePanel = existing.gameObject;
+            return;
+        }
+
+        Font font = BuiltinFont();
+        Sprite sprite = PanelSprite();
+        GameObject panel = new GameObject("PausePanel", typeof(RectTransform), typeof(Image));
+        panel.transform.SetParent(transform, false);
+        panel.transform.SetAsLastSibling();
+        RectTransform rect = panel.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(720f, 420f);
+        Image image = panel.GetComponent<Image>();
+        image.sprite = sprite;
+        image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
+
+        MakeRuntimeText(rect, "Title", "Paused", 36, font, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(500f, 56f), new Color(1f, 0.82f, 0.45f));
+        MakeRuntimeButton(rect, "ResumeButton", "Resume", font, sprite, new Vector2(0f, 40f));
+        MakeRuntimeButton(rect, "RestartButton", "Restart", font, sprite, new Vector2(0f, -30f));
+        MakeRuntimeButton(rect, "MenuButton", "Main Menu", font, sprite, new Vector2(0f, -100f));
+        panel.SetActive(false);
+        pausePanel = panel;
+        buttonsWired = false;
+        WireButtons();
     }
 
     void WireButtons()
@@ -210,6 +304,9 @@ public class HUD : MonoBehaviour
         BindButton(losePanel, "RetryButton", Retry);
         BindButton(losePanel, "NextButton", NextIsland);
         BindButton(losePanel, "MenuButton", GoMenu);
+        BindButton(pausePanel, "ResumeButton", ResumeGame);
+        BindButton(pausePanel, "RestartButton", Retry);
+        BindButton(pausePanel, "MenuButton", GoMenu);
         buttonsWired = true;
         FitEndButtons();
         RefreshNextButtons(false);
@@ -298,6 +395,11 @@ public class HUD : MonoBehaviour
         {
             losePanel.SetActive(false);
         }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
     }
 
     void PulseFuel(float normalized)
@@ -385,11 +487,9 @@ public class HUD : MonoBehaviour
 
     void OnPromptChanged()
     {
-        bool show = GameManager.Instance != null && GameManager.Instance.ShowInteractPrompt;
-        if (promptText != null)
+        if (GameManager.Instance != null)
         {
-            promptText.gameObject.SetActive(show);
-            promptText.text = "Press E";
+            RefreshPrompt(GameManager.Instance);
         }
     }
 
@@ -398,6 +498,125 @@ public class HUD : MonoBehaviour
         if (timerText != null)
         {
             timerText.text = GameManager.FormatTime(seconds);
+        }
+    }
+
+    void OnLightFailed()
+    {
+        shakeRemaining = PromptShakeDuration;
+    }
+
+    void RefreshPrompt(GameManager manager)
+    {
+        if (promptText == null)
+        {
+            return;
+        }
+
+        Beacon nearest = manager.NearestBeacon;
+        bool show = manager.ShowInteractPrompt && nearest != null;
+        if (promptText.gameObject.activeSelf != show)
+        {
+            promptText.gameObject.SetActive(show);
+        }
+
+        RectTransform rect = promptText.rectTransform;
+        if (!promptHomeReady)
+        {
+            promptHome = rect.anchoredPosition;
+            promptHomeReady = true;
+        }
+
+        if (!show)
+        {
+            rect.anchoredPosition = promptHome;
+            return;
+        }
+
+        if (rect.sizeDelta.x < 520f)
+        {
+            rect.sizeDelta = new Vector2(560f, Mathf.Max(48f, rect.sizeDelta.y));
+        }
+
+        promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        int cost = Mathf.RoundToInt(nearest.FuelCost);
+        bool canAfford = lantern != null && lantern.Fuel >= nearest.FuelCost;
+        promptText.text = canAfford
+            ? "E  Light beacon (-" + cost + ")"
+            : "Not enough light (-" + cost + ")";
+
+        Color color = canAfford ? PromptColor : WarningColor;
+        if (shakeRemaining > 0f)
+        {
+            shakeRemaining -= Time.deltaTime;
+            float remaining = Mathf.Clamp01(shakeRemaining / PromptShakeDuration);
+            float offset = Mathf.Sin(Time.unscaledTime * 52f) * 18f * remaining;
+            rect.anchoredPosition = promptHome + new Vector2(offset, 0f);
+            float flash = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 36f);
+            color = Color.Lerp(FlashColor, new Color(1f, 0.28f, 0.16f, 1f), flash);
+        }
+        else
+        {
+            shakeRemaining = 0f;
+            rect.anchoredPosition = promptHome;
+        }
+
+        promptText.color = color;
+    }
+
+    void UpdateGhost(GameManager manager)
+    {
+        if (fuelCostGhost == null)
+        {
+            return;
+        }
+
+        Beacon nearest = manager.NearestBeacon;
+        bool show = manager.ShowInteractPrompt && nearest != null && lantern != null && lantern.MaxFuel > 0.01f;
+        float from = 0f;
+        float to = 0f;
+        if (show)
+        {
+            from = Mathf.Clamp01((lantern.Fuel - nearest.FuelCost) / lantern.MaxFuel);
+            to = Mathf.Clamp01(lantern.Fuel / lantern.MaxFuel);
+            show = to - from > 0.01f;
+        }
+
+        if (fuelCostGhost.gameObject.activeSelf != show)
+        {
+            fuelCostGhost.gameObject.SetActive(show);
+        }
+
+        if (!show)
+        {
+            return;
+        }
+
+        fuelCostGhost.color = GhostColor;
+        fuelCostGhost.raycastTarget = false;
+        RectTransform rect = fuelCostGhost.rectTransform;
+        rect.anchorMin = new Vector2(0f, from);
+        rect.anchorMax = new Vector2(1f, to);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.SetAsLastSibling();
+    }
+
+    void UpdatePausePanel(GameManager manager)
+    {
+        if (pausePanel == null)
+        {
+            return;
+        }
+
+        bool show = manager.IsPaused;
+        if (pausePanel.activeSelf != show)
+        {
+            pausePanel.SetActive(show);
+            if (show)
+            {
+                pausePanel.transform.SetAsLastSibling();
+            }
         }
     }
 
@@ -411,6 +630,11 @@ public class HUD : MonoBehaviour
         if (losePanel != null)
         {
             losePanel.SetActive(false);
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
         }
 
         if (promptText != null)
@@ -439,6 +663,11 @@ public class HUD : MonoBehaviour
             losePanel.SetActive(true);
         }
 
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
         if (promptText != null)
         {
             promptText.gameObject.SetActive(false);
@@ -459,8 +688,24 @@ public class HUD : MonoBehaviour
         SetButtonActive(losePanel, "NextButton", false);
     }
 
+    void ResumeGame()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.Resume();
+        }
+    }
+
     void Retry()
     {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.RestartLevel();
+            return;
+        }
+
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -476,11 +721,22 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        SceneManager.LoadScene(GameManager.Instance.NextLevelScene);
+        string next = GameManager.Instance.NextLevelScene;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        SceneManager.LoadScene(next);
     }
 
     void GoMenu()
     {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.GoToMenu();
+            return;
+        }
+
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
         SceneManager.LoadScene("MainMenu");
     }
 
@@ -546,6 +802,102 @@ public class HUD : MonoBehaviour
         }
 
         return found.GetComponent<Image>();
+    }
+
+    static void MakeRuntimeText(Transform parent, string name, string value, int size, Font font, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color)
+    {
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
+        go.transform.SetParent(parent, false);
+        RectTransform rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = box;
+        Text text = go.GetComponent<Text>();
+        text.font = font;
+        text.text = value;
+        text.fontSize = size;
+        text.color = color;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.raycastTarget = false;
+    }
+
+    static void MakeRuntimeButton(Transform parent, string name, string label, Font font, Sprite sprite, Vector2 position)
+    {
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        RectTransform rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(280f, 52f);
+        Image image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(0.14f, 0.16f, 0.2f, 1f);
+        Button button = go.GetComponent<Button>();
+        button.targetGraphic = image;
+        ColorBlock colors = button.colors;
+        colors.highlightedColor = new Color(0.85f, 0.55f, 0.25f, 1f);
+        colors.pressedColor = new Color(1f, 0.7f, 0.3f, 1f);
+        colors.disabledColor = new Color(0.2f, 0.2f, 0.22f, 0.6f);
+        button.colors = colors;
+        MakeRuntimeText(rect, "Label", label, 22, font, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(1f, 0.92f, 0.78f));
+        RectTransform labelRect = rect.Find("Label") as RectTransform;
+        if (labelRect != null)
+        {
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+        }
+    }
+
+    Sprite PanelSprite()
+    {
+        if (winPanel != null)
+        {
+            Image image = winPanel.GetComponent<Image>();
+            if (image != null && image.sprite != null)
+            {
+                return image.sprite;
+            }
+        }
+
+        if (fuelFill != null && fuelFill.sprite != null)
+        {
+            return fuelFill.sprite;
+        }
+
+        return White();
+    }
+
+    static Font BuiltinFont()
+    {
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (font == null)
+        {
+            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        }
+
+        return font;
+    }
+
+    static Sprite White()
+    {
+        if (whiteSprite != null)
+        {
+            return whiteSprite;
+        }
+
+        Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+        whiteSprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
+        whiteSprite.name = "HUDWhite";
+        return whiteSprite;
     }
 }
 }

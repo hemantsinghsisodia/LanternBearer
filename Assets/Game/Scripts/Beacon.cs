@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -21,8 +22,37 @@ public class Beacon : MonoBehaviour
     [SerializeField] Transform flameRoot;
     [SerializeField] AudioSource whooshSource;
 
+    public static event Action LightFailed;
+
     public bool IsLit { get; private set; }
     public float SafeRadius => IsLit ? safeRadius : 0f;
+    public float FuelCost => fuelCost;
+
+    public bool IsPlayerInRange
+    {
+        get
+        {
+            if (player == null || IsLit || !isActiveAndEnabled)
+            {
+                return false;
+            }
+
+            return Vector3.Distance(transform.position, player.position) <= interactRange;
+        }
+    }
+
+    public float DistanceToPlayer
+    {
+        get
+        {
+            if (player == null)
+            {
+                return float.MaxValue;
+            }
+
+            return Vector3.Distance(transform.position, player.position);
+        }
+    }
 
     Transform player;
     bool playerNear;
@@ -30,6 +60,7 @@ public class Beacon : MonoBehaviour
 
     void Awake()
     {
+        fuelCost = GameSettings.BeaconFuelCost;
         if (beaconLight == null)
         {
             beaconLight = GetComponentInChildren<Light>(true);
@@ -111,6 +142,10 @@ public class Beacon : MonoBehaviour
     void OnDisable()
     {
         All.Remove(this);
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.SetBeaconNearby(this, false);
+        }
     }
 
     void Start()
@@ -158,6 +193,11 @@ public class Beacon : MonoBehaviour
             return;
         }
 
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+        {
+            return;
+        }
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
         {
@@ -177,17 +217,32 @@ public class Beacon : MonoBehaviour
         return flat.magnitude < safeRadius;
     }
 
-    public void TryLight()
+    public bool TryLight()
     {
         if (IsLit)
         {
-            return;
+            return false;
+        }
+
+        if (GameManager.Instance != null && (GameManager.Instance.IsPaused || GameManager.Instance.IsRoundOver))
+        {
+            return false;
         }
 
         Lantern lantern = FindAnyObjectByType<Lantern>();
         if (lantern == null || !lantern.TrySpend(fuelCost))
         {
-            return;
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayFizzle();
+            }
+
+            if (LightFailed != null)
+            {
+                LightFailed.Invoke();
+            }
+
+            return false;
         }
 
         IsLit = true;
@@ -200,6 +255,8 @@ public class Beacon : MonoBehaviour
         {
             GameManager.Instance.RegisterBeaconLit(this);
         }
+
+        return true;
     }
 
     IEnumerator Ignite()

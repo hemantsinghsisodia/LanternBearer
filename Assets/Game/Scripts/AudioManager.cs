@@ -89,6 +89,16 @@ public class AudioManager : MonoBehaviour
         PlayOneShot(ProceduralAudio.Footstep(), position, 0.32f);
     }
 
+    public void PlayFizzle()
+    {
+        if (oneShots == null)
+        {
+            return;
+        }
+
+        oneShots.PlayOneShot(ProceduralAudio.Fizzle(), 0.7f);
+    }
+
     public void PlayLoop(AudioSource source, AudioClip clip, float volume)
     {
         if (source == null || clip == null)

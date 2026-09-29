@@ -53,6 +53,15 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+        {
+            IsSprinting = false;
+            HorizontalSpeed = 0f;
+            CurrentSpeed = 0f;
+            UpdateDust(false);
+            return;
+        }
+
         Keyboard keyboard = Keyboard.current;
         bool roundOver = GameManager.Instance != null && GameManager.Instance.IsRoundOver;
         float inputX = 0f;

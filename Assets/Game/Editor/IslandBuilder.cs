@@ -1398,6 +1398,15 @@ public static partial class IslandBuilder
         fillImage.fillOrigin = (int)Image.OriginVertical.Bottom;
         fillImage.fillAmount = 1f;
 
+        RectTransform ghost = MakeRect(fill, "FuelCostGhost", new Vector2(0f, 0.85f), Vector2.one, Vector2.zero, Vector2.zero);
+        ghost.offsetMin = Vector2.zero;
+        ghost.offsetMax = Vector2.zero;
+        Image ghostImage = ghost.gameObject.AddComponent<Image>();
+        ghostImage.sprite = art.uiSprite;
+        ghostImage.color = new Color(0.15f, 0.07f, 0.03f, 0.82f);
+        ghostImage.raycastTarget = false;
+        ghost.gameObject.SetActive(false);
+
         RectTransform dots = MakeRect(canvasObject.transform, "BeaconDots", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(130f, -48f), new Vector2(240f, 28f));
         dots.pivot = new Vector2(0f, 1f);
         HorizontalLayoutGroup layout = dots.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -1408,7 +1417,7 @@ public static partial class IslandBuilder
 
         Text timer = MakeText(canvasObject.transform, "TimerText", "00:00", 32, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -28f), new Vector2(220f, 48f), new Color(0.9f, 0.93f, 0.95f), font, TextAnchor.MiddleRight);
         timer.rectTransform.pivot = new Vector2(1f, 1f);
-        Text prompt = MakeText(canvasObject.transform, "PromptText", "Press E", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(240f, 40f), new Color(1f, 0.9f, 0.7f), font, TextAnchor.MiddleCenter);
+        Text prompt = MakeText(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(560f, 48f), new Color(1f, 0.9f, 0.7f), font, TextAnchor.MiddleCenter);
         prompt.gameObject.SetActive(false);
 
         RectTransform compass = MakeRect(canvasObject.transform, "Compass", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(90f, 88f));
@@ -1434,6 +1443,12 @@ public static partial class IslandBuilder
         MakeButton(art, lose.transform, "MenuButton", "Menu", new Vector2(220f, -140f), new Vector2(200f, 52f));
         lose.SetActive(false);
 
+        GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused", font);
+        MakeButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0f, 40f), new Vector2(280f, 52f));
+        MakeButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0f, -30f), new Vector2(280f, 52f));
+        MakeButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0f, -100f), new Vector2(280f, 52f));
+        pause.SetActive(false);
+
         BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
         SerializedObject compassObject = new SerializedObject(compassScript);
         compassObject.FindProperty("arrow").objectReferenceValue = arrow;
@@ -1450,6 +1465,8 @@ public static partial class IslandBuilder
         hudObject.FindProperty("losePanel").objectReferenceValue = lose;
         hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<Text>();
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<Text>();
+        hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
+        hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
     }
 

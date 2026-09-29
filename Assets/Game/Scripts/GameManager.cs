@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -14,16 +15,22 @@ public class GameManager : MonoBehaviour
     [SerializeField] string levelId = "island1";
     [SerializeField] string nextLevelScene = "";
 
+    readonly HashSet<Beacon> nearbyBeacons = new HashSet<Beacon>();
+    readonly List<Beacon> nearbyScratch = new List<Beacon>();
+
     int litCount;
-    int nearbyUnlit;
     float elapsed;
     bool roundOver;
     bool won;
+    bool paused;
+    Beacon nearestBeacon;
 
     public int LitCount => litCount;
     public int BeaconsToWin => beaconsToWin;
-    public bool ShowInteractPrompt => nearbyUnlit > 0 && !roundOver;
+    public Beacon NearestBeacon => nearestBeacon;
+    public bool ShowInteractPrompt => nearestBeacon != null && !roundOver && !paused;
     public bool IsRoundOver => roundOver;
+    public bool IsPaused => paused;
     public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
@@ -44,6 +51,7 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        RestoreTime();
     }
 
     void Start()
@@ -55,6 +63,7 @@ public class GameManager : MonoBehaviour
 
     void OnDestroy()
     {
+        RestoreTime();
         if (lantern != null)
         {
             lantern.FuelDepleted -= OnFuelDepleted;
@@ -74,10 +83,10 @@ public class GameManager : MonoBehaviour
             BindLantern();
         }
 
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+        HandleKeys();
+        if (paused)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            return;
         }
 
         if (!roundOver && lantern != null && lantern.Fuel <= 0f)
@@ -92,6 +101,80 @@ public class GameManager : MonoBehaviour
 
         elapsed += Time.deltaTime;
         RaiseTime();
+    }
+
+    void LateUpdate()
+    {
+        ReconcileNearby();
+        SelectNearest();
+    }
+
+    void HandleKeys()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        bool pauseKey = keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame;
+        if (pauseKey)
+        {
+            if (paused)
+            {
+                Resume();
+            }
+            else if (!roundOver && !DawnPlaying)
+            {
+                Pause();
+            }
+        }
+
+        if (!paused && roundOver && !DawnPlaying && keyboard.rKey.wasPressedThisFrame)
+        {
+            RestartLevel();
+        }
+    }
+
+    public void Pause()
+    {
+        if (paused || roundOver || DawnPlaying)
+        {
+            return;
+        }
+
+        paused = true;
+        Time.timeScale = 0f;
+        AudioListener.pause = true;
+    }
+
+    public void Resume()
+    {
+        if (!paused)
+        {
+            return;
+        }
+
+        RestoreTime();
+    }
+
+    public void RestartLevel()
+    {
+        RestoreTime();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void GoToMenu()
+    {
+        RestoreTime();
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    void RestoreTime()
+    {
+        paused = false;
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
     }
 
     void BindLantern()
@@ -115,15 +198,19 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        nearbyUnlit += nearby ? 1 : -1;
-        if (nearbyUnlit < 0)
+        bool changed;
+        if (nearby && IsNearby(beacon))
         {
-            nearbyUnlit = 0;
+            changed = nearbyBeacons.Add(beacon);
+        }
+        else
+        {
+            changed = nearbyBeacons.Remove(beacon);
         }
 
-        if (PromptChanged != null)
+        if (changed)
         {
-            PromptChanged.Invoke();
+            SelectNearest();
         }
     }
 
@@ -134,6 +221,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        nearbyBeacons.Remove(beacon);
+        SelectNearest();
         litCount++;
         RaiseBeacons();
         if (litCount >= beaconsToWin)
@@ -204,6 +293,69 @@ public class GameManager : MonoBehaviour
         int minutes = total / 60;
         int secs = total % 60;
         return minutes.ToString("00") + ":" + secs.ToString("00");
+    }
+
+    void ReconcileNearby()
+    {
+        nearbyScratch.Clear();
+        foreach (Beacon beacon in nearbyBeacons)
+        {
+            if (!IsNearby(beacon))
+            {
+                nearbyScratch.Add(beacon);
+            }
+        }
+
+        for (int i = 0; i < nearbyScratch.Count; i++)
+        {
+            nearbyBeacons.Remove(nearbyScratch[i]);
+        }
+
+        List<Beacon> all = Beacon.All;
+        for (int i = 0; i < all.Count; i++)
+        {
+            Beacon beacon = all[i];
+            if (IsNearby(beacon))
+            {
+                nearbyBeacons.Add(beacon);
+            }
+        }
+    }
+
+    void SelectNearest()
+    {
+        Beacon best = null;
+        float bestDistance = float.MaxValue;
+        foreach (Beacon beacon in nearbyBeacons)
+        {
+            if (!IsNearby(beacon))
+            {
+                continue;
+            }
+
+            float distance = beacon.DistanceToPlayer;
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = beacon;
+            }
+        }
+
+        if (best == nearestBeacon)
+        {
+            return;
+        }
+
+        nearestBeacon = best;
+        if (PromptChanged != null)
+        {
+            PromptChanged.Invoke();
+        }
+    }
+
+    static bool IsNearby(Beacon beacon)
+    {
+        return beacon != null && beacon.IsPlayerInRange;
     }
 
     void RaiseBeacons()

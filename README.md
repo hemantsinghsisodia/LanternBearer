@@ -22,8 +22,9 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 | WASD or arrow keys | Move |
 | Shift | Sprint. This burns lantern fuel faster |
 | Space | Jump. Two beacons sit on raised ground |
-| E | Light a beacon when you are standing next to it |
-| R | Restart the round |
+| E | Light a beacon when you are standing next to it. The prompt shows the fuel cost |
+| Esc or P | Pause. Resume, restart, or return to the main menu |
+| R | Retry from the win or lose screen |
 | M | Mute or unmute the music |
 
 Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths gather on the light and drain it faster; sprint away to shake them off. Some stepping stones only appear inside the lantern light. Light every beacon and the sky turns to dawn. If the lantern goes out, you lose. Your best time is saved for each island.
