@@ -7,8 +7,12 @@ public class BeaconCompass : MonoBehaviour
 {
     [SerializeField] RectTransform arrow;
     [SerializeField] Text distanceText;
+    [SerializeField] Transform player;
 
-    Transform player;
+    Camera view;
+    int shownMeters = int.MinValue;
+    bool playerResolved;
+    static bool loggedFallback;
 
     void Awake()
     {
@@ -31,17 +35,35 @@ public class BeaconCompass : MonoBehaviour
         }
     }
 
-    void Update()
+    void Start()
     {
-        if (player == null)
+        ResolvePlayer();
+        view = Camera.main;
+    }
+
+    void ResolvePlayer()
+    {
+        if (player != null || playerResolved)
         {
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-            if (playerObject != null)
-            {
-                player = playerObject.transform;
-            }
+            return;
         }
 
+        playerResolved = true;
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            player = playerObject.transform;
+        }
+
+        if (!loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("BeaconCompass player was not wired. Resolved once.", this);
+        }
+    }
+
+    void Update()
+    {
         if (player == null || arrow == null)
         {
             return;
@@ -66,8 +88,12 @@ public class BeaconCompass : MonoBehaviour
         }
 
         bool show = nearest != null && (GameManager.Instance == null || !GameManager.Instance.IsRoundOver);
-        arrow.gameObject.SetActive(show);
-        if (distanceText != null)
+        if (arrow.gameObject.activeSelf != show)
+        {
+            arrow.gameObject.SetActive(show);
+        }
+
+        if (distanceText != null && distanceText.gameObject.activeSelf != show)
         {
             distanceText.gameObject.SetActive(show);
         }
@@ -80,7 +106,6 @@ public class BeaconCompass : MonoBehaviour
         Vector3 to = nearest.transform.position - player.position;
         to.y = 0f;
         Vector3 forward = player.forward;
-        Camera view = Camera.main;
         if (view != null)
         {
             forward = view.transform.forward;
@@ -94,9 +119,22 @@ public class BeaconCompass : MonoBehaviour
 
         float angle = Vector3.SignedAngle(forward, to, Vector3.up);
         arrow.localRotation = Quaternion.Euler(0f, 0f, -angle);
-        if (distanceText != null)
+        if (distanceText == null)
         {
-            distanceText.text = Mathf.RoundToInt(nearestDistance) + "m";
+            return;
+        }
+
+        int meters = Mathf.RoundToInt(nearestDistance);
+        if (meters == shownMeters)
+        {
+            return;
+        }
+
+        shownMeters = meters;
+        string label = meters.ToString() + "m";
+        if (distanceText.text != label)
+        {
+            distanceText.text = label;
         }
     }
 }

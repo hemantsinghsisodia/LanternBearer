@@ -24,6 +24,7 @@ public class MusicPlayer : MonoBehaviour
     float fadeDuration = 1f;
     float fadeElapsed;
     bool fading;
+    bool sceneRefsResolved;
 
     public static MusicPlayer Instance { get; private set; }
 
@@ -75,6 +76,7 @@ public class MusicPlayer : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
+            Debug.LogWarning("Duplicate MusicPlayer destroyed.", this);
             Destroy(gameObject);
             return;
         }
@@ -107,9 +109,9 @@ public class MusicPlayer : MonoBehaviour
             ToggleMute();
         }
 
-        if (lantern == null)
+        if (!sceneRefsResolved)
         {
-            lantern = FindAnyObjectByType<Lantern>();
+            ResolveSceneRefs();
         }
 
         TickFade();
@@ -120,7 +122,22 @@ public class MusicPlayer : MonoBehaviour
     {
         lantern = null;
         dawn = null;
+        sceneRefsResolved = false;
         ApplyScene(scene.name);
+    }
+
+    void ResolveSceneRefs()
+    {
+        sceneRefsResolved = true;
+        if (lantern == null)
+        {
+            lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if (dawn == null)
+        {
+            dawn = FindAnyObjectByType<DawnSequence>();
+        }
     }
 
     void ApplyScene(string sceneName)
@@ -248,11 +265,6 @@ public class MusicPlayer : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.DawnPlaying)
         {
             return true;
-        }
-
-        if (dawn == null)
-        {
-            dawn = FindAnyObjectByType<DawnSequence>();
         }
 
         return dawn != null && dawn.IsPlaying;

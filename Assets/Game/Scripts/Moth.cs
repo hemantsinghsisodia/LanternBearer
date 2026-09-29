@@ -40,6 +40,9 @@ public class Moth : MonoBehaviour
     Light glow;
     int obstacleMask;
     bool maskReady;
+    bool targetsResolved;
+    static readonly Collider[] SolidHits = new Collider[32];
+    static bool loggedFallback;
 
     public bool IsDespawning => despawning;
     public float Appear => appear;
@@ -95,7 +98,7 @@ public class Moth : MonoBehaviour
 
     void Start()
     {
-        FindTargets();
+        ResolveTargets();
         if (AudioManager.Instance != null && flutter != null)
         {
             AudioManager.Instance.PlayLoop(flutter, ProceduralAudio.MothFlutter(), 0.18f);
@@ -122,7 +125,6 @@ public class Moth : MonoBehaviour
             dt = 0f;
         }
 
-        FindTargets();
         bool ending = GameManager.Instance != null && (GameManager.Instance.IsRoundOver || GameManager.Instance.IsDying);
         if (ending && !despawning)
         {
@@ -218,8 +220,14 @@ public class Moth : MonoBehaviour
         glow.shadows = LightShadows.None;
     }
 
-    void FindTargets()
+    void ResolveTargets()
     {
+        if (targetsResolved)
+        {
+            return;
+        }
+
+        targetsResolved = true;
         if (player == null)
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -238,6 +246,31 @@ public class Moth : MonoBehaviour
         if (lantern == null)
         {
             lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if ((player == null || lantern == null) && !loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("Moth could not resolve the lantern once.", this);
+        }
+    }
+
+    public void Bind(Transform playerBody, PlayerController playerController, Lantern playerLantern)
+    {
+        if (playerBody != null)
+        {
+            player = playerBody;
+            body = playerController;
+        }
+
+        if (playerLantern != null)
+        {
+            lantern = playerLantern;
+        }
+
+        if (player != null && lantern != null)
+        {
+            targetsResolved = true;
         }
     }
 
@@ -441,10 +474,10 @@ public class Moth : MonoBehaviour
 
     bool InsideSolid()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, 0.22f, ObstacleMask(), QueryTriggerInteraction.Ignore);
-        for (int i = 0; i < hits.Length; i++)
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, 0.22f, SolidHits, ObstacleMask(), QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hitCount; i++)
         {
-            if (!IgnoreObstacle(hits[i]) && !(hits[i] is TerrainCollider))
+            if (!IgnoreObstacle(SolidHits[i]) && !(SolidHits[i] is TerrainCollider))
             {
                 return true;
             }

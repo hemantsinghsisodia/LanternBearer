@@ -35,11 +35,6 @@ public class BeaconSafeRing : MonoBehaviour
 
     void Update()
     {
-        if (beacon == null)
-        {
-            beacon = GetComponent<Beacon>();
-        }
-
         bool show = beacon != null && beacon.IsLit;
         if (ring != null)
         {

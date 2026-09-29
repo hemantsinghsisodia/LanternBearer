@@ -148,6 +148,7 @@ public static partial class IslandBuilder
             }
 
             string scenePath = "Assets/Game/Scenes/" + config.sceneName + ".unity";
+            SceneWiring.ApplyActiveScene();
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
             AssetDatabase.SaveAssets();
             Debug.Log("Built " + scenePath + " beacons=" + stage.beacons + " fireflies=" + stage.fireflies + " stones=" + stage.stones + " waterY=" + stage.waterY.ToString("0.00"));

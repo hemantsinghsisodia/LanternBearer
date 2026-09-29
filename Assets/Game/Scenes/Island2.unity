@@ -317,6 +317,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &10073985
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2948,6 +2949,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &37657735
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3095,6 +3097,40 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 42748122}
   m_Mesh: {fileID: 1032137839}
+--- !u!1 &46367092 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 2116544988}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &46367094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 46367092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &47601552
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4018,6 +4054,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: -16.55285
@@ -4464,6 +4508,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &161411625
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4756,6 +4801,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: 18.11446
@@ -5333,6 +5386,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7136747194298317229, guid: 6bb43176a0a4f3d45ae62834b0b44f70, type: 3}
   m_PrefabInstance: {fileID: 188950404}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &196288741 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5262948297364601583, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a06be97c60e7264e8aa61a76ece4540, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.PlayerController
 --- !u!1001 &197053063
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5527,6 +5591,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &206507214
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5908,7 +5973,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7651805542580202586, guid: c3829c5863ac4614caef9957028f5ad0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1762665221}
   m_SourcePrefab: {fileID: 100100000, guid: c3829c5863ac4614caef9957028f5ad0, type: 3}
 --- !u!4 &223655682 stripped
 Transform:
@@ -6266,6 +6334,7 @@ MonoBehaviour:
   islandRadius: 40
   minPlayerDistance: 25
   maxMoths: 0
+  lantern: {fileID: 1176723393}
 --- !u!114 &240458171
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6279,6 +6348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LowFuelFX
   volume: {fileID: 1409870354}
+  lantern: {fileID: 1176723393}
 --- !u!114 &240458172
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6307,6 +6377,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d671f489da088dd418721629aa163e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.AudioManager
+  lantern: {fileID: 1176723393}
 --- !u!114 &240458174
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6325,6 +6396,8 @@ MonoBehaviour:
   nextLevelScene: 
   deathSeconds: 1.5
   restartGrace: 0.5
+  hud: {fileID: 934115940}
+  dawn: {fileID: 240458172}
 --- !u!4 &240458175
 Transform:
   m_ObjectHideFlags: 0
@@ -6656,7 +6729,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1941495306}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &255791135 stripped
 Transform:
@@ -7693,6 +7769,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &323880337
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -7948,6 +8025,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &356050103
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -8064,7 +8142,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2051340706}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &357656256 stripped
 Transform:
@@ -9149,6 +9230,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &424691704
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -9591,6 +9673,40 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &471807135 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 1046187480}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &471807137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471807135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &475500058
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10421,6 +10537,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &521931533
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -12121,6 +12238,40 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1598995213210703, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
   m_PrefabInstance: {fileID: 614779848}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &617543406 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 1825595668}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &617543408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 617543406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &618362389
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12316,6 +12467,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &627141367
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -12576,6 +12728,35 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 635778117}
   m_Mesh: {fileID: 184335764}
+--- !u!114 &643294426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 964022618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &643427571
 GameObject:
   m_ObjectHideFlags: 0
@@ -13420,6 +13601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &698493962
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -13851,6 +14033,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &720794308
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -13978,6 +14161,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &733203856
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -14456,6 +14640,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &754090252
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -14662,7 +14847,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1176088053}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &771561564 stripped
 Transform:
@@ -14794,6 +14982,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &779814969
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -15000,6 +15189,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &805666315
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -15279,7 +15469,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1723428221}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &818637439 stripped
 Transform:
@@ -15376,6 +15569,40 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 827224696}
   m_Mesh: {fileID: 184335764}
+--- !u!1 &827256102 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 2115902442}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &827256104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 827256102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &831364778
 GameObject:
   m_ObjectHideFlags: 0
@@ -16078,6 +16305,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &881887437
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -16343,6 +16571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &887249893
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -16925,6 +17154,7 @@ GameObject:
   m_Component:
   - component: {fileID: 917113675}
   - component: {fileID: 917113674}
+  - component: {fileID: 917113676}
   m_Layer: 0
   m_Name: SkyFill
   m_TagString: Untagged
@@ -17012,6 +17242,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &917113676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 917113673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &934115938
 GameObject:
   m_ObjectHideFlags: 0
@@ -17047,6 +17306,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.BeaconCompass
   arrow: {fileID: 1776142483}
   distanceText: {fileID: 2042080333}
+  player: {fileID: 1176723395}
 --- !u!114 &934115940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17074,6 +17334,7 @@ MonoBehaviour:
   fadeOverlay: {fileID: 643427572}
   deathOverlay: {fileID: 1071364420}
   penaltyText: {fileID: 869220238}
+  lantern: {fileID: 1176723393}
 --- !u!114 &934115941
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17372,6 +17633,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &954425729
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -17452,6 +17714,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 954425726}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &964022618 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7301652052257128180, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
 --- !u!28 &972680850
 Texture2D:
   m_ObjectHideFlags: 0
@@ -17976,6 +18243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1018476098
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -18649,7 +18917,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 471807137}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &1046187481 stripped
 Transform:
@@ -18692,6 +18963,10 @@ MonoBehaviour:
   fadeSeconds: 0.4
   inputLockSeconds: 0.5
   splash: {fileID: 0}
+  player: {fileID: 196288741}
+  lantern: {fileID: 1176723393}
+  hud: {fileID: 934115940}
+  cameraFollow: {fileID: 883854821}
 --- !u!65 &1048352966
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -19158,6 +19433,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1091997776
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -21633,6 +21909,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.4072375
@@ -22101,6 +22385,40 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2907867979385155267, guid: f299af80aea64c64189c5e9e1c172ea7, type: 3}
   m_PrefabInstance: {fileID: 1150523651}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1176088051 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 771561563}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1176088053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176088051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &1176723392
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22113,6 +22431,10 @@ PrefabInstance:
       propertyPath: lanternLight
       value: 
       objectReference: {fileID: 1176723394}
+    - target: {fileID: 5262948297364601583, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+      propertyPath: cameraFollow
+      value: 
+      objectReference: {fileID: 883854821}
     - target: {fileID: 8477453485874712021, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -22171,6 +22493,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8293638887371732489, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1176723399}
+    - targetCorrespondingSourceObject: {fileID: 7301652052257128180, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 643294426}
   m_SourcePrefab: {fileID: 100100000, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
 --- !u!114 &1176723393 stripped
 MonoBehaviour:
@@ -22352,6 +22677,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1196976438
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -22608,6 +22934,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1217116263}
   - component: {fileID: 1217116262}
+  - component: {fileID: 1217116264}
   m_Layer: 0
   m_Name: Moonlight
   m_TagString: Untagged
@@ -22695,6 +23022,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1217116264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217116261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1223707167
 GameObject:
   m_ObjectHideFlags: 0
@@ -26579,6 +26935,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1464617571
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -26978,6 +27335,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: -16.084866
@@ -27179,7 +27544,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1941681466}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &1511605094 stripped
 Transform:
@@ -27194,6 +27562,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.8675901
@@ -27960,6 +28336,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1577078526
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -28048,6 +28425,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: -28.239502
@@ -28410,6 +28795,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1587641190
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -28610,6 +28996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1601086823
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -28714,6 +29101,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1624871965
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -28915,6 +29303,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1631557467
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -29439,6 +29828,40 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4592967765385496456, guid: c5308f87d9ec02346a403c7e27a4326e, type: 3}
   m_PrefabInstance: {fileID: 1710704454}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1723428219 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 818637438}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1723428221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1723428219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &1728545618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29708,6 +30131,40 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8399638637985037751, guid: 1a179cf4178b5ef4bad663d6f81a79ad, type: 3}
   m_PrefabInstance: {fileID: 1751420888}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1762665219 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7651805542580202586, guid: c3829c5863ac4614caef9957028f5ad0, type: 3}
+  m_PrefabInstance: {fileID: 223655681}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1762665221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1762665219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &1763478759
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30423,6 +30880,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1799961594
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -30726,7 +31184,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 617543408}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &1825595669 stripped
 Transform:
@@ -31710,6 +32171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1909924598
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -32079,6 +32541,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1918201330
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -32144,6 +32607,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 691423950}
     m_Modifications:
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 1176723395}
+    - target: {fileID: 36410548412562739, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
+      propertyPath: lantern
+      value: 
+      objectReference: {fileID: 1176723393}
     - target: {fileID: 2287984826550693227, guid: c33723a9360cb304f928f770f1c2c506, type: 3}
       propertyPath: m_LocalPosition.x
       value: 28.239502
@@ -32221,6 +32692,74 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7a4cdefddc0c6743bd74bcac35fcc27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.BeaconSafeRing
+--- !u!1 &1941495304 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 255791134}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1941495306
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1941495304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
+--- !u!1 &1941681464 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 1511605093}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1941681466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1941681464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &1962236883
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -32746,6 +33285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &1998070278
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -33557,6 +34097,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bd095f94559a6479ebc7d05c5c5039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LightRevealed
+  lantern: {fileID: 1176723393}
 --- !u!23 &2043985082
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -33695,6 +34236,40 @@ Material:
     - _Tint: {r: 1.32, g: 0.74, b: 0.48, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1 &2051340704 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+  m_PrefabInstance: {fileID: 357656255}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2051340706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2051340704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &2061949708
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -34245,7 +34820,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 827256104}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &2115902443 stripped
 Transform:
@@ -34311,7 +34889,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2236827164788089017, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 46367094}
   m_SourcePrefab: {fileID: 100100000, guid: e5ea16fea609283488a662d2c992fa71, type: 3}
 --- !u!4 &2116544989 stripped
 Transform:

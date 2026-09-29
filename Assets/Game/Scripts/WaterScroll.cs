@@ -4,9 +4,13 @@ namespace LanternKeeper
 {
 public class WaterScroll : MonoBehaviour
 {
+    static readonly int BumpId = Shader.PropertyToID("_BumpMap");
+    static readonly int BaseId = Shader.PropertyToID("_BaseMap");
+
     [SerializeField] Vector2 speed = new Vector2(0.012f, 0.007f);
     [SerializeField] Renderer target;
 
+    Material runtimeMaterial;
     Vector2 offset;
 
     void Awake()
@@ -15,24 +19,23 @@ public class WaterScroll : MonoBehaviour
         {
             target = GetComponent<Renderer>();
         }
+
+        if (target != null)
+        {
+            runtimeMaterial = target.material;
+        }
     }
 
     void Update()
     {
-        if (target == null)
+        if (runtimeMaterial == null)
         {
             return;
         }
 
         offset += speed * Time.deltaTime;
-        Material material = target.material;
-        if (material == null)
-        {
-            return;
-        }
-
-        material.SetTextureOffset("_BumpMap", offset);
-        material.SetTextureOffset("_BaseMap", offset * 0.45f);
+        runtimeMaterial.SetTextureOffset(BumpId, offset);
+        runtimeMaterial.SetTextureOffset(BaseId, offset * 0.45f);
     }
 }
 }

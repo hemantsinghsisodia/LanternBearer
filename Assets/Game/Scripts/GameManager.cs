@@ -17,6 +17,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] string nextLevelScene = "";
     [SerializeField] float deathSeconds = 1.5f;
     [SerializeField] float restartGrace = 0.5f;
+    [SerializeField] HUD hud;
+    [SerializeField] DawnSequence dawn;
 
     readonly HashSet<Beacon> nearbyBeacons = new HashSet<Beacon>();
     readonly List<Beacon> nearbyScratch = new List<Beacon>();
@@ -28,7 +30,9 @@ public class GameManager : MonoBehaviour
     bool paused;
     bool dying;
     bool controlsLocked;
+    bool refsResolved;
     float restartUnlockTime = float.PositiveInfinity;
+    int raisedSecond = int.MinValue;
     Beacon nearestBeacon;
 
     public int LitCount => litCount;
@@ -61,12 +65,20 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("Duplicate GameManager destroyed.", this);
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         RestoreTime();
     }
 
     void Start()
     {
+        ResolveSceneRefs();
         BindLantern();
         RaiseBeacons();
         RaiseTime();
@@ -88,12 +100,6 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (Instance != this)
-        {
-            Instance = this;
-            BindLantern();
-        }
-
         HandleKeys();
         if (paused)
         {
@@ -204,13 +210,38 @@ public class GameManager : MonoBehaviour
         AudioListener.pause = false;
     }
 
-    void BindLantern()
+    void ResolveSceneRefs()
     {
+        if (refsResolved)
+        {
+            return;
+        }
+
+        bool missing = lantern == null || hud == null || dawn == null;
         if (lantern == null)
         {
             lantern = FindAnyObjectByType<Lantern>();
         }
 
+        if (hud == null)
+        {
+            hud = FindAnyObjectByType<HUD>();
+        }
+
+        if (dawn == null)
+        {
+            dawn = FindAnyObjectByType<DawnSequence>();
+        }
+
+        refsResolved = true;
+        if (missing)
+        {
+            Debug.LogWarning("GameManager references were not fully wired. Resolved once.", this);
+        }
+    }
+
+    void BindLantern()
+    {
         if (lantern != null)
         {
             lantern.FuelDepleted -= OnFuelDepleted;
@@ -293,7 +324,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator DeathSequence()
     {
-        HUD hud = FindAnyObjectByType<HUD>();
+        ResolveSceneRefs();
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayDying();
@@ -365,7 +396,7 @@ public class GameManager : MonoBehaviour
         GameSettings.TryRecordBest(LevelId, elapsed);
         GameSettings.MarkWon(LevelId);
 
-        DawnSequence dawn = FindAnyObjectByType<DawnSequence>();
+        ResolveSceneRefs();
         if (dawn != null)
         {
             DawnPlaying = true;
@@ -472,6 +503,13 @@ public class GameManager : MonoBehaviour
 
     void RaiseTime()
     {
+        int whole = elapsed < 0f ? -1 : Mathf.FloorToInt(elapsed);
+        if (whole == raisedSecond)
+        {
+            return;
+        }
+
+        raisedSecond = whole;
         if (TimeChanged != null)
         {
             TimeChanged.Invoke(elapsed);

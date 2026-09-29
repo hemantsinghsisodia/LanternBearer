@@ -6,17 +6,28 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
+    const int PoolSize = 12;
+
+    [SerializeField] Lantern lantern;
+
     AudioSource oneShots;
     AudioSource ambience;
     AudioSource heartbeat;
-    Lantern lantern;
+    AudioSource[] pool;
+    int poolCursor;
     bool heartOn;
+    bool lanternResolved;
+
+    public int PoolChildCount => poolRoot != null ? poolRoot.childCount : 0;
+
+    Transform poolRoot;
 
     void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(this);
+            Debug.LogWarning("Duplicate AudioManager destroyed.", this);
+            Destroy(gameObject);
             return;
         }
 
@@ -24,6 +35,7 @@ public class AudioManager : MonoBehaviour
         oneShots = gameObject.AddComponent<AudioSource>();
         oneShots.playOnAwake = false;
         oneShots.spatialBlend = 0f;
+        CreatePool();
 
         ambience = gameObject.AddComponent<AudioSource>();
         ambience.playOnAwake = false;
@@ -49,13 +61,53 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    void Update()
+    void Start()
     {
-        if (lantern == null)
+        ResolveLantern();
+    }
+
+    void ResolveLantern()
+    {
+        if (lantern != null || lanternResolved)
         {
-            lantern = FindAnyObjectByType<Lantern>();
+            return;
         }
 
+        lanternResolved = true;
+        lantern = FindAnyObjectByType<Lantern>();
+        if (lantern != null)
+        {
+            Debug.LogWarning("AudioManager lantern was not wired. Resolved once.", this);
+        }
+    }
+
+    void CreatePool()
+    {
+        GameObject root = new GameObject("OneShotPool");
+        root.transform.SetParent(transform, false);
+        poolRoot = root.transform;
+        pool = new AudioSource[PoolSize];
+        for (int i = 0; i < PoolSize; i++)
+        {
+            GameObject child = new GameObject("PooledSource");
+            child.transform.SetParent(poolRoot, false);
+            AudioSource source = child.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = false;
+            source.spatialBlend = 1f;
+            source.dopplerLevel = 0f;
+            source.pitch = 1f;
+            source.volume = 1f;
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.minDistance = 1f;
+            source.maxDistance = 500f;
+            source.ignoreListenerPause = false;
+            pool[i] = source;
+        }
+    }
+
+    void Update()
+    {
         bool low = lantern != null && lantern.FuelNormalized > 0f && lantern.FuelNormalized < 0.2f
             && (GameManager.Instance == null || !GameManager.Instance.IsRoundOver);
         if (low == heartOn)
@@ -139,7 +191,33 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        AudioSource.PlayClipAtPoint(clip, position, volume);
+        AudioSource source = NextSource();
+        source.Stop();
+        source.clip = clip;
+        source.transform.position = position;
+        source.volume = volume;
+        source.pitch = 1f;
+        source.loop = false;
+        source.spatialBlend = 1f;
+        source.Play();
+    }
+
+    AudioSource NextSource()
+    {
+        int count = pool.Length;
+        for (int n = 0; n < count; n++)
+        {
+            int index = (poolCursor + n) % count;
+            if (!pool[index].isPlaying)
+            {
+                poolCursor = (index + 1) % count;
+                return pool[index];
+            }
+        }
+
+        AudioSource stolen = pool[poolCursor];
+        poolCursor = (poolCursor + 1) % count;
+        return stolen;
     }
 }
 }

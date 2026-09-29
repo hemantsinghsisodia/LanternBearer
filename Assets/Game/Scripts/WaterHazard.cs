@@ -12,10 +12,15 @@ public class WaterHazard : MonoBehaviour
     [SerializeField] float fadeSeconds = 0.4f;
     [SerializeField] float inputLockSeconds = 0.5f;
     [SerializeField] ParticleSystem splash;
+    [SerializeField] PlayerController player;
+    [SerializeField] Lantern lantern;
+    [SerializeField] HUD hud;
+    [SerializeField] CameraFollow cameraFollow;
 
     float nextRescue;
-    PlayerController player;
     bool rescuing;
+    bool refsResolved;
+    static bool loggedFallback;
 
     public float FadePeak { get; private set; }
     public bool IsRescuing => rescuing;
@@ -33,6 +38,11 @@ public class WaterHazard : MonoBehaviour
         EnsureSplash();
     }
 
+    void Start()
+    {
+        ResolveRefs();
+    }
+
     void Update()
     {
         SurfaceY = surfaceY;
@@ -46,7 +56,6 @@ public class WaterHazard : MonoBehaviour
             return;
         }
 
-        CachePlayer();
         if (player == null)
         {
             return;
@@ -60,17 +69,53 @@ public class WaterHazard : MonoBehaviour
         StartCoroutine(Rescue());
     }
 
-    void CachePlayer()
+    void ResolveRefs()
     {
-        if (player != null)
+        if (refsResolved)
         {
             return;
         }
 
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
+        bool missing = player == null || lantern == null || hud == null || cameraFollow == null;
+        refsResolved = true;
+        if (player == null)
         {
-            player = playerObject.GetComponent<PlayerController>();
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null)
+            {
+                player = playerObject.GetComponent<PlayerController>();
+            }
+        }
+
+        if (lantern == null && player != null)
+        {
+            lantern = player.GetComponentInChildren<Lantern>();
+        }
+
+        if (lantern == null)
+        {
+            lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if (hud == null)
+        {
+            hud = FindAnyObjectByType<HUD>();
+        }
+
+        if (cameraFollow == null)
+        {
+            Camera view = Camera.main;
+            cameraFollow = view != null ? view.GetComponent<CameraFollow>() : null;
+            if (cameraFollow == null)
+            {
+                cameraFollow = FindAnyObjectByType<CameraFollow>();
+            }
+        }
+
+        if (missing && !loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("WaterHazard references were not wired. Resolved once.", this);
         }
     }
 
@@ -79,7 +124,7 @@ public class WaterHazard : MonoBehaviour
         rescuing = true;
         FadePeak = 0f;
         nextRescue = Time.time + rescueCooldown;
-        CachePlayer();
+        ResolveRefs();
         if (player == null)
         {
             rescuing = false;
@@ -92,18 +137,11 @@ public class WaterHazard : MonoBehaviour
             manager.SetControlsLocked(true);
         }
 
-        Lantern lantern = player.GetComponentInChildren<Lantern>();
-        if (lantern == null)
-        {
-            lantern = FindAnyObjectByType<Lantern>();
-        }
-
         if (lantern != null)
         {
             lantern.DrainFrozen = true;
         }
 
-        HUD hud = FindAnyObjectByType<HUD>();
         Vector3 splashAt = player.transform.position;
         splashAt.y = surfaceY;
         PlaySplash(splashAt);
@@ -201,16 +239,9 @@ public class WaterHazard : MonoBehaviour
             hud.ShowFuelPenalty("-" + Mathf.RoundToInt(penalty).ToString());
         }
 
-        Camera view = Camera.main;
-        CameraFollow follow = view != null ? view.GetComponent<CameraFollow>() : null;
-        if (follow == null)
+        if (cameraFollow != null)
         {
-            follow = FindAnyObjectByType<CameraFollow>();
-        }
-
-        if (follow != null)
-        {
-            follow.SnapBehind();
+            cameraFollow.SnapBehind();
         }
     }
 

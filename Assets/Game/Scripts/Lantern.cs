@@ -24,9 +24,12 @@ public class Lantern : MonoBehaviour
     float loggedEscalation = -1f;
     float proximityDim;
     float deathIntensity = -1f;
+    float broadcastFuel = float.NaN;
+    float broadcastTime = -10f;
     bool depleted;
     bool drainFrozen;
     bool inSafeLight;
+    PlayerController owner;
 
     public float Fuel => fuel;
     public float MaxFuel => maxFuel;
@@ -56,12 +59,15 @@ public class Lantern : MonoBehaviour
         }
 
         fuel = maxFuel;
+        owner = GetComponentInParent<PlayerController>();
         ApplyLight();
     }
 
     void Start()
     {
         difficultyDrain = GameSettings.DrainMultiplier;
+        broadcastFuel = fuel;
+        broadcastTime = Time.unscaledTime;
         if (FuelChanged != null)
         {
             FuelChanged.Invoke(FuelNormalized);
@@ -139,12 +145,7 @@ public class Lantern : MonoBehaviour
 
     bool InsideAnySafeZone()
     {
-        Vector3 position = transform.position;
-        PlayerController body = GetComponentInParent<PlayerController>();
-        if (body != null)
-        {
-            position = body.transform.position;
-        }
+        Vector3 position = owner != null ? owner.transform.position : transform.position;
 
         for (int i = 0; i < Beacon.All.Count; i++)
         {
@@ -197,7 +198,7 @@ public class Lantern : MonoBehaviour
             return;
         }
 
-        SetFuel(fuel + amount);
+        CommitFuel(fuel + amount, true);
     }
 
     public bool TrySpend(float amount)
@@ -212,7 +213,7 @@ public class Lantern : MonoBehaviour
             return false;
         }
 
-        SetFuel(fuel - amount);
+        CommitFuel(fuel - amount, true);
         if (fuel <= 0f)
         {
             fuel = 0f;
@@ -246,12 +247,34 @@ public class Lantern : MonoBehaviour
 
     void SetFuel(float value)
     {
+        CommitFuel(value, false);
+    }
+
+    void CommitFuel(float value, bool immediate)
+    {
         fuel = Mathf.Clamp(value, 0f, maxFuel);
         ApplyLight();
-        if (FuelChanged != null)
+        PublishFuel(immediate || fuel <= 0f);
+    }
+
+    void PublishFuel(bool immediate)
+    {
+        if (FuelChanged == null)
         {
-            FuelChanged.Invoke(FuelNormalized);
+            return;
         }
+
+        float now = Time.unscaledTime;
+        bool changed = float.IsNaN(broadcastFuel) || Mathf.Abs(fuel - broadcastFuel) > 0.05f;
+        bool cooled = now - broadcastTime >= 0.05f;
+        if (!immediate && !(changed && cooled))
+        {
+            return;
+        }
+
+        broadcastFuel = fuel;
+        broadcastTime = now;
+        FuelChanged.Invoke(FuelNormalized);
     }
 
     void ApplyLight()

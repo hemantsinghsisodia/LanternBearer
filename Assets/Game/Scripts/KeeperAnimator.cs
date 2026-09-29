@@ -42,6 +42,10 @@ public class KeeperAnimator : MonoBehaviour
     bool hasGrounded;
     bool hasVerticalSpeed;
     bool hasJump;
+    int speedHash;
+    int groundedHash;
+    int verticalHash;
+    int jumpHash;
 
     public float PoseScaleY { get; private set; } = 1f;
     public bool JumpPoseActive => takeoffTimer > 0f;
@@ -157,6 +161,10 @@ public class KeeperAnimator : MonoBehaviour
 
     void CacheParameters()
     {
+        speedHash = Animator.StringToHash(speedParameter);
+        groundedHash = Animator.StringToHash(groundedParameter);
+        verticalHash = Animator.StringToHash(verticalSpeedParameter);
+        jumpHash = Animator.StringToHash(jumpParameter);
         hasSpeed = HasParameter(speedParameter);
         hasGrounded = HasParameter(groundedParameter);
         hasVerticalSpeed = HasParameter(verticalSpeedParameter);
@@ -194,7 +202,7 @@ public class KeeperAnimator : MonoBehaviour
             takeoffTimer = 0.16f;
             if (hasJump)
             {
-                animator.SetTrigger(jumpParameter);
+                animator.SetTrigger(jumpHash);
             }
         }
 
@@ -212,17 +220,17 @@ public class KeeperAnimator : MonoBehaviour
         {
             if (hasSpeed)
             {
-                animator.SetFloat(speedParameter, speed, speedDampTime, Time.deltaTime);
+                animator.SetFloat(speedHash, speed, speedDampTime, Time.deltaTime);
             }
 
             if (hasGrounded)
             {
-                animator.SetBool(groundedParameter, grounded);
+                animator.SetBool(groundedHash, grounded);
             }
 
             if (hasVerticalSpeed)
             {
-                animator.SetFloat(verticalSpeedParameter, vertical);
+                animator.SetFloat(verticalHash, vertical);
             }
         }
 

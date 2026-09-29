@@ -56,6 +56,10 @@ public class PlayerController : MonoBehaviour
     public static bool ExternalSprint;
     public static bool ExternalJump;
 
+    [SerializeField] CameraFollow cameraFollow;
+    bool viewResolved;
+    static bool loggedFallback;
+
     void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -70,6 +74,37 @@ public class PlayerController : MonoBehaviour
         controller.stepOffset = 0.45f;
         lastPosition = transform.position;
         LastSafePosition = transform.position;
+    }
+
+    void Start()
+    {
+        ResolveView();
+    }
+
+    void ResolveView()
+    {
+        if (cameraFollow != null || viewResolved)
+        {
+            return;
+        }
+
+        viewResolved = true;
+        Camera view = Camera.main;
+        if (view != null)
+        {
+            cameraFollow = view.GetComponent<CameraFollow>();
+        }
+
+        if (cameraFollow == null)
+        {
+            cameraFollow = FindAnyObjectByType<CameraFollow>();
+        }
+
+        if (!loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("PlayerController camera follow was not wired. Resolved once.", this);
+        }
     }
 
     void Update()
@@ -330,32 +365,18 @@ public class PlayerController : MonoBehaviour
             return Vector3.zero;
         }
 
-        Camera view = Camera.main;
-        if (view == null)
-        {
-            return input;
-        }
-
         float yaw;
-        CameraFollow follow = view.GetComponent<CameraFollow>();
         if (CameraFollow.UseExternalYaw)
         {
             yaw = CameraFollow.ExternalYaw;
         }
-        else if (follow != null)
+        else if (cameraFollow != null)
         {
-            yaw = follow.Yaw;
+            yaw = cameraFollow.Yaw;
         }
         else
         {
-            Vector3 forward = view.transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.001f)
-            {
-                return input;
-            }
-
-            yaw = Quaternion.LookRotation(forward.normalized, Vector3.up).eulerAngles.y;
+            return input;
         }
 
         Quaternion facing = Quaternion.Euler(0f, yaw, 0f);

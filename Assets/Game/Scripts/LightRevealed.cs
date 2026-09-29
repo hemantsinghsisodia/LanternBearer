@@ -4,37 +4,61 @@ namespace LanternKeeper
 {
 public class LightRevealed : MonoBehaviour
 {
+    const float MoveEpsilonSqr = 0.0004f;
+
+    [SerializeField] Lantern lantern;
+
     Renderer[] renderers;
     Collider[] colliders;
     MaterialPropertyBlock block;
-    Lantern lantern;
+    Vector3 sampledPosition;
+    float sampledRadius = -1f;
+    float sampledIntensity = -1f;
+    float appliedAlpha = -1f;
+    bool appliedShow;
+    bool appliedSolid;
+    bool appliedOnce;
+    bool lanternResolved;
+    bool haveSample;
+    static bool loggedFallback;
+    static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    static readonly int ColorId = Shader.PropertyToID("_Color");
 
     void Awake()
     {
         renderers = GetComponentsInChildren<Renderer>(true);
         colliders = GetComponentsInChildren<Collider>(true);
+        block = new MaterialPropertyBlock();
         Apply(0f);
     }
 
-    void Update()
+    void Start()
     {
-        RefreshVisibility();
-    }
+        ResolveLantern();
+        if (lantern == null)
+        {
+            return;
+        }
 
-    public void RefreshVisibility()
-    {
+        sampledPosition = lantern.transform.position;
+        sampledRadius = lantern.Radius;
+        sampledIntensity = lantern.BaseIntensity;
+        haveSample = true;
         Apply(CurrentAlpha());
     }
 
-    float CurrentAlpha()
+    void ResolveLantern()
     {
-        if (lantern == null)
+        if (lantern != null || lanternResolved)
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-            {
-                lantern = player.GetComponentInChildren<Lantern>();
-            }
+            return;
+        }
+
+        lanternResolved = true;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            lantern = player.GetComponentInChildren<Lantern>();
         }
 
         if (lantern == null)
@@ -42,6 +66,47 @@ public class LightRevealed : MonoBehaviour
             lantern = FindAnyObjectByType<Lantern>();
         }
 
+        if (!loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("LightRevealed lantern was not wired. Resolved once.", this);
+        }
+    }
+
+    void Update()
+    {
+        if (lantern == null)
+        {
+            return;
+        }
+
+        Vector3 position = lantern.transform.position;
+        float radius = lantern.Radius;
+        float intensity = lantern.BaseIntensity;
+        bool moved = !haveSample
+            || (position - sampledPosition).sqrMagnitude > MoveEpsilonSqr
+            || Mathf.Abs(radius - sampledRadius) > 0.01f
+            || Mathf.Abs(intensity - sampledIntensity) > 0.01f;
+        if (!moved)
+        {
+            return;
+        }
+
+        haveSample = true;
+        sampledPosition = position;
+        sampledRadius = radius;
+        sampledIntensity = intensity;
+        Apply(CurrentAlpha());
+    }
+
+    public void RefreshVisibility()
+    {
+        haveSample = false;
+        Apply(CurrentAlpha());
+    }
+
+    float CurrentAlpha()
+    {
         if (lantern == null)
         {
             return 0f;
@@ -66,8 +131,19 @@ public class LightRevealed : MonoBehaviour
     {
         bool show = alpha > 0.05f;
         bool solid = alpha > 0.32f;
+        bool alphaSame = appliedOnce && Mathf.Abs(alpha - appliedAlpha) < 0.002f;
+        if (appliedOnce && show == appliedShow && solid == appliedSolid && (!show || alphaSame))
+        {
+            return;
+        }
+
+        appliedOnce = true;
+        appliedShow = show;
+        appliedSolid = solid;
+        appliedAlpha = alpha;
         if (renderers != null)
         {
+            Color color = new Color(0.82f, 0.76f, 0.62f, alpha);
             for (int i = 0; i < renderers.Length; i++)
             {
                 Renderer renderer = renderers[i];
@@ -82,15 +158,9 @@ public class LightRevealed : MonoBehaviour
                     continue;
                 }
 
-                if (block == null)
-                {
-                    block = new MaterialPropertyBlock();
-                }
-
                 renderer.GetPropertyBlock(block);
-                Color color = new Color(0.82f, 0.76f, 0.62f, alpha);
-                block.SetColor("_BaseColor", color);
-                block.SetColor("_Color", color);
+                block.SetColor(BaseColorId, color);
+                block.SetColor(ColorId, color);
                 renderer.SetPropertyBlock(block);
             }
         }

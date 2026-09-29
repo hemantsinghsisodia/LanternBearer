@@ -13,12 +13,16 @@ public class MothSpawner : MonoBehaviour
     [SerializeField] float islandRadius;
     [SerializeField] float minPlayerDistance = 25f;
     [SerializeField] int maxMoths;
+    [SerializeField] Lantern lantern;
 
     int litSeen;
     int spawned;
     bool warnedMissingPrefab;
+    bool lanternResolved;
     AudioSource whisper;
-    Lantern lantern;
+    Transform player;
+    PlayerController playerBody;
+    static bool loggedFallback;
 
     public int SpawnedCount => spawned;
     public int AliveCount => Moth.LivingCount();
@@ -32,6 +36,11 @@ public class MothSpawner : MonoBehaviour
 
     void OnEnable()
     {
+        if (Instance != null && Instance != this)
+        {
+            return;
+        }
+
         Instance = this;
     }
 
@@ -45,13 +54,65 @@ public class MothSpawner : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("Duplicate MothSpawner destroyed.", this);
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         EnsureWhisper();
     }
 
     void Start()
     {
+        ResolveLantern();
         StartCoroutine(SpawnOverTime());
+    }
+
+    void ResolveLantern()
+    {
+        if (lanternResolved)
+        {
+            return;
+        }
+
+        bool missing = lantern == null;
+        lanternResolved = true;
+        if (player == null)
+        {
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null)
+            {
+                player = playerObject.transform;
+                playerBody = playerObject.GetComponent<PlayerController>();
+                if (lantern == null)
+                {
+                    lantern = playerObject.GetComponentInChildren<Lantern>();
+                }
+            }
+        }
+
+        if (lantern == null)
+        {
+            lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if (player == null && lantern != null)
+        {
+            playerBody = lantern.GetComponentInParent<PlayerController>();
+            if (playerBody != null)
+            {
+                player = playerBody.transform;
+            }
+        }
+
+        if (missing && !loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("MothSpawner lantern was not wired. Resolved once.", this);
+        }
     }
 
     void Update()
@@ -248,6 +309,13 @@ public class MothSpawner : MonoBehaviour
         }
 
         mothObject.name = "Moth";
+        Moth moth = mothObject.GetComponent<Moth>();
+        if (moth != null)
+        {
+            ResolveLantern();
+            moth.Bind(player, playerBody, lantern);
+        }
+
         spawned++;
     }
 
@@ -329,12 +397,6 @@ public class MothSpawner : MonoBehaviour
 
     void UpdateProximity()
     {
-        if (lantern == null)
-        {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            lantern = player != null ? player.GetComponentInChildren<Lantern>() : FindAnyObjectByType<Lantern>();
-        }
-
         Vector3 origin = lantern != null ? lantern.transform.position : transform.position;
         float nearest = 999f;
         int counted = 0;
@@ -422,20 +484,19 @@ public class MothSpawner : MonoBehaviour
         return TerrainQuery.IslandRadius();
     }
 
-    static bool HasPlayer()
+    bool HasPlayer()
     {
-        return GameObject.FindGameObjectWithTag("Player") != null;
+        return player != null;
     }
 
-    static Vector3 PlayerFlat()
+    Vector3 PlayerFlat()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null)
         {
             return Vector3.zero;
         }
 
-        Vector3 position = player.transform.position;
+        Vector3 position = player.position;
         position.y = 0f;
         return position;
     }

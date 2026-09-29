@@ -22,6 +22,7 @@ public class Firefly : MonoBehaviour
 
     Vector3 home;
     bool collected;
+    bool playerResolved;
     ParticleSystem burst;
     Transform player;
 
@@ -76,7 +77,7 @@ public class Firefly : MonoBehaviour
         Lantern lantern = other.GetComponentInChildren<Lantern>();
         if (lantern == null)
         {
-            lantern = FindAnyObjectByType<Lantern>();
+            lantern = other.transform.root.GetComponentInChildren<Lantern>();
         }
 
         if (lantern != null)
@@ -398,11 +399,12 @@ public class Firefly : MonoBehaviour
 
     void CachePlayer()
     {
-        if (player != null)
+        if (player != null || playerResolved)
         {
             return;
         }
 
+        playerResolved = true;
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null)
         {

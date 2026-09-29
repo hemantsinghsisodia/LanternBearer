@@ -55,9 +55,12 @@ public class Beacon : MonoBehaviour
         }
     }
 
-    Transform player;
+    [SerializeField] Transform player;
+    [SerializeField] Lantern lantern;
     bool playerNear;
     bool igniting;
+    bool refsResolved;
+    static bool loggedFallback;
 
     void Awake()
     {
@@ -152,13 +155,43 @@ public class Beacon : MonoBehaviour
     void Start()
     {
         fuelCost = GameSettings.BeaconFuelCost;
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
+        ResolveRefs();
+        BeaconSafeRing.Ensure(this);
+    }
+
+    void ResolveRefs()
+    {
+        if (refsResolved)
         {
-            player = playerObject.transform;
+            return;
         }
 
-        BeaconSafeRing.Ensure(this);
+        bool missing = player == null || lantern == null;
+        refsResolved = true;
+        if (player == null)
+        {
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null)
+            {
+                player = playerObject.transform;
+            }
+        }
+
+        if (lantern == null && player != null)
+        {
+            lantern = player.GetComponentInChildren<Lantern>();
+        }
+
+        if (lantern == null)
+        {
+            lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if (missing && !loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("Beacon references were not wired. Resolved once.", this);
+        }
     }
 
     void Update()
@@ -237,7 +270,7 @@ public class Beacon : MonoBehaviour
             return false;
         }
 
-        Lantern lantern = FindAnyObjectByType<Lantern>();
+        ResolveRefs();
         if (lantern == null || !lantern.TrySpend(fuelCost))
         {
             if (AudioManager.Instance != null)

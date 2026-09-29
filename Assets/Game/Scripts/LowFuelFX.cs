@@ -7,14 +7,39 @@ namespace LanternKeeper
 public class LowFuelFX : MonoBehaviour
 {
     [SerializeField] Volume volume;
+    [SerializeField] Lantern lantern;
 
     Vignette vignette;
     ColorAdjustments color;
-    Lantern lantern;
     bool ready;
+    bool resolved;
+    static bool loggedFallback;
 
     void Awake()
     {
+        Resolve();
+    }
+
+    void Resolve()
+    {
+        if (resolved)
+        {
+            return;
+        }
+
+        bool missing = volume == null || lantern == null;
+        resolved = true;
+        if (lantern == null)
+        {
+            lantern = FindAnyObjectByType<Lantern>();
+        }
+
+        if (missing && !loggedFallback)
+        {
+            loggedFallback = true;
+            Debug.LogWarning("LowFuelFX references were not wired. Resolved once.", this);
+        }
+
         Bind();
     }
 
@@ -62,16 +87,6 @@ public class LowFuelFX : MonoBehaviour
 
     void Update()
     {
-        if (!ready)
-        {
-            Bind();
-        }
-
-        if (lantern == null)
-        {
-            lantern = FindAnyObjectByType<Lantern>();
-        }
-
         if (!ready || lantern == null || vignette == null)
         {
             return;

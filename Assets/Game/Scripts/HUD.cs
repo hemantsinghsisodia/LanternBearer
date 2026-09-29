@@ -13,6 +13,11 @@ public class HUD : MonoBehaviour
     static readonly Color WarningColor = new Color(1f, 0.38f, 0.28f, 1f);
     static readonly Color FlashColor = new Color(1f, 0.05f, 0.04f, 1f);
     static readonly Color GhostColor = new Color(0.15f, 0.07f, 0.03f, 0.82f);
+    static readonly Color DotLit = new Color(1f, 0.55f, 0.16f, 1f);
+    static readonly Color DotDim = new Color(0.28f, 0.3f, 0.34f, 1f);
+    static readonly Color SafeStatusColor = new Color(1f, 0.86f, 0.45f);
+    static readonly Color DrainStatusColor = new Color(1f, 0.78f, 0.48f);
+    static readonly Color ShakeColor = new Color(1f, 0.28f, 0.16f, 1f);
 
     static Sprite whiteSprite;
 
@@ -31,10 +36,24 @@ public class HUD : MonoBehaviour
     [SerializeField] Image fadeOverlay;
     [SerializeField] Image deathOverlay;
     [SerializeField] Text penaltyText;
+    [SerializeField] Lantern lantern;
 
-    Lantern lantern;
     Image[] dots;
     bool bound;
+    bool missingResolved;
+    bool lanternResolved;
+    bool promptOverflow;
+    bool promptShaking;
+    bool ghostStyled;
+    int shownSecond = int.MinValue;
+    int promptCost = int.MinValue;
+    int paintedLit = int.MinValue;
+    int statusCents = int.MinValue;
+    int statusMoths = int.MinValue;
+    bool promptAfford;
+    bool statusSafe;
+    bool statusReady;
+    string promptLine;
     bool buttonsWired;
     float shakeRemaining;
     Vector2 promptHome;
@@ -66,12 +85,16 @@ public class HUD : MonoBehaviour
         Unbind();
     }
 
-    void Update()
+    void Start()
     {
         BindIfNeeded();
         EnsureFuelGhost();
         EnsurePausePanel();
         EnsureWidgets();
+    }
+
+    void Update()
+    {
         GameManager manager = GameManager.Instance;
         if (lantern != null && fuelFill != null)
         {
@@ -87,10 +110,7 @@ public class HUD : MonoBehaviour
         EnsureDots(manager.BeaconsToWin);
         PaintDots(manager.LitCount);
 
-        if (timerText != null)
-        {
-            timerText.text = GameManager.FormatTime(manager.Elapsed);
-        }
+        ShowTimer(manager.Elapsed);
 
         RefreshPrompt(manager);
         UpdateGhost(manager);
@@ -112,11 +132,7 @@ public class HUD : MonoBehaviour
 
     void BindIfNeeded()
     {
-        if (lantern == null)
-        {
-            lantern = FindAnyObjectByType<Lantern>();
-        }
-
+        ResolveLantern();
         ResolveMissing();
         if (bound || GameManager.Instance == null)
         {
@@ -163,8 +179,27 @@ public class HUD : MonoBehaviour
         bound = false;
     }
 
+    void ResolveLantern()
+    {
+        if (lantern != null || lanternResolved)
+        {
+            return;
+        }
+
+        lanternResolved = true;
+        lantern = FindAnyObjectByType<Lantern>();
+        Debug.LogWarning("HUD lantern was not wired. Resolved once.", this);
+    }
+
     void ResolveMissing()
     {
+        if (missingResolved)
+        {
+            return;
+        }
+
+        missingResolved = true;
+        bool missing = fuelFill == null || promptText == null || timerText == null || statusText == null;
         if (fuelFill == null)
         {
             fuelFill = FindImage("FuelFill");
@@ -238,6 +273,11 @@ public class HUD : MonoBehaviour
         if (loseDetailText == null)
         {
             loseDetailText = FindText("LoseDetail");
+        }
+
+        if (missing)
+        {
+            Debug.LogWarning("HUD widget references were not fully wired. Resolved by name once.", this);
         }
     }
 
@@ -453,14 +493,34 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        string line = "Drain x" + lantern.EscalationMultiplier.ToString("0.00") + "   Moths " + Moth.LivingCount();
-        if (lantern.InSafeLight)
+        int cents = Mathf.RoundToInt(lantern.EscalationMultiplier * 100f);
+        int moths = Moth.LivingCount();
+        bool safe = lantern.InSafeLight;
+        if (statusReady && cents == statusCents && moths == statusMoths && safe == statusSafe)
+        {
+            return;
+        }
+
+        statusReady = true;
+        statusCents = cents;
+        statusMoths = moths;
+        statusSafe = safe;
+        string line = "Drain x" + lantern.EscalationMultiplier.ToString("0.00") + "   Moths " + moths;
+        if (safe)
         {
             line += "\nSafe light";
         }
 
-        statusText.text = line;
-        statusText.color = lantern.InSafeLight ? new Color(1f, 0.86f, 0.45f) : new Color(1f, 0.78f, 0.48f);
+        if (statusText.text != line)
+        {
+            statusText.text = line;
+        }
+
+        Color color = safe ? SafeStatusColor : DrainStatusColor;
+        if (statusText.color != color)
+        {
+            statusText.color = color;
+        }
     }
 
     Image MakeOverlay(string name, Sprite sprite)
@@ -673,7 +733,7 @@ public class HUD : MonoBehaviour
 
     void PaintDots(int lit)
     {
-        if (dots == null)
+        if (dots == null || lit == paintedLit)
         {
             return;
         }
@@ -685,10 +745,10 @@ public class HUD : MonoBehaviour
                 continue;
             }
 
-            dots[i].color = i < lit
-                ? new Color(1f, 0.55f, 0.16f, 1f)
-                : new Color(0.28f, 0.3f, 0.34f, 1f);
+            dots[i].color = i < lit ? DotLit : DotDim;
         }
+
+        paintedLit = lit;
     }
 
     void OnFuelChanged(float normalized)
@@ -715,10 +775,24 @@ public class HUD : MonoBehaviour
 
     void OnTimeChanged(float seconds)
     {
-        if (timerText != null)
+        ShowTimer(seconds);
+    }
+
+    void ShowTimer(float seconds)
+    {
+        if (timerText == null)
         {
-            timerText.text = GameManager.FormatTime(seconds);
+            return;
         }
+
+        int whole = seconds < 0f ? -1 : Mathf.FloorToInt(seconds);
+        if (whole == shownSecond)
+        {
+            return;
+        }
+
+        shownSecond = whole;
+        timerText.text = GameManager.FormatTime(seconds);
     }
 
     void OnLightFailed()
@@ -758,30 +832,53 @@ public class HUD : MonoBehaviour
             rect.sizeDelta = new Vector2(560f, Mathf.Max(48f, rect.sizeDelta.y));
         }
 
-        promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        if (!promptOverflow)
+        {
+            promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            promptOverflow = true;
+        }
+
         int cost = Mathf.RoundToInt(nearest.FuelCost);
         bool canAfford = lantern != null && lantern.Fuel >= nearest.FuelCost;
-        promptText.text = canAfford
-            ? "E  Light beacon (-" + cost + ")"
-            : "Not enough light (-" + cost + ")";
+        if (promptLine == null || cost != promptCost || canAfford != promptAfford)
+        {
+            promptCost = cost;
+            promptAfford = canAfford;
+            promptLine = canAfford
+                ? "E  Light beacon (-" + cost + ")"
+                : "Not enough light (-" + cost + ")";
+            if (promptText.text != promptLine)
+            {
+                promptText.text = promptLine;
+            }
+        }
 
         Color color = canAfford ? PromptColor : WarningColor;
         if (shakeRemaining > 0f)
         {
             shakeRemaining -= Time.deltaTime;
+            promptShaking = true;
             float remaining = Mathf.Clamp01(shakeRemaining / PromptShakeDuration);
             float offset = Mathf.Sin(Time.unscaledTime * 52f) * 18f * remaining;
             rect.anchoredPosition = promptHome + new Vector2(offset, 0f);
             float flash = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 36f);
-            color = Color.Lerp(FlashColor, new Color(1f, 0.28f, 0.16f, 1f), flash);
+            color = Color.Lerp(FlashColor, ShakeColor, flash);
+            promptText.color = color;
         }
         else
         {
             shakeRemaining = 0f;
-            rect.anchoredPosition = promptHome;
-        }
+            if (promptShaking || rect.anchoredPosition != promptHome)
+            {
+                promptShaking = false;
+                rect.anchoredPosition = promptHome;
+            }
 
-        promptText.color = color;
+            if (promptText.color != color)
+            {
+                promptText.color = color;
+            }
+        }
     }
 
     void UpdateGhost(GameManager manager)
@@ -812,14 +909,22 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        fuelCostGhost.color = GhostColor;
-        fuelCostGhost.raycastTarget = false;
+        if (!ghostStyled)
+        {
+            fuelCostGhost.color = GhostColor;
+            fuelCostGhost.raycastTarget = false;
+            ghostStyled = true;
+        }
+
         RectTransform rect = fuelCostGhost.rectTransform;
         rect.anchorMin = new Vector2(0f, from);
         rect.anchorMax = new Vector2(1f, to);
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
-        rect.SetAsLastSibling();
+        if (rect.parent != null && rect.GetSiblingIndex() != rect.parent.childCount - 1)
+        {
+            rect.SetAsLastSibling();
+        }
     }
 
     void UpdatePausePanel(GameManager manager)

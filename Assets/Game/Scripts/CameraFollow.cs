@@ -50,15 +50,6 @@ public class CameraFollow : MonoBehaviour
     {
         if (target == null)
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
-            {
-                target = player.transform;
-            }
-        }
-
-        if (target == null)
-        {
             return;
         }
 
@@ -103,15 +94,20 @@ public class CameraFollow : MonoBehaviour
         }
     }
 
+    bool targetResolved;
+
     void Start()
     {
-        if (target == null)
+        if (target == null && !targetResolved)
         {
+            targetResolved = true;
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
                 target = player.transform;
             }
+
+            Debug.LogWarning("CameraFollow target was not wired. Resolved once.", this);
         }
 
         if (target != null)
