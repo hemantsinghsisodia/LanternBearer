@@ -626,16 +626,31 @@ public static partial class IslandBuilder
             return 0;
         }
 
+        if (namaqualand)
+        {
+            clump = DryGrassPrefab(clump);
+        }
+
         int added = 0;
 
         int[,] clumpMap = new int[detailRes, detailRes];
         int[,] fineMap = null;
         DetailPrototype clumpPrototype = MeshDetail(clump, 1.05f, 1.55f, namaqualand);
-        clumpPrototype.density = namaqualand ? 1.7f : 3f;
+        clumpPrototype.density = namaqualand ? 6f : 3f;
         clumpPrototype.minWidth = 1.6f;
         clumpPrototype.maxWidth = 2.4f;
-        clumpPrototype.minHeight = 1.05f;
-        clumpPrototype.maxHeight = 1.55f;
+        if (namaqualand)
+        {
+            clumpPrototype.minHeight = 0.9f;
+            clumpPrototype.maxHeight = 1.4f;
+            clumpPrototype.healthyColor = new Color(0.86f, 0.72f, 0.42f);
+            clumpPrototype.dryColor = new Color(0.72f, 0.56f, 0.3f);
+        }
+        else
+        {
+            clumpPrototype.minHeight = 1.05f;
+            clumpPrototype.maxHeight = 1.55f;
+        }
 
         prototypes.Add(clumpPrototype);
         added++;
@@ -664,8 +679,6 @@ public static partial class IslandBuilder
                 int hz2 = Mathf.Clamp(hz + 1, 0, heightRes - 1);
                 float run = worldSize / (heightRes - 1);
                 float slope = Mathf.Max(Mathf.Abs(heights[hz, hx2] - h), Mathf.Abs(heights[hz2, hx] - h)) * config.hillHeight / run;
-                float neighbor = (heights[hz, hx] + heights[hz, hx2] + heights[hz2, hx] + heights[Mathf.Max(0, hz - 1), hx]) * 0.25f;
-                float hollow = Mathf.Clamp01((neighbor - h) * 10f);
                 float sand = alphamaps[az, ax, 0];
                 if (!namaqualand)
                 {
@@ -693,18 +706,33 @@ public static partial class IslandBuilder
 
                     clumpMap[z, x] = count;
                 }
-                else if (sand < 0.4f && slope < 0.55f)
+                else if (sand < 0.80f && slope < 0.85f)
                 {
-                    float clumpNoise = Mathf.PerlinNoise(world.x * 0.1f + 6.4f, world.y * 0.1f);
-                    bool inHollow = hollow > 0.16f && clumpNoise > 0.38f;
-                    bool gentle = slope < 0.28f && clumpNoise > 0.64f;
-                    if (!inHollow && !gentle)
+                    float trail = TrailMask(world, trails, 2.3f);
+                    if (trail > 0.82f)
                     {
                         continue;
                     }
 
-                    float amount = inHollow ? Mathf.Clamp01(hollow * 0.75f + clumpNoise * 0.35f) : clumpNoise;
-                    int count = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(36f, 64f, amount)), 0, 255);
+                    float clumpNoise = Mathf.PerlinNoise(world.x * 0.08f + 6.4f, world.y * 0.08f);
+                    if (clumpNoise <= 0.42f)
+                    {
+                        continue;
+                    }
+
+                    float noiseScale = Mathf.InverseLerp(0.42f, 1f, clumpNoise);
+                    float amount = Mathf.Clamp01(noiseScale * (1f - sand));
+                    int count = Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(120f, 200f, amount)), 0, 255);
+                    if (trail > 0.62f)
+                    {
+                        count = Mathf.Max(0, Mathf.RoundToInt(count * (1f - Mathf.InverseLerp(0.62f, 0.82f, trail))));
+                    }
+
+                    if (count <= 0)
+                    {
+                        continue;
+                    }
+
                     clumpMap[z, x] = count;
                 }
             }
@@ -735,6 +763,45 @@ public static partial class IslandBuilder
 
         Debug.Log("Pack grass carpet " + config.levelId + " peak=" + peak + " warm=" + namaqualand + " layers=" + added);
         return added;
+    }
+
+    static GameObject DryGrassPrefab(GameObject source)
+    {
+        const string matPath = "Assets/Game/Levels/Layers/DryGrass.mat";
+        const string prefabPath = "Assets/Game/Levels/Layers/DryGrassClump.prefab";
+        Material sourceMat = source.GetComponentInChildren<MeshRenderer>().sharedMaterial;
+        Material mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (mat == null)
+        {
+            mat = new Material(sourceMat);
+            UnityEditor.AssetDatabase.CreateAsset(mat, matPath);
+        }
+        else
+        {
+            mat.CopyPropertiesFromMaterial(sourceMat);
+        }
+
+        mat.SetColor("_BaseColor", new Color(1.8f, 1.15f, 0.45f));
+        UnityEditor.EditorUtility.SetDirty(mat);
+
+        GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null)
+        {
+            GameObject instance = UnityEngine.Object.Instantiate(source);
+            instance.name = "DryGrassClump";
+            instance.GetComponentInChildren<MeshRenderer>().sharedMaterial = mat;
+            prefab = UnityEditor.PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
+            UnityEngine.Object.DestroyImmediate(instance);
+        }
+        else
+        {
+            MeshRenderer renderer = prefab.GetComponentInChildren<MeshRenderer>();
+            renderer.sharedMaterial = mat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            UnityEditor.EditorUtility.SetDirty(prefab);
+        }
+
+        return prefab;
     }
 
     static DetailPrototype MeshDetail(GameObject prefab, float minScale, float maxScale, bool warm)
