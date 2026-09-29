@@ -544,17 +544,27 @@ public static partial class IslandBuilder
                     }
                     else if (flower && !namaqualand)
                     {
-                        if (edge > 0.35f && grass > 0.25f)
+                        float clump = Mathf.PerlinNoise(world.x * 0.23f, world.y * 0.23f);
+                        if (edge > 0.35f && grass > 0.22f)
                         {
                             value = Mathf.RoundToInt(density * edge);
+                        }
+                        else if (grass > 0.5f && sand < 0.35f && slope < 0.45f && clump > 0.62f)
+                        {
+                            value = Mathf.Clamp(Mathf.RoundToInt(density * (clump - 0.4f) * 0.7f), 1, 4);
                         }
                     }
                     else if (flower && namaqualand)
                     {
                         float carpet = hollow * 1.15f + (1f - Mathf.Clamp01(slope)) * 0.2f;
+                        float clump = Mathf.PerlinNoise(world.x * 0.19f + 4f, world.y * 0.19f);
                         if (sand < 0.55f && slope < 0.62f && carpet > 0.22f)
                         {
                             value = Mathf.RoundToInt(density * Mathf.Clamp01(carpet));
+                        }
+                        else if (sand < 0.62f && slope < 0.45f && h > WaterFraction + 0.08f && clump > 0.58f)
+                        {
+                            value = Mathf.Clamp(Mathf.RoundToInt(density * clump * 0.45f), 1, 3);
                         }
                     }
                     else if (!namaqualand)

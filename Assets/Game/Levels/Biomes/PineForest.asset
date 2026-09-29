@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: PineForest
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.Biome
   entries:
-  - prefab: {fileID: 6039346554680141672, guid: 209745ed4a08eb241bf062437178d60e, type: 3}
+  - prefab: {fileID: 6282399809615066205, guid: 81d35a9140e75fe48bd9c9cbe5cea95b, type: 3}
     category: 0
-    count: 4
+    count: 6
     scaleRange: {x: 0.92, y: 1.08}
     alignToSlope: 0
     limitHeight: 1
@@ -24,9 +24,9 @@ MonoBehaviour:
     limitSlope: 1
     minSlope: 0
     maxSlope: 0.48
-  - prefab: {fileID: 5722880473119799882, guid: d3f2def05f945c94bb36bb417e0b86a1, type: 3}
+  - prefab: {fileID: 6463846428293124354, guid: d190720980626a04ebf0534dcf57aecb, type: 3}
     category: 0
-    count: 4
+    count: 5
     scaleRange: {x: 0.92, y: 1.08}
     alignToSlope: 0
     limitHeight: 1
@@ -35,9 +35,9 @@ MonoBehaviour:
     limitSlope: 1
     minSlope: 0
     maxSlope: 0.48
-  - prefab: {fileID: 5369204433431916094, guid: bf5e5315282af2f4e8b5b58133ea040b, type: 3}
+  - prefab: {fileID: 8488403681245822367, guid: d29620b7d13acbb4aa4671a0d8d2486b, type: 3}
     category: 0
-    count: 4
+    count: 5
     scaleRange: {x: 0.92, y: 1.08}
     alignToSlope: 0
     limitHeight: 1
@@ -46,9 +46,9 @@ MonoBehaviour:
     limitSlope: 1
     minSlope: 0
     maxSlope: 0.48
-  - prefab: {fileID: 1718344643474651461, guid: 5e9c13d50d2e6d54e8371f9803256722, type: 3}
+  - prefab: {fileID: 5446128189766559836, guid: c1bc9425a0fce214ba16568c1733dd22, type: 3}
     category: 0
-    count: 3
+    count: 5
     scaleRange: {x: 0.92, y: 1.08}
     alignToSlope: 0
     limitHeight: 1
@@ -57,31 +57,9 @@ MonoBehaviour:
     limitSlope: 1
     minSlope: 0
     maxSlope: 0.48
-  - prefab: {fileID: 7977290461683812683, guid: 1b5994086478f2c4d9302cac5d931ff0, type: 3}
-    category: 0
-    count: 3
-    scaleRange: {x: 0.92, y: 1.08}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.28
-    maxHeight: 0.92
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.48
-  - prefab: {fileID: 1422109394393871629, guid: 454068c9a079b6f43beafd4f4198d493, type: 3}
-    category: 0
-    count: 3
-    scaleRange: {x: 0.92, y: 1.08}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.28
-    maxHeight: 0.92
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.48
-  - prefab: {fileID: 4275503458767379026, guid: 11f1c27b5d5bc1146a976099f7e54795, type: 3}
+  - prefab: {fileID: 686449122804875493, guid: 374601fefae87214395052696919f060, type: 3}
     category: 1
-    count: 2
+    count: 10
     scaleRange: {x: 0.9, y: 1.12}
     alignToSlope: 0
     limitHeight: 1
@@ -90,86 +68,9 @@ MonoBehaviour:
     limitSlope: 1
     minSlope: 0
     maxSlope: 0.55
-  - prefab: {fileID: 8340114615298849983, guid: bd01115461f02d44b968750c455f0f40, type: 3}
+  - prefab: {fileID: 938576460459532968, guid: f85b3446500970a4e8ed85836c920ebb, type: 3}
     category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 1269859457244790241, guid: 09bca633b7cf5d4458202e8c0f104728, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 7234261996500986190, guid: b6dfa0e0dc8270248bdf56d3ab3d8432, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 8855435960235875636, guid: b2bdd4d2ed99b29449c819a9a3364b6c, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 4795958311032031752, guid: 2c1ccd5fd26eeb241842e9acc2a60503, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 4247370811384701821, guid: 1f2783b055ec64a4689d7e4519933c8a, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 9045001858477187099, guid: eff62036a63266349a2847f7824af95d, type: 3}
-    category: 1
-    count: 2
-    scaleRange: {x: 0.9, y: 1.12}
-    alignToSlope: 0
-    limitHeight: 1
-    minHeight: 0.26
-    maxHeight: 0.9
-    limitSlope: 1
-    minSlope: 0
-    maxSlope: 0.55
-  - prefab: {fileID: 545442846908922293, guid: e7a86c57b4f5a74499b25ea0af8e0ba9, type: 3}
-    category: 1
-    count: 2
+    count: 8
     scaleRange: {x: 0.9, y: 1.12}
     alignToSlope: 0
     limitHeight: 1
@@ -673,3 +574,91 @@ MonoBehaviour:
     limitSlope: 0
     minSlope: 0
     maxSlope: 1
+  - prefab: {fileID: 8333417758615594153, guid: 7a4570dcf40968d4ea4a3f1be06e4d3d, type: 3}
+    category: 5
+    count: 4
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 229116426614664303, guid: 6b5b9b8623f6b3743941809d5d871585, type: 3}
+    category: 5
+    count: 4
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 7339488916926348107, guid: 04cf47b70c44bd74b8b7f8751e9d6b4d, type: 3}
+    category: 5
+    count: 3
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 2033663943657376762, guid: bf91852db25e2244f80f0a9157aeaeac, type: 3}
+    category: 6
+    count: 3
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 3942717514660207621, guid: 52643f59f8be18341a7895e2522ae714, type: 3}
+    category: 6
+    count: 3
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 3923665689461409899, guid: 00d52ab5f33b13548abe6f56a8359cd6, type: 3}
+    category: 6
+    count: 3
+    scaleRange: {x: 0.85, y: 1.15}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 0
+    minSlope: 0
+    maxSlope: 1
+  - prefab: {fileID: 4976664108945912607, guid: 4b28dfd5a9cdd2f478663d4b294f64b4, type: 3}
+    category: 3
+    count: 4
+    scaleRange: {x: 0.85, y: 1.2}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 1
+    minSlope: 0.08
+    maxSlope: 0.9
+  - prefab: {fileID: 1529987929133905932, guid: 8398ffef1e0f4db4faad18ecb64f7bea, type: 3}
+    category: 3
+    count: 4
+    scaleRange: {x: 0.85, y: 1.2}
+    alignToSlope: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 1
+    limitSlope: 1
+    minSlope: 0.08
+    maxSlope: 0.9

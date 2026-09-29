@@ -66,6 +66,10 @@ Walk into fireflies to refill the lantern. Lighting a beacon spends fuel. Moths 
   - Rock Face 03 by Dario Barresi and Rico Cilliers (cliff)
   - Forest Leaves 02 by Rob Tuytel (moss)
 
+### Foliage
+
+Nature Pack (free version) — personal/learning use only; author to be added.
+
 ### Water
 
 ChuckCG, "Water Shader Addon Free" (GPL-2.0-or-later). The lake ripple normals and shore foam mask in `Assets/Game/Textures/Water/` were baked from that Blender material. Unity does not run the original node graph.

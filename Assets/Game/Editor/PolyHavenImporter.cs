@@ -510,6 +510,12 @@ public static class PolyHavenImporter
         }
     }
 
+    public static void RebuildBiomes()
+    {
+        CreateBiomes();
+        AssetDatabase.SaveAssets();
+    }
+
     static void CreateBiomes()
     {
         EnsureFolder("Assets/Game/Levels/Biomes");
@@ -598,16 +604,22 @@ public static class PolyHavenImporter
 
     static List<GameObject> FindPrefabs(Rule rule)
     {
-        string folder = PrefabRoot + "/" + rule.category;
+        string[] roots = { PrefabRoot, "Assets/Game/Prefabs/NaturePack" };
         List<GameObject> found = new List<GameObject>();
-        if (!Directory.Exists(ToFull(folder)))
+        List<string> files = new List<string>();
+        for (int r = 0; r < roots.Length; r++)
         {
-            return found;
+            string folder = roots[r] + "/" + rule.category;
+            if (!Directory.Exists(ToFull(folder)))
+            {
+                continue;
+            }
+
+            files.AddRange(Directory.GetFiles(ToFull(folder), "*.prefab"));
         }
 
-        string[] files = Directory.GetFiles(ToFull(folder), "*.prefab");
-        Array.Sort(files, StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < files.Length; i++)
+        files.Sort(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < files.Count; i++)
         {
             string name = Path.GetFileNameWithoutExtension(files[i]);
             if (!name.StartsWith(rule.id, StringComparison.OrdinalIgnoreCase))
@@ -665,11 +677,12 @@ public static class PolyHavenImporter
     {
         return new[]
         {
-            R("pine_tree_01", BiomeCategory.Tree, 24, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("fir_tree_01", BiomeCategory.Tree, 21, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("pine_sapling_medium", BiomeCategory.Sapling, 12, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
-            R("pine_sapling_small", BiomeCategory.Sapling, 12, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
-            R("fir_sapling", BiomeCategory.Sapling, 6, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
+            R("np_tree_01", BiomeCategory.Tree, 6, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("np_tree_02", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("np_tree_07", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("np_tree_hp_01", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("np_bush_07", BiomeCategory.Sapling, 10, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
+            R("np_bush_07b", BiomeCategory.Sapling, 8, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
             R("tree_stump_01", BiomeCategory.Deadwood, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("tree_stump_02", BiomeCategory.Deadwood, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("dead_tree_trunk", BiomeCategory.Deadwood, 3, 0.9f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
@@ -686,7 +699,15 @@ public static class PolyHavenImporter
             R("moss_01", BiomeCategory.GroundCover, 4, 0.8f, 1.3f, true, true, 0.28f, 1f, false, 0f, 1f),
             R("dandelion_01", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("celandine_01", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("shrub_sorrel_01", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f)
+            R("shrub_sorrel_01", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_grass_06", BiomeCategory.GroundCover, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_grass_01", BiomeCategory.GroundCover, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_grass_20", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_02", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_05", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_10", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_rock_01", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.08f, 0.9f, false, 0f, 1f),
+            R("np_rock_03", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.08f, 0.9f, false, 0f, 1f)
         };
     }
 
@@ -718,7 +739,15 @@ public static class PolyHavenImporter
             R("flower_heliophila", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("flower_stinkkruid", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("bark_debris_01", BiomeCategory.GroundCover, 2, 0.85f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
-            R("dry_quiver_leaf", BiomeCategory.GroundCover, 2, 0.8f, 1.15f, true, false, 0f, 1f, false, 0f, 1f)
+            R("dry_quiver_leaf", BiomeCategory.GroundCover, 2, 0.8f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_17", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_18", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_flower_01", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_plant_02", BiomeCategory.GroundCover, 3, 0.75f, 1.05f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_plant_21", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("np_rock_02", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.1f, 1.1f, false, 0f, 1f),
+            R("np_rock_04", BiomeCategory.Rock, 3, 0.85f, 1.15f, true, true, 0.1f, 1.1f, false, 0f, 1f),
+            R("np_rock_01", BiomeCategory.Rock, 3, 0.85f, 1.15f, true, true, 0.1f, 1.1f, false, 0f, 1f)
         };
     }
 
