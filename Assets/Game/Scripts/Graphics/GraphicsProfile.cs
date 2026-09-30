@@ -41,10 +41,16 @@ public class GraphicsProfile : ScriptableObject
     public int additionalLightsPerObject;
     // URP asset flag. Medium stays on, matching today's PC_RPAsset.
     public bool additionalLightShadowsSupported;
-    // Lantern and beacon shadows. Applied later by LightQuality. Off on Low and Medium.
+    // True on High and Ultra. Beacon lights use beaconShadowMode. The lantern stays with KeeperQuality.
     public bool pointLightShadows;
-    // 0 means no cap. Low keeps only the nearest few moth and firefly glow lights.
+    // 0 keeps each beacon's saved shadows (None today). 1 is hard, 2 is soft. Both use the low shadow tier.
+    public int beaconShadowMode;
+    // Older combined hint. LightQuality uses the per-type caps below. 0 means no cap.
     public int glowLightCap;
+    public int glowLightCapFireflies;
+    public int glowLightCapMoths;
+    // Meters. 0 means the cap has no distance limit. Only used when a cap is above 0.
+    public float glowLightCapDistance;
 
     [Header("Terrain, grass and trees")]
     public float grassDrawDistance;

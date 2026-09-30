@@ -46,6 +46,42 @@ public class Firefly : MonoBehaviour
         {
             burst = burstTransform.GetComponent<ParticleSystem>();
         }
+
+        if (Application.isPlaying)
+        {
+            ParticleQuality.ApplyTo(burst);
+            RegisterGlow();
+        }
+    }
+
+    void OnEnable()
+    {
+        if (Application.isPlaying)
+        {
+            RegisterGlow();
+        }
+    }
+
+    void OnDisable()
+    {
+        Transform glow = transform.Find("Glow");
+        if (glow == null)
+        {
+            return;
+        }
+
+        LightQuality.UnregisterFirefly(glow.GetComponent<Light>());
+    }
+
+    void RegisterGlow()
+    {
+        Transform glow = transform.Find("Glow");
+        if (glow == null)
+        {
+            return;
+        }
+
+        LightQuality.RegisterFirefly(glow.GetComponent<Light>());
     }
 
     void Start()
@@ -464,7 +500,7 @@ public class Firefly : MonoBehaviour
         Light[] lights = GetComponentsInChildren<Light>(true);
         for (int i = 0; i < lights.Length; i++)
         {
-            lights[i].enabled = shown;
+            LightQuality.SetFireflyShown(lights[i], shown);
         }
 
         Collider body = GetComponent<Collider>();

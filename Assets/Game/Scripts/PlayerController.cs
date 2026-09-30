@@ -74,6 +74,7 @@ public class PlayerController : MonoBehaviour
         if (dustTransform != null)
         {
             dust = dustTransform.GetComponent<ParticleSystem>();
+            ParticleQuality.ApplyTo(dust);
         }
 
         controller.slopeLimit = 50f;
@@ -393,7 +394,11 @@ public class PlayerController : MonoBehaviour
     {
         if (dust != null)
         {
-            dust.Emit(14);
+            int count = ParticleQuality.ScaleCount(14);
+            if (count > 0)
+            {
+                dust.Emit(count);
+            }
         }
     }
 
@@ -405,7 +410,7 @@ public class PlayerController : MonoBehaviour
         }
 
         ParticleSystem.EmissionModule emission = dust.emission;
-        emission.rateOverTime = moving ? 16f : 0f;
+        emission.rateOverTime = ParticleQuality.ScaleRate(moving ? 16f : 0f);
     }
 
     public void OnFootstep()

@@ -116,6 +116,7 @@ public static class SceneWiring
         assigned += WireTerrainQuality();
         assigned += WireWaterQuality();
         assigned += WireKeeperQuality();
+        assigned += WireLightQuality();
         return assigned;
     }
 
@@ -213,6 +214,46 @@ public static class SceneWiring
         assigned += Set(quality, "chestFill", chestFill);
         assigned += Set(quality, "lanternLight", lanternLight);
         assigned += Set(quality, "animator", animator);
+        return assigned;
+    }
+
+    static int WireLightQuality()
+    {
+        if (!IsIslandScene() || Object.FindAnyObjectByType<PlayerController>() == null)
+        {
+            return 0;
+        }
+
+        Light[] beaconLights = LightQuality.FindBeaconLights();
+        Light[] fireflyLights = LightQuality.FindFireflyLights();
+        if (beaconLights.Length == 0 && fireflyLights.Length == 0)
+        {
+            return 0;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        LightQuality quality = host.GetComponent<LightQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<LightQuality>();
+        }
+
+        int assigned = 0;
+        if (beaconLights.Length > 0)
+        {
+            assigned += SetArray(quality, "beaconLights", beaconLights);
+        }
+
+        if (fireflyLights.Length > 0)
+        {
+            assigned += SetArray(quality, "fireflyLights", fireflyLights);
+        }
+
         return assigned;
     }
 
@@ -380,6 +421,38 @@ public static class SceneWiring
                     nulls += Require(keeperQuality[i], "chestFill", quiet);
                     nulls += Require(keeperQuality[i], "lanternLight", quiet);
                     nulls += Require(keeperQuality[i], "animator", quiet);
+                }
+            }
+
+            if (IsIslandScene())
+            {
+                Beacon[] sceneBeacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                Firefly[] sceneFireflies = Object.FindObjectsByType<Firefly>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                if (sceneBeacons.Length > 0 || sceneFireflies.Length > 0)
+                {
+                    LightQuality[] lightQuality = Object.FindObjectsByType<LightQuality>(FindObjectsInactive.Include);
+                    if (lightQuality.Length == 0)
+                    {
+                        if (!quiet)
+                        {
+                            Debug.LogWarning("Null reference: LightQuality missing from GraphicsAppliers");
+                        }
+
+                        nulls++;
+                    }
+
+                    for (int i = 0; i < lightQuality.Length; i++)
+                    {
+                        if (sceneBeacons.Length > 0)
+                        {
+                            nulls += RequireArray(lightQuality[i], "beaconLights", quiet);
+                        }
+
+                        if (sceneFireflies.Length > 0)
+                        {
+                            nulls += RequireArray(lightQuality[i], "fireflyLights", quiet);
+                        }
+                    }
                 }
             }
         }

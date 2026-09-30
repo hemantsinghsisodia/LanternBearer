@@ -90,7 +90,11 @@ public static class GraphicsProfileSetup
         profile.additionalLightsPerObject = low ? 2 : level == GraphicsLevel.Medium ? 4 : level == GraphicsLevel.High ? 6 : 8;
         profile.additionalLightShadowsSupported = !low;
         profile.pointLightShadows = high;
-        profile.glowLightCap = low ? 4 : 0;
+        profile.beaconShadowMode = ultra ? 2 : level == GraphicsLevel.High ? 1 : 0;
+        profile.glowLightCap = low ? 5 : 0;
+        profile.glowLightCapFireflies = low ? 3 : 0;
+        profile.glowLightCapMoths = low ? 2 : 0;
+        profile.glowLightCapDistance = 30f;
 
         profile.grassDrawDistance = low ? 12f : level == GraphicsLevel.Medium ? 20f : level == GraphicsLevel.High ? 30f : 45f;
         profile.grassDensity = low ? 0.45f : 1f;

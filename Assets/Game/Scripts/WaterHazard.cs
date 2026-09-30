@@ -272,6 +272,7 @@ public class WaterHazard : MonoBehaviour
 
         if (splash != null)
         {
+            ParticleQuality.ApplyTo(splash);
             return;
         }
 
@@ -320,6 +321,7 @@ public class WaterHazard : MonoBehaviour
         }
 
         splash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        ParticleQuality.ApplyTo(splash);
     }
 }
 }

@@ -121,6 +121,13 @@ public class Beacon : MonoBehaviour
             beaconLight.enabled = false;
         }
 
+        if (Application.isPlaying)
+        {
+            ParticleQuality.ApplyTo(fire);
+            ParticleQuality.ApplyTo(embers);
+            ParticleQuality.ApplyTo(smoke);
+        }
+
         StopQuiet(fire);
         StopQuiet(embers);
         if (flameRoot != null)

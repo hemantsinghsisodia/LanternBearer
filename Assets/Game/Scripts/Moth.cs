@@ -38,6 +38,7 @@ public class Moth : MonoBehaviour
     Transform wings;
     AudioSource flutter;
     Light glow;
+    int glowSlot = -1;
     int obstacleMask;
     bool maskReady;
     bool targetsResolved;
@@ -89,11 +90,21 @@ public class Moth : MonoBehaviour
         {
             All.Add(this);
         }
+
+        if (Application.isPlaying && glow != null)
+        {
+            glowSlot = LightQuality.RegisterMoth(glow);
+        }
     }
 
     void OnDisable()
     {
         All.Remove(this);
+        if (glowSlot >= 0)
+        {
+            LightQuality.UnregisterMoth(glowSlot);
+            glowSlot = -1;
+        }
     }
 
     void Start()
@@ -188,7 +199,11 @@ public class Moth : MonoBehaviour
         if (glow != null)
         {
             glow.intensity = 1.1f * appear;
-            glow.enabled = appear > 0.04f;
+            bool show = appear > 0.04f && LightQuality.MothAllowed(glowSlot);
+            if (glow.enabled != show)
+            {
+                glow.enabled = show;
+            }
         }
 
         if (flutter != null)

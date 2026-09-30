@@ -26,7 +26,11 @@ MonoBehaviour:
   additionalLightsPerObject: 6
   additionalLightShadowsSupported: 1
   pointLightShadows: 1
+  beaconShadowMode: 1
   glowLightCap: 0
+  glowLightCapFireflies: 0
+  glowLightCapMoths: 0
+  glowLightCapDistance: 30
   grassDrawDistance: 30
   grassDensity: 1
   terrainPixelError: 3

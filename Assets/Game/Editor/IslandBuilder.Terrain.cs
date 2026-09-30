@@ -112,6 +112,37 @@ public static partial class IslandBuilder
             waterObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        LightQuality lightQuality = host.GetComponent<LightQuality>();
+        if (lightQuality == null)
+        {
+            lightQuality = host.AddComponent<LightQuality>();
+        }
+
+        Light[] beaconLights = LightQuality.FindBeaconLights();
+        Light[] fireflyLights = LightQuality.FindFireflyLights();
+        SerializedObject lightObject = new SerializedObject(lightQuality);
+        SerializedProperty beaconProp = lightObject.FindProperty("beaconLights");
+        if (beaconProp != null)
+        {
+            beaconProp.arraySize = beaconLights.Length;
+            for (int i = 0; i < beaconLights.Length; i++)
+            {
+                beaconProp.GetArrayElementAtIndex(i).objectReferenceValue = beaconLights[i];
+            }
+        }
+
+        SerializedProperty fireflyProp = lightObject.FindProperty("fireflyLights");
+        if (fireflyProp != null)
+        {
+            fireflyProp.arraySize = fireflyLights.Length;
+            for (int i = 0; i < fireflyLights.Length; i++)
+            {
+                fireflyProp.GetArrayElementAtIndex(i).objectReferenceValue = fireflyLights[i];
+            }
+        }
+
+        lightObject.ApplyModifiedPropertiesWithoutUndo();
+
         PlayerController keeper = KeeperQuality.FindGameplayKeeper();
         if (keeper == null)
         {
