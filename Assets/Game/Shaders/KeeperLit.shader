@@ -36,6 +36,7 @@ Shader "LanternKeeper/KeeperLit"
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_local _ _LK_KEEPER_NO_RIM
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -120,8 +121,10 @@ Shader "LanternKeeper/KeeperLit"
                 LIGHT_LOOP_END
                 #endif
 
+                #if !defined(_LK_KEEPER_NO_RIM)
                 float fresnel = pow(saturate(1.0 - abs(dot(normalWS, viewDir))), _RimPower);
                 color += _RimColor.rgb * fresnel * _RimStrength;
+                #endif
                 return half4(color, 1);
             }
             ENDHLSL

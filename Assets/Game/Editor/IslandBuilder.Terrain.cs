@@ -111,6 +111,58 @@ public static partial class IslandBuilder
 
             waterObject.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        PlayerController keeper = KeeperQuality.FindGameplayKeeper();
+        if (keeper == null)
+        {
+            return;
+        }
+
+        Renderer[] keeperRenderers = KeeperQuality.FindKeeperRenderers(keeper);
+        Light chestFill = KeeperQuality.FindChildLight(keeper, "ChestFill");
+        Light lanternLight = KeeperQuality.FindChildLight(keeper, "LanternLight");
+        Animator animator = KeeperQuality.FindKeeperAnimator(keeper);
+        if (keeperRenderers.Length == 0 || chestFill == null || lanternLight == null || animator == null)
+        {
+            return;
+        }
+
+        KeeperQuality keeperQuality = host.GetComponent<KeeperQuality>();
+        if (keeperQuality == null)
+        {
+            keeperQuality = host.AddComponent<KeeperQuality>();
+        }
+
+        SerializedObject keeperObject = new SerializedObject(keeperQuality);
+        SerializedProperty rendererProp = keeperObject.FindProperty("keeperRenderers");
+        if (rendererProp != null)
+        {
+            rendererProp.arraySize = keeperRenderers.Length;
+            for (int i = 0; i < keeperRenderers.Length; i++)
+            {
+                rendererProp.GetArrayElementAtIndex(i).objectReferenceValue = keeperRenderers[i];
+            }
+        }
+
+        SerializedProperty fillProp = keeperObject.FindProperty("chestFill");
+        if (fillProp != null)
+        {
+            fillProp.objectReferenceValue = chestFill;
+        }
+
+        SerializedProperty lanternProp = keeperObject.FindProperty("lanternLight");
+        if (lanternProp != null)
+        {
+            lanternProp.objectReferenceValue = lanternLight;
+        }
+
+        SerializedProperty animatorProp = keeperObject.FindProperty("animator");
+        if (animatorProp != null)
+        {
+            animatorProp.objectReferenceValue = animator;
+        }
+
+        keeperObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static Renderer[] FindWaterRenderers()

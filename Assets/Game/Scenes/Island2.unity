@@ -14740,6 +14740,7 @@ GameObject:
   - component: {fileID: 794066667}
   - component: {fileID: 794066666}
   - component: {fileID: 794066668}
+  - component: {fileID: 794066669}
   m_Layer: 0
   m_Name: GraphicsAppliers
   m_TagString: Untagged
@@ -14789,6 +14790,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.WaterQuality
   waterRenderers:
   - {fileID: 758625657}
+--- !u!114 &794066669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794066665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306ed531c506efb4c9e00f059e370422, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.KeeperQuality
+  keeperRenderers:
+  - {fileID: 2045012106}
+  - {fileID: 2045012105}
+  - {fileID: 2045012104}
+  - {fileID: 2045012103}
+  chestFill: {fileID: 2045012102}
+  lanternLight: {fileID: 1176723394}
+  animator: {fileID: 2045012101}
 --- !u!1 &795183867
 GameObject:
   m_ObjectHideFlags: 0
@@ -34494,6 +34515,36 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2043985079}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!95 &2045012101 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 2541679264743839663, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+--- !u!108 &2045012102 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 8870896840844698041, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &2045012103 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5230037745496126464, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &2045012104 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1132848623842638842, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &2045012105 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 20298798006625977, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &2045012106 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1653950597157582769, guid: c5eab289f7d36be4293c25ad58abe23e, type: 3}
+  m_PrefabInstance: {fileID: 1176723392}
+  m_PrefabAsset: {fileID: 0}
 --- !u!21 &2050946445
 Material:
   serializedVersion: 8

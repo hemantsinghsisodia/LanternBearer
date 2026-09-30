@@ -115,6 +115,7 @@ public static class SceneWiring
 
         assigned += WireTerrainQuality();
         assigned += WireWaterQuality();
+        assigned += WireKeeperQuality();
         return assigned;
     }
 
@@ -172,6 +173,53 @@ public static class SceneWiring
         }
 
         return SetArray(quality, "waterRenderers", water);
+    }
+
+    static int WireKeeperQuality()
+    {
+        if (!IsIslandScene())
+        {
+            return 0;
+        }
+
+        PlayerController keeper = KeeperQuality.FindGameplayKeeper();
+        if (keeper == null)
+        {
+            return 0;
+        }
+
+        Renderer[] renderers = KeeperQuality.FindKeeperRenderers(keeper);
+        Light chestFill = KeeperQuality.FindChildLight(keeper, "ChestFill");
+        Light lanternLight = KeeperQuality.FindChildLight(keeper, "LanternLight");
+        Animator animator = KeeperQuality.FindKeeperAnimator(keeper);
+        if (renderers.Length == 0 || chestFill == null || lanternLight == null || animator == null)
+        {
+            return 0;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        KeeperQuality quality = host.GetComponent<KeeperQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<KeeperQuality>();
+        }
+
+        int assigned = SetArray(quality, "keeperRenderers", renderers);
+        assigned += Set(quality, "chestFill", chestFill);
+        assigned += Set(quality, "lanternLight", lanternLight);
+        assigned += Set(quality, "animator", animator);
+        return assigned;
+    }
+
+    static bool IsIslandScene()
+    {
+        string sceneName = EditorSceneManager.GetActiveScene().name;
+        return sceneName.StartsWith("Island");
     }
 
     static Renderer[] FindWaterRenderers()
@@ -310,6 +358,28 @@ public static class SceneWiring
                 for (int i = 0; i < waterQuality.Length; i++)
                 {
                     nulls += RequireArray(waterQuality[i], "waterRenderers", quiet);
+                }
+            }
+
+            if (IsIslandScene())
+            {
+                KeeperQuality[] keeperQuality = Object.FindObjectsByType<KeeperQuality>(FindObjectsInactive.Include);
+                if (keeperQuality.Length == 0)
+                {
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("Null reference: KeeperQuality missing from GraphicsAppliers");
+                    }
+
+                    nulls++;
+                }
+
+                for (int i = 0; i < keeperQuality.Length; i++)
+                {
+                    nulls += RequireArray(keeperQuality[i], "keeperRenderers", quiet);
+                    nulls += Require(keeperQuality[i], "chestFill", quiet);
+                    nulls += Require(keeperQuality[i], "lanternLight", quiet);
+                    nulls += Require(keeperQuality[i], "animator", quiet);
                 }
             }
         }
