@@ -139,6 +139,11 @@ public class GameManager : MonoBehaviour
         {
             if (paused)
             {
+                if (hud != null && hud.ConsumePauseBack())
+                {
+                    return;
+                }
+
                 Resume();
             }
             else if (!roundOver && !DawnPlaying && !dying)

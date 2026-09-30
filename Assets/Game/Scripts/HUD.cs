@@ -36,6 +36,8 @@ public class HUD : MonoBehaviour
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
     [SerializeField] GameObject pausePanel;
+    [SerializeField] GraphicsMenu graphicsMenu;
+    [SerializeField] Button graphicsButton;
     [SerializeField] TMP_Text winDetailText;
     [SerializeField] TMP_Text loseDetailText;
     [SerializeField] TMP_Text statusText;
@@ -75,6 +77,7 @@ public class HUD : MonoBehaviour
     float lastNorm = 1f;
     float gainFlash;
     bool panelsAudited;
+    readonly Button[] pauseTab = new Button[4];
     static Sprite vignetteSprite;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
@@ -155,6 +158,10 @@ public class HUD : MonoBehaviour
         UpdateGhost(manager);
         UpdatePausePanel(manager);
         RefreshStatus();
+        if (pausePanel != null && pausePanel.activeSelf && (graphicsMenu == null || !graphicsMenu.IsOpen))
+        {
+            GraphicsMenu.HandleTab(pauseTab);
+        }
 
         if (manager.Won)
         {
@@ -408,40 +415,206 @@ public class HUD : MonoBehaviour
 
     void EnsurePausePanel()
     {
-        if (pausePanel != null)
+        if (pausePanel == null)
         {
-            return;
+            Transform existing = FindNamed("PausePanel");
+            if (existing != null)
+            {
+                pausePanel = existing.gameObject;
+            }
         }
 
-        Transform existing = FindNamed("PausePanel");
+        if (pausePanel == null)
+        {
+            Sprite sprite = PanelSprite();
+            GameObject panel = new GameObject("PausePanel", typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(transform, false);
+            panel.transform.SetAsLastSibling();
+            RectTransform rect = panel.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(560f, 540f);
+            Image image = panel.GetComponent<Image>();
+            image.sprite = sprite;
+            image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
+
+            MakeRuntimeText(rect, "Title", "Paused", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
+            MakeRuntimeButton(rect, "ResumeButton", "Resume", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(300f, 52f));
+            MakeRuntimeButton(rect, "RestartButton", "Restart", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(300f, 52f));
+            MakeRuntimeButton(rect, "GraphicsButton", "Graphics", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
+            MakeRuntimeButton(rect, "MenuButton", "Main Menu", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -108f), new Vector2(300f, 52f));
+            panel.SetActive(false);
+            pausePanel = panel;
+            buttonsWired = false;
+        }
+
+        if (EnsureGraphicsButton())
+        {
+            buttonsWired = false;
+        }
+
+        if (EnsureGraphicsSurface())
+        {
+            buttonsWired = false;
+        }
+
+        WireButtons();
+    }
+
+    bool EnsureGraphicsButton()
+    {
+        if (pausePanel == null)
+        {
+            return false;
+        }
+
+        Transform existing = pausePanel.transform.Find("GraphicsButton");
         if (existing != null)
         {
-            pausePanel = existing.gameObject;
+            if (graphicsButton == null)
+            {
+                graphicsButton = existing.GetComponent<Button>();
+            }
+
+            return false;
+        }
+
+        RectTransform panelRect = pausePanel.GetComponent<RectTransform>();
+        if (panelRect != null)
+        {
+            panelRect.sizeDelta = new Vector2(560f, 540f);
+        }
+
+        MovePauseButton("ResumeButton", new Vector2(0f, 108f));
+        MovePauseButton("RestartButton", new Vector2(0f, 36f));
+        MovePauseButton("MenuButton", new Vector2(0f, -108f));
+        MakeRuntimeButton(pausePanel.transform, "GraphicsButton", "Graphics", PanelSprite(), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
+        graphicsButton = pausePanel.transform.Find("GraphicsButton").GetComponent<Button>();
+        return true;
+    }
+
+    void MovePauseButton(string buttonName, Vector2 position)
+    {
+        Transform child = pausePanel.transform.Find(buttonName);
+        if (child == null)
+        {
             return;
         }
 
+        RectTransform rect = child as RectTransform;
+        if (rect != null)
+        {
+            rect.anchoredPosition = position;
+        }
+    }
+
+    bool EnsureGraphicsSurface()
+    {
+        if (graphicsMenu == null)
+        {
+            graphicsMenu = GetComponent<GraphicsMenu>();
+        }
+
+        bool created = false;
+        if (FindNamed("GraphicsPanel") == null)
+        {
+            CreateRuntimeGraphicsPanel();
+            created = true;
+        }
+
+        if (FindNamed("FpsReadout") == null)
+        {
+            TMP_Text readout = MakeRuntimeText(transform, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f), TextAlignmentOptions.MidlineRight);
+            readout.rectTransform.pivot = new Vector2(1f, 1f);
+            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
+            readout.gameObject.SetActive(false);
+            created = true;
+        }
+
+        if (graphicsMenu == null)
+        {
+            graphicsMenu = gameObject.AddComponent<GraphicsMenu>();
+            created = true;
+        }
+
+        return created;
+    }
+
+    void CreateRuntimeGraphicsPanel()
+    {
         Sprite sprite = PanelSprite();
-        GameObject panel = new GameObject("PausePanel", typeof(RectTransform), typeof(Image));
+        GameObject panel = new GameObject("GraphicsPanel", typeof(RectTransform), typeof(Image));
         panel.transform.SetParent(transform, false);
-        panel.transform.SetAsLastSibling();
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
         rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(560f, 420f);
+        rect.sizeDelta = new Vector2(700f, 560f);
         Image image = panel.GetComponent<Image>();
         image.sprite = sprite;
         image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
         image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-
-        MakeRuntimeText(rect, "Title", "Paused", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
-        MakeRuntimeButton(rect, "ResumeButton", "Resume", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 48f), new Vector2(300f, 52f));
-        MakeRuntimeButton(rect, "RestartButton", "Restart", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -24f), new Vector2(300f, 52f));
-        MakeRuntimeButton(rect, "MenuButton", "Main Menu", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -96f), new Vector2(300f, 52f));
+        MakeRuntimeText(rect, "Title", "Graphics", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(640f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
+        MakeRuntimeText(rect, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 150f), new Vector2(640f, 40f), new Color(1f, 0.92f, 0.78f), TextAlignmentOptions.Center);
+        MakeRuntimeButton(rect, "LowButton", "Low", sprite, new Vector2(0.5f, 0.5f), new Vector2(-243f, 70f), new Vector2(150f, 48f));
+        MakeRuntimeButton(rect, "MediumButton", "Medium", sprite, new Vector2(0.5f, 0.5f), new Vector2(-81f, 70f), new Vector2(150f, 48f));
+        MakeRuntimeButton(rect, "HighButton", "High", sprite, new Vector2(0.5f, 0.5f), new Vector2(81f, 70f), new Vector2(150f, 48f));
+        MakeRuntimeButton(rect, "UltraButton", "Ultra", sprite, new Vector2(0.5f, 0.5f), new Vector2(243f, 70f), new Vector2(150f, 48f));
+        MakeRuntimeButton(rect, "VSyncButton", "VSync: Off", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(420f, 48f));
+        MakeRuntimeButton(rect, "FpsButton", "FPS counter: Off", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -88f), new Vector2(420f, 48f));
+        MakeRuntimeButton(rect, "BackButton", "Back", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -168f), new Vector2(280f, 48f));
         panel.SetActive(false);
-        pausePanel = panel;
-        buttonsWired = false;
-        WireButtons();
+    }
+
+    public bool ConsumePauseBack()
+    {
+        if (graphicsMenu == null)
+        {
+            graphicsMenu = GetComponent<GraphicsMenu>();
+        }
+
+        if (graphicsMenu == null || !graphicsMenu.IsOpen)
+        {
+            return false;
+        }
+
+        graphicsMenu.Close();
+        return true;
+    }
+
+    void OpenGraphics()
+    {
+        if (graphicsMenu == null)
+        {
+            graphicsMenu = GetComponent<GraphicsMenu>();
+        }
+
+        if (graphicsMenu == null)
+        {
+            return;
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
+        graphicsMenu.Open(ShowPauseButtons);
+    }
+
+    void ShowPauseButtons()
+    {
+        GameManager manager = GameManager.Instance;
+        if (pausePanel == null || manager == null || !manager.IsPaused)
+        {
+            return;
+        }
+
+        pausePanel.SetActive(true);
+        pausePanel.transform.SetAsLastSibling();
+        GraphicsMenu.Select(FindButton(pausePanel, "ResumeButton"));
     }
 
     public void EnsureWidgets()
@@ -685,7 +858,9 @@ public class HUD : MonoBehaviour
         BindButton(losePanel, "MenuButton", GoMenu);
         BindButton(pausePanel, "ResumeButton", ResumeGame);
         BindButton(pausePanel, "RestartButton", Retry);
+        BindButton(pausePanel, "GraphicsButton", OpenGraphics);
         BindButton(pausePanel, "MenuButton", GoMenu);
+        CachePauseTab();
         buttonsWired = true;
         AuditPanels();
         RefreshNextButtons(false);
@@ -745,6 +920,11 @@ public class HUD : MonoBehaviour
         if (pausePanel != null)
         {
             pausePanel.SetActive(false);
+        }
+
+        if (graphicsMenu != null)
+        {
+            graphicsMenu.DismissQuiet();
         }
     }
 
@@ -1081,6 +1261,47 @@ public class HUD : MonoBehaviour
         }
     }
 
+    void CachePauseTab()
+    {
+        pauseTab[0] = FindButton(pausePanel, "ResumeButton");
+        pauseTab[1] = FindButton(pausePanel, "RestartButton");
+        pauseTab[2] = graphicsButton != null ? graphicsButton : FindButton(pausePanel, "GraphicsButton");
+        pauseTab[3] = FindButton(pausePanel, "MenuButton");
+        LinkPauseTab();
+    }
+
+    void LinkPauseTab()
+    {
+        Button previous = null;
+        for (int i = 0; i < pauseTab.Length; i++)
+        {
+            Button button = pauseTab[i];
+            if (button == null)
+            {
+                continue;
+            }
+
+            ColorBlock colors = button.colors;
+            colors.selectedColor = colors.highlightedColor;
+            button.colors = colors;
+            Navigation navigation = button.navigation;
+            navigation.mode = Navigation.Mode.Explicit;
+            navigation.selectOnUp = previous;
+            navigation.selectOnDown = null;
+            navigation.selectOnLeft = null;
+            navigation.selectOnRight = null;
+            button.navigation = navigation;
+            if (previous != null)
+            {
+                Navigation above = previous.navigation;
+                above.selectOnDown = button;
+                previous.navigation = above;
+            }
+
+            previous = button;
+        }
+    }
+
     void UpdatePausePanel(GameManager manager)
     {
         if (pausePanel == null)
@@ -1088,19 +1309,26 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        bool show = manager.IsPaused;
+        bool graphicsOpen = graphicsMenu != null && graphicsMenu.IsOpen;
+        bool show = manager.IsPaused && !graphicsOpen;
         if (pausePanel.activeSelf != show)
         {
             pausePanel.SetActive(show);
             if (show)
             {
                 pausePanel.transform.SetAsLastSibling();
+                GraphicsMenu.Select(pauseTab[0] != null ? pauseTab[0] : FindButton(pausePanel, "ResumeButton"));
             }
         }
     }
 
     void ShowWin()
     {
+        if (graphicsMenu != null)
+        {
+            graphicsMenu.DismissQuiet();
+        }
+
         if (winPanel != null)
         {
             winPanel.SetActive(true);
@@ -1135,6 +1363,11 @@ public class HUD : MonoBehaviour
         if (GameManager.Instance != null && (GameManager.Instance.Won || GameManager.Instance.DawnPlaying))
         {
             return;
+        }
+
+        if (graphicsMenu != null)
+        {
+            graphicsMenu.DismissQuiet();
         }
 
         if (losePanel != null)

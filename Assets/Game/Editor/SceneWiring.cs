@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LanternKeeper
 {
@@ -124,6 +125,7 @@ public static class SceneWiring
         assigned += WireKeeperQuality();
         assigned += WireLightQuality();
         assigned += WireHorizonQuality();
+        assigned += WireGraphicsMenus();
         return assigned;
     }
 
@@ -404,6 +406,8 @@ public static class SceneWiring
             nulls += Require(huds[i], "timerText", quiet);
             nulls += Require(huds[i], "statusText", quiet);
             nulls += Require(huds[i], "pausePanel", quiet);
+            nulls += Require(huds[i], "graphicsMenu", quiet);
+            nulls += Require(huds[i], "graphicsButton", quiet);
             nulls += Require(huds[i], "fadeOverlay", quiet);
             nulls += Require(huds[i], "fuelMeter", quiet);
         }
@@ -540,7 +544,116 @@ public static class SceneWiring
         }
 
         nulls += ReportHorizon(quiet);
+        nulls += ReportGraphicsMenus(quiet);
         return nulls;
+    }
+
+    static int WireGraphicsMenus()
+    {
+        int assigned = 0;
+        GraphicsMenu[] menus = Object.FindObjectsByType<GraphicsMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < menus.Length; i++)
+        {
+            assigned += BindGraphicsMenu(menus[i]);
+        }
+
+        HUD[] huds = Object.FindObjectsByType<HUD>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < huds.Length; i++)
+        {
+            GraphicsMenu menu = huds[i].GetComponent<GraphicsMenu>();
+            assigned += Set(huds[i], "graphicsMenu", menu);
+            Transform pause = FindNamed(huds[i].transform, "PausePanel");
+            Transform button = pause != null ? FindNamed(pause, "GraphicsButton") : null;
+            assigned += Set(huds[i], "graphicsButton", button != null ? button.GetComponent<Button>() : null);
+        }
+
+        return assigned;
+    }
+
+    static int BindGraphicsMenu(GraphicsMenu menu)
+    {
+        if (menu == null)
+        {
+            return 0;
+        }
+
+        Transform panel = FindNamed(menu.transform, "GraphicsPanel");
+        Transform readout = FindNamed(menu.transform, "FpsReadout");
+        int assigned = 0;
+        assigned += Set(menu, "panel", panel != null ? panel.gameObject : null);
+        assigned += Set(menu, "lowButton", ButtonNamed(panel, "LowButton"));
+        assigned += Set(menu, "mediumButton", ButtonNamed(panel, "MediumButton"));
+        assigned += Set(menu, "highButton", ButtonNamed(panel, "HighButton"));
+        assigned += Set(menu, "ultraButton", ButtonNamed(panel, "UltraButton"));
+        assigned += Set(menu, "vsyncButton", ButtonNamed(panel, "VSyncButton"));
+        assigned += Set(menu, "fpsButton", ButtonNamed(panel, "FpsButton"));
+        assigned += Set(menu, "backButton", ButtonNamed(panel, "BackButton"));
+        Transform status = panel != null ? FindNamed(panel, "GraphicsStatus") : null;
+        assigned += Set(menu, "statusLabel", status != null ? status.gameObject : null);
+        assigned += Set(menu, "fpsReadout", readout != null ? readout.gameObject : null);
+        return assigned;
+    }
+
+    static int ReportGraphicsMenus(bool quiet)
+    {
+        bool expect = Object.FindAnyObjectByType<MainMenu>() != null || Object.FindAnyObjectByType<HUD>() != null;
+        GraphicsMenu[] menus = Object.FindObjectsByType<GraphicsMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (menus.Length == 0)
+        {
+            if (expect && !quiet)
+            {
+                Debug.LogWarning("Null reference: GraphicsMenu missing");
+            }
+
+            return expect ? 1 : 0;
+        }
+
+        int nulls = 0;
+        for (int i = 0; i < menus.Length; i++)
+        {
+            nulls += Require(menus[i], "panel", quiet);
+            nulls += Require(menus[i], "lowButton", quiet);
+            nulls += Require(menus[i], "mediumButton", quiet);
+            nulls += Require(menus[i], "highButton", quiet);
+            nulls += Require(menus[i], "ultraButton", quiet);
+            nulls += Require(menus[i], "vsyncButton", quiet);
+            nulls += Require(menus[i], "fpsButton", quiet);
+            nulls += Require(menus[i], "backButton", quiet);
+            nulls += Require(menus[i], "statusLabel", quiet);
+            nulls += Require(menus[i], "fpsReadout", quiet);
+        }
+
+        return nulls;
+    }
+
+    static Button ButtonNamed(Transform root, string name)
+    {
+        Transform found = root != null ? FindNamed(root, name) : null;
+        return found != null ? found.GetComponent<Button>() : null;
+    }
+
+    static Transform FindNamed(Transform root, string name)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        if (root.name == name)
+        {
+            return root;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindNamed(root.GetChild(i), name);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     static int ReportHorizon(bool quiet)

@@ -26,7 +26,7 @@ Island 2 unlocks after you win Island 1. The first island has 5 beacons. The sec
 | Shift | Sprint. This burns lantern fuel faster |
 | Space | Jump. Two beacons sit on raised ground |
 | E | Light a beacon when you are standing next to it. The prompt shows the fuel cost |
-| Esc or P | Pause. Resume, restart, or return to the main menu. The cursor unlocks while paused |
+| Esc or P | Pause. Resume, restart, change graphics, or return to the main menu. The cursor unlocks while paused. Esc or P on the graphics panel returns to pause and leaves the game paused |
 | R | Retry from the win or lose screen |
 | M | Mute or unmute the music |
 
@@ -44,7 +44,20 @@ Your best time is saved for each island.
 
 ## Graphics presets
 
-Low, Medium, High, and Ultra presets are in the project. Medium is the default and is today's look. The graphics menu comes in a later step.
+Open **Graphics** from the main menu, or from the pause menu. The choice applies immediately, with no scene reload, and it is saved. A preset picked on the main menu is already active when Island 1 or Island 2 loads. While the graphics panel is open from pause, the game stays paused. Esc or P closes that panel and returns to the pause buttons. Esc or P on the pause panel still resumes.
+
+Medium is the default and matches the look the islands were built with.
+
+| Preset | What it changes |
+| --- | --- |
+| Low | Render scale 0.75, no anti-aliasing, HDR and post-processing off, short shadows, grass drawn at 12 m, water ripples and foam off, keeper rim off, distant mountains hidden |
+| Medium | Today's look: full resolution, the current anti-aliasing, grass at 20 m, four shadow cascades, one haze layer |
+| High | MSAA 4x, grass to 30 m, longer shadows, a second water ripple layer, extra mountain ridges |
+| Ultra | High, plus SMAA on the camera, grass to 45 m, the longest shadows, stronger water glint, a lantern shadow on the keeper, and a farther horizon |
+
+VSync is off until you turn it on. The VSync button saves `LanternKeeperVSync` and applies it immediately. The FPS counter is off by default. It is saved as `LanternKeeperFps`, sits in the corner, and updates about twice a second from the average frame time, including while the game is paused.
+
+The preset is stored in PlayerPrefs as `LanternKeeperGraphics` (0 Low, 1 Medium, 2 High, 3 Ultra). Starting the game with `-lkquality=0` through `-lkquality=3` overrides the saved choice for that session until a preset is picked in the menu.
 
 ## Project layout
 

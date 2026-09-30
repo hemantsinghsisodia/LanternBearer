@@ -1376,11 +1376,13 @@ public static partial class IslandBuilder
         MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, 150f));
         MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, 80f));
         MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, 10f));
-        MakeButton(art, panel, "Island1Button", "Island 1", new Vector2(0f, -70f));
-        MakeText(panel, "BestIsland1", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -112f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "Island2Button", "Island 2", new Vector2(0f, -180f));
-        MakeText(panel, "BestIsland2", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -222f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, -300f));
+        MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, -60f));
+        MakeButton(art, panel, "Island1Button", "Island 1", new Vector2(0f, -140f));
+        MakeText(panel, "BestIsland1", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -182f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+        MakeButton(art, panel, "Island2Button", "Island 2", new Vector2(0f, -250f));
+        MakeText(panel, "BestIsland2", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -292f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, -370f));
+        CreateLegacyGraphics(art, canvasObject.transform, panel);
     }
 
     static void CreateHud(ArtKit art, Stage stage)
@@ -1492,11 +1494,13 @@ public static partial class IslandBuilder
 
         GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused");
         RectTransform pauseRect = pause.GetComponent<RectTransform>();
-        pauseRect.sizeDelta = new Vector2(560f, 420f);
-        MakeHudButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 48f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -24f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -96f), new Vector2(300f, 52f));
+        pauseRect.sizeDelta = new Vector2(560f, 540f);
+        MakeHudButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(300f, 52f));
+        MakeHudButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(300f, 52f));
+        MakeHudButton(art, pause.transform, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
+        MakeHudButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -108f), new Vector2(300f, 52f));
         pause.SetActive(false);
+        CreateTmpGraphics(art, canvasObject.transform);
 
         BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
         SerializedObject compassObject = new SerializedObject(compassScript);
@@ -1516,6 +1520,8 @@ public static partial class IslandBuilder
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
         hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
+        hudObject.FindProperty("graphicsMenu").objectReferenceValue = canvasObject.GetComponent<GraphicsMenu>();
+        hudObject.FindProperty("graphicsButton").objectReferenceValue = pause.transform.Find("GraphicsButton").GetComponent<Button>();
         hudObject.FindProperty("statusText").objectReferenceValue = status;
         hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
         hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
@@ -1741,6 +1747,294 @@ public static partial class IslandBuilder
         config.nextLevelScene = nextScene;
         EditorUtility.SetDirty(config);
         return config;
+    }
+
+    [MenuItem("Lantern Keeper/Install Graphics Menus")]
+    public static void InstallGraphicsMenus()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Exit Play mode before installing graphics menus.");
+            return;
+        }
+
+        string[] scenes =
+        {
+            "Assets/Game/Scenes/MainMenu.unity",
+            "Assets/Game/Scenes/Island1.unity",
+            "Assets/Game/Scenes/Island2.unity"
+        };
+
+        for (int i = 0; i < scenes.Length; i++)
+        {
+            EditorSceneManager.OpenScene(scenes[i], OpenSceneMode.Single);
+            PatchActiveSceneGraphics();
+            SceneWiring.ApplyActiveScene();
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            EditorSceneManager.SaveOpenScenes();
+            int nulls = SceneWiring.ReportActiveScene();
+            Debug.Log("Graphics menu installed in " + scenes[i] + " with " + nulls + " null references.");
+        }
+    }
+
+    static void PatchActiveSceneGraphics()
+    {
+        MainMenu menu = Object.FindAnyObjectByType<MainMenu>();
+        if (menu != null)
+        {
+            PatchMainMenu(menu);
+        }
+
+        HUD hud = Object.FindAnyObjectByType<HUD>();
+        if (hud != null)
+        {
+            PatchHud(hud);
+        }
+    }
+
+    static void PatchMainMenu(MainMenu menu)
+    {
+        Transform panel = menu.transform.Find("Panel");
+        if (panel == null)
+        {
+            Debug.LogError("Main menu Panel is missing.");
+            return;
+        }
+
+        MoveRect(panel, "PlayButton", new Vector2(0f, 150f));
+        MoveRect(panel, "DifficultyButton", new Vector2(0f, 80f));
+        MoveRect(panel, "MusicButton", new Vector2(0f, 10f));
+        MoveRect(panel, "Island1Button", new Vector2(0f, -140f));
+        MoveRect(panel, "BestIsland1", new Vector2(0f, -182f));
+        MoveRect(panel, "Island2Button", new Vector2(0f, -250f));
+        MoveRect(panel, "BestIsland2", new Vector2(0f, -292f));
+        MoveRect(panel, "QuitButton", new Vector2(0f, -370f));
+        ArtKit art = KitFrom(panel.Find("PlayButton"));
+        if (panel.Find("GraphicsButton") == null)
+        {
+            MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, -60f));
+        }
+        else
+        {
+            MoveRect(panel, "GraphicsButton", new Vector2(0f, -60f));
+        }
+
+        CreateLegacyGraphics(art, menu.transform, panel as RectTransform);
+    }
+
+    static void PatchHud(HUD hud)
+    {
+        Transform pause = hud.transform.Find("PausePanel");
+        if (pause == null)
+        {
+            Transform[] children = hud.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < children.Length; i++)
+            {
+                if (children[i].name == "PausePanel")
+                {
+                    pause = children[i];
+                    break;
+                }
+            }
+        }
+
+        if (pause == null)
+        {
+            Debug.LogError("PausePanel is missing.");
+            return;
+        }
+
+        RectTransform pauseRect = pause as RectTransform;
+        if (pauseRect != null)
+        {
+            pauseRect.sizeDelta = new Vector2(560f, 540f);
+        }
+
+        MoveRect(pause, "ResumeButton", new Vector2(0f, 108f));
+        MoveRect(pause, "RestartButton", new Vector2(0f, 36f));
+        MoveRect(pause, "MenuButton", new Vector2(0f, -108f));
+        ArtKit art = KitFrom(pause.Find("ResumeButton"));
+        if (pause.Find("GraphicsButton") == null)
+        {
+            MakeHudButton(art, pause, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
+        }
+        else
+        {
+            MoveRect(pause, "GraphicsButton", new Vector2(0f, -36f));
+        }
+
+        CreateTmpGraphics(art, hud.transform);
+        SerializedObject hudObject = new SerializedObject(hud);
+        hudObject.FindProperty("graphicsMenu").objectReferenceValue = hud.GetComponent<GraphicsMenu>();
+        Transform graphicsButton = pause.Find("GraphicsButton");
+        hudObject.FindProperty("graphicsButton").objectReferenceValue = graphicsButton != null ? graphicsButton.GetComponent<Button>() : null;
+        hudObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void CreateLegacyGraphics(ArtKit art, Transform canvas, RectTransform match)
+    {
+        if (canvas.Find("GraphicsPanel") == null && match != null)
+        {
+            Font font = BuiltinFont();
+            RectTransform panel = MakeRect(canvas, "GraphicsPanel", match.anchorMin, match.anchorMax, match.anchoredPosition, match.sizeDelta);
+            panel.pivot = match.pivot;
+            Image image = panel.gameObject.AddComponent<Image>();
+            Image source = match.GetComponent<Image>();
+            image.sprite = source != null && source.sprite != null ? source.sprite : art.uiSprite;
+            image.type = Image.Type.Sliced;
+            image.color = source != null ? source.color : new Color(0.03f, 0.04f, 0.07f, 0.72f);
+            MakeText(panel, "Title", "Graphics", 58, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 80f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
+            MakeText(panel, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 200f), new Vector2(440f, 40f), new Color(1f, 0.92f, 0.78f), font, TextAnchor.MiddleCenter);
+            MakeButton(art, panel, "LowButton", "Low", new Vector2(-174f, 110f), new Vector2(108f, 48f));
+            MakeButton(art, panel, "MediumButton", "Medium", new Vector2(-58f, 110f), new Vector2(108f, 48f));
+            MakeButton(art, panel, "HighButton", "High", new Vector2(58f, 110f), new Vector2(108f, 48f));
+            MakeButton(art, panel, "UltraButton", "Ultra", new Vector2(174f, 110f), new Vector2(108f, 48f));
+            MakeButton(art, panel, "VSyncButton", "VSync: Off", new Vector2(0f, 20f), new Vector2(320f, 48f));
+            MakeButton(art, panel, "FpsButton", "FPS counter: Off", new Vector2(0f, -60f), new Vector2(320f, 48f));
+            MakeButton(art, panel, "BackButton", "Back", new Vector2(0f, -160f), new Vector2(280f, 48f));
+            panel.gameObject.SetActive(false);
+        }
+
+        if (canvas.Find("FpsReadout") == null)
+        {
+            Font font = BuiltinFont();
+            Text readout = MakeText(canvas, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f), font, TextAnchor.MiddleRight);
+            readout.rectTransform.pivot = new Vector2(1f, 1f);
+            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
+            readout.gameObject.SetActive(false);
+        }
+
+        if (canvas.GetComponent<GraphicsMenu>() == null)
+        {
+            canvas.gameObject.AddComponent<GraphicsMenu>();
+        }
+
+        BindGraphicsMenu(canvas.GetComponent<GraphicsMenu>(), canvas);
+    }
+
+    static void CreateTmpGraphics(ArtKit art, Transform canvas)
+    {
+        if (canvas.Find("GraphicsPanel") == null)
+        {
+            RectTransform panel = MakeRect(canvas, "GraphicsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 560f));
+            Image image = panel.gameObject.AddComponent<Image>();
+            image.sprite = art.uiSprite;
+            image.type = Image.Type.Sliced;
+            image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
+            MakeTmp(panel, "Title", "Graphics", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(640f, 64f), new Color(1f, 0.82f, 0.45f, 1f), TextAlignmentOptions.Center);
+            MakeTmp(panel, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 150f), new Vector2(640f, 40f), new Color(1f, 0.92f, 0.78f, 1f), TextAlignmentOptions.Center);
+            MakeHudButton(art, panel, "LowButton", "Low", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-243f, 70f), new Vector2(150f, 48f));
+            MakeHudButton(art, panel, "MediumButton", "Medium", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-81f, 70f), new Vector2(150f, 48f));
+            MakeHudButton(art, panel, "HighButton", "High", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(81f, 70f), new Vector2(150f, 48f));
+            MakeHudButton(art, panel, "UltraButton", "Ultra", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(243f, 70f), new Vector2(150f, 48f));
+            MakeHudButton(art, panel, "VSyncButton", "VSync: Off", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(420f, 48f));
+            MakeHudButton(art, panel, "FpsButton", "FPS counter: Off", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -88f), new Vector2(420f, 48f));
+            MakeHudButton(art, panel, "BackButton", "Back", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -168f), new Vector2(280f, 48f));
+            panel.gameObject.SetActive(false);
+        }
+
+        if (canvas.Find("FpsReadout") == null)
+        {
+            TMP_Text readout = MakeTmp(canvas, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f, 1f), TextAlignmentOptions.MidlineRight);
+            readout.rectTransform.pivot = new Vector2(1f, 1f);
+            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
+            readout.gameObject.SetActive(false);
+        }
+
+        if (canvas.GetComponent<GraphicsMenu>() == null)
+        {
+            canvas.gameObject.AddComponent<GraphicsMenu>();
+        }
+
+        BindGraphicsMenu(canvas.GetComponent<GraphicsMenu>(), canvas);
+    }
+
+    static void BindGraphicsMenu(GraphicsMenu menu, Transform canvas)
+    {
+        if (menu == null)
+        {
+            return;
+        }
+
+        Transform panel = canvas.Find("GraphicsPanel");
+        SerializedObject so = new SerializedObject(menu);
+        SetRef(so, "panel", panel != null ? panel.gameObject : null);
+        SetRef(so, "lowButton", ButtonOn(panel, "LowButton"));
+        SetRef(so, "mediumButton", ButtonOn(panel, "MediumButton"));
+        SetRef(so, "highButton", ButtonOn(panel, "HighButton"));
+        SetRef(so, "ultraButton", ButtonOn(panel, "UltraButton"));
+        SetRef(so, "vsyncButton", ButtonOn(panel, "VSyncButton"));
+        SetRef(so, "fpsButton", ButtonOn(panel, "FpsButton"));
+        SetRef(so, "backButton", ButtonOn(panel, "BackButton"));
+        Transform status = panel != null ? panel.Find("GraphicsStatus") : null;
+        SetRef(so, "statusLabel", status != null ? status.gameObject : null);
+        Transform readout = canvas.Find("FpsReadout");
+        SetRef(so, "fpsReadout", readout != null ? readout.gameObject : null);
+        so.ApplyModifiedPropertiesWithoutUndo();
+        if (panel != null)
+        {
+            panel.gameObject.SetActive(false);
+        }
+
+        if (readout != null)
+        {
+            readout.gameObject.SetActive(false);
+        }
+    }
+
+    static void SetRef(SerializedObject so, string property, Object value)
+    {
+        SerializedProperty prop = so.FindProperty(property);
+        if (prop != null)
+        {
+            prop.objectReferenceValue = value;
+        }
+    }
+
+    static Button ButtonOn(Transform panel, string name)
+    {
+        if (panel == null)
+        {
+            return null;
+        }
+
+        Transform child = panel.Find(name);
+        return child != null ? child.GetComponent<Button>() : null;
+    }
+
+    static void MoveRect(Transform parent, string name, Vector2 position)
+    {
+        if (parent == null)
+        {
+            return;
+        }
+
+        Transform child = parent.Find(name);
+        RectTransform rect = child as RectTransform;
+        if (rect != null)
+        {
+            rect.anchoredPosition = position;
+        }
+    }
+
+    static ArtKit KitFrom(Transform button)
+    {
+        ArtKit art = new ArtKit();
+        if (button != null)
+        {
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                art.uiSprite = image.sprite;
+            }
+        }
+
+        if (art.uiSprite == null)
+        {
+            art.uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        }
+
+        return art;
     }
 }
 }
