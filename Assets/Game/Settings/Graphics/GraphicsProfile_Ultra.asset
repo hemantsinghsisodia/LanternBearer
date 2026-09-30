@@ -40,7 +40,8 @@ MonoBehaviour:
   waterGlint: 0.85
   waterDetailLayer: 1
   waterRippleRange: 1.35
-  waterFoamReach: 2.4
+  waterFoamReach: 12
+  waterDetailStrength: 1
   waterReflectionProbe: 1
   keeperRim: 1
   chestFillLight: 1

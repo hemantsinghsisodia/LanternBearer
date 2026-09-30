@@ -108,7 +108,8 @@ public static class GraphicsProfileSetup
         profile.waterGlint = low ? 0.22f : ultra ? 0.85f : 0.55f;
         profile.waterDetailLayer = high;
         profile.waterRippleRange = low ? 0f : high ? 1.35f : 1f;
-        profile.waterFoamReach = low ? 0f : ultra ? 2.4f : 1.6f;
+        profile.waterFoamReach = low ? 0f : ultra ? 12f : 8f;
+        profile.waterDetailStrength = low ? 0f : 1f;
         profile.waterReflectionProbe = ultra;
 
         profile.keeperRim = !low;

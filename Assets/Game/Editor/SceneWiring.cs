@@ -114,6 +114,7 @@ public static class SceneWiring
         }
 
         assigned += WireTerrainQuality();
+        assigned += WireWaterQuality();
         return assigned;
     }
 
@@ -143,6 +144,71 @@ public static class SceneWiring
         }
 
         return Set(quality, "terrain", terrain);
+    }
+
+    static int WireWaterQuality()
+    {
+        if (Object.FindAnyObjectByType<PlayerController>() == null)
+        {
+            return 0;
+        }
+
+        Renderer[] water = FindWaterRenderers();
+        if (water.Length == 0)
+        {
+            return 0;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        WaterQuality quality = host.GetComponent<WaterQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<WaterQuality>();
+        }
+
+        return SetArray(quality, "waterRenderers", water);
+    }
+
+    static Renderer[] FindWaterRenderers()
+    {
+        Renderer[] all = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include);
+        int count = 0;
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (IsWaterRenderer(all[i]))
+            {
+                count++;
+            }
+        }
+
+        Renderer[] found = new Renderer[count];
+        int cursor = 0;
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (IsWaterRenderer(all[i]))
+            {
+                found[cursor] = all[i];
+                cursor++;
+            }
+        }
+
+        return found;
+    }
+
+    static bool IsWaterRenderer(Renderer renderer)
+    {
+        if (renderer == null)
+        {
+            return false;
+        }
+
+        Material material = renderer.sharedMaterial;
+        return material != null && material.shader != null && material.shader.name == "LanternKeeper/Water";
     }
 
     public static int ReportActiveScene()
@@ -226,6 +292,26 @@ public static class SceneWiring
             {
                 nulls += Require(terrainQuality[i], "terrain", quiet);
             }
+
+            Renderer[] waterRenderers = FindWaterRenderers();
+            if (waterRenderers.Length > 0)
+            {
+                WaterQuality[] waterQuality = Object.FindObjectsByType<WaterQuality>(FindObjectsInactive.Include);
+                if (waterQuality.Length == 0)
+                {
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("Null reference: WaterQuality missing from GraphicsAppliers");
+                    }
+
+                    nulls++;
+                }
+
+                for (int i = 0; i < waterQuality.Length; i++)
+                {
+                    nulls += RequireArray(waterQuality[i], "waterRenderers", quiet);
+                }
+            }
         }
 
         return nulls;
@@ -255,6 +341,44 @@ public static class SceneWiring
         return 1;
     }
 
+    static int SetArray(Object target, string property, Object[] values)
+    {
+        if (target == null || values == null)
+        {
+            return 0;
+        }
+
+        SerializedObject so = new SerializedObject(target);
+        SerializedProperty prop = so.FindProperty(property);
+        if (prop == null || !prop.isArray)
+        {
+            return 0;
+        }
+
+        bool same = prop.arraySize == values.Length;
+        for (int i = 0; i < values.Length && same; i++)
+        {
+            if (prop.GetArrayElementAtIndex(i).objectReferenceValue != values[i])
+            {
+                same = false;
+            }
+        }
+
+        if (same)
+        {
+            return 0;
+        }
+
+        prop.arraySize = values.Length;
+        for (int i = 0; i < values.Length; i++)
+        {
+            prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return 1;
+    }
+
     static int Require(Object target, string property, bool quiet)
     {
         if (target == null)
@@ -275,6 +399,39 @@ public static class SceneWiring
         }
 
         return 1;
+    }
+
+    static int RequireArray(Object target, string property, bool quiet)
+    {
+        if (target == null)
+        {
+            return 0;
+        }
+
+        SerializedObject so = new SerializedObject(target);
+        SerializedProperty prop = so.FindProperty(property);
+        int missing = 0;
+        if (prop == null || !prop.isArray || prop.arraySize == 0)
+        {
+            missing = 1;
+        }
+        else
+        {
+            for (int i = 0; i < prop.arraySize; i++)
+            {
+                if (prop.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    missing++;
+                }
+            }
+        }
+
+        if (missing > 0 && !quiet)
+        {
+            Debug.LogWarning("Null reference: " + target.GetType().Name + "." + property + " on " + target.name, target);
+        }
+
+        return missing > 0 ? 1 : 0;
     }
 }
 }

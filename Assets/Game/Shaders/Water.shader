@@ -38,6 +38,7 @@ Shader "LanternKeeper/Water"
             #pragma target 3.5
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_local _ _LK_WATER_LOW _LK_WATER_HIGH
             #define _SCREENSPACEREFLECTIONS_OFF
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -60,6 +61,9 @@ Shader "LanternKeeper/Water"
             float _FadeEnd;
             float _LanternSkyBlend;
             float4 _WaterTint;
+            float _LK_RippleRange;
+            float _LK_FoamReach;
+            float _LK_DetailStrength;
 
             TEXTURE2D(_NormalA);
             SAMPLER(sampler_NormalA);
@@ -161,6 +165,22 @@ Shader "LanternKeeper/Water"
                 float time = _Time.y;
                 float3 absoluteWS = input.absoluteWS;
                 float eye = length(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
+                float3 normalWS;
+                float depth01;
+                float shore;
+                float diff;
+                float nearRipple;
+                float ripplePatch;
+                float foam;
+#if defined(_LK_WATER_LOW)
+                normalWS = normalize(input.normalWS);
+                depth01 = 1.0;
+                shore = 1.0;
+                diff = 80.0;
+                nearRipple = 0.0;
+                ripplePatch = 0.0;
+                foam = 0.0;
+#else
                 float ripple = lerp(1.15, 0.85, smoothstep(40.0, 240.0, eye));
                 float normalLod = min(eye * 0.008, 1.6);
                 float2 uv1 = absoluteWS.xz * 0.032 + float2(time * 0.014, time * 0.008);
@@ -168,20 +188,30 @@ Shader "LanternKeeper/Water"
                 float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalA, sampler_NormalA, uv1, normalLod));
                 float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalB, sampler_NormalB, uv2, normalLod));
                 float3 nTS = normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
+#if defined(_LK_WATER_HIGH)
+                float2 uv3 = absoluteWS.xz * 0.091 + float2(-time * 0.021, time * 0.016);
+                float2 uv4 = absoluteWS.xz * 0.137 + float2(time * 0.013, -time * 0.019);
+                float3 n3 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalA, sampler_NormalA, uv3, normalLod));
+                float3 n4 = UnpackNormal(SAMPLE_TEXTURE2D_LOD(_NormalB, sampler_NormalB, uv4, normalLod));
+                float detail = saturate(_LK_DetailStrength);
+                nTS.xy += (n3.xy + n4.xy) * detail * 0.55;
+                nTS = normalize(nTS);
+#endif
                 nTS.xy *= ripple * 1.8;
                 nTS = normalize(nTS);
-
                 float3 up = normalize(input.normalWS);
                 float3 tangent = normalize(cross(float3(0, 0, 1), up));
                 float3 bitangent = cross(up, tangent);
-                float3 normalWS = normalize(tangent * nTS.x + bitangent * nTS.y + up * nTS.z);
+                normalWS = normalize(tangent * nTS.x + bitangent * nTS.y + up * nTS.z);
+#endif
 
+#if !defined(_LK_WATER_LOW)
                 float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
                 float rawDepth = SampleSceneDepth(screenUV);
                 float sceneEye = LinearEyeDepth(rawDepth, _ZBufferParams);
-                float diff = sceneEye - input.eyeDepth;
-                float depth01 = saturate(diff / max(_DepthFade, 0.01));
-                float shore = saturate(diff / 0.32);
+                diff = sceneEye - input.eyeDepth;
+                depth01 = saturate(diff / max(_DepthFade, 0.01));
+                shore = saturate(diff / 0.32);
                 #if UNITY_REVERSED_Z
                 if (rawDepth <= 0.0001)
                 #else
@@ -192,6 +222,7 @@ Shader "LanternKeeper/Water"
                     shore = 1.0;
                     diff = 80.0;
                 }
+#endif
 
                 float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - GetAbsolutePositionWS(input.positionWS));
                 Light mainLight = GetMainLight();
@@ -203,15 +234,27 @@ Shader "LanternKeeper/Water"
                 float3 deep = _DeepColor.rgb;
                 float3 water = lerp(shallow, deep, depth01);
                 float shallowness = 1.0 - depth01;
+#if !defined(_LK_WATER_LOW)
                 float2 refractUV = screenUV + normalWS.xz * _Refraction * shallowness;
                 float3 refracted = SampleSceneColor(refractUV);
                 water = lerp(water, refracted, shallowness * shore * 0.45 * (1.0 - fresnel));
+#endif
 
-                float nearRipple = 1.0 - smoothstep(40.0, 120.0, eye);
+#if !defined(_LK_WATER_LOW)
+#if defined(_LK_WATER_HIGH)
+                float rippleRange = _LK_RippleRange < 1.0 ? 1.0 : _LK_RippleRange;
+                nearRipple = 1.0 - smoothstep(40.0, 120.0 * rippleRange, eye);
+#else
+                nearRipple = 1.0 - smoothstep(40.0, 120.0, eye);
+#endif
                 float2 foamUv = absoluteWS.xz * 0.042 + float2(time * 0.012, time * 0.006);
                 float foamField = SAMPLE_TEXTURE2D(_FoamNoise, sampler_FoamNoise, foamUv).g;
-                float ripplePatch = n1.x * 0.38 + n1.y * 0.28 + n2.x * 0.26 + n2.y * 0.18;
+                ripplePatch = n1.x * 0.38 + n1.y * 0.28 + n2.x * 0.26 + n2.y * 0.18;
                 ripplePatch += (foamField - 0.3) * 1.15;
+#if defined(_LK_WATER_HIGH)
+                ripplePatch += (n3.x + n4.y) * 0.12 * detail;
+#endif
+#endif
 
                 float3 reflectNormal = normalize(float3(normalWS.x * 2.6, normalWS.y, normalWS.z * 2.6));
                 float3 reflectDir = reflect(-viewDir, reflectNormal);
@@ -232,9 +275,15 @@ Shader "LanternKeeper/Water"
                 water += mainLight.color.rgb * moonShade * 0.22;
                 water += mainLight.color.rgb * sparkle * path * _Glitter * 1.5;
 
+#if !defined(_LK_WATER_LOW)
+#if defined(_LK_WATER_HIGH)
+                float foamReach = max(_LK_FoamReach, 0.01);
+#else
                 float foamReach = 8.0;
-                float foam = saturate(1.0 - diff / foamReach);
+#endif
+                foam = saturate(1.0 - diff / foamReach);
                 foam *= smoothstep(0.12, 0.48, foamField);
+#endif
                 water = lerp(water, _FoamColor.rgb, foam * _FoamColor.a);
 
                 float3 tint = TintOrWhite(_WaterTint.rgb);

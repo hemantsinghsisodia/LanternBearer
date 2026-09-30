@@ -41,6 +41,7 @@ MonoBehaviour:
   waterDetailLayer: 0
   waterRippleRange: 0
   waterFoamReach: 0
+  waterDetailStrength: 0
   waterReflectionProbe: 0
   keeperRim: 0
   chestFillLight: 0

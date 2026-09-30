@@ -91,6 +91,63 @@ public static partial class IslandBuilder
             prop.objectReferenceValue = stage.terrain;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
+
+        WaterQuality waterQuality = host.GetComponent<WaterQuality>();
+        if (waterQuality == null)
+        {
+            waterQuality = host.AddComponent<WaterQuality>();
+        }
+
+        Renderer[] water = FindWaterRenderers();
+        SerializedObject waterObject = new SerializedObject(waterQuality);
+        SerializedProperty waterProp = waterObject.FindProperty("waterRenderers");
+        if (waterProp != null)
+        {
+            waterProp.arraySize = water.Length;
+            for (int i = 0; i < water.Length; i++)
+            {
+                waterProp.GetArrayElementAtIndex(i).objectReferenceValue = water[i];
+            }
+
+            waterObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    static Renderer[] FindWaterRenderers()
+    {
+        Renderer[] all = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include);
+        int count = 0;
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (IsWaterRenderer(all[i]))
+            {
+                count++;
+            }
+        }
+
+        Renderer[] found = new Renderer[count];
+        int cursor = 0;
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (IsWaterRenderer(all[i]))
+            {
+                found[cursor] = all[i];
+                cursor++;
+            }
+        }
+
+        return found;
+    }
+
+    static bool IsWaterRenderer(Renderer renderer)
+    {
+        if (renderer == null)
+        {
+            return false;
+        }
+
+        Material material = renderer.sharedMaterial;
+        return material != null && material.shader != null && material.shader.name == "LanternKeeper/Water";
     }
 
     static List<Vector2> PlanBeaconXZ(LevelConfig config, out List<Vector2> islets)

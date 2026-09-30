@@ -62,13 +62,16 @@ public class GraphicsProfile : ScriptableObject
     public bool waterRipples;
     public bool waterShoreFoam;
     public bool waterDepthTexture;
-    // Today's water material _Glitter is 0.55.
+    // Today's water material _Glitter is 0.55. Low lowers it. Ultra raises it.
     public float waterGlint;
     public bool waterDetailLayer;
-    // 1 matches today's ripple range. High and Ultra widen the near field.
+    // 1 matches today's near-field ripple fade (40 m to 120 m). High and Ultra widen the far end.
     public float waterRippleRange;
-    // Today's _FoamDepth is 1.6.
+    // Shore foam distance in meters. Today's shader uses 8. Ultra extends it.
+    // The material's unused _FoamDepth stays 1.6 and is not this value.
     public float waterFoamReach;
+    // 1 is a full second ripple layer when waterDetailLayer is on. Medium stays 1 with the layer off.
+    public float waterDetailStrength;
     public bool waterReflectionProbe;
 
     [Header("Keeper")]
