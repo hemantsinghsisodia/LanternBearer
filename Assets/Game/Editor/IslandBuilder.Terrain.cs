@@ -834,7 +834,7 @@ public static partial class IslandBuilder
             return true;
         }
 
-        return prefabName.Contains("np_grass");
+        return false;
     }
 
     static int AddPackGrassCarpet(List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes, bool namaqualand)
@@ -1023,7 +1023,7 @@ public static partial class IslandBuilder
                 }
 
                 string protoName = prototype.name;
-                bool packGrass = protoName.IndexOf("np_grass_20") >= 0 || protoName.IndexOf("GrassBend") >= 0 || protoName.IndexOf("DryGrass") >= 0;
+                bool packGrass = protoName.IndexOf("GrassBend") >= 0 || protoName.IndexOf("DryGrass") >= 0;
                 if (!packGrass)
                 {
                     continue;

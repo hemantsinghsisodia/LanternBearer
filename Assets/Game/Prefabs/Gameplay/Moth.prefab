@@ -328,6 +328,10 @@ MonoBehaviour:
   closeDistance: 1.5
   closeDrain: 1.5
   fleeSeconds: 3.2
+  terrainClearance: 1.4
+  fadeSeconds: 1
+  avoidDistance: 2.4
+  avoidRadius: 0.4
 --- !u!1 &8495370455066121334
 GameObject:
   m_ObjectHideFlags: 0

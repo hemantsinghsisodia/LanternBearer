@@ -1083,7 +1083,39 @@ public static partial class IslandBuilder
             return false;
         }
 
-        if (Blocked(stage, x, z, 5f, 4f, 1.5f))
+        float spawnClear = 5f;
+        float beaconClear = 4f;
+        float trailClear = 1.5f;
+        if (entry.category == BiomeCategory.Tree && entry.prefab != null)
+        {
+            string treeName = entry.prefab.name;
+            if (treeName.StartsWith("jacaranda") || treeName.StartsWith("island_tree"))
+            {
+                Renderer[] treeRenderers = entry.prefab.GetComponentsInChildren<Renderer>(true);
+                Transform heroChild = entry.prefab.transform.Find("Hero");
+                float radius = 0f;
+                for (int i = 0; i < treeRenderers.Length; i++)
+                {
+                    if (treeRenderers[i] == null || (heroChild != null && treeRenderers[i].transform.IsChildOf(heroChild)))
+                    {
+                        continue;
+                    }
+
+                    Bounds bounds = treeRenderers[i].bounds;
+                    radius = Mathf.Max(radius, Mathf.Max(bounds.extents.x, bounds.extents.z));
+                }
+
+                radius *= Mathf.Max(1f, entry.scaleRange.y);
+                if (radius > 4.2f)
+                {
+                    spawnClear = Mathf.Max(spawnClear, radius * 0.8f);
+                    beaconClear = Mathf.Max(beaconClear, radius * 0.75f);
+                    trailClear = Mathf.Max(trailClear, radius * 0.62f);
+                }
+            }
+        }
+
+        if (Blocked(stage, x, z, spawnClear, beaconClear, trailClear))
         {
             return false;
         }

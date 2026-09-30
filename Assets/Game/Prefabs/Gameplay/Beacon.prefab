@@ -2586,6 +2586,8 @@ MonoBehaviour:
   smoke: {fileID: 2652111156886857241}
   flameRoot: {fileID: 4085798621425308777}
   whooshSource: {fileID: 0}
+  player: {fileID: 0}
+  lantern: {fileID: 0}
 --- !u!136 &2543787667317847021
 CapsuleCollider:
   m_ObjectHideFlags: 0

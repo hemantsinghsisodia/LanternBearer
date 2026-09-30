@@ -2611,3 +2611,10 @@ MonoBehaviour:
   islandRadius: 22
   hoverHeight: 1.35
   wanderRadius: 1.4
+  slopeLimit: 0.85
+  waterMargin: 0.45
+  propClearance: 2
+  playerBiasDistance: 20
+  heightTolerance: 2.4
+  sampleRing: 4
+  pickAttempts: 28

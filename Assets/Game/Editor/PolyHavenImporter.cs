@@ -160,6 +160,7 @@ public static class PolyHavenImporter
             }
         }
 
+        AttachHeroes();
         if (onlyIds == null)
         {
             CreateBiomes();
@@ -551,8 +552,59 @@ public static class PolyHavenImporter
 
     public static void RebuildBiomes()
     {
+        AttachHeroes();
         CreateBiomes();
         AssetDatabase.SaveAssets();
+    }
+
+    static void AttachHeroes()
+    {
+        string[] ids = { "jacaranda_tree", "tree_small_02", "island_tree_02" };
+        for (int i = 0; i < ids.Length; i++)
+        {
+            string lodPath = PrefabRoot + "/Tree/" + ids[i] + ".prefab";
+            string heroPath = PrefabRoot + "/Tree/" + ids[i] + "_hero.prefab";
+            GameObject heroSource = AssetDatabase.LoadAssetAtPath<GameObject>(heroPath);
+            if (heroSource == null || AssetDatabase.LoadAssetAtPath<GameObject>(lodPath) == null)
+            {
+                continue;
+            }
+
+            GameObject root = PrefabUtility.LoadPrefabContents(lodPath);
+            try
+            {
+                Transform existing = root.transform.Find("Hero");
+                GameObject hero = existing != null ? existing.gameObject : null;
+                if (hero == null)
+                {
+                    hero = (GameObject)PrefabUtility.InstantiatePrefab(heroSource, root.transform);
+                    hero.name = "Hero";
+                }
+
+                Collider[] colliders = hero.GetComponents<Collider>();
+                for (int c = 0; c < colliders.Length; c++)
+                {
+                    UnityEngine.Object.DestroyImmediate(colliders[c]);
+                }
+
+                hero.SetActive(false);
+                UltraHeroSwitch swap = root.GetComponent<UltraHeroSwitch>();
+                if (swap == null)
+                {
+                    swap = root.AddComponent<UltraHeroSwitch>();
+                }
+
+                SerializedObject serialized = new SerializedObject(swap);
+                serialized.FindProperty("lodGroup").objectReferenceValue = root.GetComponent<LODGroup>();
+                serialized.FindProperty("hero").objectReferenceValue = hero;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, lodPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
     }
 
     static void CreateBiomes()
@@ -643,24 +695,68 @@ public static class PolyHavenImporter
 
     static List<GameObject> FindPrefabs(Rule rule)
     {
-        string[] roots = { PrefabRoot, "Assets/Game/Prefabs/NaturePack" };
+        List<string> folders = new List<string>();
+        AddFolder(folders, PrefabRoot + "/" + rule.category);
+        AddFolder(folders, "Assets/Game/Prefabs/NaturePack/" + rule.category);
+        BiomeCategory extra;
+        if (TryExtraCategory(rule.id, out extra))
+        {
+            AddFolder(folders, PrefabRoot + "/" + extra);
+        }
+
+        List<GameObject> found = FindInFolders(rule, folders);
+        if (found.Count == 0)
+        {
+            folders.Clear();
+            AddFolder(folders, PrefabRoot);
+            string[] categoryNames = System.Enum.GetNames(typeof(BiomeCategory));
+            for (int i = 0; i < categoryNames.Length; i++)
+            {
+                AddFolder(folders, PrefabRoot + "/" + categoryNames[i]);
+            }
+
+            found = FindInFolders(rule, folders);
+        }
+
+        if ((rule.category == BiomeCategory.GroundCover || rule.category == BiomeCategory.Flower) && found.Count > 3)
+        {
+            found.RemoveRange(3, found.Count - 3);
+        }
+
+        return found;
+    }
+
+    static void AddFolder(List<string> folders, string folder)
+    {
+        if (!folders.Contains(folder))
+        {
+            folders.Add(folder);
+        }
+    }
+
+    static List<GameObject> FindInFolders(Rule rule, List<string> folders)
+    {
         List<GameObject> found = new List<GameObject>();
         List<string> files = new List<string>();
-        for (int r = 0; r < roots.Length; r++)
+        for (int r = 0; r < folders.Count; r++)
         {
-            string folder = roots[r] + "/" + rule.category;
-            if (!Directory.Exists(ToFull(folder)))
+            if (!Directory.Exists(ToFull(folders[r])))
             {
                 continue;
             }
 
-            files.AddRange(Directory.GetFiles(ToFull(folder), "*.prefab"));
+            files.AddRange(Directory.GetFiles(ToFull(folders[r]), "*.prefab"));
         }
 
         files.Sort(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < files.Count; i++)
         {
             string name = Path.GetFileNameWithoutExtension(files[i]);
+            if (name.EndsWith("_hero", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (!name.StartsWith(rule.id, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -716,12 +812,11 @@ public static class PolyHavenImporter
     {
         return new[]
         {
-            R("np_tree_01", BiomeCategory.Tree, 6, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("np_tree_02", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("np_tree_07", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("np_tree_hp_01", BiomeCategory.Tree, 5, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
-            R("np_bush_07", BiomeCategory.Sapling, 10, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
-            R("np_bush_07b", BiomeCategory.Sapling, 8, 0.9f, 1.12f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
+            R("jacaranda_tree", BiomeCategory.Tree, 4, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("tree_small_02", BiomeCategory.Tree, 3, 0.92f, 1.08f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("fir_sapling_medium_b", BiomeCategory.Tree, 3, 0.95f, 1.12f, false, true, 0f, 0.48f, true, 0.28f, 0.92f),
+            R("shrub_01", BiomeCategory.Sapling, 10, 1.5f, 1.75f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
+            R("shrub_03", BiomeCategory.Sapling, 10, 1.55f, 1.8f, false, true, 0f, 0.55f, true, 0.26f, 0.9f),
             R("tree_stump_01", BiomeCategory.Deadwood, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("tree_stump_02", BiomeCategory.Deadwood, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("dead_tree_trunk", BiomeCategory.Deadwood, 3, 0.9f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
@@ -732,6 +827,7 @@ public static class PolyHavenImporter
             R("fern_02", BiomeCategory.Undergrowth, 22, 0.85f, 1.2f, true, true, 0f, 0.7f, true, 0.26f, 0.95f),
             R("shrub_02", BiomeCategory.Undergrowth, 10, 0.85f, 1.15f, true, true, 0f, 0.6f, true, 0.26f, 0.9f),
             R("shrub_04", BiomeCategory.Undergrowth, 10, 0.85f, 1.15f, true, true, 0f, 0.6f, true, 0.26f, 0.9f),
+            R("nettle_plant", BiomeCategory.Undergrowth, 6, 1.15f, 1.45f, true, true, 0f, 0.65f, true, 0.26f, 0.95f),
             R("grass_medium_01", BiomeCategory.GroundCover, 6, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("grass_medium_02", BiomeCategory.GroundCover, 5, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("grass_bermuda_01", BiomeCategory.GroundCover, 4, 0.8f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
@@ -740,11 +836,13 @@ public static class PolyHavenImporter
             R("celandine_01", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("shrub_sorrel_01", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("weed_plant_02", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_02", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_05", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_10", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_rock_01", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.08f, 0.9f, false, 0f, 1f),
-            R("np_rock_03", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.08f, 0.9f, false, 0f, 1f)
+            R("anthurium_botany_01_a", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("anthurium_botany_01_c", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("anthurium_botany_01_e", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("periwinkle_plant_02", BiomeCategory.GroundCover, 3, 0.9f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
+            R("boulder_01", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.08f, 0.9f, false, 0f, 1f),
+            R("rock_07", BiomeCategory.Rock, 3, 2.1f, 2.7f, true, true, 0.08f, 0.9f, false, 0f, 1f),
+            R("rock_09", BiomeCategory.Rock, 2, 4.6f, 5.6f, true, true, 0.08f, 0.9f, false, 0f, 1f)
         };
     }
 
@@ -777,14 +875,14 @@ public static class PolyHavenImporter
             R("flower_stinkkruid", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
             R("bark_debris_01", BiomeCategory.GroundCover, 2, 0.85f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
             R("dry_quiver_leaf", BiomeCategory.GroundCover, 2, 0.8f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_17", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_18", BiomeCategory.Flower, 4, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_flower_01", BiomeCategory.Flower, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_plant_02", BiomeCategory.GroundCover, 3, 0.75f, 1.05f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_plant_21", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
-            R("np_rock_02", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.1f, 1.1f, false, 0f, 1f),
-            R("np_rock_04", BiomeCategory.Rock, 3, 0.85f, 1.15f, true, true, 0.1f, 1.1f, false, 0f, 1f),
-            R("np_rock_01", BiomeCategory.Rock, 3, 0.85f, 1.15f, true, true, 0.1f, 1.1f, false, 0f, 1f)
+            R("periwinkle_plant_01", BiomeCategory.GroundCover, 4, 0.9f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
+            R("periwinkle_plant_03", BiomeCategory.GroundCover, 4, 0.9f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
+            R("periwinkle_plant_05", BiomeCategory.GroundCover, 3, 0.9f, 1.2f, true, false, 0f, 1f, false, 0f, 1f),
+            R("weed_plant_02_a", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("weed_plant_02_c", BiomeCategory.GroundCover, 3, 0.85f, 1.15f, true, false, 0f, 1f, false, 0f, 1f),
+            R("boulder_01", BiomeCategory.Rock, 4, 0.85f, 1.2f, true, true, 0.1f, 1.1f, false, 0f, 1f),
+            R("rock_07", BiomeCategory.Rock, 3, 2.1f, 2.7f, true, true, 0.1f, 1.1f, false, 0f, 1f),
+            R("rock_09", BiomeCategory.Rock, 3, 4.6f, 5.6f, true, true, 0.1f, 1.1f, false, 0f, 1f)
         };
     }
 
