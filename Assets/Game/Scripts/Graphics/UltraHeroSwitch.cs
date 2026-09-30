@@ -28,7 +28,7 @@ public class UltraHeroSwitch : MonoBehaviour
 
     public static void ApplyAll(bool ultra)
     {
-        UltraHeroSwitch[] switches = Object.FindObjectsByType<UltraHeroSwitch>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        UltraHeroSwitch[] switches = Object.FindObjectsByType<UltraHeroSwitch>(FindObjectsInactive.Include);
         for (int i = 0; i < switches.Length; i++)
         {
             switches[i].Apply(ultra);

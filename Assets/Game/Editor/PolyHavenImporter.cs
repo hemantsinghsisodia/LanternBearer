@@ -546,7 +546,7 @@ public static class PolyHavenImporter
         {
             MeshCollider collider = root.AddComponent<MeshCollider>();
             collider.sharedMesh = filter.sharedMesh;
-            collider.convex = true;
+            collider.convex = false;
         }
     }
 
