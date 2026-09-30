@@ -28,10 +28,30 @@ public static class PolyHavenImporter
         public float maxHeight;
     }
 
+    static HashSet<string> onlyIds;
+
     [MenuItem("Lantern Keeper/Import Poly Haven Assets")]
     public static void ImportFromMenu()
     {
         ImportAll();
+    }
+
+    public static void ImportOnly(string csv)
+    {
+        onlyIds = new HashSet<string>(csv.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries));
+        try
+        {
+            ImportAll();
+        }
+        finally
+        {
+            onlyIds = null;
+        }
+    }
+
+    static bool Wanted(string id)
+    {
+        return onlyIds == null || onlyIds.Contains(id);
     }
 
     public static void ImportAll()
@@ -61,6 +81,11 @@ public static class PolyHavenImporter
             for (int i = 0; i < folders.Length; i++)
             {
                 string id = Path.GetFileName(folders[i]);
+                if (!Wanted(id))
+                {
+                    continue;
+                }
+
                 string fbx = ModelRoot + "/" + id + "/" + id + ".fbx";
                 if (!File.Exists(ToFull(fbx)))
                 {
@@ -72,8 +97,8 @@ public static class PolyHavenImporter
                 ModelImporter model = AssetImporter.GetAtPath(fbx) as ModelImporter;
                 if (model != null)
                 {
-                    model.globalScale = 1f;
                     model.useFileScale = true;
+                    model.globalScale = model.fileScale > 0f && model.fileScale < 0.5f ? 1f / model.fileScale : 1f;
                     model.isReadable = true;
                     model.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
                     model.materialName = ModelImporterMaterialName.BasedOnMaterialName;
@@ -93,6 +118,11 @@ public static class PolyHavenImporter
         for (int i = 0; i < folders.Length; i++)
         {
             string id = Path.GetFileName(folders[i]);
+            if (!Wanted(id))
+            {
+                continue;
+            }
+
             string folder = ModelRoot + "/" + id;
             if (!File.Exists(ToFull(folder + "/" + id + ".fbx")))
             {
@@ -108,6 +138,11 @@ public static class PolyHavenImporter
         for (int i = 0; i < folders.Length; i++)
         {
             string id = Path.GetFileName(folders[i]);
+            if (!Wanted(id))
+            {
+                continue;
+            }
+
             string fbx = ModelRoot + "/" + id + "/" + id + ".fbx";
             if (!File.Exists(ToFull(fbx)))
             {
@@ -125,7 +160,11 @@ public static class PolyHavenImporter
             }
         }
 
-        CreateBiomes();
+        if (onlyIds == null)
+        {
+            CreateBiomes();
+        }
+
         AssetDatabase.SaveAssets();
         Debug.Log("Poly Haven import done. Imported " + imported.Count + " assets. Skipped " + skipped.Count + ".\n" + string.Join("\n", imported) + (skipped.Count > 0 ? "\nSkipped:\n" + string.Join("\n", skipped) : ""));
     }
@@ -361,7 +400,7 @@ public static class PolyHavenImporter
                     GameObject child = new GameObject(lods[i].gameObject.name);
                     child.transform.SetParent(root.transform, false);
                     CopyMesh(lods[i], child, materials);
-                    float height = i == lods.Count - 1 ? 0.02f : Mathf.Lerp(0.18f, 0.05f, i / (float)Mathf.Max(1, lods.Count - 1));
+                    float height = LodScreenHeight(i, lods.Count);
                     levels[i] = new LOD(height, child.GetComponentsInChildren<Renderer>());
                 }
 
@@ -783,8 +822,76 @@ public static class PolyHavenImporter
         return true;
     }
 
+    static float LodScreenHeight(int index, int count)
+    {
+        if (count == 3)
+        {
+            if (index <= 0)
+            {
+                return 0.5f;
+            }
+
+            if (index == 1)
+            {
+                return 0.2f;
+            }
+
+            return 0.01f;
+        }
+
+        return index == count - 1 ? 0.02f : Mathf.Lerp(0.18f, 0.05f, index / (float)Mathf.Max(1, count - 1));
+    }
+
+    static bool TryExtraCategory(string id, out BiomeCategory category)
+    {
+        switch (id)
+        {
+            case "jacaranda_tree":
+            case "tree_small_02":
+            case "island_tree_01":
+            case "island_tree_02":
+            case "island_tree_03":
+            case "pine_tree_01":
+            case "fir_tree_01":
+                category = BiomeCategory.Tree;
+                return true;
+            case "pine_sapling_small":
+            case "pine_sapling_medium":
+            case "fir_sapling":
+            case "fir_sapling_medium":
+                category = BiomeCategory.Sapling;
+                return true;
+            case "shrub_01":
+            case "shrub_03":
+            case "nettle_plant":
+                category = BiomeCategory.Undergrowth;
+                return true;
+            case "periwinkle_plant":
+            case "weed_plant_02":
+                category = BiomeCategory.GroundCover;
+                return true;
+            case "anthurium_botany_01":
+                category = BiomeCategory.Flower;
+                return true;
+            case "rock_07":
+            case "rock_09":
+            case "boulder_01":
+                category = BiomeCategory.Rock;
+                return true;
+        }
+
+        category = BiomeCategory.Rock;
+        return false;
+    }
+
     static BiomeCategory CategoryFor(string id)
     {
+        BiomeCategory extra;
+        if (TryExtraCategory(id, out extra))
+        {
+            return extra;
+        }
+
         Rule[] rules = PineRules();
         for (int i = 0; i < rules.Length; i++)
         {
@@ -809,7 +916,18 @@ public static class PolyHavenImporter
     static bool IsFoliage(string name)
     {
         string n = name.ToLowerInvariant();
-        string[] keys = { "twig", "leaf", "needle", "grass", "fern", "moss", "flower", "petal", "frond", "blade", "foliage", "sorrel", "dandelion", "celandine", "gazania", "ursinia", "empodium", "heliophila", "stink", "rooibos", "didelta", "leipoldtia", "iceplant", "cheiridopsis", "shrub" };
+        if (n.IndexOf("leav") >= 0 || n.IndexOf("twig") >= 0 || n.IndexOf("needle") >= 0 || n.IndexOf("petal") >= 0 || n.IndexOf("frond") >= 0)
+        {
+            return true;
+        }
+
+        bool solid = n.Contains("trunk") || n.Contains("bark") || n.Contains("branches") || n.Contains("rock") || n.Contains("stone");
+        if (solid && !n.Contains("leaf") && !n.Contains("needle") && !n.Contains("twig"))
+        {
+            return false;
+        }
+
+        string[] keys = { "twig", "leaf", "needle", "grass", "fern", "moss", "flower", "petal", "frond", "blade", "foliage", "sorrel", "dandelion", "celandine", "gazania", "ursinia", "empodium", "heliophila", "stink", "rooibos", "didelta", "leipoldtia", "iceplant", "cheiridopsis", "shrub", "jacaranda", "nettle", "anthurium", "periwinkle", "weed" };
         for (int i = 0; i < keys.Length; i++)
         {
             if (n.Contains(keys[i]))
@@ -824,7 +942,7 @@ public static class PolyHavenImporter
     static bool IsCoverName(string name)
     {
         string n = name.ToLowerInvariant();
-        return n.Contains("grass") || n.Contains("flower") || n.Contains("moss") || n.Contains("dandelion") || n.Contains("celandine") || n.Contains("sorrel") || n.Contains("gazania") || n.Contains("ursinia") || n.Contains("empodium") || n.Contains("heliophila") || n.Contains("stink") || n.Contains("iceplant") || n.Contains("leipoldtia") || n.Contains("cheiridopsis") || n.Contains("debris") || n.Contains("quiver_leaf") || n.Contains("dry_quiver");
+        return n.Contains("grass") || n.Contains("flower") || n.Contains("moss") || n.Contains("dandelion") || n.Contains("celandine") || n.Contains("sorrel") || n.Contains("gazania") || n.Contains("ursinia") || n.Contains("empodium") || n.Contains("heliophila") || n.Contains("stink") || n.Contains("iceplant") || n.Contains("leipoldtia") || n.Contains("cheiridopsis") || n.Contains("debris") || n.Contains("quiver_leaf") || n.Contains("dry_quiver") || n.Contains("anthurium") || n.Contains("periwinkle") || n.Contains("weed");
     }
 
     static bool IsCoverRenderer(Material[] materials)
