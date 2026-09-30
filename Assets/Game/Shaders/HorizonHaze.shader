@@ -3,6 +3,7 @@ Shader "LanternKeeper/HorizonHaze"
     Properties
     {
         _BaseColor ("Color", Color) = (0.45, 0.62, 0.68, 0.16)
+        _BandScale ("Band Scale", Float) = 1
     }
     SubShader
     {
@@ -25,6 +26,7 @@ Shader "LanternKeeper/HorizonHaze"
 
             float4 _BaseColor;
             float4 _HazeTint;
+            float _BandScale;
 
             struct Attributes
             {
@@ -55,7 +57,13 @@ Shader "LanternKeeper/HorizonHaze"
 
             half4 frag(Varyings input) : SV_Target
             {
-                float band = sin(saturate(input.uv.y) * 3.14159265);
+                float y = saturate(input.uv.y);
+                float band = sin(y * 3.14159265);
+                // 1 is today's single soft band. Above 1 adds extra soft bands. No keyword, so Medium stays one variant.
+                if (_BandScale > 1.01)
+                {
+                    band = abs(sin(y * 3.14159265 * _BandScale));
+                }
                 float3 tint = TintOrWhite(_HazeTint.rgb);
                 float3 color = _BaseColor.rgb * tint;
                 float alpha = _BaseColor.a * band;

@@ -259,7 +259,95 @@ public static partial class IslandBuilder
             renderer.receiveShadows = false;
         }
 
+        CreateExtraHorizon(root, config, art, mesa);
         StripColliders(root);
+    }
+
+    // Saved scenes that predate the extra ridges pick them up without a full rebuild.
+    public static int EnsureExtraHorizonLayers()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Exit Play mode before adding horizon layers.");
+            return 0;
+        }
+
+        GameObject root = GameObject.Find("Horizon");
+        if (root == null || root.transform.Find("Ridge0") != null)
+        {
+            return 0;
+        }
+
+        string sceneName = EditorSceneManager.GetActiveScene().name;
+        bool temporary = false;
+        LevelConfig config = null;
+        if (sceneName == "Island1" || sceneName == "Island2")
+        {
+            config = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/" + sceneName + ".asset");
+        }
+
+        if (config == null)
+        {
+            config = ScriptableObject.CreateInstance<LevelConfig>();
+            config.sceneName = sceneName;
+            config.seed = sceneName == "MainMenu" ? 1101 : 1;
+            temporary = true;
+        }
+
+        ArtKit art = new ArtKit();
+        art.sky = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Materials/Generated/NightSky.mat");
+        bool mesa = sceneName == "Island2" || config.sceneName == "Island2";
+        CreateExtraHorizon(root, config, art, mesa);
+        if (temporary)
+        {
+            Object.DestroyImmediate(config);
+        }
+
+        return 1;
+    }
+
+    // Extra silhouettes stay off so Medium matches the rings that were already in the scene.
+    static void CreateExtraHorizon(GameObject root, LevelConfig config, ArtKit art, bool mesa)
+    {
+        Shader rangeShader = Shader.Find("LanternKeeper/DistantRange");
+        Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
+        Color[] tints = mesa
+            ? new[] { new Color(1.08f, 0.66f, 0.5f, 1f), new Color(0.86f, 0.52f, 0.44f, 1f) }
+            : new[] { new Color(0.62f, 0.7f, 0.78f, 1f), new Color(0.48f, 0.58f, 0.7f, 1f) };
+        float[] radii = { 580f, 720f };
+        float[] aerialStart = { 100f, 40f };
+        float[] aerialEnd = { 340f, 200f };
+        for (int band = 0; band < radii.Length; band++)
+        {
+            GameObject go = new GameObject("Ridge" + band);
+            go.transform.SetParent(root.transform, false);
+            MeshFilter filter = go.AddComponent<MeshFilter>();
+            filter.sharedMesh = BuildRidgeMesh(radii[band], config.seed, band + 3, mesa);
+            MeshRenderer renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = DistantMat(rangeShader, art, tints[band], aerialStart[band], aerialEnd[band]);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            go.SetActive(false);
+        }
+
+        if (hazeShader == null)
+        {
+            return;
+        }
+
+        GameObject haze = new GameObject("HazeFine");
+        haze.transform.SetParent(root.transform, false);
+        MeshFilter hazeFilter = haze.AddComponent<MeshFilter>();
+        hazeFilter.sharedMesh = BuildHazeMesh(660f, 128, -2f, 22f, "HorizonHazeFine");
+        MeshRenderer hazeRenderer = haze.AddComponent<MeshRenderer>();
+        Material mat = new Material(hazeShader);
+        Color hazeColor = mesa ? new Color(0.78f, 0.55f, 0.4f, 0.02f) : new Color(0.5f, 0.66f, 0.78f, 0.02f);
+        mat.SetColor("_BaseColor", hazeColor);
+        mat.SetFloat("_BandScale", 2f);
+        hazeRenderer.sharedMaterial = mat;
+        hazeRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        hazeRenderer.receiveShadows = false;
+        haze.SetActive(false);
     }
 
     static Material DistantMat(Shader shader, ArtKit art, Color tint, float aerialStart, float aerialEnd)
@@ -512,9 +600,69 @@ public static partial class IslandBuilder
         return mesh;
     }
 
+    static Mesh BuildRidgeMesh(float radius, int seed, int band, bool mesa)
+    {
+        const int segments = 960;
+        const int rows = 5;
+        float amp = mesa ? (band == 3 ? 7f : 4f) : (band == 3 ? 22f : 12f);
+        float lift = mesa ? 1.8f : 4f;
+        Vector3[] vertices = new Vector3[segments * rows];
+        Vector2[] uv = new Vector2[segments * rows];
+        for (int i = 0; i < segments; i++)
+        {
+            float angle = i * Mathf.PI * 2f / segments;
+            float ridge = LayeredRidge(angle, seed, band, mesa);
+            float crest = lift + ridge * amp;
+            float jut = (ridge - 0.4f) * (mesa ? 2f : 5f);
+            for (int r = 0; r < rows; r++)
+            {
+                float t = r / (float)(rows - 1);
+                float shaped = mesa ? MesaRow(t) : Mathf.Pow(t, 0.85f);
+                float y = Mathf.Lerp(-6f, crest, shaped);
+                float rad = Mathf.Lerp(radius - 1.5f, radius + 10f + jut, t);
+                int v = i * rows + r;
+                vertices[v] = new Vector3(Mathf.Cos(angle) * rad, y, Mathf.Sin(angle) * rad);
+                uv[v] = new Vector2(i / (float)segments, t);
+            }
+        }
+
+        int[] triangles = new int[segments * (rows - 1) * 6];
+        int ti = 0;
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            for (int r = 0; r < rows - 1; r++)
+            {
+                int a = i * rows + r;
+                int b = i * rows + r + 1;
+                int c = next * rows + r;
+                int d = next * rows + r + 1;
+                triangles[ti++] = a;
+                triangles[ti++] = b;
+                triangles[ti++] = c;
+                triangles[ti++] = c;
+                triangles[ti++] = b;
+                triangles[ti++] = d;
+            }
+        }
+
+        Mesh mesh = new Mesh();
+        mesh.name = "HorizonRidge";
+        mesh.indexFormat = IndexFormat.UInt32;
+        mesh.vertices = vertices;
+        mesh.uv = uv;
+        mesh.triangles = triangles;
+        AlignNormals(mesh, true);
+        return mesh;
+    }
+
     static Mesh BuildHazeMesh(float radius)
     {
-        const int segments = 64;
+        return BuildHazeMesh(radius, 64, -1.2f, 6.5f, "HorizonHaze");
+    }
+
+    static Mesh BuildHazeMesh(float radius, int segments, float bottom, float top, string meshName)
+    {
         Vector3[] vertices = new Vector3[segments * 2];
         Vector2[] uv = new Vector2[segments * 2];
         for (int i = 0; i < segments; i++)
@@ -522,8 +670,8 @@ public static partial class IslandBuilder
             float angle = i * Mathf.PI * 2f / segments;
             float c = Mathf.Cos(angle);
             float s = Mathf.Sin(angle);
-            vertices[i * 2] = new Vector3(c * radius, -1.2f, s * radius);
-            vertices[i * 2 + 1] = new Vector3(c * radius, 6.5f, s * radius);
+            vertices[i * 2] = new Vector3(c * radius, bottom, s * radius);
+            vertices[i * 2 + 1] = new Vector3(c * radius, top, s * radius);
             uv[i * 2] = new Vector2(i / (float)segments, 0f);
             uv[i * 2 + 1] = new Vector2(i / (float)segments, 1f);
         }
@@ -543,7 +691,7 @@ public static partial class IslandBuilder
         }
 
         Mesh mesh = new Mesh();
-        mesh.name = "HorizonHaze";
+        mesh.name = meshName;
         mesh.vertices = vertices;
         mesh.uv = uv;
         mesh.triangles = triangles;
@@ -789,7 +937,7 @@ public static partial class IslandBuilder
                 continue;
             }
 
-            if (mesh.name == "HorizonRange" || mesh.name == "Islet" || mesh.name == "HorizonHaze" || mesh.name == "LighthouseBeam")
+            if (mesh.name == "HorizonRange" || mesh.name == "Islet" || mesh.name == "HorizonHaze" || mesh.name == "HorizonHazeFine" || mesh.name == "HorizonRidge" || mesh.name == "LighthouseBeam")
             {
                 meshes.Add(mesh);
             }

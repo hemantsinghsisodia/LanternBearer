@@ -92,7 +92,9 @@ public class GraphicsProfile : ScriptableObject
     public int hazeLayers;
     public bool extraRidges;
     public bool finerHaze;
-    // Today's gameplay cameras use a far clip of 900.
+    // Nominal far clip when the scene camera is saved at 900.
+    // Low is 700 (max of 0.6x and 700). High stays 900. Ultra is 1170 (1.3x).
+    // HorizonQuality scales the scene's cached far clip by this value over Medium's value.
     public float cameraFarPlane;
 
     [Header("Particles")]

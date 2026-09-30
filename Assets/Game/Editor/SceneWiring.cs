@@ -98,6 +98,12 @@ public static class SceneWiring
             assigned += Set(beacons[i], "lantern", lantern);
         }
 
+        Lantern[] sceneLanterns = Object.FindObjectsByType<Lantern>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < sceneLanterns.Length; i++)
+        {
+            assigned += Set(sceneLanterns[i], "lanternLight", LanternLight(sceneLanterns[i]));
+        }
+
         WaterHazard[] water = Object.FindObjectsByType<WaterHazard>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < water.Length; i++)
         {
@@ -117,6 +123,78 @@ public static class SceneWiring
         assigned += WireWaterQuality();
         assigned += WireKeeperQuality();
         assigned += WireLightQuality();
+        assigned += WireHorizonQuality();
+        return assigned;
+    }
+
+    static Light LanternLight(Lantern lantern)
+    {
+        if (lantern == null)
+        {
+            return null;
+        }
+
+        Light[] lights = lantern.GetComponentsInChildren<Light>(true);
+        for (int i = 0; i < lights.Length; i++)
+        {
+            if (lights[i] != null && lights[i].name == "LanternLight")
+            {
+                return lights[i];
+            }
+        }
+
+        return null;
+    }
+
+    static int WireHorizonQuality()
+    {
+        if (GameObject.Find("Horizon") == null)
+        {
+            return 0;
+        }
+
+        GameObject[] ranges = HorizonQuality.FindMountainRanges();
+        GameObject[] ridges = HorizonQuality.FindExtraRidges();
+        GameObject[] haze = HorizonQuality.FindHazeLayers();
+        Camera[] cameras = HorizonQuality.FindGameplayCameras();
+        if (ranges.Length == 0 && haze.Length == 0)
+        {
+            return 0;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        HorizonQuality quality = host.GetComponent<HorizonQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<HorizonQuality>();
+        }
+
+        int assigned = 0;
+        if (ranges.Length > 0)
+        {
+            assigned += SetArray(quality, "mountainRanges", ranges);
+        }
+
+        if (ridges.Length > 0)
+        {
+            assigned += SetArray(quality, "extraRidges", ridges);
+        }
+
+        if (haze.Length > 0)
+        {
+            assigned += SetArray(quality, "hazeLayers", haze);
+        }
+
+        if (cameras.Length > 0)
+        {
+            assigned += SetArray(quality, "cameras", cameras);
+        }
+
         return assigned;
     }
 
@@ -344,9 +422,13 @@ public static class SceneWiring
         }
 
         PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        bool expectFollow = IsIslandScene() || Object.FindAnyObjectByType<CameraFollow>() != null;
         for (int i = 0; i < players.Length; i++)
         {
-            nulls += Require(players[i], "cameraFollow", quiet);
+            if (expectFollow)
+            {
+                nulls += Require(players[i], "cameraFollow", quiet);
+            }
         }
 
         CameraFollow[] cameras = Object.FindObjectsByType<CameraFollow>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -457,7 +539,71 @@ public static class SceneWiring
             }
         }
 
+        nulls += ReportHorizon(quiet);
         return nulls;
+    }
+
+    static int ReportHorizon(bool quiet)
+    {
+        if (GameObject.Find("Horizon") == null)
+        {
+            return 0;
+        }
+
+        HorizonQuality[] quality = Object.FindObjectsByType<HorizonQuality>(FindObjectsInactive.Include);
+        if (quality.Length == 0)
+        {
+            if (!quiet)
+            {
+                Debug.LogWarning("Null reference: HorizonQuality missing from GraphicsAppliers");
+            }
+
+            return 1;
+        }
+
+        int nulls = 0;
+        int ranges = HorizonQuality.FindMountainRanges().Length;
+        int ridges = HorizonQuality.FindExtraRidges().Length;
+        int haze = HorizonQuality.FindHazeLayers().Length;
+        int cameras = HorizonQuality.FindGameplayCameras().Length;
+        for (int i = 0; i < quality.Length; i++)
+        {
+            nulls += RequireSized(quality[i], "mountainRanges", ranges, quiet);
+            nulls += RequireSized(quality[i], "extraRidges", ridges, quiet);
+            nulls += RequireSized(quality[i], "hazeLayers", haze, quiet);
+            nulls += RequireSized(quality[i], "cameras", cameras, quiet);
+        }
+
+        return nulls;
+    }
+
+    static int RequireSized(Object target, string property, int expected, bool quiet)
+    {
+        if (target == null)
+        {
+            return 0;
+        }
+
+        SerializedObject so = new SerializedObject(target);
+        SerializedProperty prop = so.FindProperty(property);
+        bool missing = prop == null || !prop.isArray || prop.arraySize != expected;
+        if (!missing)
+        {
+            for (int i = 0; i < prop.arraySize; i++)
+            {
+                if (prop.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    missing = true;
+                }
+            }
+        }
+
+        if (missing && !quiet)
+        {
+            Debug.LogWarning("Null reference: " + target.GetType().Name + "." + property + " on " + target.name, target);
+        }
+
+        return missing ? 1 : 0;
     }
 
     static int Set(Object target, string property, Object value)

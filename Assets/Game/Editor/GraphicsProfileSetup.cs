@@ -123,10 +123,10 @@ public static class GraphicsProfileSetup
         profile.lanternSoftShadowOnKeeper = ultra;
 
         profile.distantMountains = !low;
-        profile.hazeLayers = 1;
+        profile.hazeLayers = ultra ? 2 : 1;
         profile.extraRidges = high;
         profile.finerHaze = ultra;
-        profile.cameraFarPlane = low ? 600f : ultra ? 1400f : 900f;
+        profile.cameraFarPlane = low ? 700f : ultra ? 1170f : 900f;
 
         profile.particleCountMultiplier = low ? 0.5f : level == GraphicsLevel.High ? 1.25f : ultra ? 1.5f : 1f;
     }

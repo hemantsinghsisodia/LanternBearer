@@ -53,8 +53,8 @@ MonoBehaviour:
   keeperAlwaysAnimate: 1
   lanternSoftShadowOnKeeper: 1
   distantMountains: 1
-  hazeLayers: 1
+  hazeLayers: 2
   extraRidges: 1
   finerHaze: 1
-  cameraFarPlane: 1400
+  cameraFarPlane: 1170
   particleCountMultiplier: 1.5

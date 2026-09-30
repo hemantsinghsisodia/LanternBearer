@@ -142,6 +142,7 @@ public static partial class IslandBuilder
         }
 
         lightObject.ApplyModifiedPropertiesWithoutUndo();
+        EnsureHorizonQuality(host);
 
         PlayerController keeper = KeeperQuality.FindGameplayKeeper();
         if (keeper == null)
@@ -194,6 +195,58 @@ public static partial class IslandBuilder
         }
 
         keeperObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void EnsureMenuHorizonApplier()
+    {
+        if (GameObject.Find("Horizon") == null)
+        {
+            return;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        EnsureHorizonQuality(host);
+    }
+
+    static void EnsureHorizonQuality(GameObject host)
+    {
+        if (host == null || GameObject.Find("Horizon") == null)
+        {
+            return;
+        }
+
+        HorizonQuality quality = host.GetComponent<HorizonQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<HorizonQuality>();
+        }
+
+        SerializedObject so = new SerializedObject(quality);
+        AssignObjects(so, "mountainRanges", HorizonQuality.FindMountainRanges());
+        AssignObjects(so, "extraRidges", HorizonQuality.FindExtraRidges());
+        AssignObjects(so, "hazeLayers", HorizonQuality.FindHazeLayers());
+        AssignObjects(so, "cameras", HorizonQuality.FindGameplayCameras());
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void AssignObjects(SerializedObject so, string property, Object[] values)
+    {
+        SerializedProperty prop = so.FindProperty(property);
+        if (prop == null || values == null)
+        {
+            return;
+        }
+
+        prop.arraySize = values.Length;
+        for (int i = 0; i < values.Length; i++)
+        {
+            prop.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
     }
 
     static Renderer[] FindWaterRenderers()

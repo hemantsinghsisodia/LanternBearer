@@ -147,6 +147,7 @@ public static partial class IslandBuilder
                 statue.y = GroundY(stage.terrain, statue.x, statue.z);
                 SpawnKeeper(art, stage, false, statue);
                 CreateMenu(art, stage);
+                EnsureMenuHorizonApplier();
             }
 
             string scenePath = "Assets/Game/Scenes/" + config.sceneName + ".unity";

@@ -56,5 +56,5 @@ MonoBehaviour:
   hazeLayers: 1
   extraRidges: 0
   finerHaze: 0
-  cameraFarPlane: 600
+  cameraFarPlane: 700
   particleCountMultiplier: 0.5
