@@ -829,7 +829,7 @@ public static partial class IslandBuilder
             return false;
         }
 
-        if (prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel"))
+        if (prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel") || prefabName.Contains("weed_plant") || prefabName.Contains("grasstuft"))
         {
             return true;
         }
@@ -839,12 +839,11 @@ public static partial class IslandBuilder
 
     static int AddPackGrassCarpet(List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes, bool namaqualand)
     {
-        const string folder = "Assets/Game/Prefabs/NaturePack/GroundCover/";
-        GameObject clump = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(folder + "np_grass_20.prefab");
-        GameObject fine = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(folder + "np_grass_06.prefab");
+        GameObject clump = GrassTuftBuilder.EnsurePrefab();
+        GameObject fine = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/PolyHaven/GroundCover/grass_bermuda_01_medium_e.prefab");
         if (clump == null)
         {
-            Debug.LogWarning("Pack grass carpet skipped; np_grass_20 is missing.");
+            Debug.LogWarning("Grass carpet skipped; the tuft prefab is missing.");
             return 0;
         }
 
@@ -993,10 +992,10 @@ public static partial class IslandBuilder
 
     public static void RefreshGrassBendPrototypes()
     {
-        GameObject source = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/NaturePack/GroundCover/np_grass_20.prefab");
+        GameObject source = GrassTuftBuilder.EnsurePrefab();
         if (source == null)
         {
-            Debug.LogError("Pack grass np_grass_20 is missing.");
+            Debug.LogError("Grass tuft prefab is missing.");
             return;
         }
 
@@ -1114,11 +1113,23 @@ public static partial class IslandBuilder
             return source;
         }
 
+        Mesh sourceMesh = source.GetComponentInChildren<MeshFilter>().sharedMesh;
+        if (sourceMesh != null)
+        {
+            mat.SetFloat("_TipHeight", Mathf.Max(0.05f, sourceMesh.bounds.size.y));
+        }
+
         GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
         if (prefab == null)
         {
             GameObject instance = UnityEngine.Object.Instantiate(source);
             instance.name = prefabName;
+            MeshFilter createdFilter = instance.GetComponentInChildren<MeshFilter>();
+            if (sourceMesh != null)
+            {
+                createdFilter.sharedMesh = sourceMesh;
+            }
+
             MeshRenderer created = instance.GetComponentInChildren<MeshRenderer>();
             created.sharedMaterial = mat;
             created.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -1128,11 +1139,18 @@ public static partial class IslandBuilder
         }
         else
         {
+            MeshFilter filter = prefab.GetComponentInChildren<MeshFilter>();
+            if (sourceMesh != null && filter != null)
+            {
+                filter.sharedMesh = sourceMesh;
+            }
+
             MeshRenderer renderer = prefab.GetComponentInChildren<MeshRenderer>();
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             UnityEditor.EditorUtility.SetDirty(prefab);
+            UnityEditor.PrefabUtility.SavePrefabAsset(prefab);
         }
 
         if (warm)
