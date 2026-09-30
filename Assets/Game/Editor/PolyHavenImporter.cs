@@ -697,7 +697,6 @@ public static class PolyHavenImporter
     {
         List<string> folders = new List<string>();
         AddFolder(folders, PrefabRoot + "/" + rule.category);
-        AddFolder(folders, "Assets/Game/Prefabs/NaturePack/" + rule.category);
         BiomeCategory extra;
         if (TryExtraCategory(rule.id, out extra))
         {

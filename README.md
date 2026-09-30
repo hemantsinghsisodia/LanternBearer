@@ -53,7 +53,7 @@ Medium is the default and matches the look the islands were built with.
 | Low | Render scale 0.5, no anti-aliasing, HDR and post-processing off, shadows to 8 m, grass drawn at 8 m at quarter density, water ripples and foam off, keeper rim off, distant mountains hidden |
 | Medium | Today's look: full resolution, the current anti-aliasing, grass at 20 m, four shadow cascades, one haze layer |
 | High | MSAA 4x, grass to 30 m, longer shadows, a second water ripple layer, extra mountain ridges |
-| Ultra | High, plus SMAA on the camera, grass to 45 m, the longest shadows, stronger water glint, a lantern shadow on the keeper, and a farther horizon |
+| Ultra | High, plus SMAA on the camera, grass to 45 m, the longest shadows, stronger water glint, a lantern shadow on the keeper, a farther horizon, and the high-detail hero tree meshes. `UltraHeroSwitch` shows those meshes only on Ultra; every other preset keeps the LOD meshes |
 
 VSync is off until you turn it on. The VSync button saves `LanternKeeperVSync` and applies it immediately. The FPS counter is off by default. It is saved as `LanternKeeperFps`, sits in the corner, and updates about twice a second from the average frame time, including while the game is paused.
 
@@ -61,16 +61,16 @@ The preset is stored in PlayerPrefs as `LanternKeeperGraphics` (0 Low, 1 Medium,
 
 ### Measured cost
 
-Development player, 800×600 windowed, VSync off, about 20 seconds of the scripted keeper walk. Frame time is the wall-clock time with VSync off. GPU time comes from `FrameTimingManager` where it was valid.
+Development player, 800×600 windowed, VSync off, about 20 seconds of the scripted keeper walk. Frame time is the wall-clock time with VSync off. FPS below is that frame time turned into frames per second.
 
-| Level | Island 1 avg | Island 1 FPS | Island 1 triangles | Island 2 avg | Island 2 FPS | Island 2 triangles |
-| --- | --- | --- | --- | --- | --- | --- |
-| Low | 2.08 ms | 481 | 282k | 2.13 ms | 470 | 202k |
-| Medium | 2.56 ms | 390 | 428k | 2.45 ms | 408 | 285k |
-| High | 3.08 ms | 325 | 445k | 2.97 ms | 337 | 330k |
-| Ultra | 3.76 ms | 266 | 596k | 3.18 ms | 314 | 391k |
+| Level | Island 1 avg | Island 1 FPS | Island 2 avg | Island 2 FPS |
+| --- | --- | --- | --- | --- |
+| Low | 2.33 ms | 429 | 2.23 ms | 448 |
+| Medium | 2.66 ms | 376 | 2.55 ms | 392 |
+| High | 2.98 ms | 336 | 2.69 ms | 372 |
+| Ultra | 3.97 ms | 252 | 3.01 ms | 332 |
 
-Medium on Island 1 is the pre-preset comparison: 2.56 ms against the earlier 2.52 ms. Ultra grass stays at density 1, because the terrain's detail density is already at Unity's maximum of 1.
+Ultra grass stays at density 1, because the terrain's detail density is already at Unity's maximum of 1. The extra cost on Ultra includes the hero tree meshes.
 
 To reproduce, build a Development player and run it with `-lkperf -lkquality=<0..3> -lkscene=Island1` (or `Island2`) `-lkvsync=0 -lkseconds=20`. Add `-lkshot=<png path>` for one still of the spawn view, or `-lkview=beacon` for a lit beacon. The probe does nothing unless `-lkperf` is present.
 
@@ -91,7 +91,10 @@ To reproduce, build a Development player and run it with `-lkperf -lkquality=<0.
 
 - Keeper character: "Hooded Adventurer" by Quaternius, via Poly Pizza (https://poly.pizza/m/y9KWOVG21R). Licence CC0 1.0. The imported file is `Assets/Game/Models/Keeper/Keeper.fbx`.
 - Poly Haven models (CC0), used on the islands:
-  - pine_tree_01, fir_tree_01, pine_sapling_medium, pine_sapling_small, fir_sapling, fern_02, grass_medium_01, dandelion_01, celandine_01 — Rico Cilliers, Rob Tuytel
+  - pine_tree_01, fir_tree_01, pine_sapling_medium, pine_sapling_small, fir_sapling, fir_sapling_medium, fern_02, grass_medium_01, dandelion_01, celandine_01, jacaranda_tree, island_tree_02, nettle_plant, anthurium_botany_01, weed_plant_02 — Rico Cilliers, Rob Tuytel
+  - tree_small_02, shrub_01, shrub_03, boulder_01 — Rico Cilliers
+  - rock_07, rock_09 — Jenelle van Heerden
+  - periwinkle_plant — Amal Kumar
   - tree_stump_01, tree_stump_02, dead_tree_trunk, pine_roots, moss_01 — Rob Tuytel
   - dead_tree_trunk_02 — Jenelle van Heerden, Rico Cilliers
   - dry_branches_medium_01, shrub_02, shrub_04, grass_medium_02, grass_bermuda_01, shrub_sorrel_01 — Rico Cilliers
@@ -114,11 +117,11 @@ To reproduce, build a Development player and run it with `-lkperf -lkquality=<0.
 
 ### Foliage
 
-Nature Pack (free version) — personal/learning use only; author to be added.
+Terrain grass is an authored tuft: `Assets/Game/Meshes/GrassTuft.asset` with `Assets/Game/Textures/Grass/GrassBlade.png`. Both were made for this project.
 
 ### Water
 
-ChuckCG, "Water Shader Addon Free" (GPL-2.0-or-later). The lake ripple normals and shore foam mask in `Assets/Game/Textures/Water/` were baked from that Blender material. Unity does not run the original node graph.
+The lake ripple normals and shore foam mask in `Assets/Game/Textures/Water/` (`WaterRippleNormalA`, `WaterRippleNormalB`, `WaterFoam`) are generated in the project by `WaterTextureGenerator` (menu: Lantern Keeper/Generate Water Textures).
 
 ### Skies
 

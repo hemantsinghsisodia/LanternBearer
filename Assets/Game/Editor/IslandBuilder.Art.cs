@@ -944,9 +944,9 @@ public static partial class IslandBuilder
 
     static void LoadWaterMaps(out Texture2D normalA, out Texture2D normalB, out Texture2D foam)
     {
-        normalA = LoadBakedWater("Assets/Game/Textures/Water/WaterRippleNormalA.png", true);
-        normalB = LoadBakedWater("Assets/Game/Textures/Water/WaterRippleNormalB.png", true);
-        foam = LoadBakedWater("Assets/Game/Textures/Water/WaterFoam.png", false);
+        normalA = LoadWaterTexture("Assets/Game/Textures/Water/WaterRippleNormalA.png", true);
+        normalB = LoadWaterTexture("Assets/Game/Textures/Water/WaterRippleNormalB.png", true);
+        foam = LoadWaterTexture("Assets/Game/Textures/Water/WaterFoam.png", false);
         if (normalA == null)
         {
             normalA = TileableNormal("Assets/Game/Textures/Generated/WaterNormalA.png", 256, 3f, 0.35f, 2.6f);
@@ -974,7 +974,7 @@ public static partial class IslandBuilder
         EditorUtility.SetDirty(water);
     }
 
-    static void ApplyBakedWater(Material water)
+    static void ApplyWaterTextures(Material water)
     {
         if (water == null)
         {
@@ -988,7 +988,7 @@ public static partial class IslandBuilder
         ApplyWaterLook(water, normalA, normalB, foam);
     }
 
-    static Texture2D LoadBakedWater(string path, bool normal)
+    static Texture2D LoadWaterTexture(string path, bool normal)
     {
         if (!File.Exists(path))
         {

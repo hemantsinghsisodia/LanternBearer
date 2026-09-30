@@ -855,7 +855,7 @@ public static partial class IslandBuilder
 
         Material water = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Materials/Generated/Water.mat");
         Material sky = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Materials/Generated/NightSky.mat");
-        ApplyBakedWater(water);
+        ApplyWaterTextures(water);
         ApplySkyExposure(sky, water);
         AssetDatabase.SaveAssets();
 
