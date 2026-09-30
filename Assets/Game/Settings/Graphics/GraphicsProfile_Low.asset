@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: GraphicsProfile_Low
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.GraphicsProfile
   level: 0
-  renderScale: 0.75
+  renderScale: 0.5
   msaaSampleCount: 1
   supportsHdr: 0
   cameraAntialiasing: 0
   postProcessing: 0
-  shadowDistance: 20
+  shadowDistance: 8
   shadowCascadeCount: 1
   mainLightShadowmapResolution: 1024
   supportsSoftShadows: 0
@@ -31,9 +31,9 @@ MonoBehaviour:
   glowLightCapFireflies: 3
   glowLightCapMoths: 2
   glowLightCapDistance: 30
-  grassDrawDistance: 12
-  grassDensity: 0.45
-  terrainPixelError: 8
+  grassDrawDistance: 8
+  grassDensity: 0.25
+  terrainPixelError: 12
   terrainBasemapDistance: 150
   treeLodBias: 0.7
   grassBending: 0

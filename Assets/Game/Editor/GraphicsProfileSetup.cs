@@ -33,7 +33,7 @@ public static class GraphicsProfileSetup
         pipelines[2] = EnsurePipeline("URP_High");
         pipelines[3] = EnsurePipeline("URP_Ultra");
 
-        ApplyPipeline(pipelines[0], 0.75f, "Disabled", false, 20f, 1, 1024, false, "Low", 2, false);
+        ApplyPipeline(pipelines[0], 0.5f, "Disabled", false, 8f, 1, 1024, false, "Low", 2, false);
         ApplyPipeline(pipelines[1], 1f, "Disabled", true, 50f, 4, 2048, true, "High", 4, true);
         ApplyPipeline(pipelines[2], 1f, "_4x", true, 70f, 4, 2048, true, "High", 6, true);
         ApplyPipeline(pipelines[3], 1f, "_4x", true, 100f, 4, 4096, true, "High", 8, true);
@@ -69,7 +69,7 @@ public static class GraphicsProfileSetup
         bool high = level == GraphicsLevel.High || level == GraphicsLevel.Ultra;
         bool ultra = level == GraphicsLevel.Ultra;
 
-        profile.renderScale = low ? 0.75f : 1f;
+        profile.renderScale = low ? 0.5f : 1f;
         profile.msaaSampleCount = high ? 4 : 1;
         profile.supportsHdr = !low;
         profile.cameraAntialiasing = ultra
@@ -79,7 +79,7 @@ public static class GraphicsProfileSetup
             ? GraphicsPostProcessing.Off
             : (level == GraphicsLevel.Medium ? GraphicsPostProcessing.Lighter : GraphicsPostProcessing.Full);
 
-        profile.shadowDistance = level == GraphicsLevel.Low ? 20f
+        profile.shadowDistance = level == GraphicsLevel.Low ? 8f
             : level == GraphicsLevel.High ? 70f
             : level == GraphicsLevel.Ultra ? 100f
             : 50f;
@@ -96,9 +96,11 @@ public static class GraphicsProfileSetup
         profile.glowLightCapMoths = low ? 2 : 0;
         profile.glowLightCapDistance = 30f;
 
-        profile.grassDrawDistance = low ? 12f : level == GraphicsLevel.Medium ? 20f : level == GraphicsLevel.High ? 30f : 45f;
-        profile.grassDensity = low ? 0.45f : 1f;
-        profile.terrainPixelError = low ? 8f : level == GraphicsLevel.Medium ? 4f : level == GraphicsLevel.High ? 3f : 2f;
+        profile.grassDrawDistance = low ? 8f : level == GraphicsLevel.Medium ? 20f : level == GraphicsLevel.High ? 30f : 45f;
+        // Unity clamps Terrain.detailObjectDensity to 1, and Medium's saved density is already 1,
+        // so Ultra stays at 1. A value above 1 does not draw more grass.
+        profile.grassDensity = low ? 0.25f : 1f;
+        profile.terrainPixelError = low ? 12f : level == GraphicsLevel.Medium ? 4f : level == GraphicsLevel.High ? 3f : 2f;
         profile.terrainBasemapDistance = low ? 150f : level == GraphicsLevel.Medium ? 280f : level == GraphicsLevel.High ? 400f : 600f;
         profile.treeLodBias = low ? 0.7f : level == GraphicsLevel.Medium ? 1f : level == GraphicsLevel.High ? 1.5f : 2f;
         profile.grassBending = !low;

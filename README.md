@@ -50,7 +50,7 @@ Medium is the default and matches the look the islands were built with.
 
 | Preset | What it changes |
 | --- | --- |
-| Low | Render scale 0.75, no anti-aliasing, HDR and post-processing off, short shadows, grass drawn at 12 m, water ripples and foam off, keeper rim off, distant mountains hidden |
+| Low | Render scale 0.5, no anti-aliasing, HDR and post-processing off, shadows to 8 m, grass drawn at 8 m at quarter density, water ripples and foam off, keeper rim off, distant mountains hidden |
 | Medium | Today's look: full resolution, the current anti-aliasing, grass at 20 m, four shadow cascades, one haze layer |
 | High | MSAA 4x, grass to 30 m, longer shadows, a second water ripple layer, extra mountain ridges |
 | Ultra | High, plus SMAA on the camera, grass to 45 m, the longest shadows, stronger water glint, a lantern shadow on the keeper, and a farther horizon |
@@ -58,6 +58,21 @@ Medium is the default and matches the look the islands were built with.
 VSync is off until you turn it on. The VSync button saves `LanternKeeperVSync` and applies it immediately. The FPS counter is off by default. It is saved as `LanternKeeperFps`, sits in the corner, and updates about twice a second from the average frame time, including while the game is paused.
 
 The preset is stored in PlayerPrefs as `LanternKeeperGraphics` (0 Low, 1 Medium, 2 High, 3 Ultra). Starting the game with `-lkquality=0` through `-lkquality=3` overrides the saved choice for that session until a preset is picked in the menu.
+
+### Measured cost
+
+Development player, 800×600 windowed, VSync off, about 20 seconds of the scripted keeper walk. Frame time is the wall-clock time with VSync off. GPU time comes from `FrameTimingManager` where it was valid.
+
+| Level | Island 1 avg | Island 1 FPS | Island 1 triangles | Island 2 avg | Island 2 FPS | Island 2 triangles |
+| --- | --- | --- | --- | --- | --- | --- |
+| Low | 2.08 ms | 481 | 282k | 2.13 ms | 470 | 202k |
+| Medium | 2.56 ms | 390 | 428k | 2.45 ms | 408 | 285k |
+| High | 3.08 ms | 325 | 445k | 2.97 ms | 337 | 330k |
+| Ultra | 3.76 ms | 266 | 596k | 3.18 ms | 314 | 391k |
+
+Medium on Island 1 is the pre-preset comparison: 2.56 ms against the earlier 2.52 ms. Ultra grass stays at density 1, because the terrain's detail density is already at Unity's maximum of 1.
+
+To reproduce, build a Development player and run it with `-lkperf -lkquality=<0..3> -lkscene=Island1` (or `Island2`) `-lkvsync=0 -lkseconds=20`. Add `-lkshot=<png path>` for one still of the spawn view, or `-lkview=beacon` for a lit beacon. The probe does nothing unless `-lkperf` is present.
 
 ## Project layout
 
