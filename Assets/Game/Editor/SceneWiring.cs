@@ -113,7 +113,36 @@ public static class SceneWiring
             assigned += Set(revealed[i], "lantern", lantern);
         }
 
+        assigned += WireTerrainQuality();
         return assigned;
+    }
+
+    static int WireTerrainQuality()
+    {
+        if (Object.FindAnyObjectByType<PlayerController>() == null)
+        {
+            return 0;
+        }
+
+        Terrain terrain = Object.FindAnyObjectByType<Terrain>();
+        if (terrain == null)
+        {
+            return 0;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        TerrainQuality quality = host.GetComponent<TerrainQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<TerrainQuality>();
+        }
+
+        return Set(quality, "terrain", terrain);
     }
 
     public static int ReportActiveScene()
@@ -177,6 +206,25 @@ public static class SceneWiring
             for (int i = 0; i < audio.Length; i++)
             {
                 nulls += Require(audio[i], "lantern", quiet);
+            }
+        }
+
+        if (Object.FindAnyObjectByType<PlayerController>() != null)
+        {
+            TerrainQuality[] terrainQuality = Object.FindObjectsByType<TerrainQuality>(FindObjectsInactive.Include);
+            if (terrainQuality.Length == 0)
+            {
+                if (!quiet)
+                {
+                    Debug.LogWarning("Null reference: TerrainQuality missing from GraphicsAppliers");
+                }
+
+                nulls++;
+            }
+
+            for (int i = 0; i < terrainQuality.Length; i++)
+            {
+                nulls += Require(terrainQuality[i], "terrain", quiet);
             }
         }
 

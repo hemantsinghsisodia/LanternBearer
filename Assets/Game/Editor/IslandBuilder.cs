@@ -139,6 +139,7 @@ public static partial class IslandBuilder
                 SpawnKeeper(art, stage, true);
                 CreateGameplay(config, art, stage);
                 CreateHud(art, stage);
+                EnsureGraphicsAppliers(stage);
             }
             else
             {

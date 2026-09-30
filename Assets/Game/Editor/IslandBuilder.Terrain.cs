@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace LanternKeeper
@@ -62,6 +63,34 @@ public static partial class IslandBuilder
         stage.terrain.detailObjectDensity = 1.0f;
         stage.waterY = WaterFraction * config.hillHeight;
         stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
+    }
+
+    static void EnsureGraphicsAppliers(Stage stage)
+    {
+        if (stage.terrain == null)
+        {
+            return;
+        }
+
+        GameObject host = GameObject.Find("GraphicsAppliers");
+        if (host == null)
+        {
+            host = new GameObject("GraphicsAppliers");
+        }
+
+        TerrainQuality quality = host.GetComponent<TerrainQuality>();
+        if (quality == null)
+        {
+            quality = host.AddComponent<TerrainQuality>();
+        }
+
+        SerializedObject so = new SerializedObject(quality);
+        SerializedProperty prop = so.FindProperty("terrain");
+        if (prop != null)
+        {
+            prop.objectReferenceValue = stage.terrain;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 
     static List<Vector2> PlanBeaconXZ(LevelConfig config, out List<Vector2> islets)

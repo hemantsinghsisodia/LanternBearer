@@ -30,6 +30,7 @@ Shader "LanternKeeper/GrassBend"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
+            #pragma multi_compile _ _LK_GRASS_NO_BEND
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -74,6 +75,9 @@ Shader "LanternKeeper/GrassBend"
 
             float3 BendGrass(float3 positionOS, float3 positionWS)
             {
+#if defined(_LK_GRASS_NO_BEND)
+                return positionWS;
+#else
                 float mask = saturate(positionOS.y / max(_TipHeight, 0.05));
                 float radius = _LKPlayerRadius;
                 if (radius > 0.05)
@@ -94,6 +98,7 @@ Shader "LanternKeeper/GrassBend"
                 positionWS.x += sway * 0.03 * mask;
                 positionWS.z += cos(_Time.y * 0.95 + positionWS.z * 0.6) * 0.02 * mask;
                 return positionWS;
+#endif
             }
 
             Varyings vert(Attributes input)
@@ -160,6 +165,7 @@ Shader "LanternKeeper/GrassBend"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
+            #pragma multi_compile _ _LK_GRASS_NO_BEND
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
@@ -198,6 +204,9 @@ Shader "LanternKeeper/GrassBend"
 
             float3 BendGrass(float3 positionOS, float3 positionWS)
             {
+#if defined(_LK_GRASS_NO_BEND)
+                return positionWS;
+#else
                 float mask = saturate(positionOS.y / max(_TipHeight, 0.05));
                 float radius = _LKPlayerRadius;
                 if (radius > 0.05)
@@ -218,6 +227,7 @@ Shader "LanternKeeper/GrassBend"
                 positionWS.x += sway * 0.03 * mask;
                 positionWS.z += cos(_Time.y * 0.95 + positionWS.z * 0.6) * 0.02 * mask;
                 return positionWS;
+#endif
             }
 
             Varyings vert(Attributes input)
