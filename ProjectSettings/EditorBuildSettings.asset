@@ -16,6 +16,6 @@ EditorBuildSettings:
     guid: 4989f54031d568e4ab788495fd939169
   - enabled: 1
     path: Assets/Game/Scenes/Island3.unity
-    guid: 00000000000000000000000000000000
+    guid: ee207d0143408db418fa12746247350f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
