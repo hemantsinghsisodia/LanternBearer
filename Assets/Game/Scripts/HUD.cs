@@ -91,6 +91,8 @@ public class HUD : MonoBehaviour
     bool tideWasRising;
     bool tideWarned;
     int tideShownSecond = int.MinValue;
+    StormHUD storm;
+    bool stormSearched;
     static Sprite vignetteSprite;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
@@ -156,6 +158,7 @@ public class HUD : MonoBehaviour
         }
 
         UpdateTide();
+        EnsureStorm();
         TickDots();
 
         if (manager == null)
@@ -725,6 +728,23 @@ public class HUD : MonoBehaviour
             tideWarned = true;
             ShowTideToast("Tide turning");
         }
+    }
+
+    // Islands without wind or lightning never get the storm widgets.
+    void EnsureStorm()
+    {
+        if (storm != null || stormSearched)
+        {
+            return;
+        }
+
+        stormSearched = true;
+        if (Wind.Instance == null && Lightning.Instance == null)
+        {
+            return;
+        }
+
+        storm = gameObject.AddComponent<StormHUD>();
     }
 
     void EnsureTideGauge()
@@ -1718,7 +1738,7 @@ public class HUD : MonoBehaviour
         return found.GetComponent<Image>();
     }
 
-    static TMP_Text MakeRuntimeText(Transform parent, string name, string value, int size, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color, TextAlignmentOptions alignment)
+    internal static TMP_Text MakeRuntimeText(Transform parent, string name, string value, int size, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color, TextAlignmentOptions alignment)
     {
         EnsureFont();
         GameObject go = new GameObject(name, typeof(RectTransform));
@@ -1818,7 +1838,7 @@ public class HUD : MonoBehaviour
         return White();
     }
 
-    static Sprite White()
+    internal static Sprite White()
     {
         if (whiteSprite != null)
         {
@@ -1833,7 +1853,7 @@ public class HUD : MonoBehaviour
         return whiteSprite;
     }
 
-    static Sprite Circle()
+    internal static Sprite Circle()
     {
         if (circleSprite != null)
         {

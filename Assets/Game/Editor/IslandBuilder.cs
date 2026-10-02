@@ -1445,6 +1445,7 @@ public static partial class IslandBuilder
         CreateWind(config);
         CreateShadeSpawner(config, art);
         CreateLightning(config);
+        CreateRain(config, art);
     }
 
     static void CreateTide(LevelConfig config, Stage stage)
@@ -1507,6 +1508,46 @@ public static partial class IslandBuilder
         lightningObject.FindProperty("flashLight").objectReferenceValue = flash;
         lightningObject.FindProperty("volume").objectReferenceValue = Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>();
         lightningObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    // Falling streaks in a box above the camera. Rain.cs moves the box with the camera and scales it on Low.
+    static void CreateRain(LevelConfig config, ArtKit art)
+    {
+        if (!config.lightning)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("Rain");
+        ParticleSystem system = host.AddComponent<ParticleSystem>();
+        ParticleSystem.MainModule main = system.main;
+        main.playOnAwake = true;
+        main.loop = true;
+        main.prewarm = true;
+        main.startLifetime = 0.9f;
+        main.startSpeed = 20f;
+        main.startSize = 0.05f;
+        main.startColor = new Color(0.72f, 0.8f, 0.92f, 0.35f);
+        main.maxParticles = 1200;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        ParticleSystem.EmissionModule emission = system.emission;
+        emission.rateOverTime = 600f;
+        ParticleSystem.ShapeModule shape = system.shape;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.scale = new Vector3(34f, 0.5f, 34f);
+        shape.rotation = new Vector3(90f, 0f, 0f);
+        ParticleSystemRenderer renderer = host.GetComponent<ParticleSystemRenderer>();
+        renderer.sharedMaterial = art.unlit;
+        renderer.renderMode = ParticleSystemRenderMode.Stretch;
+        renderer.lengthScale = 2f;
+        renderer.velocityScale = 0.04f;
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        Rain rain = host.AddComponent<Rain>();
+        SerializedObject rainObject = new SerializedObject(rain);
+        rainObject.FindProperty("system").objectReferenceValue = system;
+        rainObject.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerController>();
+        rainObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void CreateShadeSpawner(LevelConfig config, ArtKit art)

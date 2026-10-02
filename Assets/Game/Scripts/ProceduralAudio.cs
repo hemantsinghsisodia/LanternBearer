@@ -17,6 +17,12 @@ public static class ProceduralAudio
     static AudioClip whisper;
     static AudioClip dying;
     static AudioClip surf;
+    static AudioClip windBed;
+    static AudioClip windHowl;
+    static AudioClip thunderRumble;
+    static AudioClip thunderCrack;
+    static AudioClip shadeDrone;
+    static AudioClip rain;
 
     public static AudioClip FireflyChime()
     {
@@ -178,6 +184,176 @@ public static class ProceduralAudio
         FadeEdges(data, (int)(Rate * 0.05f));
         surf = Clip("SurfSwell", data);
         return surf;
+    }
+
+    // Loops: every modulation runs a whole number of cycles per clip so the seam stays quiet.
+    public static AudioClip WindBed()
+    {
+        if (windBed != null)
+        {
+            return windBed;
+        }
+
+        int length = Rate * 8;
+        float[] data = new float[length];
+        System.Random random = new System.Random(401);
+        float low = 0f;
+        float mid = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.992f + sample * 0.008f;
+            mid = mid * 0.9f + sample * 0.1f;
+            float lull = 0.65f + 0.35f * Mathf.Sin(2f * Mathf.PI * time / 8f) * Mathf.Sin(2f * Mathf.PI * time * 3f / 8f + 0.7f);
+            data[i] = (low * 3.4f + mid * 0.25f * lull) * lull;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.05f));
+        windBed = Clip("WindBed", data);
+        return windBed;
+    }
+
+    public static AudioClip WindHowl()
+    {
+        if (windHowl != null)
+        {
+            return windHowl;
+        }
+
+        int length = Rate * 4;
+        float[] data = new float[length];
+        System.Random random = new System.Random(402);
+        float band = 0f;
+        float lowpass = 0f;
+        float phase = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            band = band * 0.97f + sample * 0.03f;
+            lowpass = lowpass * 0.9f + band * 0.1f;
+            float pitch = 340f + 70f * Mathf.Sin(2f * Mathf.PI * time / 4f) + 25f * Mathf.Sin(2f * Mathf.PI * time * 3f / 4f);
+            phase += 2f * Mathf.PI * pitch / Rate;
+            float tone = Mathf.Sin(phase) * 0.55f + Mathf.Sin(phase * 1.5f) * 0.18f;
+            float swell = 0.55f + 0.45f * Mathf.Sin(2f * Mathf.PI * time * 2f / 4f - 1.2f);
+            data[i] = (tone * 0.5f + lowpass * 5f) * swell * 0.55f;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.08f));
+        windHowl = Clip("WindHowl", data);
+        return windHowl;
+    }
+
+    public static AudioClip ThunderRumble()
+    {
+        if (thunderRumble != null)
+        {
+            return thunderRumble;
+        }
+
+        int length = (int)(Rate * 3.2f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(403);
+        float low = 0f;
+        float lower = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.985f + noise * 0.015f;
+            lower = lower * 0.997f + noise * 0.003f;
+            float attack = Mathf.Clamp01(time / 0.7f);
+            float envelope = attack * Mathf.Exp(-Mathf.Max(0f, time - 0.7f) * 1.1f);
+            float roll = 0.7f + 0.3f * Mathf.Sin(2f * Mathf.PI * 7f * time);
+            data[i] = (low * 6f + lower * 14f) * envelope * roll * 0.9f;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.05f));
+        thunderRumble = Clip("ThunderRumble", data);
+        return thunderRumble;
+    }
+
+    public static AudioClip ThunderCrack()
+    {
+        if (thunderCrack != null)
+        {
+            return thunderCrack;
+        }
+
+        int length = (int)(Rate * 1.3f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(404);
+        float low = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.93f + noise * 0.07f;
+            float snap = noise * Mathf.Exp(-time * 38f);
+            float body = low * 1.6f * Mathf.Exp(-time * 6f);
+            float thump = Mathf.Sin(2f * Mathf.PI * 52f * time) * Mathf.Exp(-time * 7f);
+            data[i] = Mathf.Clamp(snap * 0.9f + body + thump * 0.55f, -1f, 1f) * 0.9f;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.01f));
+        thunderCrack = Clip("ThunderCrack", data);
+        return thunderCrack;
+    }
+
+    public static AudioClip ShadeDrone()
+    {
+        if (shadeDrone != null)
+        {
+            return shadeDrone;
+        }
+
+        int length = Rate * 4;
+        float[] data = new float[length];
+        System.Random random = new System.Random(405);
+        float low = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.99f + noise * 0.01f;
+            float beat = Mathf.Sin(2f * Mathf.PI * 55f * time) + 0.7f * Mathf.Sin(2f * Mathf.PI * 55.5f * time);
+            float fifth = 0.35f * Mathf.Sin(2f * Mathf.PI * 82.5f * time + 0.6f * Mathf.Sin(2f * Mathf.PI * time * 2f / 4f));
+            float tremolo = 0.7f + 0.3f * Mathf.Sin(2f * Mathf.PI * time * 3f / 4f);
+            data[i] = (beat * 0.3f + fifth + low * 3f) * tremolo * 0.55f;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.05f));
+        shadeDrone = Clip("ShadeDrone", data);
+        return shadeDrone;
+    }
+
+    public static AudioClip Rain()
+    {
+        if (rain != null)
+        {
+            return rain;
+        }
+
+        int length = Rate * 4;
+        float[] data = new float[length];
+        System.Random random = new System.Random(406);
+        float trend = 0f;
+        float smooth = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            smooth = smooth * 0.55f + noise * 0.45f;
+            trend = trend * 0.9f + smooth * 0.1f;
+            float high = smooth - trend;
+            float patter = 0.8f + 0.2f * Mathf.Sin(2f * Mathf.PI * time * 5f / 4f) * Mathf.Sin(2f * Mathf.PI * time * 2f / 4f);
+            data[i] = high * patter * 0.5f;
+        }
+
+        FadeEdges(data, (int)(Rate * 0.05f));
+        rain = Clip("Rain", data);
+        return rain;
     }
 
     public static AudioClip Fizzle()

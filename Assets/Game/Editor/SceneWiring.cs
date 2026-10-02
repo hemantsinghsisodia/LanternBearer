@@ -145,6 +145,13 @@ public static class SceneWiring
             assigned += Set(lightnings[i], "volume", Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>());
         }
 
+        Rain[] rains = Object.FindObjectsByType<Rain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < rains.Length; i++)
+        {
+            assigned += Set(rains[i], "system", rains[i].GetComponent<ParticleSystem>());
+            assigned += Set(rains[i], "player", body);
+        }
+
         LightRevealed[] revealed = Object.FindObjectsByType<LightRevealed>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < revealed.Length; i++)
         {
@@ -478,6 +485,13 @@ public static class SceneWiring
         {
             nulls += Require(lightnings[i], "flashLight", quiet);
             nulls += Require(lightnings[i], "volume", quiet);
+        }
+
+        Rain[] rains = Object.FindObjectsByType<Rain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < rains.Length; i++)
+        {
+            nulls += Require(rains[i], "system", quiet);
+            nulls += Require(rains[i], "player", quiet);
         }
 
         Beacon[] beacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);

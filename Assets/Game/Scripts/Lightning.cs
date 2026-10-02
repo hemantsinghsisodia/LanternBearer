@@ -14,6 +14,8 @@ public class Lightning : MonoBehaviour
     [SerializeField] Volume volume;
     [SerializeField] float peakIntensity = 3f;
     [SerializeField] float peakExposure = 1.5f;
+    [SerializeField] float rumbleVolume = 0.7f;
+    [SerializeField] float crackVolume = 0.9f;
 
     LightningSchedule schedule;
     ColorAdjustments color;
@@ -21,6 +23,9 @@ public class Lightning : MonoBehaviour
     bool exposureReady;
     bool pulseAllowed = true;
     bool subscribed;
+    AudioSource thunder;
+    bool thunderRouted;
+    LightningPhase lastPhase = LightningPhase.Waiting;
 
     public static Lightning Instance { get; private set; }
     public static event Action Flashed;
@@ -32,6 +37,7 @@ public class Lightning : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        thunder = StormAudio.Make(gameObject, null, false, 0f);
         if (flashLight != null)
         {
             flashLight.intensity = 0f;
@@ -106,6 +112,27 @@ public class Lightning : MonoBehaviour
         }
     }
 
+    // The rumble starts with the thunder lead, the crack lands with the flash.
+    void PlayThunder(LightningPhase phase, bool flashed)
+    {
+        if (!thunderRouted)
+        {
+            thunderRouted = StormAudio.Route(thunder, false);
+        }
+
+        if (phase == LightningPhase.Thunder && lastPhase != LightningPhase.Thunder)
+        {
+            thunder.PlayOneShot(ProceduralAudio.ThunderRumble(), rumbleVolume);
+        }
+
+        if (flashed)
+        {
+            thunder.PlayOneShot(ProceduralAudio.ThunderCrack(), crackVolume);
+        }
+
+        lastPhase = phase;
+    }
+
     void Update()
     {
         if (schedule == null)
@@ -128,6 +155,7 @@ public class Lightning : MonoBehaviour
             }
 
             schedule.Tick(Time.deltaTime, roundOver, startsIn, endsIn);
+            PlayThunder(schedule.Phase, schedule.FlashedThisTick);
             if (schedule.FlashedThisTick)
             {
                 Action handler = Flashed;
@@ -139,6 +167,7 @@ public class Lightning : MonoBehaviour
         }
 
         float flash = schedule.Flash01;
+        thunder.volume = StormAudio.MuteGain;
         if (flashLight != null)
         {
             flashLight.enabled = flash > 0.001f;

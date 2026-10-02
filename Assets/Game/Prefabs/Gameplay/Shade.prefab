@@ -2564,6 +2564,7 @@ MonoBehaviour:
   avoidDistance: 2.4
   avoidRadius: 0.4
   bodyAlpha: 0.72
+  droneVolume: 0.5
 --- !u!1 &4446579556801679136
 GameObject:
   m_ObjectHideFlags: 0

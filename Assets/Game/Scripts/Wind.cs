@@ -15,8 +15,17 @@ public class Wind : MonoBehaviour
     [SerializeField] PlayerController player;
     [SerializeField] WaterHazard hazard;
 
+    [SerializeField] float bedVolume = 0.16f;
+    [SerializeField] float howlVolume = 0.5f;
+    [SerializeField] float howlDistance = 12f;
+
     WindCycle cycle;
     float strengthScale;
+    AudioSource bed;
+    AudioSource howl;
+    bool bedRouted;
+    bool howlRouted;
+    float shelterGain = 1f;
 
     public static Wind Instance { get; private set; }
 
@@ -30,6 +39,12 @@ public class Wind : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        bed = StormAudio.Make(gameObject, ProceduralAudio.WindBed(), true, 0f);
+        bed.Play();
+        GameObject howlObject = new GameObject("WindHowl");
+        howlObject.transform.SetParent(transform, false);
+        howl = StormAudio.Make(howlObject, ProceduralAudio.WindHowl(), true, 1f);
+        howl.Play();
     }
 
     void Start()
@@ -67,11 +82,15 @@ public class Wind : MonoBehaviour
 
         Vector3 dir = cycle.Direction;
         float s01 = cycle.Strength01;
-        Shader.SetGlobalVector(WindId, new Vector4(dir.x, dir.z, s01, 0f));
+
+        // Low keeps the grass still: the bend global stays zero.
+        bool bendGrass = GraphicsQuality.Current != GraphicsLevel.Low;
+        Shader.SetGlobalVector(WindId, bendGrass ? new Vector4(dir.x, dir.z, s01, 0f) : Vector4.zero);
 
         if (player == null)
         {
             PlayerController.ExternalPush = Vector3.zero;
+            UpdateAudio(dir, s01);
             return;
         }
 
@@ -81,11 +100,46 @@ public class Wind : MonoBehaviour
         {
             Sheltered = false;
             PlayerController.ExternalPush = Vector3.zero;
+            UpdateAudio(dir, s01);
             return;
         }
 
         Sheltered = IsSheltered(dir);
         PlayerController.ExternalPush = WindCycle.Push(dir, s01, strengthScale, !player.IsGrounded, Sheltered);
+        UpdateAudio(dir, s01);
+    }
+
+    // A low bed always runs. The howl comes from upwind and swells with the warning pulse and the gust.
+    void UpdateAudio(Vector3 dir, float s01)
+    {
+        if (!bedRouted)
+        {
+            bedRouted = StormAudio.Route(bed, true);
+        }
+
+        if (!howlRouted)
+        {
+            howlRouted = StormAudio.Route(howl, false);
+        }
+
+        float mute = StormAudio.MuteGain;
+        shelterGain = Mathf.MoveTowards(shelterGain, Sheltered ? 0.5f : 1f, Time.deltaTime * 2f);
+        bed.volume = bedVolume * (0.5f + 0.5f * s01) * mute;
+        float howlLevel = 0f;
+        if (Phase == WindPhase.Warning)
+        {
+            howlLevel = 0.25f + 0.2f * Mathf.Abs(Mathf.Sin(Time.time * 5f));
+        }
+        else if (Phase == WindPhase.Gust)
+        {
+            howlLevel = 0.25f + 0.75f * s01;
+        }
+
+        howl.volume = howlVolume * howlLevel * shelterGain * mute;
+        if (player != null)
+        {
+            howl.transform.position = player.transform.position - dir * howlDistance + Vector3.up;
+        }
     }
 
     static bool InSafeRing(Vector3 position)

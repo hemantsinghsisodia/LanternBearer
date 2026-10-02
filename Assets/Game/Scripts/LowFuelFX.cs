@@ -13,6 +13,7 @@ public class LowFuelFX : MonoBehaviour
     ColorAdjustments color;
     bool ready;
     bool resolved;
+    float edgePulse;
     static bool loggedFallback;
 
     void Awake()
@@ -85,6 +86,12 @@ public class LowFuelFX : MonoBehaviour
         ready = vignette != null;
     }
 
+    // A Shade steal darkens the screen edge for a moment on top of the fuel vignette.
+    public void PulseEdge(float strength)
+    {
+        edgePulse = Mathf.Max(edgePulse, Mathf.Clamp01(strength));
+    }
+
     void Update()
     {
         if (!ready || lantern == null || vignette == null)
@@ -100,6 +107,11 @@ public class LowFuelFX : MonoBehaviour
         }
 
         amount += lantern.ProximityDim * 0.22f;
+        if (edgePulse > 0f)
+        {
+            amount += edgePulse * 0.4f;
+            edgePulse = Mathf.MoveTowards(edgePulse, 0f, Time.deltaTime / 0.8f);
+        }
 
         vignette.intensity.Override(Mathf.Clamp01(amount));
         if (color != null)

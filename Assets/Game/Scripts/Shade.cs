@@ -16,6 +16,7 @@ public class Shade : MonoBehaviour
     [SerializeField] float avoidDistance = 2.4f;
     [SerializeField] float avoidRadius = 0.4f;
     [SerializeField] float bodyAlpha = 0.72f;
+    [SerializeField] float droneVolume = 0.5f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     static bool loggedFallback;
@@ -31,6 +32,9 @@ public class Shade : MonoBehaviour
     bool lightningSubscribed;
     bool targetsResolved;
     bool maskReady;
+    bool droneRouted;
+    float droneGain;
+    AudioSource drone;
     int obstacleMask;
     Transform player;
     Lantern lantern;
@@ -74,6 +78,9 @@ public class Shade : MonoBehaviour
             ParticleQuality.ApplyTo(smoke);
         }
 
+        // A 3D hum that follows the Shade. It goes quiet while the Shade is frozen in the lantern light.
+        drone = StormAudio.Make(gameObject, ProceduralAudio.ShadeDrone(), true, 1f);
+        drone.Play();
         block = new MaterialPropertyBlock();
         appear = 0f;
         ApplyLook();
@@ -256,6 +263,7 @@ public class Shade : MonoBehaviour
         }
 
         float dt = Time.deltaTime;
+        UpdateDrone(dt);
         if (manager != null && (manager.IsRoundOver || manager.IsDying))
         {
             BeginDespawn();
@@ -310,6 +318,18 @@ public class Shade : MonoBehaviour
         state = ShadeLogic.StateFor(reveal, frozenSeconds);
         Move(dt);
         TryTouch();
+    }
+
+    void UpdateDrone(float dt)
+    {
+        if (!droneRouted)
+        {
+            droneRouted = StormAudio.Route(drone, false);
+        }
+
+        float target = state == ShadeState.Freeze || state == ShadeState.Reforming || despawning ? 0f : 1f;
+        droneGain = Mathf.MoveTowards(droneGain, target, dt * 4f);
+        drone.volume = droneVolume * droneGain * appear * StormAudio.MuteGain;
     }
 
     void Move(float dt)
