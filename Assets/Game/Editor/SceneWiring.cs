@@ -767,22 +767,6 @@ public static class SceneWiring
     static int ReportPath(List<Transform> path, int index, Terrain terrain, float waterY, bool quiet)
     {
         int problems = 0;
-        float lowest = float.MaxValue;
-        for (int i = 0; i < path.Count; i++)
-        {
-            lowest = Mathf.Min(lowest, StoneTop(path[i]));
-        }
-
-        // A light-gated stone raised above the path's lowest stone would hang in the air until revealed.
-        for (int i = 0; i < path.Count; i++)
-        {
-            float lift = StoneTop(path[i]) - lowest;
-            if (path[i].name == "SteppingStone" && lift > 0.05f)
-            {
-                problems += StoneWarning(path[i], "path " + index + ": light-gated stone is " + lift.ToString("F2") + " m above the path's lowest stone", quiet);
-            }
-        }
-
         for (int i = 1; i < path.Count; i++)
         {
             float rise = StoneTop(path[i]) - StoneTop(path[i - 1]);

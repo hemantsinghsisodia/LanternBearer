@@ -254,16 +254,13 @@ public static partial class IslandBuilder
     static void BuildPath(ArtKit art, Stage stage, Transform parent, PathPlan plan)
     {
         float edgeY = stage.highWaterY + 0.05f;
-        float top0 = stage.highWaterY + 0.12f + StoneHalfHeight;
         for (int i = 0; i < plan.stones.Count; i++)
         {
-            // Stones over open water at the base level are revealed by the lantern. The two end stones, any
-            // stone over dry ground and any stone raised above the base level (mesa landings) are always
-            // visible and solid, so the landings never depend on light and nobody drops onto a hidden stone.
+            // Stones over open water are revealed by the lantern. The two end stones and any stone over
+            // dry ground are always visible and solid, so the landings never depend on light.
             Vector3 stone = plan.stones[i];
             bool end = i == 0 || i == plan.stones.Count - 1;
-            bool raised = stone.y > top0 + 0.02f;
-            if (!end && !raised && PathGround(stage, new Vector2(stone.x, stone.z)) < edgeY)
+            if (!end && PathGround(stage, new Vector2(stone.x, stone.z)) < edgeY)
             {
                 CreateHiddenStone(art, stage, parent, new Vector3(stone.x, stone.y - StoneHalfHeight, stone.z));
             }
