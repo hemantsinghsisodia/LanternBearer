@@ -74,6 +74,26 @@ public static class GameSettings
         }
     }
 
+    public static float GustMultiplier()
+    {
+        return StormTuning.GustMultiplier((int)Current);
+    }
+
+    public static int MaxShades()
+    {
+        return StormTuning.MaxShades((int)Current);
+    }
+
+    public static float ShadeSteal()
+    {
+        return StormTuning.ShadeSteal((int)Current);
+    }
+
+    public static Vector2 LightningInterval()
+    {
+        return StormTuning.LightningInterval((int)Current);
+    }
+
     public static float SafeZoneDrainMultiplier
     {
         get { return 0.35f; }
@@ -215,6 +235,11 @@ public static class GameSettings
         if (levelId == "island3")
         {
             return HasWon("island2");
+        }
+
+        if (levelId == "island4")
+        {
+            return HasWon("island3");
         }
 
         return true;

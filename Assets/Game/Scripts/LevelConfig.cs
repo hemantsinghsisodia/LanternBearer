@@ -25,5 +25,8 @@ public class LevelConfig : ScriptableObject
     public float tidePeriod = 90f;
     public float tidePhase;
     public string[] logEntries = new string[0];
+    public float windStrength;
+    public int shadeCount;
+    public bool lightning;
 }
 }
