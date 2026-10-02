@@ -59,6 +59,7 @@ public class PlayerController : MonoBehaviour
     public bool UseDistanceFootsteps = true;
 
     public static Vector2 ExternalMove;
+    public static Vector3 ExternalPush;
     public static bool ExternalSprint;
     public static bool ExternalJump;
 
@@ -128,6 +129,7 @@ public class PlayerController : MonoBehaviour
         if (manager != null && (manager.IsPaused || manager.ControlsLocked || manager.IsDying || manager.IsRoundOver))
         {
             ExternalMove = Vector2.zero;
+            ExternalPush = Vector3.zero;
             ExternalJump = false;
             IsSprinting = false;
             HorizontalSpeed = 0f;
@@ -268,7 +270,7 @@ public class PlayerController : MonoBehaviour
         planarVelocity = Vector3.MoveTowards(planarVelocity, targetVelocity, rate * dt);
 
         verticalVelocity += gravity * dt;
-        Vector3 velocity = planarVelocity;
+        Vector3 velocity = planarVelocity + ExternalPush;
         velocity.y = verticalVelocity;
         controller.Move(velocity * dt);
 

@@ -122,6 +122,13 @@ public static class SceneWiring
             assigned += Set(tides[i], "hazard", water.Length > 0 ? water[0] : null);
         }
 
+        Wind[] winds = Object.FindObjectsByType<Wind>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < winds.Length; i++)
+        {
+            assigned += Set(winds[i], "player", body);
+            assigned += Set(winds[i], "hazard", water.Length > 0 ? water[0] : null);
+        }
+
         LightRevealed[] revealed = Object.FindObjectsByType<LightRevealed>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < revealed.Length; i++)
         {
@@ -431,6 +438,13 @@ public static class SceneWiring
         {
             nulls += Require(tides[i], "waterRoot", quiet);
             nulls += Require(tides[i], "hazard", quiet);
+        }
+
+        Wind[] winds = Object.FindObjectsByType<Wind>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < winds.Length; i++)
+        {
+            nulls += Require(winds[i], "player", quiet);
+            nulls += Require(winds[i], "hazard", quiet);
         }
 
         Beacon[] beacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);

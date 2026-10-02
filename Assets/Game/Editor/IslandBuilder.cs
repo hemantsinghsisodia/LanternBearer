@@ -1442,6 +1442,7 @@ public static partial class IslandBuilder
         mothObject.FindProperty("islandRadius").floatValue = config.islandRadius;
         mothObject.ApplyModifiedPropertiesWithoutUndo();
         CreateTide(config, stage);
+        CreateWind(config);
     }
 
     static void CreateTide(LevelConfig config, Stage stage)
@@ -1462,6 +1463,23 @@ public static partial class IslandBuilder
         tideObject.FindProperty("waterRoot").objectReferenceValue = water != null ? water.transform : null;
         tideObject.FindProperty("hazard").objectReferenceValue = Object.FindAnyObjectByType<WaterHazard>();
         tideObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void CreateWind(LevelConfig config)
+    {
+        if (config.windStrength <= 0f)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("Wind");
+        Wind wind = host.AddComponent<Wind>();
+        SerializedObject windObject = new SerializedObject(wind);
+        windObject.FindProperty("strength").floatValue = config.windStrength;
+        windObject.FindProperty("seed").intValue = config.seed;
+        windObject.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerController>();
+        windObject.FindProperty("hazard").objectReferenceValue = Object.FindAnyObjectByType<WaterHazard>();
+        windObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void CreateCameraMenu(Stage stage)
