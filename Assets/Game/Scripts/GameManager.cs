@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] int beaconsToWin = 5;
     [SerializeField] Lantern lantern;
     [SerializeField] string levelId = "island1";
+    [SerializeField] string islandLabel = "";
     [SerializeField] string nextLevelScene = "";
     [SerializeField] string[] logEntries = new string[0];
     [SerializeField] float deathSeconds = 1.5f;
@@ -52,6 +53,9 @@ public class GameManager : MonoBehaviour
     public bool Won => won;
     public string LevelId => string.IsNullOrEmpty(levelId) ? SceneManager.GetActiveScene().name : levelId;
     public string NextLevelScene => nextLevelScene;
+    // Em-dash form, e.g. "Island 4 <em dash> The Storm Cape". HUD uses IslandLabels.ToHud for the middle-dot form.
+    public string IslandLabel => islandLabel;
+    public string IslandLabelHud => IslandLabels.ToHud(islandLabel);
 
     public event Action<int, int> BeaconsChanged;
     public event Action PromptChanged;

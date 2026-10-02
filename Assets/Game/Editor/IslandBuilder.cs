@@ -99,14 +99,22 @@ public static partial class IslandBuilder
         EnsureFolder("Assets/Game/Levels/Biomes");
         EnsureMarshBiome();
         EnsureHeathBiome();
-        WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", false, 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
-        WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", true, 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
-        WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
+        LevelConfig island1 = WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", false, 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
+        LevelConfig island2 = WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", true, 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
+        LevelConfig island3 = WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
         LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "", true, 0f, 90f, 0f, Island4Log(), HeathBiomePath);
+        island1.islandTitle = "First Light";
+        island2.islandTitle = "The Pine Reach";
+        island3.islandTitle = "The Drowned Marsh";
+        island4.islandTitle = "The Storm Cape";
         island4.windStrength = 1f;
         island4.shadeCount = 2;
         island4.lightning = true;
         island4.ridges = true;
+        EditorUtility.SetDirty(island1);
+        EditorUtility.SetDirty(island2);
+        EditorUtility.SetDirty(island3);
+        EditorUtility.SetDirty(island4);
         AssetDatabase.SaveAssets();
     }
 
@@ -1330,6 +1338,7 @@ public static partial class IslandBuilder
         managerObject.FindProperty("beaconsToWin").intValue = Mathf.Max(1, stage.beacons);
         managerObject.FindProperty("lantern").objectReferenceValue = stage.lantern;
         managerObject.FindProperty("levelId").stringValue = config.levelId;
+        managerObject.FindProperty("islandLabel").stringValue = IslandLabels.Compose(config.displayName, config.islandTitle);
         managerObject.FindProperty("nextLevelScene").stringValue = config.nextLevelScene == null ? "" : config.nextLevelScene;
         SerializedProperty logProperty = managerObject.FindProperty("logEntries");
         string[] logLines = config.logEntries != null ? config.logEntries : new string[0];

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
   levelId: island4
   displayName: Island 4
+  islandTitle: The Storm Cape
   sceneName: Island4
   islandRadius: 42
   hillHeight: 14

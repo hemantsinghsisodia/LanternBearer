@@ -7,6 +7,7 @@ public class LevelConfig : ScriptableObject
 {
     public string levelId = "island1";
     public string displayName = "Island 1";
+    public string islandTitle = "";
     public string sceneName = "Island1";
     public float islandRadius = 28f;
     public float hillHeight = 9f;

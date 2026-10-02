@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
   levelId: island3
   displayName: Island 3
+  islandTitle: The Drowned Marsh
   sceneName: Island3
   islandRadius: 46
   hillHeight: 6

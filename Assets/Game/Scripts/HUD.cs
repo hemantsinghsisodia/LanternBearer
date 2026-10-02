@@ -18,6 +18,7 @@ public class HUD : MonoBehaviour
     static readonly Color DotDim = new Color(0.28f, 0.3f, 0.34f, 1f);
     static readonly Color SafeStatusColor = new Color(1f, 0.86f, 0.45f);
     static readonly Color DrainStatusColor = new Color(1f, 0.78f, 0.48f);
+    static readonly Color IslandLabelColor = new Color(0.86f, 0.76f, 0.58f, 0.85f);
     static readonly Color ShakeColor = new Color(1f, 0.28f, 0.16f, 1f);
 
     static Sprite whiteSprite;
@@ -94,6 +95,8 @@ public class HUD : MonoBehaviour
     StormHUD storm;
     bool stormSearched;
     static Sprite vignetteSprite;
+    TMP_Text islandLabelText;
+    string shownIslandLabel;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
     public float DeathAmount { get; private set; }
@@ -162,6 +165,7 @@ public class HUD : MonoBehaviour
 
         EnsureDots(manager.BeaconsToWin);
         PaintDots(manager.LitCount);
+        RefreshIslandLabel(manager);
 
         ShowTimer(manager.Elapsed);
 
@@ -675,6 +679,46 @@ public class HUD : MonoBehaviour
             penaltyText.rectTransform.pivot = new Vector2(0f, 1f);
             penaltyText.gameObject.SetActive(false);
         }
+    }
+
+    // Quiet island name at top centre (clear of the timer, fuel gauge and status text), plus a subtitle on each panel.
+    void RefreshIslandLabel(GameManager manager)
+    {
+        string label = manager.IslandLabel;
+        if (label == shownIslandLabel)
+        {
+            return;
+        }
+
+        shownIslandLabel = label;
+        if (islandLabelText == null)
+        {
+            islandLabelText = MakeRuntimeText(transform, "IslandLabel", "", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(520f, 32f), IslandLabelColor, TextAlignmentOptions.Center);
+        }
+
+        islandLabelText.text = manager.IslandLabelHud;
+        islandLabelText.gameObject.SetActive(!string.IsNullOrEmpty(label));
+        SetPanelSubtitle(winPanel, label, 78f);
+        SetPanelSubtitle(losePanel, label, 78f);
+        SetPanelSubtitle(pausePanel, label, 80f);
+    }
+
+    void SetPanelSubtitle(GameObject panel, string label, float drop)
+    {
+        if (panel == null)
+        {
+            return;
+        }
+
+        Transform existing = panel.transform.Find("IslandSubtitle");
+        TMP_Text subtitle = existing != null ? existing.GetComponent<TMP_Text>() : null;
+        if (subtitle == null)
+        {
+            subtitle = MakeRuntimeText(panel.transform, "IslandSubtitle", "", 22, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -drop), new Vector2(480f, 30f), IslandLabelColor, TextAlignmentOptions.Center);
+        }
+
+        subtitle.text = GameManager.Instance != null ? GameManager.Instance.IslandLabelHud : "";
+        subtitle.gameObject.SetActive(!string.IsNullOrEmpty(label));
     }
 
     void UpdateTide()
