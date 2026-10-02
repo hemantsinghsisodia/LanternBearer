@@ -88,6 +88,13 @@ public class Lightning : MonoBehaviour
             return;
         }
 
+        // A rebuilt scene can leave the shared profile holding destroyed components; reading volume.profile would clone them and throw.
+        VolumeProfile shared = volume.sharedProfile;
+        if (shared == null || !LowFuelFX.ProfileAlive(shared))
+        {
+            return;
+        }
+
         VolumeProfile runtime = volume.profile;
         if (runtime != null && runtime.TryGet(out color) && color != null)
         {

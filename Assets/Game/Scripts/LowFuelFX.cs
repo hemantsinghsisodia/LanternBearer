@@ -44,7 +44,7 @@ public class LowFuelFX : MonoBehaviour
         Bind();
     }
 
-    static bool ProfileAlive(VolumeProfile profile)
+    public static bool ProfileAlive(VolumeProfile profile)
     {
         if (profile.components == null || profile.components.Count == 0)
         {
