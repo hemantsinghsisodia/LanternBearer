@@ -20,6 +20,8 @@ public class ShadeSpawner : MonoBehaviour
 
     bool refsResolved;
     bool warnedMissingPrefab;
+    bool warnedNoEdge;
+    float edgeRetryTimer;
     static bool loggedFallback;
 
     public int Cap => GameSettings.MaxShades();
@@ -68,6 +70,13 @@ public class ShadeSpawner : MonoBehaviour
 
     void TopUp()
     {
+        // A failed edge search retries about once a second, like Shade.TickReform.
+        if (edgeRetryTimer > 0f)
+        {
+            edgeRetryTimer -= Time.deltaTime;
+            return;
+        }
+
         GameManager manager = GameManager.Instance;
         if (manager != null && (manager.IsRoundOver || manager.IsDying))
         {
@@ -83,7 +92,13 @@ public class ShadeSpawner : MonoBehaviour
             Vector3 position;
             if (!TryFindEdge(out position))
             {
-                Debug.LogWarning("ShadeSpawner could not find a dark-edge spawn.");
+                edgeRetryTimer = 1f;
+                if (!warnedNoEdge)
+                {
+                    warnedNoEdge = true;
+                    Debug.LogWarning("ShadeSpawner could not find a dark-edge spawn.");
+                }
+
                 return;
             }
 

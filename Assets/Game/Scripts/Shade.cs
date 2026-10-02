@@ -403,7 +403,7 @@ public class Shade : MonoBehaviour
         {
             if (hud != null)
             {
-                hud.ShowFuelPenalty("-" + Mathf.RoundToInt(amount).ToString());
+                hud.ShowFuelPenalty("-" + Mathf.Max(1, Mathf.RoundToInt(amount)).ToString());
             }
 
             Action<float> handler = Stole;
