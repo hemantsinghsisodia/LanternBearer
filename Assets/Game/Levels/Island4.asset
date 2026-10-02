@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6f7f2f2c3a86674384ec2c9b9487ebc, type: 3}
+  m_Name: Island4
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
+  levelId: island4
+  displayName: Island 4
+  sceneName: Island4
+  islandRadius: 42
+  hillHeight: 14
+  seed: 4404
+  beaconCount: 9
+  fireflyCount: 18
+  mothCount: 5
+  hiddenPathCount: 3
+  fogColor: {r: 0.32, g: 0.36, b: 0.42, a: 1}
+  fogDensity: 0.016
+  grassDetailDensity: 8
+  nextLevelScene: 
+  biome: {fileID: 11400000, guid: e80de979f7b6e5d4e9b789c056104bac, type: 2}
+  hasCliff: 1
+  tideAmplitude: 0
+  tidePeriod: 90
+  tidePhase: 0
+  logEntries:
+  - The cape is bare rock and bent heather, and the wind never quite stops. The previous keeper's trail comes ashore here, then thins to a few cairns.
+  - The wind comes in gusts, with a long hush before each one. Crouch behind a boulder when you hear the hush and let it pass over you.
+  - I found the keeper's lantern hook driven into a crack in the rock. No lantern, just a scrap of cloth tied to it and still stiff with salt.
+  - Something moves at the edge of the light. It is not an animal. It drifts closer when the flame burns low and shrinks back when you stand in the glow.
+  - 'The keeper wrote: ''They cannot bear the lantern held high. Keep moving, keep the light bright, and do not turn your back on the dark.'''
+  - The sky flashes without rain. Between the thunder and the glare there is a breath of quiet, and the Shades stagger in the white light.
+  - Narrow spines of rock run between the beacons, bare to the weather. The keeper's cairns follow them. I follow the cairns.
+  - 'Halfway across the cape the trail stops mid-page, mid-word. The next page begins in a steadier hand: ''Found the lamp. Still burning.'''
+  - The last beacon is lit and the storm leans away from it. Out past the cliffs the lighthouse stands black against the cloud. The keeper's trail ends here. Mine goes on.
+  windStrength: 1
+  shadeCount: 2
+  lightning: 1
+  ridges: 1

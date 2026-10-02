@@ -28,5 +28,6 @@ public class LevelConfig : ScriptableObject
     public float windStrength;
     public int shadeCount;
     public bool lightning;
+    public bool ridges;
 }
 }

@@ -389,6 +389,11 @@ public static partial class IslandBuilder
         }
 
         StampPlateaus(heights, resolution, worldSize, beacons);
+        if (config.ridges)
+        {
+            RaiseRidges(heights, resolution, worldSize, beacons, config);
+        }
+
         FlattenTrails(heights, resolution, worldSize, beacons, config, trails);
         if (config.tideAmplitude > 0f)
         {
@@ -396,6 +401,63 @@ public static partial class IslandBuilder
         }
 
         return heights;
+    }
+
+    static void RaiseRidges(float[,] heights, int resolution, float worldSize, List<Vector2> beacons, LevelConfig config)
+    {
+        const float width = 2.6f;
+        const float taperLength = 4f;
+        float lift = 0.1f;
+        int pairs = Mathf.Min(3, beacons.Count / 2);
+        for (int i = 0; i < pairs; i++)
+        {
+            List<Vector2> path = JitteredTrail(beacons[i * 2], beacons[i * 2 + 1], config.seed + 500, i);
+            float total = 0f;
+            for (int s = 1; s < path.Count; s++)
+            {
+                total += Vector2.Distance(path[s - 1], path[s]);
+            }
+
+            for (int z = 0; z < resolution; z++)
+            {
+                for (int x = 0; x < resolution; x++)
+                {
+                    Vector2 world = PixelToWorld(x, z, resolution, worldSize);
+                    float nearest = 999f;
+                    float along = 0f;
+                    float walked = 0f;
+                    for (int s = 1; s < path.Count; s++)
+                    {
+                        float length = Vector2.Distance(path[s - 1], path[s]);
+                        float t;
+                        float dist = DistanceToSegment(world, path[s - 1], path[s], out t);
+                        if (dist < nearest)
+                        {
+                            nearest = dist;
+                            along = walked + length * t;
+                        }
+
+                        walked += length;
+                    }
+
+                    if (nearest > width)
+                    {
+                        continue;
+                    }
+
+                    float current = heights[z, x];
+                    if (current < WaterFraction + 0.1f)
+                    {
+                        continue;
+                    }
+
+                    float edge = Mathf.Min(along, total - along);
+                    float taper = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge / taperLength));
+                    float spine = 1f - Mathf.SmoothStep(width * 0.3f, width, nearest);
+                    heights[z, x] = Mathf.Clamp01(current + lift * taper * spine);
+                }
+            }
+        }
     }
 
     static void RaiseTideFeatures(float[,] heights, int resolution, float worldSize, LevelConfig config)

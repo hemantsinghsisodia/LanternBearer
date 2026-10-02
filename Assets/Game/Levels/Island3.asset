@@ -25,7 +25,7 @@ MonoBehaviour:
   fogColor: {r: 0.3, g: 0.42, b: 0.36, a: 1}
   fogDensity: 0.018
   grassDetailDensity: 8
-  nextLevelScene: 
+  nextLevelScene: Island4
   biome: {fileID: 11400000, guid: 2f58b7d43b983ee4db2c1e5f8c040f14, type: 2}
   hasCliff: 0
   tideAmplitude: 0.9
@@ -41,3 +41,7 @@ MonoBehaviour:
   - Stepping stones show themselves only to a lit lantern. At high tide they are the only road. At low tide there are other roads, but they close without warning.
   - 'I can see the lighthouse now, far across the water, dark as a held breath. The keeper''s last page is one line long: ''It can be lit again.'''
   - The final beacon. Nine flames burn across the marsh, and the tide turns to carry their light out to sea. Somewhere ahead, the lighthouse is waiting.
+  windStrength: 0
+  shadeCount: 0
+  lightning: 0
+  ridges: 0

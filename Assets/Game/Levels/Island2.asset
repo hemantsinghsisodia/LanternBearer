@@ -39,3 +39,7 @@ MonoBehaviour:
   - The beacons on the far islets were the hardest. The stones show only where your light reaches, so carry it with you and do not hurry.
   - 'A sketch of the next island, drawn in haste: low, green, and wet. The keeper wrote ''the sea breathes there'' and underlined it twice.'
   - The last beacon burns. Beyond the water I can see a pale green glow, rising and falling like a sleeper's chest. I know where the keeper went.
+  windStrength: 0
+  shadeCount: 0
+  lightning: 0
+  ridges: 0

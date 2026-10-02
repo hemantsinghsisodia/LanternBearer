@@ -15,8 +15,9 @@ public static partial class IslandBuilder
 {
     const float WaterFraction = 0.2f;
     const string MarshBiomePath = "Assets/Game/Levels/Biomes/Marsh.asset";
+    const string HeathBiomePath = "Assets/Game/Levels/Biomes/Heath.asset";
 
-    static readonly string[] LevelNames = { "Island1", "Island2", "Island3" };
+    static readonly string[] LevelNames = { "Island1", "Island2", "Island3", "Island4" };
 
     static string LevelAssetPath(string levelName)
     {
@@ -97,9 +98,15 @@ public static partial class IslandBuilder
         EnsureFolder("Assets/Game/Levels");
         EnsureFolder("Assets/Game/Levels/Biomes");
         EnsureMarshBiome();
+        EnsureHeathBiome();
         WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", false, 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
         WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", true, 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
-        WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
+        WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
+        LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "", true, 0f, 90f, 0f, Island4Log(), HeathBiomePath);
+        island4.windStrength = 1f;
+        island4.shadeCount = 2;
+        island4.lightning = true;
+        island4.ridges = true;
         AssetDatabase.SaveAssets();
     }
 
@@ -1502,8 +1509,8 @@ public static partial class IslandBuilder
         MakeButton(art, panel, "LogButton", "Keeper's Log", new Vector2(0f, MenuPlayY - 248f));
         for (int i = 0; i < levels.Length; i++)
         {
-            MakeButton(art, panel, levels[i].sceneName + "Button", levels[i].displayName, new Vector2(0f, MenuLevelY(i)));
-            MakeText(panel, "Best" + levels[i].sceneName, "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, MenuLevelY(i) - 34f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+            MakeButton(art, panel, levels[i].sceneName + "Button", levels[i].displayName, new Vector2(MenuLevelButtonX, MenuLevelY(i)), new Vector2(MenuLevelButtonWidth, 44f));
+            MakeText(panel, "Best" + levels[i].sceneName, "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(MenuBestX, MenuLevelY(i)), new Vector2(160f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
         }
 
         MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, MenuQuitY));
@@ -1514,9 +1521,13 @@ public static partial class IslandBuilder
     const float MenuPlayY = 170f;
     const float MenuQuitY = -400f;
 
+    const float MenuLevelButtonX = -95f;
+    const float MenuLevelButtonWidth = 220f;
+    const float MenuBestX = 150f;
+
     static float MenuLevelY(int index)
     {
-        return -148f - index * 78f;
+        return -140f - index * 52f;
     }
 
     static void CreateLogPanel(ArtKit art, Transform canvas, Font font)
@@ -1969,6 +1980,83 @@ public static partial class IslandBuilder
         };
     }
 
+    static string[] Island4Log()
+    {
+        return new[]
+        {
+            "The cape is bare rock and bent heather, and the wind never quite stops. The previous keeper's trail comes ashore here, then thins to a few cairns.",
+            "The wind comes in gusts, with a long hush before each one. Crouch behind a boulder when you hear the hush and let it pass over you.",
+            "I found the keeper's lantern hook driven into a crack in the rock. No lantern, just a scrap of cloth tied to it and still stiff with salt.",
+            "Something moves at the edge of the light. It is not an animal. It drifts closer when the flame burns low and shrinks back when you stand in the glow.",
+            "The keeper wrote: 'They cannot bear the lantern held high. Keep moving, keep the light bright, and do not turn your back on the dark.'",
+            "The sky flashes without rain. Between the thunder and the glare there is a breath of quiet, and the Shades stagger in the white light.",
+            "Narrow spines of rock run between the beacons, bare to the weather. The keeper's cairns follow them. I follow the cairns.",
+            "Halfway across the cape the trail stops mid-page, mid-word. The next page begins in a steadier hand: 'Found the lamp. Still burning.'",
+            "The last beacon is lit and the storm leans away from it. Out past the cliffs the lighthouse stands black against the cloud. The keeper's trail ends here. Mine goes on."
+        };
+    }
+
+    static Biome EnsureHeathBiome()
+    {
+        Biome biome = AssetDatabase.LoadAssetAtPath<Biome>(HeathBiomePath);
+        if (biome == null)
+        {
+            biome = ScriptableObject.CreateInstance<Biome>();
+            AssetDatabase.CreateAsset(biome, HeathBiomePath);
+        }
+
+        List<BiomeEntry> entries = new List<BiomeEntry>();
+        AddHeath(entries, "Rock", "boulder_01", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_07", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_09", BiomeCategory.Rock, 8, 0.9f, 1.3f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_moss_set_02_rock08", BiomeCategory.Rock, 8, 0.85f, 1.3f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_moss_set_02_rock10", BiomeCategory.Rock, 8, 0.85f, 1.3f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_moss_set_02_rock12", BiomeCategory.Rock, 6, 0.85f, 1.2f, false, 0f, 1f);
+        AddHeath(entries, "Rock", "rock_moss_set_02_rock13", BiomeCategory.Rock, 6, 0.85f, 1.2f, false, 0f, 1f);
+        AddHeath(entries, "Sapling", "pine_sapling_medium_a", BiomeCategory.Sapling, 8, 0.8f, 1.1f, true, 0.35f, 0.9f);
+        AddHeath(entries, "Sapling", "pine_sapling_medium_b", BiomeCategory.Sapling, 8, 0.8f, 1.1f, true, 0.35f, 0.9f);
+        AddHeath(entries, "Sapling", "pine_sapling_small_a", BiomeCategory.Sapling, 8, 0.8f, 1.1f, true, 0.35f, 0.9f);
+        AddHeath(entries, "Sapling", "fir_sapling_medium_a", BiomeCategory.Sapling, 6, 0.8f, 1.1f, true, 0.35f, 0.9f);
+        AddHeath(entries, "Deadwood", "dead_tree_trunk", BiomeCategory.Deadwood, 6, 0.85f, 1.15f, false, 0f, 1f);
+        AddHeath(entries, "Deadwood", "dead_tree_trunk_02", BiomeCategory.Deadwood, 6, 0.85f, 1.15f, false, 0f, 1f);
+        AddHeath(entries, "Deadwood", "tree_stump_01", BiomeCategory.Deadwood, 5, 0.9f, 1.2f, false, 0f, 1f);
+        AddHeath(entries, "Deadwood", "dry_branches_medium_01_a", BiomeCategory.Deadwood, 5, 0.85f, 1.2f, false, 0f, 1f);
+        AddHeath(entries, "Deadwood", "pine_roots_a", BiomeCategory.Deadwood, 3, 0.85f, 1.15f, false, 0f, 1f);
+        AddHeath(entries, "Tree", "pine_tree_01_a", BiomeCategory.Tree, 2, 0.8f, 1f, true, 0.3f, 0.7f);
+        AddHeath(entries, "Tree", "pine_tree_01_b", BiomeCategory.Tree, 2, 0.8f, 1f, true, 0.3f, 0.7f);
+        AddHeath(entries, "Undergrowth", "shrub_04_a", BiomeCategory.Undergrowth, 6, 0.8f, 1.1f, false, 0f, 1f);
+        AddHeath(entries, "Undergrowth", "wild_rooibos_bush_a", BiomeCategory.Undergrowth, 6, 0.8f, 1.1f, false, 0f, 1f);
+        AddHeath(entries, "GroundCover", "grass_medium_01_large_a", BiomeCategory.GroundCover, 8, 0.85f, 1.2f, false, 0f, 1f);
+        AddHeath(entries, "GroundCover", "moss_01_a", BiomeCategory.GroundCover, 6, 0.85f, 1.2f, false, 0f, 1f);
+        biome.entries = entries.ToArray();
+        EditorUtility.SetDirty(biome);
+        return biome;
+    }
+
+    static void AddHeath(List<BiomeEntry> entries, string folder, string prefabName, BiomeCategory category, int count, float scaleMin, float scaleMax, bool limitHeight, float minHeight, float maxHeight)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/PolyHaven/" + folder + "/" + prefabName + ".prefab");
+        if (prefab == null)
+        {
+            Debug.LogWarning("Heath biome: prefab not found " + folder + "/" + prefabName);
+            return;
+        }
+
+        BiomeEntry entry = new BiomeEntry();
+        entry.prefab = prefab;
+        entry.category = category;
+        entry.count = count;
+        entry.scaleRange = new Vector2(scaleMin, scaleMax);
+        entry.alignToSlope = category == BiomeCategory.Deadwood;
+        entry.limitHeight = limitHeight;
+        entry.minHeight = minHeight;
+        entry.maxHeight = maxHeight;
+        entry.limitSlope = false;
+        entry.minSlope = 0f;
+        entry.maxSlope = 1f;
+        entries.Add(entry);
+    }
+
     static Biome EnsureMarshBiome()
     {
         Biome biome = AssetDatabase.LoadAssetAtPath<Biome>(MarshBiomePath);
@@ -2092,8 +2180,8 @@ public static partial class IslandBuilder
         MoveRect(panel, "QuitButton", new Vector2(0f, MenuQuitY));
         for (int i = 0; i < LevelNames.Length; i++)
         {
-            MoveRect(panel, LevelNames[i] + "Button", new Vector2(0f, MenuLevelY(i)));
-            MoveRect(panel, "Best" + LevelNames[i], new Vector2(0f, MenuLevelY(i) - 34f));
+            MoveRect(panel, LevelNames[i] + "Button", new Vector2(MenuLevelButtonX, MenuLevelY(i)));
+            MoveRect(panel, "Best" + LevelNames[i], new Vector2(MenuBestX, MenuLevelY(i)));
         }
 
         ArtKit art = KitFrom(panel.Find("PlayButton"));
