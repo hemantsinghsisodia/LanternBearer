@@ -47,3 +47,6 @@ crashlytics-buildid.txt
 
 # Blender backups
 *.blend1
+
+# Brainstorming companion and SDD workspaces
+.superpowers/
