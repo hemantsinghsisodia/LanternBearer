@@ -102,6 +102,8 @@ public class Moth : MonoBehaviour
     void OnDisable()
     {
         All.Remove(this);
+        // A disabled moth must never keep draining the lantern.
+        SetClose(false);
         if (glowSlot >= 0)
         {
             LightQuality.UnregisterMoth(glowSlot);

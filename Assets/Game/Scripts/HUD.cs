@@ -1158,6 +1158,15 @@ public class HUD : MonoBehaviour
         }
     }
 
+    // Puts the base status colour back without waiting for the next text change (MothHUD calls this when its violet pulse stops).
+    public void RestoreStatusColor()
+    {
+        if (statusText != null)
+        {
+            statusText.color = statusSafe ? SafeStatusColor : DrainStatusColor;
+        }
+    }
+
     Image MakeOverlay(string name, Sprite sprite)
     {
         GameObject overlay = new GameObject(name, typeof(RectTransform), typeof(Image));

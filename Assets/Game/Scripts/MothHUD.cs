@@ -32,6 +32,8 @@ public class MothHUD : MonoBehaviour
     float pulseClock;
     float spawnClock;
     int cursor;
+    bool statusTinted;
+    HUD hud;
 
     public void Bind(Lantern playerLantern, RectTransform fuelMeter, TMP_Text status)
     {
@@ -110,10 +112,32 @@ public class MothHUD : MonoBehaviour
     // Violet pulsing text while draining. HUD repaints the base colour when the draining count changes.
     void TickStatus(bool draining, float pulse)
     {
-        if (statusText == null || !draining)
+        if (statusText == null)
         {
             return;
         }
+
+        if (!draining)
+        {
+            // Hand the colour back to HUD once, so the text never stays violet (e.g. when the round ends mid-drain).
+            if (statusTinted)
+            {
+                statusTinted = false;
+                if (hud == null)
+                {
+                    hud = GetComponent<HUD>();
+                }
+
+                if (hud != null)
+                {
+                    hud.RestoreStatusColor();
+                }
+            }
+
+            return;
+        }
+
+        statusTinted = true;
 
         Color color = DrainColor;
         color.a = 0.72f + 0.28f * pulse;

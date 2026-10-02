@@ -579,6 +579,14 @@ public class Shade : MonoBehaviour
     // True when something solid blocks the way within distance along dir.
     bool PathBlocked(Vector3 origin, Vector3 dir, float distance)
     {
+        // Off the terrain is as blocked as a wall: Move refuses to step there.
+        float edgeGround;
+        Vector3 edgeNormal;
+        if (!TerrainQuery.TrySample(transform.position + dir * distance, out edgeGround, out edgeNormal))
+        {
+            return true;
+        }
+
         RaycastHit hit;
         if (!Physics.SphereCast(origin, avoidRadius, dir, out hit, distance, ObstacleMask(), QueryTriggerInteraction.Ignore))
         {
