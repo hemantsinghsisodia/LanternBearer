@@ -455,6 +455,7 @@ public static class SceneWiring
         for (int i = 0; i < lanterns.Length; i++)
         {
             nulls += Require(lanterns[i], "lanternLight", quiet);
+            nulls += RequireNearKeeper(lanterns[i], quiet);
         }
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -1078,6 +1079,36 @@ public static class SceneWiring
         if (!quiet)
         {
             Debug.LogWarning("Null reference: " + target.GetType().Name + "." + property + " on " + target.name, target);
+        }
+
+        return 1;
+    }
+
+    // The lantern drives reveal, moth drain and shader globals from its own position, so it must sit at the keeper's hand.
+    const float MaxLanternKeeperDistance = 1.5f;
+
+    static int RequireNearKeeper(Lantern lantern, bool quiet)
+    {
+        if (lantern == null)
+        {
+            return 0;
+        }
+
+        PlayerController keeper = lantern.GetComponentInParent<PlayerController>();
+        if (keeper == null)
+        {
+            return 0;
+        }
+
+        float distance = Vector3.Distance(lantern.transform.position, keeper.transform.position);
+        if (distance <= MaxLanternKeeperDistance)
+        {
+            return 0;
+        }
+
+        if (!quiet)
+        {
+            Debug.LogWarning("Lantern is " + distance.ToString("0.00") + " m from the keeper (max " + MaxLanternKeeperDistance.ToString("0.0") + " m) on " + lantern.name, lantern);
         }
 
         return 1;
