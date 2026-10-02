@@ -16,6 +16,7 @@ public static class ProceduralAudio
     static AudioClip splash;
     static AudioClip whisper;
     static AudioClip dying;
+    static AudioClip surf;
 
     public static AudioClip FireflyChime()
     {
@@ -149,6 +150,34 @@ public static class ProceduralAudio
 
         ambience = Clip("Ambience", data);
         return ambience;
+    }
+
+    public static AudioClip SurfSwell()
+    {
+        if (surf != null)
+        {
+            return surf;
+        }
+
+        int length = Rate * 6;
+        float[] data = new float[length];
+        System.Random random = new System.Random(131);
+        float low = 0f;
+        float mid = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float sample = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.996f + sample * 0.004f;
+            mid = mid * 0.95f + sample * 0.05f;
+            float swell = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * time / 6f - 1.2f);
+            swell *= swell;
+            data[i] = (low * 5f + mid * 0.35f * swell) * (0.35f + 0.65f * swell);
+        }
+
+        FadeEdges(data, (int)(Rate * 0.05f));
+        surf = Clip("SurfSwell", data);
+        return surf;
     }
 
     public static AudioClip Fizzle()

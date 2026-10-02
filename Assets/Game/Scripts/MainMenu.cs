@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -6,23 +9,62 @@ namespace LanternKeeper
 {
 public class MainMenu : MonoBehaviour
 {
-    const string Island1Id = "island1";
-    const string Island2Id = "island2";
-    const string Island1Scene = "Island1";
-    const string Island2Scene = "Island2";
+    static readonly string[] FallbackIds = { "island1", "island2" };
+    static readonly string[] FallbackScenes = { "Island1", "Island2" };
+    static readonly string[] FallbackNames = { "Island 1", "Island 2" };
 
-    readonly Button[] menuTab = new Button[7];
+    [SerializeField] LevelConfig[] levels = new LevelConfig[0];
+
+    Button[] menuTab = new Button[0];
+    Button[] levelButtons = new Button[0];
+    Text[] bestLabels = new Text[0];
     Button playButton;
     Button difficultyButton;
     Button musicButton;
     Button graphicsButton;
-    Button island1Button;
-    Button island2Button;
+    Button logButton;
+    Button logBackButton;
     Button quitButton;
-    Text best1;
-    Text best2;
     GameObject column;
+    GameObject logPanel;
+    Text logBody;
+    ScrollRect logScroll;
     GraphicsMenu graphicsMenu;
+
+    int LevelCount
+    {
+        get { return levels != null && levels.Length > 0 ? levels.Length : FallbackIds.Length; }
+    }
+
+    string LevelId(int index)
+    {
+        if (levels != null && levels.Length > 0)
+        {
+            return levels[index] != null ? levels[index].levelId : "";
+        }
+
+        return FallbackIds[index];
+    }
+
+    string SceneName(int index)
+    {
+        if (levels != null && levels.Length > 0)
+        {
+            return levels[index] != null ? levels[index].sceneName : "";
+        }
+
+        return FallbackScenes[index];
+    }
+
+    string DisplayName(int index)
+    {
+        if (levels != null && levels.Length > 0)
+        {
+            return levels[index] != null ? levels[index].displayName : "";
+        }
+
+        return FallbackNames[index];
+    }
 
     void OnEnable()
     {
@@ -31,9 +73,19 @@ public class MainMenu : MonoBehaviour
         Listen(difficultyButton, Cycle);
         Listen(musicButton, ToggleMusic);
         Listen(graphicsButton, OpenGraphics);
-        Listen(island1Button, Play);
-        Listen(island2Button, PlayIsland2);
+        Listen(logButton, OpenLog);
+        Listen(logBackButton, CloseLog);
         Listen(quitButton, QuitGame);
+        for (int i = 0; i < levelButtons.Length; i++)
+        {
+            int index = i;
+            if (levelButtons[i] != null)
+            {
+                levelButtons[i].onClick.RemoveAllListeners();
+                levelButtons[i].onClick.AddListener(() => PlayLevel(index));
+            }
+        }
+
         Refresh();
         GraphicsMenu.Select(playButton);
     }
@@ -44,21 +96,39 @@ public class MainMenu : MonoBehaviour
         difficultyButton = FindButton("DifficultyButton");
         musicButton = FindButton("MusicButton");
         graphicsButton = FindButton("GraphicsButton");
-        island1Button = FindButton("Island1Button");
-        island2Button = FindButton("Island2Button");
+        logButton = FindButton("LogButton");
+        logBackButton = FindButton("LogBackButton");
         quitButton = FindButton("QuitButton");
-        best1 = FindText("BestIsland1");
-        best2 = FindText("BestIsland2");
+        int count = LevelCount;
+        levelButtons = new Button[count];
+        bestLabels = new Text[count];
+        for (int i = 0; i < count; i++)
+        {
+            string scene = SceneName(i);
+            levelButtons[i] = FindButton(scene + "Button");
+            bestLabels[i] = FindText("Best" + scene);
+        }
+
         Transform panel = transform.Find("Panel");
         column = panel != null ? panel.gameObject : null;
+        Transform log = transform.Find("LogPanel");
+        logPanel = log != null ? log.gameObject : null;
+        logBody = FindText("LogBody");
+        logScroll = logPanel != null ? logPanel.GetComponentInChildren<ScrollRect>(true) : null;
         graphicsMenu = GetComponent<GraphicsMenu>();
-        menuTab[0] = playButton;
-        menuTab[1] = difficultyButton;
-        menuTab[2] = musicButton;
-        menuTab[3] = graphicsButton;
-        menuTab[4] = island1Button;
-        menuTab[5] = island2Button;
-        menuTab[6] = quitButton;
+        List<Button> order = new List<Button>();
+        order.Add(playButton);
+        order.Add(difficultyButton);
+        order.Add(musicButton);
+        order.Add(graphicsButton);
+        order.Add(logButton);
+        for (int i = 0; i < levelButtons.Length; i++)
+        {
+            order.Add(levelButtons[i]);
+        }
+
+        order.Add(quitButton);
+        menuTab = order.ToArray();
         LinkColumn();
     }
 
@@ -71,24 +141,65 @@ public class MainMenu : MonoBehaviour
 
         RefreshMusicLabel();
 
-        if (best1 != null)
+        for (int i = 0; i < levelButtons.Length; i++)
         {
-            best1.text = "Best " + GameManager.FormatTime(GameSettings.GetBestTime(Island1Id));
+            if (bestLabels[i] != null)
+            {
+                bestLabels[i].text = "Best " + GameManager.FormatTime(GameSettings.GetBestTime(LevelId(i)));
+            }
+
+            if (levelButtons[i] != null)
+            {
+                bool unlocked = GameSettings.IsLevelUnlocked(LevelId(i));
+                levelButtons[i].interactable = unlocked;
+                SetLabel(levelButtons[i], unlocked ? DisplayName(i) : DisplayName(i) + " (Locked)");
+            }
         }
 
-        if (best2 != null)
-        {
-            best2.text = "Best " + GameManager.FormatTime(GameSettings.GetBestTime(Island2Id));
-        }
-
-        bool unlocked = GameSettings.IsLevelUnlocked(Island2Id);
-        if (island2Button != null)
-        {
-            island2Button.interactable = unlocked;
-            SetLabel(island2Button, unlocked ? "Island 2" : "Island 2 (Locked)");
-        }
-
+        RefreshLog();
         LinkColumn();
+    }
+
+    void RefreshLog()
+    {
+        if (logBody == null)
+        {
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        int found = 0;
+        if (levels != null)
+        {
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (levels[i] == null || levels[i].logEntries == null || levels[i].logEntries.Length == 0)
+                {
+                    continue;
+                }
+
+                string[] entries = levels[i].logEntries;
+                int read = Mathf.Min(GameSettings.GetLogCount(levels[i].levelId), entries.Length);
+                builder.Append(levels[i].displayName).Append("  (").Append(read).Append("/").Append(entries.Length).Append(")\n");
+                for (int e = 0; e < read; e++)
+                {
+                    builder.Append(entries[e]).Append("\n\n");
+                    found++;
+                }
+
+                if (read == 0)
+                {
+                    builder.Append("No pages found yet.\n\n");
+                }
+            }
+        }
+
+        if (found == 0 && builder.Length == 0)
+        {
+            builder.Append("Light the beacons to find the Keeper's pages.");
+        }
+
+        logBody.text = builder.ToString();
     }
 
     void LinkColumn()
@@ -135,26 +246,115 @@ public class MainMenu : MonoBehaviour
 
     void Play()
     {
-        SceneManager.LoadScene(Island1Scene);
+        PlayLevel(0);
     }
 
-    void PlayIsland2()
+    void PlayLevel(int index)
     {
-        if (!GameSettings.IsLevelUnlocked(Island2Id))
+        if (index < 0 || index >= LevelCount)
         {
             return;
         }
 
-        SceneManager.LoadScene(Island2Scene);
+        if (!GameSettings.IsLevelUnlocked(LevelId(index)))
+        {
+            return;
+        }
+
+        string scene = SceneName(index);
+        if (string.IsNullOrEmpty(scene))
+        {
+            return;
+        }
+
+        SceneManager.LoadScene(scene);
     }
 
     void Update()
     {
         RefreshMusicLabel();
+        if (logPanel != null && logPanel.activeSelf)
+        {
+            HandleLogKeys();
+            return;
+        }
+
         if (column != null && column.activeSelf && (graphicsMenu == null || !graphicsMenu.IsOpen))
         {
             GraphicsMenu.HandleTab(menuTab);
         }
+    }
+
+    void HandleLogKeys()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (keyboard.escapeKey.wasPressedThisFrame)
+        {
+            CloseLog();
+            return;
+        }
+
+        if (logScroll == null)
+        {
+            return;
+        }
+
+        float step = 0f;
+        if (keyboard.downArrowKey.isPressed)
+        {
+            step = -1f;
+        }
+        else if (keyboard.upArrowKey.isPressed)
+        {
+            step = 1f;
+        }
+
+        if (step != 0f)
+        {
+            logScroll.verticalNormalizedPosition = Mathf.Clamp01(logScroll.verticalNormalizedPosition + step * Time.unscaledDeltaTime * 0.6f);
+        }
+    }
+
+    void OpenLog()
+    {
+        if (logPanel == null)
+        {
+            return;
+        }
+
+        RefreshLog();
+        if (column != null)
+        {
+            column.SetActive(false);
+        }
+
+        logPanel.SetActive(true);
+        if (logScroll != null)
+        {
+            logScroll.verticalNormalizedPosition = 1f;
+        }
+
+        GraphicsMenu.Select(logBackButton);
+    }
+
+    void CloseLog()
+    {
+        if (logPanel != null)
+        {
+            logPanel.SetActive(false);
+        }
+
+        if (column != null)
+        {
+            column.SetActive(true);
+        }
+
+        GraphicsMenu.Select(logButton);
     }
 
     void OpenGraphics()

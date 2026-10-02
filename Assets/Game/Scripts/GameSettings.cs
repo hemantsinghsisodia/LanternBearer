@@ -212,7 +212,38 @@ public static class GameSettings
             return HasWon("island1");
         }
 
+        if (levelId == "island3")
+        {
+            return HasWon("island2");
+        }
+
         return true;
+    }
+
+    public static int GetLogCount(string levelId)
+    {
+        if (string.IsNullOrEmpty(levelId))
+        {
+            return 0;
+        }
+
+        return Mathf.Max(0, PlayerPrefs.GetInt(LogKey(levelId), 0));
+    }
+
+    public static void RecordLogRead(string levelId, int count)
+    {
+        if (string.IsNullOrEmpty(levelId) || count <= GetLogCount(levelId))
+        {
+            return;
+        }
+
+        PlayerPrefs.SetInt(LogKey(levelId), count);
+        PlayerPrefs.Save();
+    }
+
+    static string LogKey(string levelId)
+    {
+        return "LanternKeeperLog_" + levelId;
     }
 
     static string WonKey(string levelId)

@@ -306,7 +306,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (transform.position.y <= WaterHazard.SurfaceY + safeWaterMargin)
+        if (transform.position.y <= WaterHazard.SafeFloorY + safeWaterMargin)
         {
             return;
         }

@@ -5,6 +5,8 @@ namespace LanternKeeper
 public class WaterHazard : MonoBehaviour
 {
     public static float SurfaceY { get; private set; } = -100f;
+    public static float HighWaterY { get; private set; } = -100f;
+    public static float SafeFloorY => Mathf.Max(SurfaceY, HighWaterY);
 
     [SerializeField] float surfaceY;
     [SerializeField] float penalty = 10f;
@@ -30,6 +32,11 @@ public class WaterHazard : MonoBehaviour
     {
         surfaceY = worldY;
         SurfaceY = worldY;
+    }
+
+    public static void SetHighWater(float worldY)
+    {
+        HighWaterY = worldY;
     }
 
     void Awake()
@@ -208,9 +215,10 @@ public class WaterHazard : MonoBehaviour
         }
 
         Vector3 safe = player.LastSafePosition;
-        if (safe.y < surfaceY + 0.35f)
+        float floor = SafeFloorY;
+        if (safe.y < floor + 0.35f)
         {
-            safe.y = surfaceY + 1.6f;
+            safe.y = floor + 1.6f;
         }
 
         CharacterController body = player.GetComponent<CharacterController>();

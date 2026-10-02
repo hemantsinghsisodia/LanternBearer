@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] Lantern lantern;
     [SerializeField] string levelId = "island1";
     [SerializeField] string nextLevelScene = "";
+    [SerializeField] string[] logEntries = new string[0];
     [SerializeField] float deathSeconds = 1.5f;
     [SerializeField] float restartGrace = 0.5f;
     [SerializeField] HUD hud;
@@ -297,9 +298,25 @@ public class GameManager : MonoBehaviour
         SelectNearest();
         litCount++;
         RaiseBeacons();
+        ShowLogEntry();
         if (CanWin())
         {
             Win();
+        }
+    }
+
+    void ShowLogEntry()
+    {
+        int index = litCount - 1;
+        if (logEntries == null || index < 0 || index >= logEntries.Length || string.IsNullOrEmpty(logEntries[index]))
+        {
+            return;
+        }
+
+        GameSettings.RecordLogRead(LevelId, litCount);
+        if (hud != null)
+        {
+            hud.ShowLogToast(logEntries[index]);
         }
     }
 

@@ -13,7 +13,11 @@ A small 3D night game made in Unity 6 with the Universal Render Pipeline. Walk a
 2. Open `Assets/Game/Scenes/MainMenu.unity`.
 3. Press Play, then choose a difficulty and an island.
 
-Island 2 unlocks after you win Island 1. The first island has 5 beacons. The second is larger and has 7.
+Island 2 unlocks after you win Island 1, and Island 3 unlocks after you win Island 2. The first island has 5 beacons, the second is larger and has 7, and the third is a drowned marsh with 9.
+
+**Island 3: the tide.** The water rises and falls about 0.9 m every 90 seconds. A gauge under the drain readout shows the level, whether it is rising or falling, and the seconds until it turns, and a "Tide turning" notice appears just before it changes. Sandbars between the outer islets are walkable at low tide and flooded at high tide. Only lantern-revealed stepping stones stay above water at high tide, so you can wait for the tide or spend light to cross. Falling in respawns you on ground that stays above the high-tide line, and fireflies never settle below it. A low surf sound swells with the water.
+
+**Keeper's Log.** Each beacon you light shows a short page from the previous keeper's story for that island, as a notice that fades after a few seconds without pausing the game. Pages you have read are saved, and the **Keeper's Log** button on the main menu lists them.
 
 ## Controls
 

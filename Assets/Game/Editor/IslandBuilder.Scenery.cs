@@ -281,7 +281,7 @@ public static partial class IslandBuilder
         string sceneName = EditorSceneManager.GetActiveScene().name;
         bool temporary = false;
         LevelConfig config = null;
-        if (sceneName == "Island1" || sceneName == "Island2")
+        if (IsLevelScene(sceneName))
         {
             config = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/" + sceneName + ".asset");
         }
@@ -868,8 +868,11 @@ public static partial class IslandBuilder
         art.water = water;
 
         EditorSceneManager.SaveOpenScenes();
-        RebuildHorizonScene("Assets/Game/Scenes/Island1.unity", AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island1.asset"), art);
-        RebuildHorizonScene("Assets/Game/Scenes/Island2.unity", AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island2.asset"), art);
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            RebuildHorizonScene(LevelScenePath(LevelNames[i]), AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(LevelNames[i])), art);
+        }
+
         LevelConfig menu = ScriptableObject.CreateInstance<LevelConfig>();
         menu.sceneName = "MainMenu";
         menu.seed = 1101;

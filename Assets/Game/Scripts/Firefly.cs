@@ -286,7 +286,7 @@ public class Firefly : MonoBehaviour
             return HomeFail.OffIsland;
         }
 
-        if (ground.y <= WaterHazard.SurfaceY + waterMargin)
+        if (ground.y <= WaterHazard.SafeFloorY + waterMargin)
         {
             return HomeFail.Water;
         }
@@ -328,7 +328,7 @@ public class Firefly : MonoBehaviour
 
             sum += height;
             count++;
-            if (height < WaterHazard.SurfaceY + waterMargin)
+            if (height < WaterHazard.SafeFloorY + waterMargin)
             {
                 wet++;
             }

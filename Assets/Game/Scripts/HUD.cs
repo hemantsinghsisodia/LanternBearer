@@ -78,6 +78,19 @@ public class HUD : MonoBehaviour
     float gainFlash;
     bool panelsAudited;
     readonly Button[] pauseTab = new Button[4];
+    RectTransform tideRoot;
+    Image tideFill;
+    TMP_Text tideText;
+    TMP_Text logText;
+    Image logBack;
+    Coroutine logRoutine;
+    Coroutine tideRoutine;
+    TMP_Text tideToast;
+    Tide tide;
+    bool tideSearched;
+    bool tideWasRising;
+    bool tideWarned;
+    int tideShownSecond = int.MinValue;
     static Sprite vignetteSprite;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
@@ -142,6 +155,7 @@ public class HUD : MonoBehaviour
             TickGainFlash();
         }
 
+        UpdateTide();
         TickDots();
 
         if (manager == null)
@@ -663,6 +677,194 @@ public class HUD : MonoBehaviour
             penaltyText = MakeRuntimeText(transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(150f, -78f), new Vector2(140f, 40f), new Color(1f, 0.28f, 0.2f, 0f), TextAlignmentOptions.MidlineLeft);
             penaltyText.rectTransform.pivot = new Vector2(0f, 1f);
             penaltyText.gameObject.SetActive(false);
+        }
+    }
+
+    void UpdateTide()
+    {
+        if (tide == null)
+        {
+            if (tideSearched)
+            {
+                return;
+            }
+
+            tideSearched = true;
+            tide = Tide.Instance != null ? Tide.Instance : FindAnyObjectByType<Tide>();
+            if (tide == null)
+            {
+                return;
+            }
+
+            tideWasRising = tide.IsRising;
+        }
+
+        EnsureTideGauge();
+        float level = tide.Normalized;
+        bool rising = tide.IsRising;
+        int seconds = Mathf.CeilToInt(tide.SecondsToTurn);
+        if (tideFill != null && !Mathf.Approximately(tideFill.fillAmount, level))
+        {
+            tideFill.fillAmount = level;
+        }
+
+        if (tideText != null && (seconds != tideShownSecond || rising != tideWasRising))
+        {
+            tideShownSecond = seconds;
+            tideText.text = (rising ? "^ Rising " : "v Falling ") + seconds + "s";
+        }
+
+        if (rising != tideWasRising)
+        {
+            tideWasRising = rising;
+            tideWarned = false;
+        }
+
+        if (!tideWarned && seconds <= 5)
+        {
+            tideWarned = true;
+            ShowTideToast("Tide turning");
+        }
+    }
+
+    void EnsureTideGauge()
+    {
+        if (tideRoot != null)
+        {
+            return;
+        }
+
+        GameObject root = new GameObject("TideGauge", typeof(RectTransform));
+        root.transform.SetParent(transform, false);
+        tideRoot = root.GetComponent<RectTransform>();
+        tideRoot.anchorMin = new Vector2(0f, 1f);
+        tideRoot.anchorMax = new Vector2(0f, 1f);
+        tideRoot.pivot = new Vector2(0f, 1f);
+        tideRoot.anchoredPosition = new Vector2(36f, -228f);
+        tideRoot.sizeDelta = new Vector2(260f, 30f);
+        TMP_Text label = MakeRuntimeText(tideRoot, "TideLabel", "Tide", 20, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(48f, 28f), new Color(0.62f, 0.86f, 0.9f), TextAlignmentOptions.MidlineLeft);
+        label.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        GameObject track = new GameObject("TideTrack", typeof(RectTransform), typeof(Image));
+        track.transform.SetParent(tideRoot, false);
+        RectTransform trackRect = track.GetComponent<RectTransform>();
+        trackRect.anchorMin = new Vector2(0f, 0.5f);
+        trackRect.anchorMax = new Vector2(0f, 0.5f);
+        trackRect.pivot = new Vector2(0f, 0.5f);
+        trackRect.anchoredPosition = new Vector2(52f, 0f);
+        trackRect.sizeDelta = new Vector2(64f, 10f);
+        Image trackImage = track.GetComponent<Image>();
+        trackImage.sprite = White();
+        trackImage.color = new Color(0.05f, 0.1f, 0.14f, 0.85f);
+        trackImage.raycastTarget = false;
+        GameObject fill = new GameObject("TideFill", typeof(RectTransform), typeof(Image));
+        fill.transform.SetParent(trackRect, false);
+        RectTransform fillRect = fill.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = new Vector2(1f, 1f);
+        fillRect.offsetMax = new Vector2(-1f, -1f);
+        tideFill = fill.GetComponent<Image>();
+        tideFill.sprite = White();
+        tideFill.color = new Color(0.4f, 0.78f, 0.88f, 1f);
+        tideFill.type = Image.Type.Filled;
+        tideFill.fillMethod = Image.FillMethod.Horizontal;
+        tideFill.fillAmount = 0.5f;
+        tideFill.raycastTarget = false;
+        tideText = MakeRuntimeText(tideRoot, "TideText", "^ Rising", 20, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(122f, 0f), new Vector2(140f, 28f), new Color(0.62f, 0.86f, 0.9f), TextAlignmentOptions.MidlineLeft);
+        tideText.rectTransform.pivot = new Vector2(0f, 0.5f);
+    }
+
+    void ShowTideToast(string line)
+    {
+        if (tideToast == null)
+        {
+            tideToast = MakeRuntimeText(transform, "TideToast", line, 30, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(520f, 48f), new Color(0.62f, 0.9f, 0.95f, 0f), TextAlignmentOptions.Center);
+        }
+
+        if (tideRoutine != null)
+        {
+            StopCoroutine(tideRoutine);
+        }
+
+        tideRoutine = StartCoroutine(FadeToast(tideToast, line, 2.4f, null, () => tideRoutine = null));
+    }
+
+    public void ShowLogToast(string line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return;
+        }
+
+        if (logText == null)
+        {
+            GameObject back = new GameObject("LogToastBack", typeof(RectTransform), typeof(Image));
+            back.transform.SetParent(transform, false);
+            RectTransform backRect = back.GetComponent<RectTransform>();
+            backRect.anchorMin = new Vector2(0.5f, 0f);
+            backRect.anchorMax = new Vector2(0.5f, 0f);
+            backRect.pivot = new Vector2(0.5f, 0f);
+            backRect.anchoredPosition = new Vector2(0f, 90f);
+            backRect.sizeDelta = new Vector2(860f, 120f);
+            logBack = back.GetComponent<Image>();
+            logBack.sprite = White();
+            logBack.color = new Color(0.03f, 0.04f, 0.07f, 0f);
+            logBack.raycastTarget = false;
+            logText = MakeRuntimeText(backRect, "LogToast", line, 22, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.96f, 0.9f, 0.76f, 0f), TextAlignmentOptions.Center);
+            logText.rectTransform.offsetMin = new Vector2(24f, 10f);
+            logText.rectTransform.offsetMax = new Vector2(-24f, -10f);
+            logText.textWrappingMode = TextWrappingModes.Normal;
+            logText.fontStyle = FontStyles.Italic;
+        }
+
+        if (logRoutine != null)
+        {
+            StopCoroutine(logRoutine);
+        }
+
+        logRoutine = StartCoroutine(FadeToast(logText, "Keeper's Log" + System.Environment.NewLine + line, 5f, logBack, () => logRoutine = null));
+    }
+
+    IEnumerator FadeToast(TMP_Text text, string line, float duration, Image back, System.Action done)
+    {
+        text.text = line;
+        text.gameObject.SetActive(true);
+        if (back != null)
+        {
+            back.gameObject.SetActive(true);
+        }
+
+        Color baseColor = text.color;
+        Color backColor = back != null ? back.color : Color.clear;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float alpha = Mathf.Clamp01(elapsed / 0.4f) * Mathf.Clamp01((duration - elapsed) / 0.6f);
+            baseColor.a = alpha;
+            text.color = baseColor;
+            if (back != null)
+            {
+                backColor.a = 0.6f * alpha;
+                back.color = backColor;
+            }
+
+            yield return null;
+        }
+
+        baseColor.a = 0f;
+        text.color = baseColor;
+        text.gameObject.SetActive(false);
+        if (back != null)
+        {
+            backColor.a = 0f;
+            back.color = backColor;
+            back.gameObject.SetActive(false);
+        }
+
+        if (done != null)
+        {
+            done();
         }
     }
 

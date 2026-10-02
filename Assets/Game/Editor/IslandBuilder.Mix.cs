@@ -23,11 +23,7 @@ public static partial class IslandBuilder
         EnsureHudSprites();
         EnsureMixer();
         string previous = EditorSceneManager.GetActiveScene().path;
-        string[] scenes =
-        {
-            "Assets/Game/Scenes/Island1.unity",
-            "Assets/Game/Scenes/Island2.unity"
-        };
+        string[] scenes = LevelScenePaths();
         for (int i = 0; i < scenes.Length; i++)
         {
             EditorSceneManager.OpenScene(scenes[i]);

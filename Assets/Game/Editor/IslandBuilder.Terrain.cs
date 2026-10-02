@@ -62,6 +62,7 @@ public static partial class IslandBuilder
         stage.terrain.detailObjectDistance = 20f;
         stage.terrain.detailObjectDensity = 1.0f;
         stage.waterY = WaterFraction * config.hillHeight;
+        stage.highWaterY = stage.waterY + Mathf.Max(0f, config.tideAmplitude);
         stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
     }
 
@@ -389,7 +390,70 @@ public static partial class IslandBuilder
 
         StampPlateaus(heights, resolution, worldSize, beacons);
         FlattenTrails(heights, resolution, worldSize, beacons, config, trails);
+        if (config.tideAmplitude > 0f)
+        {
+            RaiseTideFeatures(heights, resolution, worldSize, config);
+        }
+
         return heights;
+    }
+
+    static void RaiseTideFeatures(float[,] heights, int resolution, float worldSize, LevelConfig config)
+    {
+        int paths = config.hiddenPathCount;
+        if (paths <= 0)
+        {
+            return;
+        }
+
+        float hill = Mathf.Max(0.01f, config.hillHeight);
+        float waterY = WaterFraction * hill;
+        float isletHeight = Mathf.Clamp01((waterY + config.tideAmplitude + 1.1f) / hill);
+        float barHeight = Mathf.Clamp01((waterY - config.tideAmplitude * 0.5f) / hill);
+        float start = (config.seed % 360) * Mathf.Deg2Rad;
+        float reach = 0.95f * config.islandRadius;
+        Vector2[] centers = new Vector2[paths];
+        for (int i = 0; i < paths; i++)
+        {
+            float angle = start + i * (Mathf.PI * 2f / paths);
+            centers[i] = new Vector2(Mathf.Cos(angle) * reach, Mathf.Sin(angle) * reach);
+        }
+
+        for (int z = 0; z < resolution; z++)
+        {
+            for (int x = 0; x < resolution; x++)
+            {
+                Vector2 world = PixelToWorld(x, z, resolution, worldSize);
+                float h = heights[z, x];
+                float radial = Mathf.Abs(world.magnitude - reach);
+                if (radial < 2.4f)
+                {
+                    float bar = barHeight * Mathf.SmoothStep(1f, 0f, Mathf.InverseLerp(0.9f, 2.4f, radial));
+                    if (bar > h)
+                    {
+                        h = bar;
+                    }
+                }
+
+                for (int i = 0; i < paths; i++)
+                {
+                    float d = Vector2.Distance(world, centers[i]);
+                    if (d > 5.2f)
+                    {
+                        continue;
+                    }
+
+                    float u = Mathf.SmoothStep(5.2f, 2.6f, d);
+                    float lifted = Mathf.Lerp(h, isletHeight, u);
+                    if (lifted > h)
+                    {
+                        h = lifted;
+                    }
+                }
+
+                heights[z, x] = Mathf.Clamp01(h);
+            }
+        }
     }
 
     static void StampPlateaus(float[,] heights, int resolution, float worldSize, List<Vector2> beacons)
@@ -1329,7 +1393,7 @@ public static partial class IslandBuilder
                     float offset = 1.35f + (float)random.NextDouble() * 1.1f;
                     Vector2 place = point + side * offset;
                     float y = GroundY(stage.terrain, place.x, place.y);
-                    if (y > stage.waterY + 0.35f)
+                    if (y > stage.highWaterY + 0.35f)
                     {
                         Vector3 position = new Vector3(place.x, y, place.y);
                         int roll = random.Next(0, 5);

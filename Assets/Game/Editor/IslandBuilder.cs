@@ -14,6 +14,58 @@ namespace LanternKeeper
 public static partial class IslandBuilder
 {
     const float WaterFraction = 0.2f;
+    const string MarshBiomePath = "Assets/Game/Levels/Biomes/Marsh.asset";
+
+    static readonly string[] LevelNames = { "Island1", "Island2", "Island3" };
+
+    static string LevelAssetPath(string levelName)
+    {
+        return "Assets/Game/Levels/" + levelName + ".asset";
+    }
+
+    static string LevelScenePath(string levelName)
+    {
+        return "Assets/Game/Scenes/" + levelName + ".unity";
+    }
+
+    static string[] LevelScenePaths()
+    {
+        string[] paths = new string[LevelNames.Length];
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            paths[i] = LevelScenePath(LevelNames[i]);
+        }
+
+        return paths;
+    }
+
+    static bool IsLevelScene(string sceneName)
+    {
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            if (LevelNames[i] == sceneName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static LevelConfig[] LoadLevels()
+    {
+        List<LevelConfig> levels = new List<LevelConfig>();
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            LevelConfig level = AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(LevelNames[i]));
+            if (level != null)
+            {
+                levels.Add(level);
+            }
+        }
+
+        return levels.ToArray();
+    }
 
     [MenuItem("Lantern Keeper/Build Island")]
     public static void BuildFromMenu()
@@ -31,10 +83,11 @@ public static partial class IslandBuilder
     public static void BuildAll()
     {
         CreateDefaultConfigs();
-        LevelConfig island1 = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island1.asset");
-        Build(island1);
-        LevelConfig island2 = AssetDatabase.LoadAssetAtPath<LevelConfig>("Assets/Game/Levels/Island2.asset");
-        Build(island2);
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            Build(AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(LevelNames[i])));
+        }
+
         BuildMainMenu();
         ApplyBuildSettings();
     }
@@ -42,20 +95,26 @@ public static partial class IslandBuilder
     public static void CreateDefaultConfigs()
     {
         EnsureFolder("Assets/Game/Levels");
-        WriteConfig("Assets/Game/Levels/Island1.asset", "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2");
-        WriteConfig("Assets/Game/Levels/Island2.asset", "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "");
+        EnsureFolder("Assets/Game/Levels/Biomes");
+        EnsureMarshBiome();
+        WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", false, 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
+        WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", true, 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
+        WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
         AssetDatabase.SaveAssets();
     }
 
     public static void ApplyBuildSettings()
     {
-        EditorBuildSettings.scenes = new[]
+        List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>();
+        scenes.Add(new EditorBuildSettingsScene("Assets/Game/Scenes/MainMenu.unity", true));
+        string[] levelScenes = LevelScenePaths();
+        for (int i = 0; i < levelScenes.Length; i++)
         {
-            new EditorBuildSettingsScene("Assets/Game/Scenes/MainMenu.unity", true),
-            new EditorBuildSettingsScene("Assets/Game/Scenes/Island1.unity", true),
-            new EditorBuildSettingsScene("Assets/Game/Scenes/Island2.unity", true)
-        };
-        Debug.Log("Build settings: MainMenu, Island1, Island2");
+            scenes.Add(new EditorBuildSettingsScene(levelScenes[i], true));
+        }
+
+        EditorBuildSettings.scenes = scenes.ToArray();
+        Debug.Log("Build settings: MainMenu, " + string.Join(", ", LevelNames));
     }
 
     public static void BuildMainMenu()
@@ -166,6 +225,7 @@ public static partial class IslandBuilder
     {
         public Terrain terrain;
         public float waterY;
+        public float highWaterY;
         public float worldSize;
         public Vector3 spawn;
         public Light sun;
@@ -211,6 +271,7 @@ public static partial class IslandBuilder
         stage.terrain.basemapDistance = 300f;
         stage.terrain.heightmapPixelError = 5f;
         stage.waterY = WaterFraction * config.hillHeight;
+        stage.highWaterY = stage.waterY + Mathf.Max(0f, config.tideAmplitude);
         stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
     }
 
@@ -518,7 +579,7 @@ public static partial class IslandBuilder
         {
             Vector3 spot = planned[i];
             spot.y = GroundY(stage.terrain, spot.x, spot.z);
-            if (spot.y < stage.waterY + 0.55f)
+            if (spot.y < stage.highWaterY + 0.55f)
             {
                 Vector3 inward = new Vector3(spot.x, 0f, spot.z);
                 if (inward.sqrMagnitude > 0.01f)
@@ -626,8 +687,8 @@ public static partial class IslandBuilder
                 shore.y = GroundY(stage.terrain, shore.x, shore.z);
             }
 
-            Vector3 from = new Vector3(shore.x, stage.waterY + 0.12f, shore.z);
-            Vector3 to = new Vector3(islet.x, stage.waterY + 0.12f, islet.z);
+            Vector3 from = new Vector3(shore.x, stage.highWaterY + 0.12f, shore.z);
+            Vector3 to = new Vector3(islet.x, stage.highWaterY + 0.12f, islet.z);
             float span = Vector3.Distance(new Vector3(from.x, 0f, from.z), new Vector3(to.x, 0f, to.z));
             int steps = Mathf.Max(4, Mathf.RoundToInt(span / 0.82f));
             for (int s = 1; s < steps; s++)
@@ -635,7 +696,7 @@ public static partial class IslandBuilder
                 float t = s / (float)steps;
                 Vector3 pos = Vector3.Lerp(from, to, t);
                 float ground = GroundY(stage.terrain, pos.x, pos.z);
-                if (ground > stage.waterY + 1.1f)
+                if (ground > stage.highWaterY + 1.1f)
                 {
                     continue;
                 }
@@ -699,7 +760,7 @@ public static partial class IslandBuilder
                 }
 
                 float y = GroundY(stage.terrain, jx, jz);
-                if (y < stage.waterY + 0.55f)
+                if (y < stage.highWaterY + 0.55f)
                 {
                     continue;
                 }
@@ -747,17 +808,7 @@ public static partial class IslandBuilder
             return config.biome;
         }
 
-        if (config.levelId == "island1")
-        {
-            return AssetDatabase.LoadAssetAtPath<Biome>("Assets/Game/Levels/Biomes/PineForest.asset");
-        }
-
-        if (config.levelId == "island2")
-        {
-            return AssetDatabase.LoadAssetAtPath<Biome>("Assets/Game/Levels/Biomes/Namaqualand.asset");
-        }
-
-        return null;
+        return AssetDatabase.LoadAssetAtPath<Biome>("Assets/Game/Levels/Biomes/PineForest.asset");
     }
 
     static void ScatterBiome(LevelConfig config, ArtKit art, Stage stage)
@@ -949,7 +1000,7 @@ public static partial class IslandBuilder
 
     static int PlaceCliff(LevelConfig config, Stage stage, Transform parent, System.Random random)
     {
-        if (config.levelId != "island2")
+        if (!config.hasCliff)
         {
             return 0;
         }
@@ -982,7 +1033,7 @@ public static partial class IslandBuilder
                 float x = Mathf.Cos(angle) * reach;
                 float z = Mathf.Sin(angle) * reach;
                 float y = GroundY(stage.terrain, x, z);
-                if (y < stage.waterY + 0.5f)
+                if (y < stage.highWaterY + 0.5f)
                 {
                     continue;
                 }
@@ -1025,7 +1076,7 @@ public static partial class IslandBuilder
             }
 
             float y = GroundY(stage.terrain, x, z);
-            if (y < stage.waterY + 0.55f)
+            if (y < stage.highWaterY + 0.55f)
             {
                 continue;
             }
@@ -1121,7 +1172,7 @@ public static partial class IslandBuilder
         }
 
         float y = GroundY(stage.terrain, x, z);
-        if (y < stage.waterY + 0.45f)
+        if (y < stage.highWaterY + 0.45f)
         {
             return false;
         }
@@ -1211,7 +1262,7 @@ public static partial class IslandBuilder
             float dist = i < 3 ? 7f + i * 1.6f : config.islandRadius * (0.22f + 0.45f * ((i % 7) / 7f));
             Vector3 pos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
             float ground = GroundY(stage.terrain, pos.x, pos.z);
-            if (ground < stage.waterY + 0.5f)
+            if (ground < stage.highWaterY + 0.5f)
             {
                 dist *= 0.55f;
                 pos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
@@ -1353,6 +1404,14 @@ public static partial class IslandBuilder
         managerObject.FindProperty("lantern").objectReferenceValue = stage.lantern;
         managerObject.FindProperty("levelId").stringValue = config.levelId;
         managerObject.FindProperty("nextLevelScene").stringValue = config.nextLevelScene == null ? "" : config.nextLevelScene;
+        SerializedProperty logProperty = managerObject.FindProperty("logEntries");
+        string[] logLines = config.logEntries != null ? config.logEntries : new string[0];
+        logProperty.arraySize = logLines.Length;
+        for (int i = 0; i < logLines.Length; i++)
+        {
+            logProperty.GetArrayElementAtIndex(i).stringValue = logLines[i];
+        }
+
         managerObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject dawnObject = new SerializedObject(dawn);
@@ -1375,6 +1434,27 @@ public static partial class IslandBuilder
         mothObject.FindProperty("mothPrefab").objectReferenceValue = art.moth;
         mothObject.FindProperty("islandRadius").floatValue = config.islandRadius;
         mothObject.ApplyModifiedPropertiesWithoutUndo();
+        CreateTide(config, stage);
+    }
+
+    static void CreateTide(LevelConfig config, Stage stage)
+    {
+        if (config.tideAmplitude <= 0f)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("Tide");
+        Tide tide = host.AddComponent<Tide>();
+        SerializedObject tideObject = new SerializedObject(tide);
+        tideObject.FindProperty("baseY").floatValue = stage.waterY;
+        tideObject.FindProperty("amplitude").floatValue = config.tideAmplitude;
+        tideObject.FindProperty("period").floatValue = Mathf.Max(1f, config.tidePeriod);
+        tideObject.FindProperty("phase").floatValue = config.tidePhase;
+        GameObject water = GameObject.Find("Water");
+        tideObject.FindProperty("waterRoot").objectReferenceValue = water != null ? water.transform : null;
+        tideObject.FindProperty("hazard").objectReferenceValue = Object.FindAnyObjectByType<WaterHazard>();
+        tideObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void CreateCameraMenu(Stage stage)
@@ -1397,7 +1477,17 @@ public static partial class IslandBuilder
         EnsureEventSystem();
         Font font = BuiltinFont();
         GameObject canvasObject = MakeCanvas("MenuCanvas");
-        canvasObject.AddComponent<MainMenu>();
+        MainMenu mainMenu = canvasObject.AddComponent<MainMenu>();
+        LevelConfig[] levels = LoadLevels();
+        SerializedObject menuObject = new SerializedObject(mainMenu);
+        SerializedProperty levelsProperty = menuObject.FindProperty("levels");
+        levelsProperty.arraySize = levels.Length;
+        for (int i = 0; i < levels.Length; i++)
+        {
+            levelsProperty.GetArrayElementAtIndex(i).objectReferenceValue = levels[i];
+        }
+
+        menuObject.ApplyModifiedPropertiesWithoutUndo();
         RectTransform panel = MakeRect(canvasObject.transform, "Panel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
         panel.pivot = new Vector2(0f, 0.5f);
         Image panelImage = panel.gameObject.AddComponent<Image>();
@@ -1405,16 +1495,62 @@ public static partial class IslandBuilder
         panelImage.color = new Color(0.03f, 0.04f, 0.07f, 0.72f);
         MakeText(panel, "Title", "Lantern Keeper", 58, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 80f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
         MakeText(panel, "Subtitle", "Light the beacons before the flame dies.", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(460f, 40f), new Color(0.8f, 0.86f, 0.9f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, 150f));
-        MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, 80f));
-        MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, 10f));
-        MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, -60f));
-        MakeButton(art, panel, "Island1Button", "Island 1", new Vector2(0f, -140f));
-        MakeText(panel, "BestIsland1", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -182f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "Island2Button", "Island 2", new Vector2(0f, -250f));
-        MakeText(panel, "BestIsland2", "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -292f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, -370f));
+        MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, MenuPlayY));
+        MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, MenuPlayY - 62f));
+        MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, MenuPlayY - 124f));
+        MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, MenuPlayY - 186f));
+        MakeButton(art, panel, "LogButton", "Keeper's Log", new Vector2(0f, MenuPlayY - 248f));
+        for (int i = 0; i < levels.Length; i++)
+        {
+            MakeButton(art, panel, levels[i].sceneName + "Button", levels[i].displayName, new Vector2(0f, MenuLevelY(i)));
+            MakeText(panel, "Best" + levels[i].sceneName, "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, MenuLevelY(i) - 34f), new Vector2(300f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
+        }
+
+        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, MenuQuitY));
+        CreateLogPanel(art, canvasObject.transform, font);
         CreateLegacyGraphics(art, canvasObject.transform, panel);
+    }
+
+    const float MenuPlayY = 170f;
+    const float MenuQuitY = -400f;
+
+    static float MenuLevelY(int index)
+    {
+        return -148f - index * 78f;
+    }
+
+    static void CreateLogPanel(ArtKit art, Transform canvas, Font font)
+    {
+        RectTransform panel = MakeRect(canvas, "LogPanel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(760f, 860f));
+        panel.pivot = new Vector2(0f, 0.5f);
+        Image panelImage = panel.gameObject.AddComponent<Image>();
+        panelImage.sprite = art.uiSprite;
+        panelImage.color = new Color(0.03f, 0.04f, 0.07f, 0.82f);
+        MakeText(panel, "LogTitle", "Keeper's Log", 46, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(700f, 70f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
+        RectTransform viewport = MakeRect(panel, "LogViewport", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        viewport.offsetMin = new Vector2(36f, 100f);
+        viewport.offsetMax = new Vector2(-36f, -100f);
+        Image viewportImage = viewport.gameObject.AddComponent<Image>();
+        viewportImage.color = new Color(0f, 0f, 0f, 0f);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        Text body = MakeText(viewport, "LogBody", "", 22, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 0f), new Color(0.92f, 0.9f, 0.82f), font, TextAnchor.UpperLeft);
+        RectTransform bodyRect = body.rectTransform;
+        bodyRect.pivot = new Vector2(0.5f, 1f);
+        bodyRect.anchoredPosition = Vector2.zero;
+        bodyRect.sizeDelta = Vector2.zero;
+        body.horizontalOverflow = HorizontalWrapMode.Wrap;
+        body.verticalOverflow = VerticalWrapMode.Overflow;
+        ContentSizeFitter fitter = body.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+        scroll.viewport = viewport;
+        scroll.content = bodyRect;
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 30f;
+        MakeButton(art, panel, "LogBackButton", "Back", new Vector2(0f, -385f));
+        panel.gameObject.SetActive(false);
     }
 
     static void CreateHud(ArtKit art, Stage stage)
@@ -1754,7 +1890,7 @@ public static partial class IslandBuilder
         return go;
     }
 
-    static LevelConfig WriteConfig(string path, string levelId, string displayName, string sceneName, float radius, float hill, int seed, int beacons, int fireflies, int moths, int paths, Color fog, float density, string nextScene)
+    static LevelConfig WriteConfig(string path, string levelId, string displayName, string sceneName, float radius, float hill, int seed, int beacons, int fireflies, int moths, int paths, Color fog, float density, string nextScene, bool hasCliff, float tideAmplitude, float tidePeriod, float tidePhase, string[] logEntries, string biomePath)
     {
         LevelConfig config = AssetDatabase.LoadAssetAtPath<LevelConfig>(path);
         if (config == null)
@@ -1777,8 +1913,127 @@ public static partial class IslandBuilder
         config.fogDensity = density;
         config.grassDetailDensity = 8;
         config.nextLevelScene = nextScene;
+        config.hasCliff = hasCliff;
+        config.tideAmplitude = tideAmplitude;
+        config.tidePeriod = tidePeriod;
+        config.tidePhase = tidePhase;
+        config.logEntries = logEntries;
+        if (config.biome == null && !string.IsNullOrEmpty(biomePath))
+        {
+            config.biome = AssetDatabase.LoadAssetAtPath<Biome>(biomePath);
+        }
+
         EditorUtility.SetDirty(config);
         return config;
+    }
+
+    static string[] Island1Log()
+    {
+        return new[]
+        {
+            "A page, folded small, wedged under the beacon's iron lip. 'If you are reading this, the lamp chose you. Keep the flame small and your steps careful.'",
+            "The second beacon is warmer than the first. I think the old keeper lit these in a hurry, as though something was following the dark.",
+            "Moths gather here. The keeper wrote that they are not cruel, only hungry for any light that is not their own. Stay near a lit beacon and they lose interest.",
+            "Fireflies drift between the pines in loose, patient lines. The keeper called them the island's small stars, and said they would lend you light if you let them.",
+            "The last beacon on this shore. A line is scratched into the stone: 'Past the water there are more islands, and more lights gone dark. I went on. Follow, if you can.'"
+        };
+    }
+
+    static string[] Island2Log()
+    {
+        return new[]
+        {
+            "The mesa wind smells of dust and old salt. The keeper's second journal begins here, the ink faded to the colour of rust.",
+            "I lit the cliff beacon by moonlight. My hands shook, and the lantern shook with them. It steadies after the first spark.",
+            "There are paths here that only appear when the lantern is near. The keeper wrote: 'Trust the light, never your eyes.'",
+            "Moths are thicker on this island. The keeper kept count in the margin, and the tally stops at forty. After that there is only a drawing of the lantern.",
+            "The beacons on the far islets were the hardest. The stones show only where your light reaches, so carry it with you and do not hurry.",
+            "A sketch of the next island, drawn in haste: low, green, and wet. The keeper wrote 'the sea breathes there' and underlined it twice.",
+            "The last beacon burns. Beyond the water I can see a pale green glow, rising and falling like a sleeper's chest. I know where the keeper went."
+        };
+    }
+
+    static string[] Island3Log()
+    {
+        return new[]
+        {
+            "The marsh is quiet in a way that feels like listening. The water here does not stay where you leave it.",
+            "The keeper's log says the sea breathes in and out every ninety heartbeats, more or less. Learn its rhythm before you trust a sandbar.",
+            "I waited on a sandbar too long and the tide took my boots. The old keeper wrote of the same mistake, and of laughing about it afterwards.",
+            "Dead trees stand in the shallows like keepers who forgot to leave. Their roots hold the sand together, and the sand holds the path.",
+            "Halfway now. I found an empty oil flask and a note: 'Rest where the ground stays dry at high water. Fuel is not the only thing the dark takes.'",
+            "The fireflies are slower here, heavy with damp. They drift above the reeds and do not mind being followed.",
+            "Stepping stones show themselves only to a lit lantern. At high tide they are the only road. At low tide there are other roads, but they close without warning.",
+            "I can see the lighthouse now, far across the water, dark as a held breath. The keeper's last page is one line long: 'It can be lit again.'",
+            "The final beacon. Nine flames burn across the marsh, and the tide turns to carry their light out to sea. Somewhere ahead, the lighthouse is waiting."
+        };
+    }
+
+    static Biome EnsureMarshBiome()
+    {
+        Biome biome = AssetDatabase.LoadAssetAtPath<Biome>(MarshBiomePath);
+        if (biome == null)
+        {
+            biome = ScriptableObject.CreateInstance<Biome>();
+            AssetDatabase.CreateAsset(biome, MarshBiomePath);
+        }
+
+        List<BiomeEntry> entries = new List<BiomeEntry>();
+        AddMarsh(entries, "Tree", "tree_small_02", BiomeCategory.Tree, 4, 0.95f, 1.15f, true, 0.42f, 0.9f, true, 0f, 0.45f);
+        AddMarsh(entries, "Tree", "island_tree_02", BiomeCategory.Tree, 2, 0.9f, 1.1f, true, 0.45f, 0.9f, true, 0f, 0.4f);
+        AddMarsh(entries, "Deadwood", "dead_tree_trunk", BiomeCategory.Deadwood, 6, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "dead_tree_trunk_02", BiomeCategory.Deadwood, 6, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "tree_stump_01", BiomeCategory.Deadwood, 5, 0.9f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "tree_stump_02", BiomeCategory.Deadwood, 5, 0.9f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "dry_branches_medium_01_a", BiomeCategory.Deadwood, 5, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "dry_branches_medium_01_b", BiomeCategory.Deadwood, 5, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Deadwood", "pine_roots_a", BiomeCategory.Deadwood, 3, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Rock", "rock_moss_set_02_rock07", BiomeCategory.Rock, 2, 0.8f, 1.1f, true, 0.4f, 0.8f, false, 0f, 1f);
+        AddMarsh(entries, "Rock", "rock_moss_set_02_rock09", BiomeCategory.Rock, 2, 0.8f, 1.1f, true, 0.4f, 0.8f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "fern_02_a", BiomeCategory.Undergrowth, 8, 0.9f, 1.3f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "fern_02_b", BiomeCategory.Undergrowth, 8, 0.9f, 1.3f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "fern_02_c", BiomeCategory.Undergrowth, 6, 0.9f, 1.3f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "nettle_plant_medium_a", BiomeCategory.Undergrowth, 6, 0.9f, 1.2f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "nettle_plant_tall_a", BiomeCategory.Undergrowth, 5, 0.9f, 1.2f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "shrub_03_a", BiomeCategory.Undergrowth, 5, 0.9f, 1.2f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "Undergrowth", "shrub_03_b", BiomeCategory.Undergrowth, 5, 0.9f, 1.2f, true, 0.4f, 0.9f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "moss_01_a", BiomeCategory.GroundCover, 8, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "moss_01_c", BiomeCategory.GroundCover, 8, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "periwinkle_plant_01", BiomeCategory.GroundCover, 6, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "periwinkle_plant_02", BiomeCategory.GroundCover, 6, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "grass_medium_02_b", BiomeCategory.GroundCover, 8, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "grass_medium_02_c", BiomeCategory.GroundCover, 8, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "bark_debris_01_a", BiomeCategory.GroundCover, 4, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "GroundCover", "weed_plant_02_a", BiomeCategory.GroundCover, 5, 0.85f, 1.2f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Flower", "celandine_01_b", BiomeCategory.Flower, 4, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        AddMarsh(entries, "Flower", "celandine_01_c", BiomeCategory.Flower, 4, 0.85f, 1.15f, false, 0f, 1f, false, 0f, 1f);
+        biome.entries = entries.ToArray();
+        EditorUtility.SetDirty(biome);
+        return biome;
+    }
+
+    static void AddMarsh(List<BiomeEntry> entries, string folder, string prefabName, BiomeCategory category, int count, float scaleMin, float scaleMax, bool limitHeight, float minHeight, float maxHeight, bool limitSlope, float minSlope, float maxSlope)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/PolyHaven/" + folder + "/" + prefabName + ".prefab");
+        if (prefab == null)
+        {
+            Debug.LogWarning("Marsh biome: prefab not found " + folder + "/" + prefabName);
+            return;
+        }
+
+        BiomeEntry entry = new BiomeEntry();
+        entry.prefab = prefab;
+        entry.category = category;
+        entry.count = count;
+        entry.scaleRange = new Vector2(scaleMin, scaleMax);
+        entry.alignToSlope = category == BiomeCategory.Deadwood;
+        entry.limitHeight = limitHeight;
+        entry.minHeight = minHeight;
+        entry.maxHeight = maxHeight;
+        entry.limitSlope = limitSlope;
+        entry.minSlope = minSlope;
+        entry.maxSlope = maxSlope;
+        entries.Add(entry);
     }
 
     [MenuItem("Lantern Keeper/Install Graphics Menus")]
@@ -1790,12 +2045,10 @@ public static partial class IslandBuilder
             return;
         }
 
-        string[] scenes =
-        {
-            "Assets/Game/Scenes/MainMenu.unity",
-            "Assets/Game/Scenes/Island1.unity",
-            "Assets/Game/Scenes/Island2.unity"
-        };
+        List<string> sceneList = new List<string>();
+        sceneList.Add("Assets/Game/Scenes/MainMenu.unity");
+        sceneList.AddRange(LevelScenePaths());
+        string[] scenes = sceneList.ToArray();
 
         for (int i = 0; i < scenes.Length; i++)
         {
@@ -1833,23 +2086,27 @@ public static partial class IslandBuilder
             return;
         }
 
-        MoveRect(panel, "PlayButton", new Vector2(0f, 150f));
-        MoveRect(panel, "DifficultyButton", new Vector2(0f, 80f));
-        MoveRect(panel, "MusicButton", new Vector2(0f, 10f));
-        MoveRect(panel, "Island1Button", new Vector2(0f, -140f));
-        MoveRect(panel, "BestIsland1", new Vector2(0f, -182f));
-        MoveRect(panel, "Island2Button", new Vector2(0f, -250f));
-        MoveRect(panel, "BestIsland2", new Vector2(0f, -292f));
-        MoveRect(panel, "QuitButton", new Vector2(0f, -370f));
+        MoveRect(panel, "PlayButton", new Vector2(0f, MenuPlayY));
+        MoveRect(panel, "DifficultyButton", new Vector2(0f, MenuPlayY - 62f));
+        MoveRect(panel, "MusicButton", new Vector2(0f, MenuPlayY - 124f));
+        MoveRect(panel, "QuitButton", new Vector2(0f, MenuQuitY));
+        for (int i = 0; i < LevelNames.Length; i++)
+        {
+            MoveRect(panel, LevelNames[i] + "Button", new Vector2(0f, MenuLevelY(i)));
+            MoveRect(panel, "Best" + LevelNames[i], new Vector2(0f, MenuLevelY(i) - 34f));
+        }
+
         ArtKit art = KitFrom(panel.Find("PlayButton"));
         if (panel.Find("GraphicsButton") == null)
         {
-            MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, -60f));
+            MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, MenuPlayY - 186f));
         }
         else
         {
-            MoveRect(panel, "GraphicsButton", new Vector2(0f, -60f));
+            MoveRect(panel, "GraphicsButton", new Vector2(0f, MenuPlayY - 186f));
         }
+
+        MoveRect(panel, "LogButton", new Vector2(0f, MenuPlayY - 248f));
 
         CreateLegacyGraphics(art, menu.transform, panel as RectTransform);
     }

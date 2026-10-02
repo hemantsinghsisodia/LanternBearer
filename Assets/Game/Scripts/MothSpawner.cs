@@ -219,7 +219,7 @@ public class MothSpawner : MonoBehaviour
                 continue;
             }
 
-            if (ground < WaterHazard.SurfaceY + 0.7f || normal.y < 0.45f)
+            if (ground < WaterHazard.SafeFloorY + 0.7f || normal.y < 0.45f)
             {
                 continue;
             }
@@ -263,7 +263,7 @@ public class MothSpawner : MonoBehaviour
                 Vector3 flat = new Vector3(Mathf.Cos(angle) * mid, 0f, Mathf.Sin(angle) * mid);
                 float ground;
                 Vector3 normal;
-                bool land = TerrainQuery.TrySample(flat, out ground, out normal) && ground > WaterHazard.SurfaceY + 0.7f;
+                bool land = TerrainQuery.TrySample(flat, out ground, out normal) && ground > WaterHazard.SafeFloorY + 0.7f;
                 if (land)
                 {
                     lo = mid;
