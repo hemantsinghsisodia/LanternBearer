@@ -698,6 +698,8 @@ public static partial class IslandBuilder
             Vector3 to = new Vector3(islet.x, stage.highWaterY + 0.12f, islet.z);
             float span = Vector3.Distance(new Vector3(from.x, 0f, from.z), new Vector3(to.x, 0f, to.z));
             int steps = Mathf.Max(4, Mathf.RoundToInt(span / 0.82f));
+            float previousY = from.y;
+            int previousStep = -1;
             for (int s = 1; s < steps; s++)
             {
                 float t = s / (float)steps;
@@ -713,12 +715,31 @@ public static partial class IslandBuilder
                     pos.y = ground + 0.02f;
                 }
 
+                // Keep neighbouring stones within the player's step height (0.4 m): a small lip (up to 0.7 m)
+                // where the shore rises sinks into the slope so the terrain carries the player. Taller banks
+                // are terrain features and are left as authored.
+                if (s == previousStep + 1 && pos.y > previousY + 0.3f && pos.y <= previousY + 0.7f)
+                {
+                    pos.y = previousY + 0.3f;
+                }
+
+                previousY = pos.y;
+                previousStep = s;
+
                 GameObject stone = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 stone.name = "SteppingStone";
                 stone.transform.SetParent(parent, true);
                 stone.transform.position = pos;
                 stone.transform.localScale = new Vector3(1.15f, 0.07f, 1.15f);
                 stone.GetComponent<Renderer>().sharedMaterial = art.path;
+
+                // The primitive's capsule collider becomes a 1.15 m ball at this scale (top 0.5 m above the
+                // visible disc). Swap it for a flat box matching the disc so the player can walk across.
+                // Local cylinder mesh is radius 0.5, height 2 (scaled y 0.07 -> 0.14 m); 0.9 keeps the corners inside the disc.
+                Object.DestroyImmediate(stone.GetComponent<Collider>());
+                BoxCollider flat = stone.AddComponent<BoxCollider>();
+                flat.center = Vector3.zero;
+                flat.size = new Vector3(0.9f, 2f, 0.9f);
                 stone.AddComponent<LightRevealed>();
                 stage.stones++;
 

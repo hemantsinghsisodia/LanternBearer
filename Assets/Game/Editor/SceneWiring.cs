@@ -619,9 +619,62 @@ public static class SceneWiring
             }
         }
 
+        nulls += ReportSteppingStones(quiet);
         nulls += ReportHorizon(quiet);
         nulls += ReportGraphicsMenus(quiet);
         return nulls;
+    }
+
+    // Every stepping stone needs exactly one flat, solid collider whose top matches the visible top.
+    // A default primitive cylinder keeps a capsule collider that becomes a ball and ruins walking.
+    static int ReportSteppingStones(bool quiet)
+    {
+        int problems = 0;
+        Transform[] transforms = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform stone = transforms[i];
+            if (stone.name != "SteppingStone")
+            {
+                continue;
+            }
+
+            Collider[] colliders = stone.GetComponents<Collider>();
+            Renderer renderer = stone.GetComponent<Renderer>();
+            string problem = null;
+            if (colliders.Length != 1)
+            {
+                problem = "expected exactly one collider, found " + colliders.Length;
+            }
+            else if (colliders[0].isTrigger)
+            {
+                problem = "collider is a trigger";
+            }
+            else if (colliders[0] is CapsuleCollider || colliders[0] is SphereCollider)
+            {
+                problem = "collider is round (" + colliders[0].GetType().Name + ")";
+            }
+            else if (renderer == null)
+            {
+                problem = "no renderer";
+            }
+            else if (Mathf.Abs(colliders[0].bounds.max.y - renderer.bounds.max.y) > 0.02f)
+            {
+                problem = "collider top " + colliders[0].bounds.max.y.ToString("F3") + " vs visible top " + renderer.bounds.max.y.ToString("F3");
+            }
+
+            if (problem != null)
+            {
+                if (!quiet)
+                {
+                    Debug.LogWarning("Stepping stone problem: " + stone.name + " at " + stone.position + ": " + problem, stone);
+                }
+
+                problems++;
+            }
+        }
+
+        return problems;
     }
 
     static int WireGraphicsMenus()
