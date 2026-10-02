@@ -60,6 +60,7 @@ public class Beacon : MonoBehaviour
     bool playerNear;
     bool igniting;
     bool refsResolved;
+    bool flashLit;
     static bool loggedFallback;
 
     void Awake()
@@ -201,8 +202,34 @@ public class Beacon : MonoBehaviour
         }
     }
 
+    // Unlit beacons glint while lightning flashes, so the player can spot where to go.
+    void UpdateFlashHighlight()
+    {
+        if (beaconLight == null || IsLit || igniting)
+        {
+            flashLit = false;
+            return;
+        }
+
+        float flash = Lightning.CurrentFlash;
+        if (flash > 0.001f)
+        {
+            flashLit = true;
+            beaconLight.enabled = true;
+            beaconLight.color = new Color(0.75f, 0.85f, 1f);
+            beaconLight.intensity = 5f * flash;
+            beaconLight.range = 9f;
+        }
+        else if (flashLit)
+        {
+            flashLit = false;
+            beaconLight.enabled = false;
+        }
+    }
+
     void Update()
     {
+        UpdateFlashHighlight();
         if (IsLit)
         {
             FlickerAndSway();
@@ -294,6 +321,7 @@ public class Beacon : MonoBehaviour
         }
 
         IsLit = true;
+        flashLit = false;
         playerNear = false;
         NotifyNearby(false);
         igniting = true;

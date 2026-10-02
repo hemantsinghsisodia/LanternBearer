@@ -19,6 +19,7 @@ public class LightRevealed : MonoBehaviour
     float sampledRadius = -1f;
     float sampledIntensity = -1f;
     float appliedReveal = -1f;
+    float sampledFlash;
     bool appliedShow;
     bool appliedSolid;
     bool appliedOnce;
@@ -132,12 +133,20 @@ public class LightRevealed : MonoBehaviour
         Vector3 position = lantern.transform.position;
         float radius = lantern.Radius;
         float intensity = lantern.BaseIntensity;
+        float flash = Lightning.CurrentFlash;
+        bool flashChanged = Mathf.Abs(flash - sampledFlash) > 0.01f || ((flash <= 0f) != (sampledFlash <= 0f));
         bool moved = !haveSample
             || (position - sampledPosition).sqrMagnitude > MoveEpsilonSqr
             || Mathf.Abs(radius - sampledRadius) > 0.01f
             || Mathf.Abs(intensity - sampledIntensity) > 0.01f;
         if (!moved)
         {
+            if (flashChanged)
+            {
+                // Lightning glint: redraw at the new flash level. Colliders follow the real reveal only.
+                Apply(Reveal);
+            }
+
             return;
         }
 
@@ -170,9 +179,13 @@ public class LightRevealed : MonoBehaviour
 
     void Apply(float reveal)
     {
-        bool show = reveal > 0.001f;
+        // The flash lifts only what is drawn. Solidity and colliders still come from the lantern reveal.
+        float flash = Lightning.CurrentFlash;
+        sampledFlash = flash;
+        float visible = Mathf.Max(reveal, flash);
+        bool show = visible > 0.001f;
         bool solid = reveal >= RevealMath.SolidReveal;
-        bool revealSame = appliedOnce && Mathf.Abs(reveal - appliedReveal) < RevealEpsilon;
+        bool revealSame = appliedOnce && Mathf.Abs(visible - appliedReveal) < RevealEpsilon;
         if (appliedOnce && show == appliedShow && solid == appliedSolid && (!hasFade || revealSame))
         {
             return;
@@ -181,7 +194,7 @@ public class LightRevealed : MonoBehaviour
         appliedOnce = true;
         appliedShow = show;
         appliedSolid = solid;
-        appliedReveal = reveal;
+        appliedReveal = visible;
         CollidersEnabled = solid;
         if (renderers != null)
         {
@@ -205,7 +218,7 @@ public class LightRevealed : MonoBehaviour
         }
 
         Color color = fadeColors[i];
-        color.a *= reveal;
+        color.a *= visible;
         renderer.GetPropertyBlock(block);
                 block.SetColor(BaseColorId, color);
                 block.SetColor(ColorId, color);

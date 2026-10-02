@@ -28,6 +28,7 @@ public class Shade : MonoBehaviour
     bool despawning;
     bool dissolving;
     bool subscribed;
+    bool lightningSubscribed;
     bool targetsResolved;
     bool maskReady;
     int obstacleMask;
@@ -86,17 +87,40 @@ public class Shade : MonoBehaviour
         }
 
         Subscribe();
+        if (!lightningSubscribed)
+        {
+            lightningSubscribed = true;
+            Lightning.Flashed += OnLightning;
+        }
     }
 
     void OnDisable()
     {
         All.Remove(this);
         Unsubscribe();
+        UnsubscribeLightning();
     }
 
     void OnDestroy()
     {
         Unsubscribe();
+        UnsubscribeLightning();
+    }
+
+    void UnsubscribeLightning()
+    {
+        if (!lightningSubscribed)
+        {
+            return;
+        }
+
+        lightningSubscribed = false;
+        Lightning.Flashed -= OnLightning;
+    }
+
+    void OnLightning()
+    {
+        Stun(ShadeLogic.StunSeconds);
     }
 
     void Start()
@@ -421,7 +445,10 @@ public class Shade : MonoBehaviour
     {
         if (body != null)
         {
-            block.SetColor(BaseColorId, new Color(0.02f, 0.02f, 0.04f, bodyAlpha * appear));
+            // Stunned by lightning: a pale glow so the frozen Shade reads clearly.
+            Color tint = Stunned ? new Color(0.45f, 0.6f, 0.95f, 1f) : new Color(0.02f, 0.02f, 0.04f, 1f);
+            tint.a = bodyAlpha * appear;
+            block.SetColor(BaseColorId, tint);
             body.SetPropertyBlock(block);
             body.enabled = appear > 0.01f;
         }

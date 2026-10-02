@@ -1444,6 +1444,7 @@ public static partial class IslandBuilder
         CreateTide(config, stage);
         CreateWind(config);
         CreateShadeSpawner(config, art);
+        CreateLightning(config);
     }
 
     static void CreateTide(LevelConfig config, Stage stage)
@@ -1481,6 +1482,31 @@ public static partial class IslandBuilder
         windObject.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerController>();
         windObject.FindProperty("hazard").objectReferenceValue = Object.FindAnyObjectByType<WaterHazard>();
         windObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void CreateLightning(LevelConfig config)
+    {
+        if (!config.lightning)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("Lightning");
+        Lightning lightning = host.AddComponent<Lightning>();
+        GameObject lightObject = new GameObject("FlashLight");
+        lightObject.transform.SetParent(host.transform, false);
+        lightObject.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
+        Light flash = lightObject.AddComponent<Light>();
+        flash.type = LightType.Directional;
+        flash.color = new Color(0.78f, 0.86f, 1f);
+        flash.intensity = 0f;
+        flash.shadows = LightShadows.None;
+        flash.enabled = false;
+        SerializedObject lightningObject = new SerializedObject(lightning);
+        lightningObject.FindProperty("seed").intValue = config.seed;
+        lightningObject.FindProperty("flashLight").objectReferenceValue = flash;
+        lightningObject.FindProperty("volume").objectReferenceValue = Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>();
+        lightningObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void CreateShadeSpawner(LevelConfig config, ArtKit art)

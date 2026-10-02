@@ -138,6 +138,13 @@ public static class SceneWiring
             assigned += Set(shadeSpawners[i], "hud", hud);
         }
 
+        Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < lightnings.Length; i++)
+        {
+            assigned += Set(lightnings[i], "flashLight", lightnings[i].GetComponentInChildren<Light>(true));
+            assigned += Set(lightnings[i], "volume", Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>());
+        }
+
         LightRevealed[] revealed = Object.FindObjectsByType<LightRevealed>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < revealed.Length; i++)
         {
@@ -464,6 +471,13 @@ public static class SceneWiring
             nulls += Require(shadeSpawners[i], "player", quiet);
             nulls += Require(shadeSpawners[i], "hazard", quiet);
             nulls += Require(shadeSpawners[i], "hud", quiet);
+        }
+
+        Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < lightnings.Length; i++)
+        {
+            nulls += Require(lightnings[i], "flashLight", quiet);
+            nulls += Require(lightnings[i], "volume", quiet);
         }
 
         Beacon[] beacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);
