@@ -13,9 +13,15 @@ A small 3D night game made in Unity 6 with the Universal Render Pipeline. Walk a
 2. Open `Assets/Game/Scenes/MainMenu.unity`.
 3. Press Play, then choose a difficulty and an island.
 
-Island 2 unlocks after you win Island 1, and Island 3 unlocks after you win Island 2. The first island has 5 beacons, the second is larger and has 7, and the third is a drowned marsh with 9.
+Island 2 unlocks after you win Island 1, Island 3 unlocks after you win Island 2, and Island 4 unlocks after you win Island 3. The first island has 5 beacons, the second is larger and has 7, the third is a drowned marsh with 9, and the fourth is a storm-battered heath with 9.
 
 **Island 3: the tide.** The water rises and falls about 0.9 m every 90 seconds. A gauge under the drain readout shows the level, whether it is rising or falling, and the seconds until it turns, and a "Tide turning" notice appears just before it changes. Sandbars between the outer islets are walkable at low tide and flooded at high tide. Only lantern-revealed stepping stones stay above water at high tide, so you can wait for the tide or spend light to cross. Falling in respawns you on ground that stays above the high-tide line, and fireflies never settle below it. A low surf sound swells with the water.
+
+**Island 4: Storm Cape.** A windswept heath with a cliff, no tide, and a storm that never quite lets up. It adds three things:
+
+- **Wind.** The air stays calm for 12 to 20 seconds (10 to 16 on Hard), then a warning shows the direction the gust is coming from. Two seconds later a gust leans on you for 3 to 4 seconds, easing in and out over half a second at each end. The push peaks at 2.5 m/s, scaled to 0.7x on Easy and 1.25x on Hard, so you can always walk into it, but not fast. It is half as strong while you are airborne and a fifth as strong when you stand in the lee of a rock or tree. Gusts blow from the prevailing direction, give or take 60 degrees. There is no push while the game is paused, during a rescue, or inside a safe ring.
+- **The Shade.** A shadow that hovers about 0.2 m above the ground and hunts the lantern. It chases fast when your light is weak, creeps when the light on it is moderate, and freezes in strong light, then drifts away after about a second and a half. A touch steals fuel (10 on Easy, 15 on Normal, 20 on Hard) and the Shade re-forms 8 seconds later. Two Shades are out at the start, one more joins for every 3 beacons you light, up to 3, 5, or 6, and they appear at least 25 m from you. Fuel never drops below zero from a touch, and a Shade cannot steal for 2 seconds after a water rescue.
+- **Lightning.** Thunder rolls in 1.5 seconds before each flash, so you have time to react. The flash reveals every Shade it can see and stuns them for 3 seconds. Strikes come every 35 to 55 seconds on Normal (30 to 45 on Easy, 45 to 65 on Hard) and never during a wind warning or after the round is over. Rain and a storm sound bed round it out, and a small wind gauge with a gust arrow, plus a thunder glyph just before a flash, sit in the corner of the HUD.
 
 **Keeper's Log.** Each beacon you light shows a short page from the previous keeper's story for that island, as a notice that fades after a few seconds without pausing the game. Pages you have read are saved, and the **Keeper's Log** button on the main menu lists them.
 
@@ -33,6 +39,7 @@ Island 2 unlocks after you win Island 1, and Island 3 unlocks after you win Isla
 | Esc or P | Pause. Resume, restart, change graphics, or return to the main menu. The cursor unlocks while paused. Esc or P on the graphics panel returns to pause and leaves the game paused |
 | R | Retry from the win or lose screen |
 | M | Mute or unmute the music |
+| Lantern light | On Island 4, shine it on a Shade to freeze it. Face a gust and keep walking |
 
 Walk into fireflies to refill the lantern. Moths still drain it when they get close; sprint away to shake them off. Some stepping stones only appear inside the lantern light. Light every beacon and the sky turns to dawn. Lighting a beacon spends fuel and raises the drain: Easy adds 5% of the base drain per lit beacon, Normal adds 8%, and Hard adds 11%, on top of that difficulty's drain multiplier. Each lit beacon also calls one more moth, up to 8, 12, or 16 moths. Moths spawn at the dark outer edge of the island, fade in, and stay about 1.4 m above the ground. They steer around trees, rocks, and cliffs. Near a moth the lantern dims, and one whisper grows louder the closer they get. They fade out when the round ends.
 
@@ -45,6 +52,8 @@ Falling in the water plays a splash, fades the screen, and returns you to the la
 When the lantern reaches zero, the light gutters and a vignette closes over about 1.5 seconds before the lose panel. Pause stays closed during that sequence. R does not restart until the panel is up, and it ignores the first half-second so a stray press does not reload the island. You cannot win once the fuel is gone.
 
 Your best time is saved for each island.
+
+On Island 4, the lighting-up rules above still hold, and there are two more things to keep in mind. Gusts push you toward the water as easily as away from it, so stay clear of the cliff edge during a warning. And a Shade cannot steal inside a lit beacon's safe ring, so stay near your beacons when you can.
 
 ## Graphics presets
 
