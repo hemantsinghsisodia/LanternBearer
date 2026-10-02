@@ -882,6 +882,91 @@ public static partial class IslandBuilder
         return root;
     }
 
+    const string ShadeFbxPath = "Assets/Game/Models/Shade/Shade.fbx";
+
+    static bool shadeImportReady;
+
+    static void PrepareShadeImport()
+    {
+        if (shadeImportReady || !File.Exists(ProjectFile(ShadeFbxPath)))
+        {
+            return;
+        }
+
+        AssetDatabase.ImportAsset(ShadeFbxPath, ImportAssetOptions.ForceUpdate);
+        ModelImporter importer = AssetImporter.GetAtPath(ShadeFbxPath) as ModelImporter;
+        if (importer == null)
+        {
+            return;
+        }
+
+        // A static mesh: no rig, no clips, and the materials come from the generated ShadeBody and ShadeEye assets.
+        importer.globalScale = 1f;
+        importer.animationType = ModelImporterAnimationType.None;
+        importer.importAnimation = false;
+        importer.importCameras = false;
+        importer.importLights = false;
+        importer.materialImportMode = ModelImporterMaterialImportMode.None;
+        importer.isReadable = false;
+        importer.SaveAndReimport();
+        shadeImportReady = true;
+    }
+
+    // The Blender wraith. Body, Eyes and Smoke stay direct children because Shade.cs finds them by name.
+    static GameObject BuildImportedShade(Material bodyMat, Material eyeMat)
+    {
+        if (!File.Exists(ProjectFile(ShadeFbxPath)))
+        {
+            return null;
+        }
+
+        PrepareShadeImport();
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(ShadeFbxPath);
+        if (model == null)
+        {
+            return null;
+        }
+
+        Transform sourceBody = model.transform.Find("Body");
+        Transform sourceEyes = model.transform.Find("Eyes");
+        if (sourceBody == null || sourceEyes == null)
+        {
+            Debug.LogWarning("Shade.fbx needs top-level Body and Eyes objects. Using the capsule Shade.");
+            return null;
+        }
+
+        GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(model);
+        // Unpacking drops the link to the FBX hierarchy; the mesh assets stay referenced.
+        PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        root.name = "Shade";
+        root.transform.localPosition = Vector3.zero;
+        root.transform.localRotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            bool isBody = renderers[i].transform.parent == root.transform && renderers[i].name == "Body";
+            renderers[i].sharedMaterial = isBody ? bodyMat : eyeMat;
+            // Shade.cs fades the body, so a fixed shadow would give it away.
+            renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderers[i].receiveShadows = false;
+        }
+
+        return root;
+    }
+
+    static GameObject BuildCapsuleShade(Material bodyMat, Material eyeMat)
+    {
+        GameObject root = new GameObject("Shade");
+        Prim(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 1.1f, 0f), new Vector3(0.7f, 1.1f, 0.7f), bodyMat);
+        GameObject eyes = new GameObject("Eyes");
+        eyes.transform.SetParent(root.transform, false);
+        Quaternion faceForward = Quaternion.Euler(0f, 180f, 0f);
+        Prim(PrimitiveType.Quad, "EyeLeft", eyes.transform, new Vector3(-0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
+        Prim(PrimitiveType.Quad, "EyeRight", eyes.transform, new Vector3(0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
+        return root;
+    }
+
     // Built on demand (Island 4 only) so levels without Shades never touch these assets.
     static GameObject EnsureShadePrefab(ArtKit art)
     {
@@ -895,13 +980,12 @@ public static partial class IslandBuilder
         Material bodyMat = UnlitMat("Assets/Game/Materials/Generated/ShadeBody.mat", unlit, new Color(0.02f, 0.02f, 0.04f, 0.72f));
         SetupTransparent(bodyMat);
         Material eyeMat = UnlitMat("Assets/Game/Materials/Generated/ShadeEye.mat", unlit, new Color(3.2f, 2.6f, 1.1f, 1f));
-        GameObject root = new GameObject("Shade");
-        Prim(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 1.1f, 0f), new Vector3(0.7f, 1.1f, 0.7f), bodyMat);
-        GameObject eyes = new GameObject("Eyes");
-        eyes.transform.SetParent(root.transform, false);
-        Quaternion faceForward = Quaternion.Euler(0f, 180f, 0f);
-        Prim(PrimitiveType.Quad, "EyeLeft", eyes.transform, new Vector3(-0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
-        Prim(PrimitiveType.Quad, "EyeRight", eyes.transform, new Vector3(0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
+        GameObject root = BuildImportedShade(bodyMat, eyeMat);
+        if (root == null)
+        {
+            root = BuildCapsuleShade(bodyMat, eyeMat);
+        }
+
         GameObject smokeObject = new GameObject("Smoke");
         smokeObject.transform.SetParent(root.transform, false);
         smokeObject.transform.localPosition = new Vector3(0f, 0.3f, 0f);
