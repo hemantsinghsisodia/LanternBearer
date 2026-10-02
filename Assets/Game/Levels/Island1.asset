@@ -38,6 +38,12 @@ MonoBehaviour:
   - Moths gather here. The keeper wrote that they are not cruel, only hungry for any light that is not their own. Stay near a lit beacon and they lose interest.
   - Fireflies drift between the pines in loose, patient lines. The keeper called them the island's small stars, and said they would lend you light if you let them.
   - 'The last beacon on this shore. A line is scratched into the stone: ''Past the water there are more islands, and more lights gone dark. I went on. Follow, if you can.'''
+  introLines:
+  - Light every beacon to bring the dawn. Press E near a beacon; lighting it costs fuel.
+  - Your lantern burns fuel. Walk into fireflies to refill it.
+  - Moths drain and dim your lantern when they get close. Sprint to shake them off.
+  - 'A lit beacon''s soft ring is safe light: slower drain, and moths stay out.'
+  - Some stepping stones only appear inside your lantern light.
   windStrength: 0
   shadeCount: 0
   lightning: 0

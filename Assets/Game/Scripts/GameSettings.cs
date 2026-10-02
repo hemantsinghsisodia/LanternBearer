@@ -271,6 +271,22 @@ public static class GameSettings
         return "LanternKeeperLog_" + levelId;
     }
 
+    public static bool HasSeenIntro(string levelId)
+    {
+        return PlayerPrefs.GetInt(IntroKey(levelId), 0) == 1;
+    }
+
+    public static void MarkIntroSeen(string levelId)
+    {
+        PlayerPrefs.SetInt(IntroKey(levelId), 1);
+        PlayerPrefs.Save();
+    }
+
+    static string IntroKey(string levelId)
+    {
+        return "LanternKeeperIntro_" + levelId;
+    }
+
     static string WonKey(string levelId)
     {
         return "LanternKeeperWon_" + levelId;

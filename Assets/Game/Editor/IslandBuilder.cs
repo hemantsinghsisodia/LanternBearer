@@ -107,6 +107,10 @@ public static partial class IslandBuilder
         island2.islandTitle = "The Pine Reach";
         island3.islandTitle = "The Drowned Marsh";
         island4.islandTitle = "The Storm Cape";
+        island1.introLines = Island1Intro();
+        island2.introLines = Island2Intro();
+        island3.introLines = Island3Intro();
+        island4.introLines = Island4Intro();
         island4.windStrength = 1f;
         island4.shadeCount = 2;
         island4.lightning = true;
@@ -1348,6 +1352,14 @@ public static partial class IslandBuilder
             logProperty.GetArrayElementAtIndex(i).stringValue = logLines[i];
         }
 
+        SerializedProperty introProperty = managerObject.FindProperty("introLines");
+        string[] introLines = config.introLines != null ? config.introLines : new string[0];
+        introProperty.arraySize = introLines.Length;
+        for (int i = 0; i < introLines.Length; i++)
+        {
+            introProperty.GetArrayElementAtIndex(i).stringValue = introLines[i];
+        }
+
         managerObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject dawnObject = new SerializedObject(dawn);
@@ -1968,6 +1980,51 @@ public static partial class IslandBuilder
 
         EditorUtility.SetDirty(config);
         return config;
+    }
+
+    static string[] Island1Intro()
+    {
+        return new[]
+        {
+            "Light every beacon to bring the dawn. Press E near a beacon; lighting it costs fuel.",
+            "Your lantern burns fuel. Walk into fireflies to refill it.",
+            "Moths drain and dim your lantern when they get close. Sprint to shake them off.",
+            "A lit beacon's soft ring is safe light: slower drain, and moths stay out.",
+            "Some stepping stones only appear inside your lantern light."
+        };
+    }
+
+    static string[] Island2Intro()
+    {
+        return new[]
+        {
+            "A bigger island: seven beacons and more moths.",
+            "Watch the cliff edge, and look for two hidden stone paths to the outer islets.",
+            "Each beacon you light raises the drain and calls another moth."
+        };
+    }
+
+    static string[] Island3Intro()
+    {
+        return new[]
+        {
+            "The tide rises and falls. The gauge under the drain readout shows the level and when it turns.",
+            "Sandbars are walkable at low tide and flood at high tide.",
+            "Lantern-revealed stepping stones stay above water at any tide.",
+            "Falling in costs fuel and puts you back on dry ground."
+        };
+    }
+
+    static string[] Island4Intro()
+    {
+        return new[]
+        {
+            "Gusts: the arrow warns you, then the wind pushes you. Lean into it, or shelter behind rocks.",
+            "A gust can push you off the cliff or into the water. Keep clear of edges during a warning.",
+            "Shades creep in the dark and steal fuel on touch. Your light freezes them.",
+            "Shades can't steal inside a lit beacon's safe ring.",
+            "Thunder warns of lightning. The flash stuns Shades and shows hidden stones."
+        };
     }
 
     static string[] Island1Log()

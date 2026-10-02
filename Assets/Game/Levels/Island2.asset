@@ -40,6 +40,10 @@ MonoBehaviour:
   - The beacons on the far islets were the hardest. The stones show only where your light reaches, so carry it with you and do not hurry.
   - 'A sketch of the next island, drawn in haste: low, green, and wet. The keeper wrote ''the sea breathes there'' and underlined it twice.'
   - The last beacon burns. Beyond the water I can see a pale green glow, rising and falling like a sleeper's chest. I know where the keeper went.
+  introLines:
+  - 'A bigger island: seven beacons and more moths.'
+  - Watch the cliff edge, and look for two hidden stone paths to the outer islets.
+  - Each beacon you light raises the drain and calls another moth.
   windStrength: 0
   shadeCount: 0
   lightning: 0

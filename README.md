@@ -25,6 +25,8 @@ Island 2 unlocks after you win Island 1, Island 3 unlocks after you win Island 2
 
 **Keeper's Log.** Each beacon you light shows a short page from the previous keeper's story for that island, as a notice that fades after a few seconds without pausing the game. Pages you have read are saved, and the **Keeper's Log** button on the main menu lists them.
 
+**Intro card.** The first time you enter an island, a centred card shows its name and a few short tips, and the game stays paused until you press any key or click. The wait does not count toward your time. Each island's card is shown once and remembered (`LanternKeeperIntro_<island>`). **How to Play** in the pause menu reopens the same card; any key, or Esc, returns to the pause buttons.
+
 ## Controls
 
 | Key | Action |
@@ -36,7 +38,7 @@ Island 2 unlocks after you win Island 1, Island 3 unlocks after you win Island 2
 | Shift | Sprint. This burns lantern fuel faster |
 | Space | Jump. Two beacons sit on raised ground |
 | E | Light a beacon when you are standing next to it. The prompt shows the fuel cost |
-| Esc or P | Pause. Resume, restart, change graphics, or return to the main menu. The cursor unlocks while paused. Esc or P on the graphics panel returns to pause and leaves the game paused |
+| Esc or P | Pause. Resume, restart, open How to Play, change graphics, or return to the main menu. The cursor unlocks while paused. Esc or P on the graphics panel returns to pause and leaves the game paused |
 | R | Retry from the win or lose screen |
 | M | Mute or unmute the music and storm sounds |
 | Lantern light | On Island 4, shine it on a Shade to freeze it. Face a gust and keep walking |

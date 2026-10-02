@@ -42,6 +42,11 @@ MonoBehaviour:
   - Stepping stones show themselves only to a lit lantern. At high tide they are the only road. At low tide there are other roads, but they close without warning.
   - 'I can see the lighthouse now, far across the water, dark as a held breath. The keeper''s last page is one line long: ''It can be lit again.'''
   - The final beacon. Nine flames burn across the marsh, and the tide turns to carry their light out to sea. Somewhere ahead, the lighthouse is waiting.
+  introLines:
+  - The tide rises and falls. The gauge under the drain readout shows the level and when it turns.
+  - Sandbars are walkable at low tide and flood at high tide.
+  - Lantern-revealed stepping stones stay above water at any tide.
+  - Falling in costs fuel and puts you back on dry ground.
   windStrength: 0
   shadeCount: 0
   lightning: 0

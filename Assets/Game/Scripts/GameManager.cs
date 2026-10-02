@@ -17,6 +17,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] string islandLabel = "";
     [SerializeField] string nextLevelScene = "";
     [SerializeField] string[] logEntries = new string[0];
+    [SerializeField] string[] introLines = new string[0];
     [SerializeField] float deathSeconds = 1.5f;
     [SerializeField] float restartGrace = 0.5f;
     [SerializeField] HUD hud;
@@ -32,6 +33,8 @@ public class GameManager : MonoBehaviour
     bool paused;
     bool dying;
     bool controlsLocked;
+    bool introShowing;
+    float introDismissUnlock;
     bool refsResolved;
     float restartUnlockTime = float.PositiveInfinity;
     int raisedSecond = int.MinValue;
@@ -45,6 +48,9 @@ public class GameManager : MonoBehaviour
     public bool IsPaused => paused;
     public bool IsDying => dying;
     public bool ControlsLocked => controlsLocked;
+    // True while the first-visit intro card holds the game paused. The card reuses Pause(), so the pause panel is hidden by the HUD.
+    public bool IntroShowing => introShowing;
+    public string[] IntroLines => introLines;
     public float DeathStartedUnscaled { get; private set; }
     public float LoseShownUnscaled { get; private set; }
     public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && Time.unscaledTime >= restartUnlockTime;
@@ -87,6 +93,50 @@ public class GameManager : MonoBehaviour
         BindLantern();
         RaiseBeacons();
         RaiseTime();
+        BeginIntroIfUnseen();
+    }
+
+    void BeginIntroIfUnseen()
+    {
+        if (introLines == null || introLines.Length == 0 || GameSettings.HasSeenIntro(LevelId))
+        {
+            return;
+        }
+
+        introShowing = true;
+        introDismissUnlock = Time.unscaledTime + 0.25f;
+        Pause();
+    }
+
+    // Marks the intro seen and releases the pause it took.
+    public void EndIntro()
+    {
+        if (!introShowing)
+        {
+            return;
+        }
+
+        introShowing = false;
+        GameSettings.MarkIntroSeen(LevelId);
+        Resume();
+    }
+
+    static bool AnyInputPressedThisFrame()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+        {
+            return true;
+        }
+
+        Mouse mouse = Mouse.current;
+        if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+        {
+            return true;
+        }
+
+        Gamepad pad = Gamepad.current;
+        return pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
     }
 
     void OnDestroy()
@@ -133,6 +183,17 @@ public class GameManager : MonoBehaviour
 
     void HandleKeys()
     {
+        if (introShowing)
+        {
+            // Any key or click dismisses the card; the short unlock stops the click that loaded the scene from skipping it.
+            if (Time.unscaledTime >= introDismissUnlock && AnyInputPressedThisFrame())
+            {
+                EndIntro();
+            }
+
+            return;
+        }
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
         {

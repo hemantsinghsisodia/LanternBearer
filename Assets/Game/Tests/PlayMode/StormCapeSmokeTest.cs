@@ -14,13 +14,28 @@ namespace LanternKeeper.Tests
         const float MaxSubmergedSeconds = 1f;
         const float SubmergeDepth = 0.5f;
 
+        // Mirrors GameSettings.IntroKey; this assembly can't reference Assembly-CSharp.
+        const string IntroKey = "LanternKeeperIntro_island4";
+
         readonly List<string> problems = new List<string>();
+        bool hadIntroKey;
+        int previousIntroValue;
 
         [TearDown]
         public void TearDown()
         {
             Application.logMessageReceived -= OnLog;
             Time.timeScale = 1f;
+            if (hadIntroKey)
+            {
+                PlayerPrefs.SetInt(IntroKey, previousIntroValue);
+            }
+            else
+            {
+                PlayerPrefs.DeleteKey(IntroKey);
+            }
+
+            PlayerPrefs.Save();
         }
 
         // The game prints informational diagnostics (quality presets, audio routing), which
@@ -39,6 +54,11 @@ namespace LanternKeeper.Tests
         {
             problems.Clear();
             Application.logMessageReceived += OnLog;
+
+            // The first-visit intro card pauses the game, so mark it seen before the scene loads.
+            hadIntroKey = PlayerPrefs.HasKey(IntroKey);
+            previousIntroValue = PlayerPrefs.GetInt(IntroKey, 0);
+            PlayerPrefs.SetInt(IntroKey, 1);
             SceneManager.LoadScene("Island4");
             yield return null;
             yield return null;

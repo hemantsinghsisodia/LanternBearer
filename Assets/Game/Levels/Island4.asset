@@ -42,6 +42,12 @@ MonoBehaviour:
   - Narrow spines of rock run between the beacons, bare to the weather. The keeper's cairns follow them. I follow the cairns.
   - 'Halfway across the cape the trail stops mid-page, mid-word. The next page begins in a steadier hand: ''Found the lamp. Still burning.'''
   - The last beacon is lit and the storm leans away from it. Out past the cliffs the lighthouse stands black against the cloud. The keeper's trail ends here. Mine goes on.
+  introLines:
+  - 'Gusts: the arrow warns you, then the wind pushes you. Lean into it, or shelter behind rocks.'
+  - A gust can push you off the cliff or into the water. Keep clear of edges during a warning.
+  - Shades creep in the dark and steal fuel on touch. Your light freezes them.
+  - Shades can't steal inside a lit beacon's safe ring.
+  - Thunder warns of lightning. The flash stuns Shades and shows hidden stones.
   windStrength: 1
   shadeCount: 2
   lightning: 1
