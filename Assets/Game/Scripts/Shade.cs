@@ -15,7 +15,7 @@ public class Shade : MonoBehaviour
     [SerializeField] float turnSpeed = 6f;
     [SerializeField] float avoidDistance = 2.4f;
     [SerializeField] float avoidRadius = 0.4f;
-    [SerializeField] float bodyAlpha = 0.72f;
+    [SerializeField] float bodyAlpha = 0.92f;
     [SerializeField] float droneVolume = 0.5f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");

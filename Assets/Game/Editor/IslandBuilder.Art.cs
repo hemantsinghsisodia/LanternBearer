@@ -952,7 +952,32 @@ public static partial class IslandBuilder
             renderers[i].receiveShadows = false;
         }
 
+        ScaleShadeEye(sourceEyesFind(root, "EyeLeft"));
+        ScaleShadeEye(sourceEyesFind(root, "EyeRight"));
         return root;
+    }
+
+    const float ShadeEyeScale = 1.8f;
+
+    static Transform sourceEyesFind(GameObject root, string eyeName)
+    {
+        Transform eyes = root.transform.Find("Eyes");
+        return eyes != null ? eyes.Find(eyeName) : null;
+    }
+
+    // Scales an eye about its mesh's own centre so it stays where the artist put it, whatever the pivot is.
+    static void ScaleShadeEye(Transform eye)
+    {
+        if (eye == null)
+        {
+            return;
+        }
+
+        MeshFilter filter = eye.GetComponent<MeshFilter>();
+        Vector3 centre = filter != null && filter.sharedMesh != null ? filter.sharedMesh.bounds.center : Vector3.zero;
+        Vector3 before = eye.TransformPoint(centre);
+        eye.localScale *= ShadeEyeScale;
+        eye.position += before - eye.TransformPoint(centre);
     }
 
     static GameObject BuildCapsuleShade(Material bodyMat, Material eyeMat)
@@ -977,7 +1002,7 @@ public static partial class IslandBuilder
             throw new System.InvalidOperationException("Universal Render Pipeline/Unlit is missing.");
         }
 
-        Material bodyMat = UnlitMat("Assets/Game/Materials/Generated/ShadeBody.mat", unlit, new Color(0.02f, 0.02f, 0.04f, 0.72f));
+        Material bodyMat = UnlitMat("Assets/Game/Materials/Generated/ShadeBody.mat", unlit, new Color(0.02f, 0.02f, 0.04f, 0.92f));
         SetupTransparent(bodyMat);
         Material eyeMat = UnlitMat("Assets/Game/Materials/Generated/ShadeEye.mat", unlit, new Color(3.2f, 2.6f, 1.1f, 1f));
         GameObject root = BuildImportedShade(bodyMat, eyeMat);
