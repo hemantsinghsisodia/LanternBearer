@@ -647,6 +647,16 @@ public static class SceneWiring
         for (int i = 0; i < pathRoot.transform.childCount; i++)
         {
             Transform stone = pathRoot.transform.GetChild(i);
+            if (stone.name == "BankSupport")
+            {
+                if (stone.GetComponentInChildren<Collider>(true) != null)
+                {
+                    problems += StoneWarning(stone, "bank support must be visual only (has a collider)", quiet);
+                }
+
+                continue;
+            }
+
             bool hidden = stone.name == "SteppingStone";
             bool bank = stone.name == "BankStep";
             if (!hidden && !bank)
@@ -716,6 +726,20 @@ public static class SceneWiring
             return "bank step must not be light-gated";
         }
 
+        if (bank)
+        {
+            Material material = renderer.sharedMaterial;
+            if (material == null)
+            {
+                return "bank step has no material";
+            }
+
+            if (material.HasProperty("_LKDissolve") || (material.shader != null && material.shader.name == "LanternKeeper/PathReveal"))
+            {
+                return "bank step material dissolves by lantern distance (" + material.name + "); use a plain lit stone";
+            }
+        }
+
         return null;
     }
 
@@ -776,7 +800,8 @@ public static class SceneWiring
         return problems;
     }
 
-    // The end step must sit within about 0.6 m (beyond its edge) of ground above the water that is within 0.35 m of its top.
+    // The end step must have ground above the water within 1.1 m of its centre (about 0.6 m beyond its edge)
+    // that is within 0.35 m of its top.
     static string EndProblem(Transform step, Terrain terrain, float waterY)
     {
         float top = StoneTop(step);

@@ -13,7 +13,9 @@ public static partial class IslandBuilder
     const float PathMaxSpacing = 0.82f;
     const float PathMinSpacing = 0.4f;
     const float GentleSlope = 0.7f;
-    static readonly float[] LandingOffsets = { 0f, 10f, -10f, 20f, -20f, 30f, -30f, 40f, -40f, 50f, -50f };
+    static readonly float[] LandingOffsets = { 0f, 10f, -10f, 20f, -20f, 30f, -30f, 40f, -40f, 50f, -50f, 60f, -60f, 70f, -70f };
+    const float HighClearance = 1.5f;
+    const float SupportGap = 0.6f;
 
     class PathPlan
     {
@@ -21,7 +23,9 @@ public static partial class IslandBuilder
         public float score;
         public float offset;
         public int bankSteps;
-        public readonly List<Vector3> stones = new List<Vector3>();   // x, top, z; main island to islet
+        public float maxClearance;   // highest stone top above the terrain or water beneath it
+        public int highStones;       // stones more than HighClearance above what is beneath them
+        public readonly List<Vector3> stones = new List<Vector3>();   // x, top, z; emitted from the main island end to the islet end
     }
 
     static void PlacePaths(LevelConfig config, ArtKit art, Stage stage)
@@ -52,10 +56,11 @@ public static partial class IslandBuilder
 
             if (!best.valid)
             {
-                Debug.LogWarning("PlacePaths: " + config.levelId + " path " + i + " has no gentle landing (best offset " + best.offset + " deg).");
+                Debug.LogWarning("PlacePaths: " + config.levelId + " path " + i + " has no gentle landing (best offset " + best.offset + " deg); no path built.");
+                continue;
             }
 
-            Debug.Log("PlacePaths: " + config.levelId + " path " + i + " offset=" + best.offset + " stones=" + best.stones.Count + " bankSteps=" + best.bankSteps);
+            Debug.Log("PlacePaths: " + config.levelId + " path " + i + " offset=" + best.offset + " stones=" + best.stones.Count + " bankSteps=" + best.bankSteps + " maxClearance=" + best.maxClearance.ToString("0.0") + " highStones=" + best.highStones);
             BuildPath(art, stage, parent, best);
         }
     }
@@ -66,8 +71,9 @@ public static partial class IslandBuilder
     }
 
     // Walks a line from the islet centre toward the main island, finds where it leaves the islet
-    // (islet water edge) and where it climbs out of the water again (main water edge), then plans the
-    // bank steps at both ends.
+    // (islet water edge) and where it climbs out of the water again (main water edge), plans a landing
+    // stone at each end and fills the stone line between them. The score prefers few elevated stones
+    // and low ones, so a bank that needs a tall flying stair loses to a gentler one.
     static PathPlan PlanPath(LevelConfig config, Stage stage, Vector3 islet3, float offset)
     {
         Vector2 islet = new Vector2(islet3.x, islet3.z);
@@ -157,10 +163,17 @@ public static partial class IslandBuilder
             {
                 plan.bankSteps++;
             }
+
+            float clearance = y - Mathf.Max(PathGround(stage, p), stage.waterY);
+            plan.maxClearance = Mathf.Max(plan.maxClearance, clearance);
+            if (clearance > HighClearance)
+            {
+                plan.highStones++;
+            }
         }
 
         plan.valid = true;
-        plan.score = plan.bankSteps + 0.01f * Mathf.Abs(offset);
+        plan.score = plan.bankSteps + 0.01f * Mathf.Abs(offset) + 2f * plan.maxClearance + 0.5f * plan.highStones;
         return plan;
     }
 
@@ -253,19 +266,19 @@ public static partial class IslandBuilder
             }
             else
             {
-                CreateBankStep(art, parent, stone);
+                CreateBankStep(art, stage, parent, stone);
             }
         }
     }
 
-    static GameObject CreateStoneBody(ArtKit art, Transform parent, string name, Vector3 center, float halfHeight)
+    static GameObject CreateStoneBody(Material material, Transform parent, string name, Vector3 center, float halfHeight)
     {
         GameObject stone = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         stone.name = name;
         stone.transform.SetParent(parent, true);
         stone.transform.position = center;
         stone.transform.localScale = new Vector3(1.15f, halfHeight, 1.15f);
-        stone.GetComponent<Renderer>().sharedMaterial = art.path;
+        stone.GetComponent<Renderer>().sharedMaterial = material;
 
         // The primitive's capsule collider would be a ball at this scale (top 0.5 m above the visible disc).
         // A flat box on the disc lets the player walk across. The cylinder mesh is radius 0.5, height 2, so a
@@ -279,7 +292,7 @@ public static partial class IslandBuilder
 
     static void CreateHiddenStone(ArtKit art, Stage stage, Transform parent, Vector3 pos)
     {
-        GameObject stone = CreateStoneBody(art, parent, "SteppingStone", pos, StoneHalfHeight);
+        GameObject stone = CreateStoneBody(art.path, parent, "SteppingStone", pos, StoneHalfHeight);
         stone.AddComponent<LightRevealed>();
         stage.stones++;
         if (pos.y > stage.highWaterY + 0.13f)
@@ -299,11 +312,45 @@ public static partial class IslandBuilder
         foam.AddComponent<LightRevealed>();
     }
 
-    // Always visible and solid: no LightRevealed. A thicker slab sunk into the bank so it reads as part of it.
-    static void CreateBankStep(ArtKit art, Transform parent, Vector3 stepTop)
+    // Always visible and solid: plain lit stone (the path material fades out by lantern distance on its own)
+    // and no LightRevealed. A thicker slab sunk into the bank so it reads as part of it. A step hanging more
+    // than SupportGap above whatever is beneath it gets a visual-only rock pillar down to the terrain or the
+    // water line.
+    static void CreateBankStep(ArtKit art, Stage stage, Transform parent, Vector3 stepTop)
     {
         Vector3 center = new Vector3(stepTop.x, stepTop.y - BankHalfHeight, stepTop.z);
-        CreateStoneBody(art, parent, "BankStep", center, BankHalfHeight);
+        CreateStoneBody(art.bankStone, parent, "BankStep", center, BankHalfHeight);
+
+        float underside = stepTop.y - 2f * BankHalfHeight;
+        float beneath = Mathf.Max(PathGround(stage, new Vector2(stepTop.x, stepTop.z)), stage.waterY);
+        if (underside - beneath > SupportGap)
+        {
+            CreateBankSupport(art, parent, new Vector3(stepTop.x, beneath - 0.25f, stepTop.z), underside + 0.05f);
+        }
+    }
+
+    // A tapered pillar built from stacked cylinders, wider at the base. Visual only: all colliders removed.
+    static void CreateBankSupport(ArtKit art, Transform parent, Vector3 bottom, float topY)
+    {
+        float height = topY - bottom.y;
+        int segments = Mathf.Max(1, Mathf.CeilToInt(height / 1.2f));
+        float segment = height / segments;
+        GameObject pillar = new GameObject("BankSupport");
+        pillar.transform.SetParent(parent, true);
+        pillar.transform.position = new Vector3(bottom.x, bottom.y, bottom.z);
+        for (int i = 0; i < segments; i++)
+        {
+            float radius = Mathf.Lerp(0.6f, 0.34f, (i + 0.5f) / segments);
+            GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            part.name = "Rock";
+            part.transform.SetParent(pillar.transform, false);
+            part.transform.position = new Vector3(bottom.x, bottom.y + segment * (i + 0.5f), bottom.z);
+            part.transform.rotation = Quaternion.Euler(0f, (i * 47 + Mathf.RoundToInt(bottom.x * 13f)) % 360, 0f);
+            part.transform.localScale = new Vector3(radius * 2f, segment * 0.5f + 0.04f, radius * 2f);
+            part.GetComponent<Renderer>().sharedMaterial = art.rock;
+        }
+
+        StripColliders(pillar);
     }
 }
 }

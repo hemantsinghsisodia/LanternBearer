@@ -35,6 +35,7 @@ public static partial class IslandBuilder
         public Material heat;
         public Material silhouette;
         public Material path;
+        public Material bankStone;
         public Material terrain;
         public Material sky;
         public Material foam;
@@ -220,6 +221,7 @@ public static partial class IslandBuilder
         art.trunk = LitMat("Assets/Game/Materials/Generated/Trunk.mat", lit, new Color(0.3f, 0.18f, 0.1f), 0.15f, 0f, Color.black);
         art.leaves = LitMat("Assets/Game/Materials/Generated/Leaves.mat", lit, new Color(0.08f, 0.2f, 0.1f), 0.12f, 0f, Color.black);
         art.rock = LitMat("Assets/Game/Materials/Generated/Rock.mat", lit, new Color(0.34f, 0.35f, 0.37f), 0.2f, 0f, Color.black);
+        art.bankStone = LitMat("Assets/Game/Materials/Generated/BankStone.mat", lit, new Color(0.5f, 0.47f, 0.4f), 0.15f, 0f, Color.black);
         art.grass = LitMat("Assets/Game/Materials/Generated/GrassTuft.mat", lit, new Color(0.2f, 0.38f, 0.14f), 0.1f, 0f, Color.black);
         art.grass.SetTexture("_BaseMap", blade);
         SetupCutout(art.grass);
