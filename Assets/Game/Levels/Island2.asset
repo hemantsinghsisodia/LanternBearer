@@ -25,5 +25,17 @@ MonoBehaviour:
   fogColor: {r: 0.36, g: 0.48, b: 0.54, a: 1}
   fogDensity: 0.014
   grassDetailDensity: 8
-  nextLevelScene: 
+  nextLevelScene: Island3
   biome: {fileID: 11400000, guid: 67db5e691bdcd1c4bb2b413f116e4bc0, type: 2}
+  hasCliff: 1
+  tideAmplitude: 0
+  tidePeriod: 90
+  tidePhase: 0
+  logEntries:
+  - The mesa wind smells of dust and old salt. The keeper's second journal begins here, the ink faded to the colour of rust.
+  - I lit the cliff beacon by moonlight. My hands shook, and the lantern shook with them. It steadies after the first spark.
+  - 'There are paths here that only appear when the lantern is near. The keeper wrote: ''Trust the light, never your eyes.'''
+  - Moths are thicker on this island. The keeper kept count in the margin, and the tally stops at forty. After that there is only a drawing of the lantern.
+  - The beacons on the far islets were the hardest. The stones show only where your light reaches, so carry it with you and do not hurry.
+  - 'A sketch of the next island, drawn in haste: low, green, and wet. The keeper wrote ''the sea breathes there'' and underlined it twice.'
+  - The last beacon burns. Beyond the water I can see a pale green glow, rising and falling like a sleeper's chest. I know where the keeper went.

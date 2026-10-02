@@ -27,3 +27,13 @@ MonoBehaviour:
   grassDetailDensity: 8
   nextLevelScene: Island2
   biome: {fileID: 11400000, guid: 3e1ef4cce0ad1234d85b28b57c100eb7, type: 2}
+  hasCliff: 0
+  tideAmplitude: 0
+  tidePeriod: 90
+  tidePhase: 0
+  logEntries:
+  - A page, folded small, wedged under the beacon's iron lip. 'If you are reading this, the lamp chose you. Keep the flame small and your steps careful.'
+  - The second beacon is warmer than the first. I think the old keeper lit these in a hurry, as though something was following the dark.
+  - Moths gather here. The keeper wrote that they are not cruel, only hungry for any light that is not their own. Stay near a lit beacon and they lose interest.
+  - Fireflies drift between the pines in loose, patient lines. The keeper called them the island's small stars, and said they would lend you light if you let them.
+  - 'The last beacon on this shore. A line is scratched into the stone: ''Past the water there are more islands, and more lights gone dark. I went on. Follow, if you can.'''

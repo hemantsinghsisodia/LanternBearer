@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6f7f2f2c3a86674384ec2c9b9487ebc, type: 3}
+  m_Name: Island3
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
+  levelId: island3
+  displayName: Island 3
+  sceneName: Island3
+  islandRadius: 46
+  hillHeight: 6
+  seed: 3303
+  beaconCount: 9
+  fireflyCount: 24
+  mothCount: 8
+  hiddenPathCount: 4
+  fogColor: {r: 0.3, g: 0.42, b: 0.36, a: 1}
+  fogDensity: 0.018
+  grassDetailDensity: 8
+  nextLevelScene: 
+  biome: {fileID: 11400000, guid: 2f58b7d43b983ee4db2c1e5f8c040f14, type: 2}
+  hasCliff: 0
+  tideAmplitude: 0.9
+  tidePeriod: 90
+  tidePhase: -0.9
+  logEntries:
+  - The marsh is quiet in a way that feels like listening. The water here does not stay where you leave it.
+  - The keeper's log says the sea breathes in and out every ninety heartbeats, more or less. Learn its rhythm before you trust a sandbar.
+  - I waited on a sandbar too long and the tide took my boots. The old keeper wrote of the same mistake, and of laughing about it afterwards.
+  - Dead trees stand in the shallows like keepers who forgot to leave. Their roots hold the sand together, and the sand holds the path.
+  - 'Halfway now. I found an empty oil flask and a note: ''Rest where the ground stays dry at high water. Fuel is not the only thing the dark takes.'''
+  - The fireflies are slower here, heavy with damp. They drift above the reeds and do not mind being followed.
+  - Stepping stones show themselves only to a lit lantern. At high tide they are the only road. At low tide there are other roads, but they close without warning.
+  - 'I can see the lighthouse now, far across the water, dark as a held breath. The keeper''s last page is one line long: ''It can be lit again.'''
+  - The final beacon. Nine flames burn across the marsh, and the tide turns to carry their light out to sea. Somewhere ahead, the lighthouse is waiting.
