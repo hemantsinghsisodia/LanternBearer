@@ -54,6 +54,10 @@ namespace LanternKeeper.Tests
             PropertyInfo surface = FindType("WaterHazard").GetProperty("SurfaceY", BindingFlags.Public | BindingFlags.Static);
             Assert.IsNotNull(surface, "WaterHazard.SurfaceY not found");
 
+            // SurfaceY defaults to -100, which would make the submersion check below pass vacuously.
+            Assert.Greater((float)surface.GetValue(null), -50f, "WaterHazard.SurfaceY was never set on Island4; the submersion check would be meaningless");
+            Assert.Greater(CountOfType("WaterHazard"), 0, "No WaterHazard found on Island4");
+
             float elapsed = 0f;
             float submerged = 0f;
             float worstSubmerged = 0f;
