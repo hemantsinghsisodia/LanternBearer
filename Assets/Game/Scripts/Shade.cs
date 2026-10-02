@@ -15,11 +15,15 @@ public class Shade : MonoBehaviour
     [SerializeField] float turnSpeed = 6f;
     [SerializeField] float avoidDistance = 2.4f;
     [SerializeField] float avoidRadius = 0.4f;
+    // Terrain only counts as a wall when the ground ~1.5 m ahead rises more than this above the ground here.
+    [SerializeField] float wallRise = 1.2f;
     [SerializeField] float bodyAlpha = 0.92f;
     [SerializeField] float droneVolume = 0.5f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     static bool loggedFallback;
+    const float WallLookAhead = 1.5f;
+    const float StuckMinPlayerDistance = 3f;
 
     ShadeState state = ShadeState.Chase;
     float frozenSeconds;
@@ -45,6 +49,7 @@ public class Shade : MonoBehaviour
     ParticleSystem smoke;
     MaterialPropertyBlock block;
     Vector3 baseScale;
+    readonly ShadeSteering steer = new ShadeSteering();
 
     public ShadeState State => state;
     public bool Stunned => state == ShadeState.Stunned;
@@ -67,6 +72,7 @@ public class Shade : MonoBehaviour
     void Awake()
     {
         baseScale = transform.localScale;
+        steer.Reset(transform.forward);
         Transform bodyTransform = transform.Find("Body");
         body = bodyTransform != null ? bodyTransform.GetComponent<Renderer>() : null;
         Transform eyeRoot = transform.Find("Eyes");
@@ -337,11 +343,13 @@ public class Shade : MonoBehaviour
         float speed = ShadeLogic.SpeedFor(state);
         if (speed <= 0f)
         {
+            steer.TickStuck(transform.position, dt, false);
             return;
         }
 
         Vector3 toPlayer = player.position - transform.position;
         toPlayer.y = 0f;
+        float playerDistance = toPlayer.magnitude;
         Vector3 desired = toPlayer.sqrMagnitude > 0.001f ? toPlayer.normalized : transform.forward;
         if (state == ShadeState.Retreat)
         {
@@ -351,7 +359,7 @@ public class Shade : MonoBehaviour
         }
 
         desired = AvoidBeacons(desired);
-        desired = AvoidObstacles(desired);
+        desired = AvoidObstacles(desired, dt);
         desired.y = 0f;
         if (desired.sqrMagnitude < 0.001f)
         {
@@ -359,18 +367,36 @@ public class Shade : MonoBehaviour
         }
 
         desired.Normalize();
-        Vector3 next = transform.position + desired * (speed * dt);
+        // Stuck: no net progress for a while while meant to be travelling. Head off sideways for a moment, then resume.
+        if (steer.TickStuck(transform.position, dt, playerDistance > StuckMinPlayerDistance))
+        {
+            Vector3 origin = transform.position + Vector3.up;
+            Vector3 leftDir = Quaternion.AngleAxis(-ShadeSteering.EscapeDegrees, Vector3.up) * desired;
+            Vector3 rightDir = Quaternion.AngleAxis(ShadeSteering.EscapeDegrees, Vector3.up) * desired;
+            steer.BeginEscape(desired, !PathBlocked(origin, leftDir, avoidDistance), !PathBlocked(origin, rightDir, avoidDistance));
+        }
+
+        if (steer.Escaping)
+        {
+            desired = steer.EscapeDirection;
+        }
+
+        // Turn toward the wanted direction at a limited rate instead of snapping, so balanced pulls do not jitter.
+        Vector3 heading = steer.Turn(desired, dt);
+        Vector3 next = transform.position + heading * (speed * dt);
         next = PushOutOfSafe(next);
         float ground;
         Vector3 normal;
-        if (!TerrainQuery.TrySample(next, out ground, out normal) || ground < WaterHazard.SafeFloorY + 0.3f)
+        // Off the terrain counts as a wall: stay put and let the stuck escape turn the Shade around.
+        if (!TerrainQuery.TrySample(next, out ground, out normal))
         {
             return;
         }
 
-        next.y = ground + ShadeLogic.HoverHeight;
+        // Glide over water: hover above whichever is higher, the bed or the current water surface.
+        next.y = Mathf.Max(ground, WaterHazard.SurfaceY) + ShadeLogic.HoverHeight;
         transform.position = next;
-        Quaternion look = Quaternion.LookRotation(desired, Vector3.up);
+        Quaternion look = Quaternion.LookRotation(heading, Vector3.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, look, Mathf.Clamp01(turnSpeed * dt));
     }
 
@@ -519,7 +545,7 @@ public class Shade : MonoBehaviour
         return desired;
     }
 
-    Vector3 AvoidObstacles(Vector3 desired)
+    Vector3 AvoidObstacles(Vector3 desired, float dt)
     {
         Vector3 flat = desired;
         flat.y = 0f;
@@ -537,28 +563,65 @@ public class Shade : MonoBehaviour
         flat.Normalize();
         RaycastHit hit;
         Vector3 origin = transform.position + Vector3.up * 1f;
-        if (!Physics.SphereCast(origin, avoidRadius, flat, out hit, avoidDistance, ObstacleMask(), QueryTriggerInteraction.Ignore))
+        if (!Physics.SphereCast(origin, avoidRadius, flat, out hit, avoidDistance, ObstacleMask(), QueryTriggerInteraction.Ignore)
+            || !IsWall(hit, flat))
         {
+            steer.NoHit(dt);
             return desired;
         }
 
-        if (IgnoreObstacle(hit.collider) || hit.normal.y > 0.65f)
+        // Keep going round the same side. Only switch when that side is blocked as well.
+        Vector3 probe = steer.ProbeDirection(flat, hit.normal);
+        bool sideBlocked = PathBlocked(origin, probe, avoidDistance * 0.6f);
+        return steer.Avoid(flat, hit.normal, sideBlocked, dt);
+    }
+
+    // True when something solid blocks the way within distance along dir.
+    bool PathBlocked(Vector3 origin, Vector3 dir, float distance)
+    {
+        RaycastHit hit;
+        if (!Physics.SphereCast(origin, avoidRadius, dir, out hit, distance, ObstacleMask(), QueryTriggerInteraction.Ignore))
         {
-            return desired;
+            return false;
         }
 
-        Vector3 side = Vector3.Cross(Vector3.up, hit.normal);
-        if (side.sqrMagnitude < 0.01f)
+        return IsWall(hit, dir);
+    }
+
+    // Props count as walls unless they are floor-like. Terrain only counts when the ground really rises steeply ahead,
+    // since a hovering Shade glides up gentle slopes.
+    bool IsWall(RaycastHit hit, Vector3 dir)
+    {
+        if (IgnoreObstacle(hit.collider))
         {
-            side = Vector3.Cross(Vector3.up, flat);
+            return false;
         }
 
-        if (Vector3.Dot(side, flat) < 0f)
+        if (hit.collider is TerrainCollider)
         {
-            side = -side;
+            return TerrainRisesAhead(dir);
         }
 
-        return side.normalized + hit.normal * 0.35f;
+        return hit.normal.y <= 0.65f;
+    }
+
+    bool TerrainRisesAhead(Vector3 dir)
+    {
+        float here;
+        float ahead;
+        Vector3 normal;
+        Vector3 position = transform.position;
+        if (!TerrainQuery.TrySample(position, out here, out normal))
+        {
+            return true;
+        }
+
+        if (!TerrainQuery.TrySample(position + dir * WallLookAhead, out ahead, out normal))
+        {
+            return true;
+        }
+
+        return ahead - here > wallRise;
     }
 
     Vector3 PushOutOfSafe(Vector3 position)
