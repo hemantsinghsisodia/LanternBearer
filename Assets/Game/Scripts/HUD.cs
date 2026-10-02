@@ -140,16 +140,10 @@ public class HUD : MonoBehaviour
             }
             else
             {
-            float smoothed = Mathf.SmoothDamp(displayedFuel, target, ref fuelVelocity, 0.3f);
-            if (Mathf.Abs(smoothed - displayedFuel) > 0.0005f)
+            displayedFuel = FuelGauge.Step(displayedFuel, target, ref fuelVelocity, 0.3f, Time.deltaTime, 0.0005f);
+            if (!Mathf.Approximately(fuelFill.fillAmount, displayedFuel))
             {
-                displayedFuel = smoothed;
                 fuelFill.fillAmount = displayedFuel;
-            }
-            else
-            {
-                displayedFuel = target;
-                fuelVelocity = 0f;
             }
             }
 
