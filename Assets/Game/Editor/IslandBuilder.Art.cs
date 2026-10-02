@@ -882,6 +882,39 @@ public static partial class IslandBuilder
         return root;
     }
 
+    // Built on demand (Island 4 only) so levels without Shades never touch these assets.
+    static GameObject EnsureShadePrefab(ArtKit art)
+    {
+        EnsureFolder("Assets/Game/Prefabs/Gameplay");
+        Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        if (unlit == null)
+        {
+            throw new System.InvalidOperationException("Universal Render Pipeline/Unlit is missing.");
+        }
+
+        Material bodyMat = UnlitMat("Assets/Game/Materials/Generated/ShadeBody.mat", unlit, new Color(0.02f, 0.02f, 0.04f, 0.72f));
+        SetupTransparent(bodyMat);
+        Material eyeMat = UnlitMat("Assets/Game/Materials/Generated/ShadeEye.mat", unlit, new Color(3.2f, 2.6f, 1.1f, 1f));
+        GameObject root = new GameObject("Shade");
+        Prim(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 1.1f, 0f), new Vector3(0.7f, 1.1f, 0.7f), bodyMat);
+        GameObject eyes = new GameObject("Eyes");
+        eyes.transform.SetParent(root.transform, false);
+        Quaternion faceForward = Quaternion.Euler(0f, 180f, 0f);
+        Prim(PrimitiveType.Quad, "EyeLeft", eyes.transform, new Vector3(-0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
+        Prim(PrimitiveType.Quad, "EyeRight", eyes.transform, new Vector3(0.14f, 1.75f, 0.36f), new Vector3(0.1f, 0.05f, 1f), eyeMat, faceForward);
+        GameObject smokeObject = new GameObject("Smoke");
+        smokeObject.transform.SetParent(root.transform, false);
+        smokeObject.transform.localPosition = new Vector3(0f, 0.3f, 0f);
+        ParticleSystem smoke = MakeParticles(smokeObject, art.smoke, 1.6f, 0.35f, 0.7f, new Color(0.1f, 0.1f, 0.14f, 0.35f), 9f, 0, true, true, 0.3f);
+        ParticleSystem.VelocityOverLifetimeModule rise = smoke.velocityOverLifetime;
+        rise.enabled = true;
+        rise.space = ParticleSystemSimulationSpace.Local;
+        rise.y = 0.5f;
+        StripColliders(root);
+        root.AddComponent<Shade>();
+        return SavePrefab(root, "Assets/Game/Prefabs/Gameplay/Shade.prefab");
+    }
+
     static GameObject BuildKeeper(ArtKit art)
     {
         GameObject imported = BuildImportedKeeper(art);

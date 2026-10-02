@@ -1443,6 +1443,7 @@ public static partial class IslandBuilder
         mothObject.ApplyModifiedPropertiesWithoutUndo();
         CreateTide(config, stage);
         CreateWind(config);
+        CreateShadeSpawner(config, art);
     }
 
     static void CreateTide(LevelConfig config, Stage stage)
@@ -1480,6 +1481,22 @@ public static partial class IslandBuilder
         windObject.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerController>();
         windObject.FindProperty("hazard").objectReferenceValue = Object.FindAnyObjectByType<WaterHazard>();
         windObject.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void CreateShadeSpawner(LevelConfig config, ArtKit art)
+    {
+        if (config.shadeCount <= 0)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("ShadeSpawner");
+        ShadeSpawner spawner = host.AddComponent<ShadeSpawner>();
+        SerializedObject spawnerObject = new SerializedObject(spawner);
+        spawnerObject.FindProperty("shadePrefab").objectReferenceValue = EnsureShadePrefab(art);
+        spawnerObject.FindProperty("baseCount").intValue = config.shadeCount;
+        spawnerObject.FindProperty("islandRadius").floatValue = config.islandRadius;
+        spawnerObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void CreateCameraMenu(Stage stage)

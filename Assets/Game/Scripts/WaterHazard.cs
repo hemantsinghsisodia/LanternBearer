@@ -27,6 +27,7 @@ public class WaterHazard : MonoBehaviour
     public float FadePeak { get; private set; }
     public bool IsRescuing => rescuing;
     public float Penalty => penalty;
+    public float LastRescueTime { get; private set; } = -1000f;
 
     public void SetSurface(float worldY)
     {
@@ -183,6 +184,7 @@ public class WaterHazard : MonoBehaviour
             manager.SetControlsLocked(false);
         }
 
+        LastRescueTime = Time.time;
         rescuing = false;
     }
 

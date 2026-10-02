@@ -129,6 +129,15 @@ public static class SceneWiring
             assigned += Set(winds[i], "hazard", water.Length > 0 ? water[0] : null);
         }
 
+        ShadeSpawner[] shadeSpawners = Object.FindObjectsByType<ShadeSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < shadeSpawners.Length; i++)
+        {
+            assigned += Set(shadeSpawners[i], "lantern", lantern);
+            assigned += Set(shadeSpawners[i], "player", body);
+            assigned += Set(shadeSpawners[i], "hazard", water.Length > 0 ? water[0] : null);
+            assigned += Set(shadeSpawners[i], "hud", hud);
+        }
+
         LightRevealed[] revealed = Object.FindObjectsByType<LightRevealed>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < revealed.Length; i++)
         {
@@ -445,6 +454,16 @@ public static class SceneWiring
         {
             nulls += Require(winds[i], "player", quiet);
             nulls += Require(winds[i], "hazard", quiet);
+        }
+
+        ShadeSpawner[] shadeSpawners = Object.FindObjectsByType<ShadeSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < shadeSpawners.Length; i++)
+        {
+            nulls += Require(shadeSpawners[i], "shadePrefab", quiet);
+            nulls += Require(shadeSpawners[i], "lantern", quiet);
+            nulls += Require(shadeSpawners[i], "player", quiet);
+            nulls += Require(shadeSpawners[i], "hazard", quiet);
+            nulls += Require(shadeSpawners[i], "hud", quiet);
         }
 
         Beacon[] beacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);
