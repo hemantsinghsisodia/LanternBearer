@@ -1686,7 +1686,9 @@ public class HUD : MonoBehaviour
         shownCardKey = null;
     }
 
-    // Escape and P are left to GameManager, which routes them through ConsumePauseBack.
+    // Escape and P are left to GameManager, which routes them through ConsumePauseBack. Keep in step with
+    // GameManager.AnyInputPressedThisFrame (first-visit card, whose release is deferred to LateUpdate); this one only
+    // closes How to Play, which leaves the game paused, so no deferral is needed.
     static bool DismissInputPressed()
     {
         Keyboard keyboard = Keyboard.current;

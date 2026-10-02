@@ -35,6 +35,7 @@ public class GameManager : MonoBehaviour
     bool controlsLocked;
     bool introShowing;
     float introDismissUnlock;
+    bool introDismissRequested;
     bool refsResolved;
     float restartUnlockTime = float.PositiveInfinity;
     int raisedSecond = int.MinValue;
@@ -121,6 +122,7 @@ public class GameManager : MonoBehaviour
         Resume();
     }
 
+    // Keep in step with HUD.DismissInputPressed (How to Play card, which stays paused and so needs no deferral).
     static bool AnyInputPressedThisFrame()
     {
         Keyboard keyboard = Keyboard.current;
@@ -177,6 +179,12 @@ public class GameManager : MonoBehaviour
 
     void LateUpdate()
     {
+        if (introDismissRequested)
+        {
+            introDismissRequested = false;
+            EndIntro();
+        }
+
         ReconcileNearby();
         SelectNearest();
     }
@@ -186,9 +194,11 @@ public class GameManager : MonoBehaviour
         if (introShowing)
         {
             // Any key or click dismisses the card; the short unlock stops the click that loaded the scene from skipping it.
+            // The release is deferred to LateUpdate so every Update this frame still sees paused: otherwise the same
+            // press could also jump (Space) or light a beacon (E) depending on script order.
             if (Time.unscaledTime >= introDismissUnlock && AnyInputPressedThisFrame())
             {
-                EndIntro();
+                introDismissRequested = true;
             }
 
             return;
