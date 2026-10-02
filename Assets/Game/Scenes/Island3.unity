@@ -10146,7 +10146,7 @@ MonoBehaviour:
   beaconsToWin: 9
   lantern: {fileID: 2015562860}
   levelId: island3
-  nextLevelScene: 
+  nextLevelScene: Island4
   logEntries:
   - The marsh is quiet in a way that feels like listening. The water here does not stay where you leave it.
   - The keeper's log says the sea breathes in and out every ninety heartbeats, more or less. Learn its rhythm before you trust a sandbar.
