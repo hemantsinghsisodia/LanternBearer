@@ -1534,7 +1534,8 @@ public static partial class IslandBuilder
         emission.rateOverTime = 600f;
         ParticleSystem.ShapeModule shape = system.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
-        shape.scale = new Vector3(34f, 0.5f, 34f);
+        // Rotated 90 degrees about X, so local Y becomes world Z and local Z (the emit axis) points down: a 34 x 34 m slab, 0.5 m thick.
+        shape.scale = new Vector3(34f, 34f, 0.5f);
         shape.rotation = new Vector3(90f, 0f, 0f);
         ParticleSystemRenderer renderer = host.GetComponent<ParticleSystemRenderer>();
         renderer.sharedMaterial = art.unlit;
