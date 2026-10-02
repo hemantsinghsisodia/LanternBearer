@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -625,56 +626,181 @@ public static class SceneWiring
         return nulls;
     }
 
-    // Every stepping stone needs exactly one flat, solid collider whose top matches the visible top.
-    // A default primitive cylinder keeps a capsule collider that becomes a ball and ruins walking.
+    // Every stepping stone and bank step needs exactly one flat, solid collider whose top matches the visible
+    // top (a default primitive cylinder keeps a capsule that becomes a ball). Bank steps must also be always
+    // solid (no LightRevealed). Each path, read in order, must climb in rises the player can step over and
+    // must start and end next to walkable ground.
     static int ReportSteppingStones(bool quiet)
     {
         int problems = 0;
-        Transform[] transforms = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (int i = 0; i < transforms.Length; i++)
+        GameObject pathRoot = GameObject.Find("HiddenPaths");
+        if (pathRoot == null)
         {
-            Transform stone = transforms[i];
-            if (stone.name != "SteppingStone")
+            return 0;
+        }
+
+        Terrain terrain = Object.FindFirstObjectByType<Terrain>();
+        Renderer[] water = FindWaterRenderers();
+        float waterY = water.Length > 0 ? water[0].transform.position.y : float.MinValue;
+        List<Transform> run = new List<Transform>();
+        List<List<Transform>> paths = new List<List<Transform>>();
+        for (int i = 0; i < pathRoot.transform.childCount; i++)
+        {
+            Transform stone = pathRoot.transform.GetChild(i);
+            bool hidden = stone.name == "SteppingStone";
+            bool bank = stone.name == "BankStep";
+            if (!hidden && !bank)
             {
                 continue;
             }
 
-            Collider[] colliders = stone.GetComponents<Collider>();
-            Renderer renderer = stone.GetComponent<Renderer>();
-            string problem = null;
-            if (colliders.Length != 1)
-            {
-                problem = "expected exactly one collider, found " + colliders.Length;
-            }
-            else if (colliders[0].isTrigger)
-            {
-                problem = "collider is a trigger";
-            }
-            else if (colliders[0] is CapsuleCollider || colliders[0] is SphereCollider)
-            {
-                problem = "collider is round (" + colliders[0].GetType().Name + ")";
-            }
-            else if (renderer == null)
-            {
-                problem = "no renderer";
-            }
-            else if (Mathf.Abs(colliders[0].bounds.max.y - renderer.bounds.max.y) > 0.02f)
-            {
-                problem = "collider top " + colliders[0].bounds.max.y.ToString("F3") + " vs visible top " + renderer.bounds.max.y.ToString("F3");
-            }
-
+            string problem = StoneProblem(stone, bank);
             if (problem != null)
             {
-                if (!quiet)
-                {
-                    Debug.LogWarning("Stepping stone problem: " + stone.name + " at " + stone.position + ": " + problem, stone);
-                }
+                problems += StoneWarning(stone, problem, quiet);
+            }
 
-                problems++;
+            if (run.Count > 0 && FlatDistance(run[run.Count - 1].position, stone.position) > 1.7f)
+            {
+                paths.Add(run);
+                run = new List<Transform>();
+            }
+
+            run.Add(stone);
+        }
+
+        if (run.Count > 0)
+        {
+            paths.Add(run);
+        }
+
+        for (int p = 0; p < paths.Count; p++)
+        {
+            problems += ReportPath(paths[p], p, terrain, waterY, quiet);
+        }
+
+        return problems;
+    }
+
+    static string StoneProblem(Transform stone, bool bank)
+    {
+        Collider[] colliders = stone.GetComponents<Collider>();
+        Renderer renderer = stone.GetComponent<Renderer>();
+        if (colliders.Length != 1)
+        {
+            return "expected exactly one collider, found " + colliders.Length;
+        }
+
+        if (colliders[0].isTrigger)
+        {
+            return "collider is a trigger";
+        }
+
+        if (colliders[0] is CapsuleCollider || colliders[0] is SphereCollider)
+        {
+            return "collider is round (" + colliders[0].GetType().Name + ")";
+        }
+
+        if (renderer == null)
+        {
+            return "no renderer";
+        }
+
+        if (Mathf.Abs(colliders[0].bounds.max.y - renderer.bounds.max.y) > 0.02f)
+        {
+            return "collider top " + colliders[0].bounds.max.y.ToString("F3") + " vs visible top " + renderer.bounds.max.y.ToString("F3");
+        }
+
+        if (bank && stone.GetComponent<LightRevealed>() != null)
+        {
+            return "bank step must not be light-gated";
+        }
+
+        return null;
+    }
+
+    static int StoneWarning(Transform stone, string problem, bool quiet)
+    {
+        if (!quiet)
+        {
+            Debug.LogWarning("Stepping stone problem: " + stone.name + " at " + stone.position + ": " + problem, stone);
+        }
+
+        return 1;
+    }
+
+    static float FlatDistance(Vector3 a, Vector3 b)
+    {
+        return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+    }
+
+    static float StoneTop(Transform stone)
+    {
+        Collider collider = stone.GetComponent<Collider>();
+        return collider != null ? collider.bounds.max.y : stone.position.y;
+    }
+
+    static int ReportPath(List<Transform> path, int index, Terrain terrain, float waterY, bool quiet)
+    {
+        int problems = 0;
+        for (int i = 1; i < path.Count; i++)
+        {
+            float rise = StoneTop(path[i]) - StoneTop(path[i - 1]);
+            if (Mathf.Abs(rise) > 0.4f)
+            {
+                problems += StoneWarning(path[i], "path " + index + ": rise of " + rise.ToString("F2") + " m from the previous step exceeds 0.4 m", quiet);
+            }
+
+            float gap = FlatDistance(path[i].position, path[i - 1].position);
+            if (gap > 1.1f)
+            {
+                problems += StoneWarning(path[i], "path " + index + ": gap of " + gap.ToString("F2") + " m from the previous step", quiet);
+            }
+        }
+
+        if (terrain != null)
+        {
+            string problem = EndProblem(path[0], terrain, waterY);
+            if (problem != null)
+            {
+                problems += StoneWarning(path[0], "path " + index + " first step: " + problem, quiet);
+            }
+
+            problem = EndProblem(path[path.Count - 1], terrain, waterY);
+            if (problem != null)
+            {
+                problems += StoneWarning(path[path.Count - 1], "path " + index + " last step: " + problem, quiet);
             }
         }
 
         return problems;
+    }
+
+    // The end step must sit within about 0.6 m (beyond its edge) of ground above the water that is within 0.35 m of its top.
+    static string EndProblem(Transform step, Terrain terrain, float waterY)
+    {
+        float top = StoneTop(step);
+        Vector3 origin = terrain.transform.position;
+        Vector3 size = terrain.terrainData.size;
+        for (float radius = 0f; radius <= 1.1f; radius += 0.275f)
+        {
+            int samples = radius < 0.01f ? 1 : 16;
+            for (int s = 0; s < samples; s++)
+            {
+                float angle = s * Mathf.PI * 2f / samples;
+                float x = step.position.x + Mathf.Cos(angle) * radius;
+                float z = step.position.z + Mathf.Sin(angle) * radius;
+                float u = Mathf.Clamp01((x - origin.x) / size.x);
+                float v = Mathf.Clamp01((z - origin.z) / size.z);
+                float ground = origin.y + terrain.terrainData.GetInterpolatedHeight(u, v);
+                if (ground >= waterY + 0.02f && Mathf.Abs(ground - top) <= 0.35f)
+                {
+                    return null;
+                }
+            }
+        }
+
+        return "no dry ground within 0.6 m of the step edge and within 0.35 m of its top " + top.ToString("F2");
     }
 
     static int WireGraphicsMenus()
