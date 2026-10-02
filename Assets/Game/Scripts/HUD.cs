@@ -63,6 +63,8 @@ public class HUD : MonoBehaviour
     int paintedLit = int.MinValue;
     int statusCents = int.MinValue;
     int statusMoths = int.MinValue;
+    int statusDraining = int.MinValue;
+    int statusNear = int.MinValue;
     bool promptAfford;
     bool statusSafe;
     bool statusReady;
@@ -96,6 +98,8 @@ public class HUD : MonoBehaviour
     bool tideWarned;
     int tideShownSecond = int.MinValue;
     StormHUD storm;
+    MothHUD mothFx;
+    bool mothSearched;
     bool stormSearched;
     static Sprite vignetteSprite;
     TMP_Text islandLabelText;
@@ -166,6 +170,7 @@ public class HUD : MonoBehaviour
 
         UpdateTide();
         EnsureStorm();
+        EnsureMothFx();
         TickDots();
 
         if (manager == null)
@@ -859,6 +864,24 @@ public class HUD : MonoBehaviour
         storm = gameObject.AddComponent<StormHUD>();
     }
 
+    // Islands without a moth spawner never get the moth feedback.
+    void EnsureMothFx()
+    {
+        if (mothFx != null || mothSearched || lantern == null || fuelMeter == null || statusText == null)
+        {
+            return;
+        }
+
+        if (MothSpawner.Instance == null)
+        {
+            return;
+        }
+
+        mothSearched = true;
+        mothFx = gameObject.AddComponent<MothHUD>();
+        mothFx.Bind(lantern, fuelMeter, statusText);
+    }
+
     void EnsureTideGauge()
     {
         if (tideRoot != null)
@@ -1099,10 +1122,13 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        int cents = Mathf.RoundToInt(lantern.EscalationMultiplier * 100f);
+        int cents = Mathf.RoundToInt(lantern.DrainRelative * 100f);
         int moths = Moth.LivingCount();
+        int draining = lantern.MothsDraining;
+        MothSpawner spawner = MothSpawner.Instance;
+        int near = spawner != null ? spawner.NearCount : 0;
         bool safe = lantern.InSafeLight;
-        if (statusReady && cents == statusCents && moths == statusMoths && safe == statusSafe)
+        if (statusReady && cents == statusCents && moths == statusMoths && draining == statusDraining && near == statusNear && safe == statusSafe)
         {
             return;
         }
@@ -1110,8 +1136,10 @@ public class HUD : MonoBehaviour
         statusReady = true;
         statusCents = cents;
         statusMoths = moths;
+        statusDraining = draining;
+        statusNear = near;
         statusSafe = safe;
-        string line = "Drain x" + lantern.EscalationMultiplier.ToString("0.00") + "   Moths " + moths;
+        string line = DrainReadout.Format(lantern.DrainRelative, draining, near, moths);
         if (safe)
         {
             line += "\nSafe light";
@@ -1122,8 +1150,9 @@ public class HUD : MonoBehaviour
             statusText.text = line;
         }
 
+        // While moths are draining, MothHUD owns the (violet, pulsing) colour.
         Color color = safe ? SafeStatusColor : DrainStatusColor;
-        if (statusText.color != color)
+        if (draining < 1 && statusText.color != color)
         {
             statusText.color = color;
         }

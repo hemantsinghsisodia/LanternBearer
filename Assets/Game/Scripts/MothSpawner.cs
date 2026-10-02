@@ -27,7 +27,11 @@ public class MothSpawner : MonoBehaviour
     public int SpawnedCount => spawned;
     public int AliveCount => Moth.LivingCount();
     public AudioSource ProximitySource => whisper;
+    // Moths inside this range dim the lantern; NearCount is how many are inside it.
+    const float ProximityRange = 9f;
+
     public float NearestDistance { get; private set; }
+    public int NearCount { get; private set; }
 
     public int Cap
     {
@@ -400,6 +404,7 @@ public class MothSpawner : MonoBehaviour
         Vector3 origin = lantern != null ? lantern.transform.position : transform.position;
         float nearest = 999f;
         int counted = 0;
+        int near = 0;
         for (int i = 0; i < Moth.All.Count; i++)
         {
             Moth moth = Moth.All[i];
@@ -414,13 +419,19 @@ public class MothSpawner : MonoBehaviour
             {
                 nearest = distance;
             }
+
+            if (distance <= ProximityRange)
+            {
+                near++;
+            }
         }
 
+        NearCount = near;
         NearestDistance = counted > 0 ? nearest : 999f;
         float closeness = 0f;
         if (counted > 0)
         {
-            closeness = 1f - Mathf.InverseLerp(1.2f, 9f, nearest);
+            closeness = 1f - Mathf.InverseLerp(1.2f, ProximityRange, nearest);
         }
 
         if (lantern != null)

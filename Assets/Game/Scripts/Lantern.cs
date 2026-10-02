@@ -46,6 +46,10 @@ public class Lantern : MonoBehaviour
     public float DifficultyDrain => difficultyDrain;
     public float EscalationMultiplier => escalation;
     public float CurrentDrainMultiplier { get; private set; }
+    // Total drain against the difficulty base: escalation x modifiers x safe light.
+    public float DrainRelative => difficultyDrain > 0.0001f ? CurrentDrainMultiplier / difficultyDrain : CurrentDrainMultiplier;
+    // Moths whose close-range drain is currently applied.
+    public int MothsDraining { get; private set; }
     public bool InSafeLight => inSafeLight;
     public bool DrainFrozen { get { return drainFrozen; } set { drainFrozen = value; } }
     public bool IsDepleted => depleted;
@@ -237,6 +241,7 @@ public class Lantern : MonoBehaviour
     float ModifierProduct()
     {
         float product = 1f;
+        int draining = 0;
         staleModifiers.Clear();
         foreach (KeyValuePair<UnityEngine.Object, float> pair in modifiers)
         {
@@ -247,7 +252,13 @@ public class Lantern : MonoBehaviour
             }
 
             product *= pair.Value;
+            if (pair.Value > 1f && pair.Key is Moth)
+            {
+                draining++;
+            }
         }
+
+        MothsDraining = draining;
 
         for (int i = 0; i < staleModifiers.Count; i++)
         {

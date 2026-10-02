@@ -38,6 +38,7 @@ public class Moth : MonoBehaviour
     Transform wings;
     AudioSource flutter;
     Light glow;
+    MothDrainFx drainFx;
     int glowSlot = -1;
     int obstacleMask;
     bool maskReady;
@@ -82,6 +83,7 @@ public class Moth : MonoBehaviour
         appear = 0f;
         transform.localScale = baseScale * 0.05f;
         EnsureGlow();
+        drainFx = gameObject.AddComponent<MothDrainFx>();
     }
 
     void OnEnable()
@@ -573,6 +575,11 @@ public class Moth : MonoBehaviour
 
     void SetClose(bool close)
     {
+        if (drainFx != null)
+        {
+            drainFx.SetDraining(close && lantern != null);
+        }
+
         if (lantern == null)
         {
             return;
