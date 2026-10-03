@@ -347,311 +347,117 @@ public static partial class IslandBuilder
         return root;
     }
 
+    const string KeeperMaterialFolder = "Assets/Game/Art/Keeper";
+    const string LanternMaterialFolder = "Assets/Game/Art/Lantern";
+
     static void TintKeeper(GameObject root)
     {
-        List<Texture2D> albedoMaps = new List<Texture2D>();
-        List<Texture2D> normalMaps = new List<Texture2D>();
-        CollectKeeperMaps(albedoMaps, normalMaps);
-        Debug.Log("Keeper texture library: albedo=" + albedoMaps.Count + " normal=" + normalMaps.Count + ".");
+        Material cloth = EnsureKeeperMaterials();
+        Material leather = AssetDatabase.LoadAssetAtPath<Material>(KeeperMaterialFolder + "/KeeperLeather.mat");
+        Material skin = AssetDatabase.LoadAssetAtPath<Material>(KeeperMaterialFolder + "/KeeperSkin.mat");
+        Material dark = AssetDatabase.LoadAssetAtPath<Material>(KeeperMaterialFolder + "/KeeperDark.mat");
         Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < renderers.Length; i++)
         {
             Material[] source = renderers[i].sharedMaterials;
-            Material[] tinted = new Material[source.Length];
-            List<string> missing = new List<string>();
+            Material[] authored = new Material[source.Length];
             for (int m = 0; m < source.Length; m++)
             {
-                if (source[m] == null)
-                {
-                    continue;
-                }
-
-                string path = "Assets/Game/Materials/Generated/Keeper_" + Sanitize(renderers[i].gameObject.name) + "_" + m + ".mat";
-                Material copy = AssetDatabase.LoadAssetAtPath<Material>(path);
-                if (copy == null)
-                {
-                    copy = new Material(source[m]);
-                    AssetDatabase.CreateAsset(copy, path);
-                }
-                else
-                {
-                    copy.shader = source[m].shader;
-                    copy.CopyPropertiesFromMaterial(source[m]);
-                }
-
-                string assigned = AssignKeeperMaps(copy, source[m], renderers[i].gameObject.name, albedoMaps, normalMaps);
-                WarmNight(copy, renderers[i].gameObject.name, source[m].name);
-                EditorUtility.SetDirty(copy);
-                tinted[m] = copy;
-                if (!MaterialHasAlbedo(copy))
-                {
-                    missing.Add(source[m].name);
-                }
-                else if (assigned.Length > 0)
-                {
-                    Debug.Log("Keeper " + renderers[i].gameObject.name + " " + source[m].name + " " + assigned);
-                }
+                string slot = source[m] != null ? source[m].name : "";
+                authored[m] = KeeperMaterialForSlot(slot, cloth, leather, skin, dark);
             }
 
-            renderers[i].sharedMaterials = tinted;
-            if (missing.Count > 0)
-            {
-                Debug.LogWarning("Keeper renderer " + renderers[i].gameObject.name + " has no albedo on " + string.Join(", ", missing.ToArray()) + ". Using a flat colour fallback.");
-            }
+            renderers[i].sharedMaterials = authored;
         }
     }
 
-    static void CollectKeeperMaps(List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
+    // Slot names come from the FBX. Black (trousers, hair) uses KeeperDark: it must not use cloth, which sways.
+    // Every brown/gold slot reads as dark leather.
+    static Material KeeperMaterialForSlot(string slot, Material cloth, Material leather, Material skin, Material dark)
     {
-        string[] folders = { "Assets/Game/Models/Keeper" };
-        for (int f = 0; f < folders.Length; f++)
+        if (slot == "Black")
         {
-            if (!AssetDatabase.IsValidFolder(folders[f]))
-            {
-                continue;
-            }
-
-            string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { folders[f] });
-            for (int i = 0; i < guids.Length; i++)
-            {
-                AddKeeperMap(AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[i])), albedoMaps, normalMaps);
-            }
+            return dark;
         }
 
-        Object[] embedded = AssetDatabase.LoadAllAssetsAtPath(KeeperFbxPath);
-        for (int i = 0; i < embedded.Length; i++)
+        if (slot == "KeeperCloth")
         {
-            AddKeeperMap(embedded[i] as Texture2D, albedoMaps, normalMaps);
+            return cloth;
         }
+
+        if (slot == "Skin")
+        {
+            return skin;
+        }
+
+        return leather;
     }
 
-    static void AddKeeperMap(Texture2D texture, List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
+    static Material EnsureKeeperMaterials()
     {
-        if (texture == null || albedoMaps.Contains(texture) || normalMaps.Contains(texture))
-        {
-            return;
-        }
-
-        if (IsKeeperNormalName(texture.name))
-        {
-            normalMaps.Add(texture);
-        }
-        else
-        {
-            albedoMaps.Add(texture);
-        }
+        EnsureFolder("Assets/Game/Art");
+        EnsureFolder(KeeperMaterialFolder);
+        EnsureFolder(LanternMaterialFolder);
+        Material cloth = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperCloth.mat", "2E3A4F", 0.18f, 0f, 0f);
+        cloth.SetFloat("_SwayStrength", 0.12f);
+        cloth.SetFloat("_VertexAO", 1f);
+        cloth.SetFloat("_EdgeLighten", 0.25f);
+        cloth.SetFloat("_RimStrength", 0.7f);
+        EditorUtility.SetDirty(cloth);
+        EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperLeather.mat", "2B2119", 0.3f, 0f, 0f);
+        EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperDark.mat", "232C3B", 0.18f, 0f, 0f);
+        Material skin = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperSkin.mat", "A5806A", 0.28f, 0f, 0.2f);
+        skin.SetFloat("_VertexAO", 1f);
+        EditorUtility.SetDirty(skin);
+        Material iron = EnsureKeeperLitMaterial(LanternMaterialFolder + "/LanternIron.mat", "2A2A2E", 0.35f, 0.6f, 0f);
+        iron.SetFloat("_RimStrength", 1f);
+        EditorUtility.SetDirty(iron);
+        EnsureLanternGlassMaterial();
+        AssetDatabase.SaveAssets();
+        return cloth;
     }
 
-    static bool IsKeeperNormalName(string textureName)
-    {
-        string lower = textureName.ToLowerInvariant();
-        return lower.Contains("normal") || lower.Contains("nrm") || lower.Contains("bump") || lower.EndsWith("_n");
-    }
-
-    static string AssignKeeperMaps(Material copy, Material source, string rendererName, List<Texture2D> albedoMaps, List<Texture2D> normalMaps)
-    {
-        Texture albedo = TextureOn(source, "_BaseMap");
-        if (albedo == null)
-        {
-            albedo = TextureOn(source, "_MainTex");
-        }
-
-        Texture normal = TextureOn(source, "_BumpMap");
-        if (albedo == null)
-        {
-            albedo = PickKeeperMap(albedoMaps, source.name, rendererName);
-        }
-
-        if (normal == null)
-        {
-            normal = PickKeeperMap(normalMaps, source.name, rendererName);
-        }
-
-        string report = "";
-        if (albedo != null && copy.HasProperty("_BaseMap"))
-        {
-            copy.SetTexture("_BaseMap", albedo);
-            if (copy.HasProperty("_MainTex"))
-            {
-                copy.SetTexture("_MainTex", albedo);
-            }
-
-            report = "albedo=" + albedo.name;
-        }
-
-        if (normal != null && copy.HasProperty("_BumpMap"))
-        {
-            copy.SetTexture("_BumpMap", normal);
-            if (copy.HasProperty("_BumpScale"))
-            {
-                copy.SetFloat("_BumpScale", 1f);
-            }
-
-            copy.EnableKeyword("_NORMALMAP");
-            report += (report.Length > 0 ? " " : "") + "normal=" + normal.name;
-        }
-
-        return report;
-    }
-
-    static Texture TextureOn(Material material, string property)
-    {
-        if (material == null || !material.HasProperty(property))
-        {
-            return null;
-        }
-
-        return material.GetTexture(property);
-    }
-
-    static Texture2D PickKeeperMap(List<Texture2D> maps, string materialName, string rendererName)
-    {
-        if (maps.Count == 0)
-        {
-            return null;
-        }
-
-        string material = materialName.ToLowerInvariant();
-        string renderer = rendererName.ToLowerInvariant();
-        for (int i = 0; i < maps.Count; i++)
-        {
-            string name = maps[i].name.ToLowerInvariant();
-            if (material.Length > 0 && name.Contains(material))
-            {
-                return maps[i];
-            }
-        }
-
-        for (int i = 0; i < maps.Count; i++)
-        {
-            string name = maps[i].name.ToLowerInvariant();
-            if (renderer.Length > 0 && name.Contains(renderer))
-            {
-                return maps[i];
-            }
-        }
-
-        if (maps.Count == 1)
-        {
-            return maps[0];
-        }
-
-        return null;
-    }
-
-    static bool MaterialHasAlbedo(Material material)
-    {
-        return material != null && material.HasProperty("_BaseMap") && material.GetTexture("_BaseMap") != null;
-    }
-
-    static void WarmNight(Material material, string rendererName, string sourceName)
-    {
-        string property = material.HasProperty("_BaseColor") ? "_BaseColor" : material.HasProperty("_Color") ? "_Color" : "";
-        if (property.Length == 0)
-        {
-            return;
-        }
-
-        string name = rendererName.ToLowerInvariant();
-        string slot = sourceName == null ? "" : sourceName.ToLowerInvariant();
-        Color color = material.GetColor(property);
-        bool cloth = false;
-        if (MaterialHasAlbedo(material))
-        {
-            if (!IsNearWhite(color))
-            {
-                color = Color.white;
-            }
-        }
-        else if (name.Contains("head"))
-        {
-            color = Color.Lerp(color, new Color(0.64f, 0.46f, 0.35f), 0.62f);
-        }
-        else if (name.Contains("feet"))
-        {
-            color = slot.Contains("dark") ? new Color(0.3f, 0.17f, 0.1f) : new Color(0.4f, 0.24f, 0.14f);
-        }
-        else if (name.Contains("leg"))
-        {
-            color = new Color(0.22f, 0.2f, 0.22f);
-        }
-        else if (slot.Contains("skin"))
-        {
-            color = new Color(0.64f, 0.46f, 0.35f);
-        }
-        else if (slot.Contains("gold"))
-        {
-            cloth = true;
-            color = new Color(0.5f, 0.44f, 0.38f);
-        }
-        else if (slot.Contains("metal"))
-        {
-            color = new Color(0.4f, 0.4f, 0.42f);
-        }
-        else if (slot.Contains("white"))
-        {
-            color = new Color(0.68f, 0.62f, 0.54f);
-        }
-        else if (slot.Contains("light"))
-        {
-            cloth = true;
-            color = new Color(0.46f, 0.4f, 0.36f);
-        }
-        else if (slot.Contains("dark") || slot == "brown")
-        {
-            cloth = true;
-            color = new Color(0.38f, 0.34f, 0.3f);
-        }
-        else
-        {
-            cloth = true;
-            color = new Color(0.44f, 0.39f, 0.34f);
-        }
-
-        color.a = 1f;
-        ApplyKeeperLit(material, cloth);
-        if (material.HasProperty(property))
-        {
-            material.SetColor(property, color);
-        }
-
-        if (material.HasProperty("_Smoothness"))
-        {
-            material.SetFloat("_Smoothness", name.Contains("head") ? 0.28f : 0.18f);
-        }
-    }
-
-    static void ApplyKeeperLit(Material material, bool cloth)
+    static Material EnsureKeeperLitMaterial(string path, string hex, float smoothness, float metallic, float desaturate)
     {
         Shader shader = Shader.Find("LanternKeeper/KeeperLit");
-        if (shader == null)
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
         {
-            Debug.LogError("LanternKeeper/KeeperLit is missing. Keeper kept its previous shader.");
-            return;
+            mat = new Material(shader);
+            AssetDatabase.CreateAsset(mat, path);
         }
 
-        Texture albedo = material.HasProperty("_BaseMap") ? material.GetTexture("_BaseMap") : null;
-        Texture normal = material.HasProperty("_BumpMap") ? material.GetTexture("_BumpMap") : null;
-        material.shader = shader;
-        if (albedo != null)
-        {
-            material.SetTexture("_BaseMap", albedo);
-        }
-
-        if (normal != null)
-        {
-            material.SetTexture("_BumpMap", normal);
-        }
-
-        material.SetFloat("_Desaturate", cloth ? 0.28f : 0f);
-        material.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
-        material.SetFloat("_RimPower", 2.4f);
-        material.SetFloat("_RimStrength", 0.7f);
+        mat.shader = shader;
+        mat.SetColor("_BaseColor", LookPalette.FromHex(hex));
+        mat.SetFloat("_Smoothness", smoothness);
+        mat.SetFloat("_Metallic", metallic);
+        mat.SetFloat("_Desaturate", desaturate);
+        mat.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        mat.SetFloat("_RimPower", 2.4f);
+        mat.SetFloat("_RimStrength", 0.7f);
+        mat.SetFloat("_SwayStrength", 0f);
+        mat.SetFloat("_VertexAO", 0f);
+        mat.SetFloat("_EdgeLighten", 0f);
+        EditorUtility.SetDirty(mat);
+        return mat;
     }
 
-    static bool IsNearWhite(Color color)
+    static Material EnsureLanternGlassMaterial()
     {
-        return color.r >= 0.82f && color.g >= 0.82f && color.b >= 0.82f;
+        string path = LanternMaterialFolder + "/LanternGlass.mat";
+        Shader shader = Shader.Find("LanternKeeper/AdditiveUnlit");
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
+        {
+            mat = new Material(shader);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = shader;
+        Color core = LookPalette.FromHex(LookPalette.GlowCore);
+        mat.SetColor("_BaseColor", new Color(core.r, core.g, core.b, 0.35f));
+        EditorUtility.SetDirty(mat);
+        return mat;
     }
 
     static string Sanitize(string value)

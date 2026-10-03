@@ -12,6 +12,9 @@ Shader "LanternKeeper/KeeperLit"
         _RimColor ("Rim", Color) = (0.58, 0.72, 0.95, 1)
         _RimPower ("Rim Power", Range(0.5, 8)) = 2.4
         _RimStrength ("Rim Strength", Range(0, 2)) = 0.7
+        _SwayStrength ("Sway Strength (m)", Range(0, 0.3)) = 0
+        _VertexAO ("Vertex AO", Range(0, 1)) = 0
+        _EdgeLighten ("Edge Lighten", Range(0, 0.5)) = 0
     }
     SubShader
     {
@@ -55,7 +58,22 @@ Shader "LanternKeeper/KeeperLit"
                 float4 _RimColor;
                 float _RimPower;
                 float _RimStrength;
+                float _SwayStrength;
+                float _VertexAO;
+                float _EdgeLighten;
             CBUFFER_END
+            // x = speed01, y = wind01, zw = world wind direction xz. Written by KeeperAnimator.
+            float4 _LKKeeperSway;
+
+            float3 KeeperSway(float3 positionWS, float4 vertexColor)
+            {
+                float3 back = TransformObjectToWorldDir(float3(0, 0, -1));
+                float3 wind = float3(_LKKeeperSway.z, 0, _LKKeeperSway.w);
+                float3 push = back * _LKKeeperSway.x + wind * _LKKeeperSway.y;
+                float flutter = sin(_Time.y * 3.0 + positionWS.y * 4.0) * 0.25;
+                float3 sway = push + back * (flutter * saturate(_LKKeeperSway.x + _LKKeeperSway.y));
+                return sway * (vertexColor.r * _SwayStrength);
+            }
 
             struct Attributes
             {
@@ -63,6 +81,7 @@ Shader "LanternKeeper/KeeperLit"
                 float3 normalOS : NORMAL;
                 float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
+                float4 color : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -74,6 +93,7 @@ Shader "LanternKeeper/KeeperLit"
                 float3 tangentWS : TEXCOORD2;
                 float3 bitangentWS : TEXCOORD3;
                 float2 uv : TEXCOORD4;
+                float4 color : TEXCOORD5;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -83,7 +103,9 @@ Shader "LanternKeeper/KeeperLit"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionWS += KeeperSway(output.positionWS, input.color);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
+                output.color = input.color;
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
                 output.bitangentWS = cross(output.normalWS, output.tangentWS) * input.tangentOS.w;
@@ -98,6 +120,8 @@ Shader "LanternKeeper/KeeperLit"
                 float3 albedo = albedoSample.rgb * _BaseColor.rgb;
                 float luma = dot(albedo, float3(0.2126, 0.7152, 0.0722));
                 albedo = lerp(albedo, luma.xxx, saturate(_Desaturate));
+                albedo *= lerp(1.0, lerp(0.15, 1.0, input.color.g), _VertexAO);
+                albedo *= 1.0 + _EdgeLighten * input.color.b;
                 float3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 float3 normalWS = normalize(mul(normalTS, float3x3(input.tangentWS, input.bitangentWS, input.normalWS)));
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
@@ -148,10 +172,37 @@ Shader "LanternKeeper/KeeperLit"
             float3 _LightDirection;
             float3 _LightPosition;
 
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseMap_ST;
+                float4 _BaseColor;
+                float _BumpScale;
+                float _Smoothness;
+                float _Metallic;
+                float _Desaturate;
+                float4 _RimColor;
+                float _RimPower;
+                float _RimStrength;
+                float _SwayStrength;
+                float _VertexAO;
+                float _EdgeLighten;
+            CBUFFER_END
+            float4 _LKKeeperSway;
+
+            float3 KeeperSway(float3 positionWS, float4 vertexColor)
+            {
+                float3 back = TransformObjectToWorldDir(float3(0, 0, -1));
+                float3 wind = float3(_LKKeeperSway.z, 0, _LKKeeperSway.w);
+                float3 push = back * _LKKeeperSway.x + wind * _LKKeeperSway.y;
+                float flutter = sin(_Time.y * 3.0 + positionWS.y * 4.0) * 0.25;
+                float3 sway = push + back * (flutter * saturate(_LKKeeperSway.x + _LKKeeperSway.y));
+                return sway * (vertexColor.r * _SwayStrength);
+            }
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float4 color : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -167,6 +218,7 @@ Shader "LanternKeeper/KeeperLit"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                positionWS += KeeperSway(positionWS, input.color);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
                 #if _CASTING_PUNCTUAL_LIGHT_SHADOW
                 float3 lightDirectionWS = normalize(_LightPosition - positionWS);
