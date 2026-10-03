@@ -131,7 +131,8 @@ public class DawnSequence : MonoBehaviour
 
             if (skybox != null)
             {
-                if (skybox.HasProperty("_Top"))
+                // NightSky lerps night to dawn itself from _Blend and _Dawn*, so writing here would compound the blend.
+                if (skybox.HasProperty("_Top") && !skybox.HasProperty("_DawnTop"))
                 {
                     skybox.SetColor("_Top", Color.Lerp(skyTop, dawnTop, u));
                     skybox.SetColor("_Horizon", Color.Lerp(skyHorizon, dawnHorizon, u));

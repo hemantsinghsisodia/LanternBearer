@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: NightSky_island4
+  m_Shader: {fileID: 4800000, guid: b6aea954f0431fc41a931d380daaeb91, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Blend: 0
+    - _Clouds: 1
+    - _Exponent: 1.6
+    - _Exposure: 1
+    - _HorizonBand: 0.12
+    - _MoonGlow: 0.25
+    - _MoonOn: 0
+    - _MoonSize: 0.035
+    m_Colors:
+    - _CloudColor: {r: 0.09999997, g: 0.11999995, b: 0.16999996, a: 1}
+    - _DawnGround: {r: 0.7882353, g: 0.5411765, b: 0.47843137, a: 1}
+    - _DawnHorizon: {r: 0.95686275, g: 0.7019608, b: 0.5411765, a: 1}
+    - _DawnTop: {r: 0.49411765, g: 0.6117647, b: 0.79607844, a: 1}
+    - _Ground: {r: 0.065882355, g: 0.061176475, b: 0.11294118, a: 1}
+    - _Horizon: {r: 0.33960783, g: 0.34019607, b: 0.43666667, a: 1}
+    - _MoonColor: {r: 0, g: 0, b: 0, a: 0}
+    - _MoonDir: {r: 0.45315388, g: 0.42261827, b: 0.7848855, a: 0}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _Top: {r: 0.07058824, g: 0.05882353, b: 0.13333334, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
