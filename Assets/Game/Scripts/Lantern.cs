@@ -10,7 +10,7 @@ public class Lantern : MonoBehaviour
     [SerializeField] float drainPerSecond = 1.6f;
     [SerializeField] Light lanternLight;
     [SerializeField] float minIntensity = 0.35f;
-    [SerializeField] float maxIntensity = 4.2f;
+    [SerializeField] float maxIntensity = 5.5f;
     [SerializeField] float minRange = 3.5f;
     [SerializeField] float maxRange = 14f;
     [SerializeField] float proximityDimStrength = 0.65f;

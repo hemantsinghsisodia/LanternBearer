@@ -718,6 +718,7 @@ public static partial class IslandBuilder
         ConfigureLanternPoint(light);
         PlaceLanternLight(lightObject.transform, hand, root);
         lantern.AddComponent<Lantern>();
+        EnsureLanternHalo(lantern.transform);
         StripColliders(pivot);
         EnsureChestFill(root);
     }
@@ -725,10 +726,102 @@ public static partial class IslandBuilder
     static void ConfigureLanternPoint(Light light)
     {
         light.type = LightType.Point;
-        light.color = new Color(1f, 0.64f, 0.28f);
+        light.color = LookPalette.FromHex(LookPalette.LanternAmber);
         light.range = 14f;
-        light.intensity = 4.2f;
+        light.intensity = LanternMaxIntensity;
         light.shadows = LightShadows.None;
+    }
+
+    // Lantern.maxIntensity at full fuel. Range stays at the Lantern defaults (gameplay reveal radius).
+    const float LanternMaxIntensity = 5.5f;
+    const string LanternHaloTexturePath = "Assets/Game/Art/Look/LanternHalo.png";
+    const string LanternHaloMaterialPath = "Assets/Game/Art/Look/LanternHalo.mat";
+
+    static Material EnsureLanternHaloMaterial()
+    {
+        Material existing = AssetDatabase.LoadAssetAtPath<Material>(LanternHaloMaterialPath);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        EnsureFolder("Assets/Game/Art/Look");
+        if (!File.Exists(ProjectFile(LanternHaloTexturePath)))
+        {
+            const int size = 128;
+            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f;
+                    float dy = (y + 0.5f) / size * 2f - 1f;
+                    float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                    // Gaussian bloom, faded to exactly zero at the quad edge so no square shows.
+                    float fade = 1f - r * r;
+                    // Colour drifts from the glow core toward deeper amber with distance, so the tail stays warm on a blue scene.
+                    tex.SetPixel(x, y, new Color(1f, Mathf.Lerp(1f, 0.5f, r), Mathf.Lerp(1f, 0.14f, r), Mathf.Exp(-r * r * 3.5f) * fade * fade));
+                }
+            }
+
+            File.WriteAllBytes(ProjectFile(LanternHaloTexturePath), tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(LanternHaloTexturePath, ImportAssetOptions.ForceUpdate);
+            TextureImporter importer = AssetImporter.GetAtPath(LanternHaloTexturePath) as TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Default;
+                importer.alphaIsTransparency = true;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.mipmapEnabled = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.SaveAndReimport();
+            }
+        }
+
+        Shader shader = Shader.Find("LanternKeeper/AdditiveUnlit");
+        Material mat = new Material(shader);
+        Color core = LookPalette.FromHex(LookPalette.GlowCore);
+        mat.SetColor("_BaseColor", new Color(core.r, core.g, core.b, 0.7f));
+        mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(LanternHaloTexturePath));
+        AssetDatabase.CreateAsset(mat, LanternHaloMaterialPath);
+        return mat;
+    }
+
+    static void EnsureLanternHalo(Transform lanternObject)
+    {
+        Transform pivot = lanternObject.parent != null ? lanternObject.parent : lanternObject;
+        Transform existing = FindDeep(pivot, "LanternHalo");
+        GameObject halo;
+        if (existing != null)
+        {
+            halo = existing.gameObject;
+        }
+        else
+        {
+            halo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            halo.name = "LanternHalo";
+            halo.transform.SetParent(pivot, false);
+        }
+
+        Collider collider = halo.GetComponent<Collider>();
+        if (collider != null)
+        {
+            Object.DestroyImmediate(collider);
+        }
+
+        halo.transform.localPosition = lanternObject.localPosition;
+        halo.transform.localScale = Vector3.one * 0.9f;
+        MeshRenderer renderer = halo.GetComponent<MeshRenderer>();
+        renderer.sharedMaterial = EnsureLanternHaloMaterial();
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        if (halo.GetComponent<LanternHalo>() == null)
+        {
+            halo.AddComponent<LanternHalo>();
+        }
     }
 
     static void PlaceLanternLight(Transform lightTransform, Transform hand, Transform root)
@@ -785,7 +878,7 @@ public static partial class IslandBuilder
         }
 
         fill.type = LightType.Point;
-        fill.color = new Color(1f, 0.64f, 0.28f);
+        fill.color = LookPalette.FromHex(LookPalette.LanternAmber);
         fill.range = 2.8f;
         fill.intensity = 1.15f;
         fill.shadows = LightShadows.None;
@@ -841,6 +934,16 @@ public static partial class IslandBuilder
                 if (point != null)
                 {
                     ConfigureLanternPoint(point);
+                }
+
+                Lantern lanternComponent = lanternLight.GetComponentInParent<Lantern>();
+                if (lanternComponent != null)
+                {
+                    SerializedObject lanternSo = new SerializedObject(lanternComponent);
+                    SerializedProperty maxIntensity = lanternSo.FindProperty("maxIntensity");
+                    maxIntensity.floatValue = LanternMaxIntensity;
+                    lanternSo.ApplyModifiedPropertiesWithoutUndo();
+                    EnsureLanternHalo(lanternComponent.transform);
                 }
             }
 
