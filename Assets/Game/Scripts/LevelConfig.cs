@@ -31,5 +31,6 @@ public class LevelConfig : ScriptableObject
     public int shadeCount;
     public bool lightning;
     public bool ridges;
+    public LookProfile lookProfile;
 }
 }

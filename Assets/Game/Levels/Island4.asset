@@ -52,3 +52,4 @@ MonoBehaviour:
   shadeCount: 2
   lightning: 1
   ridges: 1
+  lookProfile: {fileID: 11400000, guid: d7e1dedd307d1304e9683a77deff851c, type: 2}

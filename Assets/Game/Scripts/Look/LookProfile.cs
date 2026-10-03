@@ -1,0 +1,74 @@
+using UnityEngine;
+
+namespace LanternKeeper
+{
+// Per-island palette, fog and grade values for the visual pass. Plain data: nothing reads it at runtime yet.
+[CreateAssetMenu(fileName = "LookProfile", menuName = "Lantern Keeper/Look Profile")]
+public class LookProfile : ScriptableObject
+{
+    public string levelId = "";
+    public Color sky = Color.black;
+    public Color sea = Color.black;
+    public Color land = Color.black;
+    public Color moonRim = Color.black;
+    public Color extra = Color.clear;
+    public bool moonOn = true;
+    public Color moon = Color.white;
+    public Color fogColour = Color.black;
+    public float fogDensity = 0.012f;
+    public float moonRimStrength = 1f;
+    public bool mist;
+    public bool rain;
+    public float gradeSaturation;
+    public float gradeContrast;
+    public float gradeExposure;
+
+    public bool Validate(out string problem)
+    {
+        if (string.IsNullOrEmpty(levelId))
+        {
+            problem = "levelId is empty";
+            return false;
+        }
+
+        if (fogDensity < 0f || fogDensity > 0.1f)
+        {
+            problem = "fogDensity " + fogDensity + " is outside [0, 0.1]";
+            return false;
+        }
+
+        if (moonRimStrength < 0f || moonRimStrength > 2f)
+        {
+            problem = "moonRimStrength " + moonRimStrength + " is outside [0, 2]";
+            return false;
+        }
+
+        if (gradeSaturation < -100f || gradeSaturation > 100f)
+        {
+            problem = "gradeSaturation " + gradeSaturation + " is outside [-100, 100]";
+            return false;
+        }
+
+        if (gradeContrast < -100f || gradeContrast > 100f)
+        {
+            problem = "gradeContrast " + gradeContrast + " is outside [-100, 100]";
+            return false;
+        }
+
+        if (gradeExposure < -3f || gradeExposure > 3f)
+        {
+            problem = "gradeExposure " + gradeExposure + " is outside [-3, 3]";
+            return false;
+        }
+
+        if (moonOn && moon.a <= 0f)
+        {
+            problem = "moonOn is set but the moon alpha is 0";
+            return false;
+        }
+
+        problem = null;
+        return true;
+    }
+}
+}

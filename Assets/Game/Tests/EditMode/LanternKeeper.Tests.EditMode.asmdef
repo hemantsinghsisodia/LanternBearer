@@ -3,6 +3,8 @@
     "rootNamespace": "LanternKeeper.Tests",
     "references": [
         "LanternKeeper.Logic",
+        "LanternKeeper.Look",
+        "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

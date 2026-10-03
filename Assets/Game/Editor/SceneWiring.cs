@@ -624,7 +624,56 @@ public static class SceneWiring
         nulls += ReportSteppingStones(quiet);
         nulls += ReportHorizon(quiet);
         nulls += ReportGraphicsMenus(quiet);
+        nulls += ReportLookProfiles(quiet);
         return nulls;
+    }
+
+    // Every LevelConfig used by a build scene needs a lookProfile whose levelId matches its own.
+    static int ReportLookProfiles(bool quiet)
+    {
+        int problems = 0;
+        HashSet<string> buildScenes = new HashSet<string>();
+        EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
+        for (int i = 0; i < scenes.Length; i++)
+        {
+            buildScenes.Add(System.IO.Path.GetFileNameWithoutExtension(scenes[i].path));
+        }
+
+        string[] guids = AssetDatabase.FindAssets("t:LevelConfig");
+        for (int i = 0; i < guids.Length; i++)
+        {
+            LevelConfig config = AssetDatabase.LoadAssetAtPath<LevelConfig>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            if (config == null || !buildScenes.Contains(config.sceneName))
+            {
+                continue;
+            }
+
+            string problem = null;
+            if (config.lookProfile == null)
+            {
+                problem = "no lookProfile";
+            }
+            else if (config.lookProfile.levelId != config.levelId)
+            {
+                problem = "lookProfile levelId '" + config.lookProfile.levelId + "' does not match '" + config.levelId + "'";
+            }
+            else
+            {
+                config.lookProfile.Validate(out problem);
+            }
+
+            if (problem != null)
+            {
+                if (!quiet)
+                {
+                    Debug.LogWarning("Look profile problem: " + config.name + ": " + problem, config);
+                }
+
+                problems++;
+            }
+        }
+
+        return problems;
     }
 
     // Every stepping stone and bank step needs exactly one flat, solid collider whose top matches the visible
