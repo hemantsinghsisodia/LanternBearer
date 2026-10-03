@@ -6,3 +6,4 @@
 Assets/Game/Prefabs/PolyHaven/**/*.prefab filter=lfs diff=lfs merge=lfs -text
 docs/look/baseline/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 docs/look/keeper/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+docs/look/keeper/**/*.png filter=lfs diff=lfs merge=lfs -text
