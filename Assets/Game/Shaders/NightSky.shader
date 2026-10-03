@@ -40,6 +40,7 @@ Shader "LanternKeeper/NightSky"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 
             float4 _Top;
             float4 _Horizon;
@@ -134,8 +135,11 @@ Shader "LanternKeeper/NightSky"
                     color += _MoonColor.rgb * (disc + glow) * fade;
                 }
 
-                // Dither to hide 8-bit banding in the dark gradient.
-                color += (Hash21(input.positionCS.xy) - 0.5) / 255.0;
+                // Dither to hide banding in the dark gradient. It targets the 8-bit sRGB output, so the +-0.5/255 step is added
+                // in sRGB space and converted back; adding it in linear would be amplified several times at dark values.
+                float3 srgb = LinearToSRGB(max(color, 0.0));
+                srgb += (Hash21(input.positionCS.xy) - 0.5) / 255.0;
+                color = SRGBToLinear(srgb);
                 return half4(color, 1);
             }
             ENDHLSL
