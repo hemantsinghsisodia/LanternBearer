@@ -46,7 +46,7 @@ def set_color(mat, rgba, rough=0.85):
 
 
 def preview_palette():
-    for name, col in (("Skin", lin("A5806A")), ("DarkBrown", lin("2B2119")), ("LightBrown", lin("3A2C20")),
+    for name, col in (("DarkBrown", lin("2B2119")), ("LightBrown", lin("3A2C20")),
                       ("Black", lin("1B2230")), ("Brown", lin("2B2119")), ("Metal", lin("3A4048")),
                       ("Gold", lin("6A5030"))):
         m = bpy.data.materials.get(name)
@@ -201,7 +201,7 @@ def main():
     bpy.context.scene.collection.objects.link(warm)
     warm.location = flame.matrix_world.translation
     print("Flame at", tuple(warm.location))
-    render(cam, "keeper_lantern.png", (-2.4, -2.5, 1.25), (-0.12, -0.2, 1.05), 50, 1280, 1280)
+    render(cam, "keeper_lantern.png", (-3.6, -1.0, 1.15), (-0.15, -0.22, 1.05), 55, 1280, 1280)
     if MODE != "final":
         set_pose(arm, "Idle", 1)
         warm.hide_render = True
