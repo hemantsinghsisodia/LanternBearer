@@ -77,8 +77,53 @@ public class LookCaptureState
         return text;
     }
 
-    // Call with play mode off.
+    // Call with play mode off. Every step runs on its own, so one failure never leaves the rest unrestored.
     public void Restore()
+    {
+        Step("player prefs", RestorePrefs);
+        Step("graphics level", RestoreGraphics);
+        Step("time scale and run in background", () =>
+        {
+            Time.timeScale = timeScale;
+            Time.captureDeltaTime = 0f;
+            Application.runInBackground = runInBackground;
+        });
+        Step("game view size", () =>
+        {
+            LookGameView.Select(gameViewSizeIndex);
+            if (gameViewSizeAdded)
+            {
+                LookGameView.RemoveCustomSize();
+            }
+        });
+        Step("scene", () =>
+        {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("Look capture: still in play mode, so the scene was not reopened.");
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(scenePath) && EditorSceneManager.GetActiveScene().path != scenePath)
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            }
+        });
+    }
+
+    static void Step(string name, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("Look capture: restoring " + name + " failed: " + exception);
+        }
+    }
+
+    void RestorePrefs()
     {
         for (int i = 0; i < prefs.Count; i++)
         {
@@ -92,6 +137,11 @@ public class LookCaptureState
             }
         }
 
+        PlayerPrefs.Save();
+    }
+
+    void RestoreGraphics()
+    {
         // Set re-applies the quality level and writes the pref, so put the original pref state back afterwards.
         GraphicsQuality.Set((GraphicsLevel)graphicsLevel);
         if (QualitySettings.GetQualityLevel() != qualityLevel)
@@ -99,27 +149,7 @@ public class LookCaptureState
             QualitySettings.SetQualityLevel(qualityLevel, true);
         }
 
-        for (int i = 0; i < prefs.Count; i++)
-        {
-            if (prefs[i].key == GraphicsQuality.PrefsKey && !prefs[i].present)
-            {
-                PlayerPrefs.DeleteKey(prefs[i].key);
-            }
-        }
-
-        PlayerPrefs.Save();
-        Time.timeScale = timeScale;
-        Application.runInBackground = runInBackground;
-        LookGameView.Select(gameViewSizeIndex);
-        if (gameViewSizeAdded)
-        {
-            LookGameView.RemoveCustomSize();
-        }
-
-        if (!string.IsNullOrEmpty(scenePath) && EditorSceneManager.GetActiveScene().path != scenePath)
-        {
-            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
-        }
+        RestorePrefs();
     }
 }
 

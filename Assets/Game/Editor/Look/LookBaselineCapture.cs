@@ -25,6 +25,8 @@ public static class LookBaselineCapture
     const int ScreenFrames = 8;
     const int SpawnWaitFrames = 3600;
     const int JpegQuality = 92;
+    const double PhaseTimeoutSeconds = 180.0;
+    const float ShadeBackOff = 3f;
     const int Width = 1920;
     const int Height = 1080;
     const string MenuScene = "Assets/Game/Scenes/MainMenu.unity";
@@ -67,6 +69,8 @@ public static class LookBaselineCapture
         public int measured;
         public double measureSum;
         public int searchFrames;
+        public double phaseStart;
+        public int pass;
         public bool failed;
         public string message;
         public string screenSize;
@@ -84,12 +88,102 @@ public static class LookBaselineCapture
     static bool hooked;
     static bool started;
     static float savedFov;
+    static float thawScale = 1f;
+    static Behaviour frozenProp;
+    static readonly List<GameObject> hiddenOthers = new List<GameObject>();
+
+    [Serializable]
+    class StaleInfo
+    {
+        public string snapshot;
+        public string workDir;
+    }
 
     static LookBaselineCapture()
     {
         if (SessionState.GetString(JobKey, "") != "")
         {
             Hook();
+        }
+        else if (File.Exists(StaleFile()))
+        {
+            // A run from an earlier editor session never finished: put its snapshot back.
+            EditorApplication.delayCall += RestoreStale;
+        }
+    }
+
+    static string StaleFile()
+    {
+        return Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Library/LookCapture/active.json");
+    }
+
+    static string TrimPath(string path)
+    {
+        return path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    static string Work()
+    {
+        return TrimPath(job.outputDir) + ".tmp";
+    }
+
+    static void RestoreStale()
+    {
+        if (SessionState.GetString(JobKey, "") != "" || !File.Exists(StaleFile()))
+        {
+            return;
+        }
+
+        try
+        {
+            StaleInfo info = JsonUtility.FromJson<StaleInfo>(File.ReadAllText(StaleFile()));
+            JsonUtility.FromJson<LookCaptureState>(info.snapshot).Restore();
+            if (!string.IsNullOrEmpty(info.workDir) && Directory.Exists(info.workDir))
+            {
+                Directory.Delete(info.workDir, true);
+            }
+
+            Debug.LogWarning("Look capture: restored the editor state of an unfinished run.");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("Look capture: restoring a stale run failed: " + exception);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(StaleFile());
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
+    [MenuItem("Lantern Keeper/Look/Abort Capture")]
+    public static void AbortFromMenu()
+    {
+        if (SessionState.GetString(JobKey, "") != "")
+        {
+            if (job == null)
+            {
+                job = JsonUtility.FromJson<Job>(SessionState.GetString(JobKey, ""));
+            }
+
+            Hook();
+            Debug.LogWarning("Look capture: aborting on request.");
+            Abort("Aborted from the menu");
+            return;
+        }
+
+        if (File.Exists(StaleFile()))
+        {
+            RestoreStale();
+        }
+        else
+        {
+            Debug.Log("Look capture: nothing to abort.");
         }
     }
 
@@ -128,7 +222,6 @@ public static class LookBaselineCapture
             }
         }
 
-        Directory.CreateDirectory(outputDir);
         LookCaptureState state = LookCaptureState.Snapshot();
         Job fresh = new Job();
         fresh.outputDir = outputDir;
@@ -141,7 +234,19 @@ public static class LookBaselineCapture
         fresh.snapshot = JsonUtility.ToJson(state);
         fresh.phase = (int)Phase.OpenScene;
         Debug.Log("Look capture BEFORE: " + fresh.before);
+        fresh.phaseStart = EditorApplication.timeSinceStartup;
         Save(fresh);
+        Directory.CreateDirectory(Path.GetDirectoryName(StaleFile()));
+        StaleInfo stale = new StaleInfo();
+        stale.snapshot = fresh.snapshot;
+        stale.workDir = Work();
+        File.WriteAllText(StaleFile(), JsonUtility.ToJson(stale));
+        if (Directory.Exists(Work()))
+        {
+            Directory.Delete(Work(), true);
+        }
+
+        Directory.CreateDirectory(Work());
         Hook();
     }
 
@@ -208,6 +313,7 @@ public static class LookBaselineCapture
             job.phase = (int)Phase.Finish;
         }
 
+        job.phaseStart = EditorApplication.timeSinceStartup;
         Save();
     }
 
@@ -219,6 +325,7 @@ public static class LookBaselineCapture
     static void Go(Phase phase)
     {
         job.phase = (int)phase;
+        job.phaseStart = EditorApplication.timeSinceStartup;
         Save();
     }
 
@@ -247,9 +354,37 @@ public static class LookBaselineCapture
         return session < LookShotGenerator.LevelIds.Length ? LookShotGenerator.LevelIds[session] : "island1";
     }
 
+    static bool IsPlayPhase(Phase phase)
+    {
+        return phase != Phase.OpenScene && phase != Phase.WaitPlay && phase != Phase.ExitPlay && phase != Phase.WaitStop && phase != Phase.Finish;
+    }
+
     static void Step()
     {
         Phase phase = (Phase)job.phase;
+        if (phase != Phase.Finish && EditorApplication.timeSinceStartup - job.phaseStart > PhaseTimeoutSeconds)
+        {
+            if (job.failed)
+            {
+                // Already aborting and still stuck: restore regardless.
+                Complete();
+                return;
+            }
+
+            Abort("Timed out after " + PhaseTimeoutSeconds + " s in phase " + phase);
+            return;
+        }
+
+        if (IsPlayPhase(phase) && !EditorApplication.isPlaying)
+        {
+            if (!Transitioning)
+            {
+                Abort("Play mode ended during the run (phase " + phase + ")");
+            }
+
+            return;
+        }
+
         switch (phase)
         {
             case Phase.OpenScene:
@@ -262,6 +397,11 @@ public static class LookBaselineCapture
                 }
 
                 Application.runInBackground = true;
+                // Pin game time: fixed steps, then no time at all while the static shots are taken, so runs match.
+                Time.captureDeltaTime = 1f / 60f;
+                Time.timeScale = 0f;
+                thawScale = 1f;
+                job.pass = 0;
                 job.preset = 0;
                 job.shot = 0;
                 job.screen = 0;
@@ -271,6 +411,7 @@ public static class LookBaselineCapture
                 break;
             case Phase.SetPreset:
                 GraphicsQuality.Set(Presets[job.preset]);
+                Time.timeScale = job.pass == 1 ? thawScale : 0f;
                 job.shot = 0;
                 job.screen = 0;
                 job.searchFrames = 0;
@@ -398,9 +539,16 @@ public static class LookBaselineCapture
     static void PrepareShot()
     {
         LookShotList list = List();
+
+        // Pass 0 takes the static shots with time stopped, pass 1 the moth and Shade shots and the frame timing.
+        while (job.shot < list.shots.Count && IsPropShot(list.shots[job.shot]) != (job.pass == 1))
+        {
+            job.shot++;
+        }
+
         if (job.shot >= list.shots.Count)
         {
-            Go(Phase.FrameWarm);
+            EndShots();
             return;
         }
 
@@ -415,7 +563,8 @@ public static class LookBaselineCapture
 
         // Frozen props need a fully faded-in model to pose, so wait until one exists.
         Behaviour prop = null;
-        if (shot.label == "moth" || shot.label == "shade")
+        bool isShade = shot.label == "shade";
+        if (shot.label == "moth" || isShade)
         {
             prop = FindProp(shot.label);
             if (prop == null)
@@ -430,17 +579,58 @@ public static class LookBaselineCapture
             }
         }
 
-        camera.transform.SetPositionAndRotation(shot.position, Quaternion.Euler(shot.euler));
+        Quaternion rotation = Quaternion.Euler(shot.euler);
+        Vector3 position = shot.position;
+        if (isShade)
+        {
+            // The Shade is tall: back the camera off so its whole head is in frame.
+            position -= rotation * Vector3.forward * ShadeBackOff;
+        }
+
+        camera.transform.SetPositionAndRotation(position, rotation);
         camera.fieldOfView = shot.fov;
         if (prop != null)
         {
             float ahead = shot.label == "moth" ? 2f : 4f;
-            prop.transform.position = camera.transform.position + camera.transform.forward * ahead;
+            // Placed from the listed pose, so the Shade ends up ahead + back-off metres from the camera.
+            prop.transform.position = shot.position + rotation * Vector3.forward * ahead;
             prop.enabled = false;
+            frozenProp = prop;
+            HideOthers(prop);
         }
 
+        // Stop game time for the settle frames and the render, so animation does not move between runs.
+        if (Time.timeScale > 0f)
+        {
+            thawScale = Time.timeScale;
+        }
+
+        Time.timeScale = 0f;
         job.searchFrames = 0;
         WaitThen(ShotFrames, Phase.ShotRender);
+    }
+
+    static bool IsPropShot(LookShot shot)
+    {
+        return shot.label == "moth" || shot.label == "shade";
+    }
+
+    static void EndShots()
+    {
+        if (job.pass == 1)
+        {
+            Go(Phase.FrameWarm);
+            return;
+        }
+
+        job.preset++;
+        if (job.preset >= Presets.Length)
+        {
+            job.pass = 1;
+            job.preset = 0;
+        }
+
+        Go(Phase.SetPreset);
     }
 
     static Behaviour FindProp(string label)
@@ -476,51 +666,94 @@ public static class LookBaselineCapture
     {
         LookShot shot = List().shots[job.shot];
         Camera camera = MainCamera();
-        RenderTexture target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32);
+        RenderTexture target = null;
+        Texture2D texture = null;
         RenderTexture previous = RenderTexture.active;
-        camera.targetTexture = target;
-        camera.Render();
-        camera.targetTexture = null;
-        RenderTexture.active = target;
-        Texture2D texture = new Texture2D(Width, Height, TextureFormat.RGB24, false);
-        texture.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
-        texture.Apply();
-        RenderTexture.active = previous;
-        UnityEngine.Object.DestroyImmediate(target);
-        string path = Path.Combine(job.outputDir, LevelId(job.session), Presets[job.preset].ToString().ToLowerInvariant(), shot.label + ".jpg");
-        Directory.CreateDirectory(Path.GetDirectoryName(path));
-        File.WriteAllBytes(path, ImageConversion.EncodeToJPG(texture, JpegQuality));
-        UnityEngine.Object.DestroyImmediate(texture);
-
-        // Put the frozen prop back to life so the next shots and the frame timing see normal behaviour.
-        if (shot.label == "moth")
+        try
         {
-            ReEnable(typeof(Moth));
+            target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32);
+            camera.targetTexture = target;
+            camera.Render();
+            camera.targetTexture = null;
+            RenderTexture.active = target;
+            texture = new Texture2D(Width, Height, TextureFormat.RGB24, false);
+            texture.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+            texture.Apply();
+            string path = Path.Combine(Work(), LevelId(job.session), Presets[job.preset].ToString().ToLowerInvariant(), shot.label + ".jpg");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllBytes(path, ImageConversion.EncodeToJPG(texture, JpegQuality));
         }
-        else if (shot.label == "shade")
+        finally
         {
-            ReEnable(typeof(Shade));
+            camera.targetTexture = null;
+            RenderTexture.active = previous;
+            if (target != null)
+            {
+                UnityEngine.Object.DestroyImmediate(target);
+            }
+
+            if (texture != null)
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+
+            Time.timeScale = job.pass == 1 ? thawScale : 0f;
+            ThawProp();
         }
 
         job.shot++;
         Go(Phase.ShotPrepare);
     }
 
-    static void ReEnable(Type type)
+    // Only the prop that was frozen for the shot is woken up again, and anything hidden for the shot is shown again.
+    static void ThawProp()
     {
-        UnityEngine.Object[] all = UnityEngine.Object.FindObjectsByType(type, FindObjectsInactive.Include);
-        for (int i = 0; i < all.Length; i++)
+        if (frozenProp != null)
         {
-            Behaviour behaviour = (Behaviour)all[i];
-            if (!behaviour.enabled)
+            frozenProp.enabled = true;
+        }
+
+        frozenProp = null;
+        for (int i = 0; i < hiddenOthers.Count; i++)
+        {
+            if (hiddenOthers[i] != null)
             {
-                behaviour.enabled = true;
+                hiddenOthers[i].SetActive(true);
+            }
+        }
+
+        hiddenOthers.Clear();
+    }
+
+    // Keeps other moths and Shades out of a prop close-up.
+    static void HideOthers(Behaviour keep)
+    {
+        hiddenOthers.Clear();
+        Moth[] moths = UnityEngine.Object.FindObjectsByType<Moth>();
+        for (int i = 0; i < moths.Length; i++)
+        {
+            if (moths[i] != keep)
+            {
+                hiddenOthers.Add(moths[i].gameObject);
+                moths[i].gameObject.SetActive(false);
+            }
+        }
+
+        Shade[] shades = UnityEngine.Object.FindObjectsByType<Shade>();
+        for (int i = 0; i < shades.Length; i++)
+        {
+            if (shades[i] != keep)
+            {
+                hiddenOthers.Add(shades[i].gameObject);
+                shades[i].gameObject.SetActive(false);
             }
         }
     }
 
     static void RestoreGameplayCamera()
     {
+        Time.timeScale = thawScale;
+        Time.captureDeltaTime = 0f;
         Camera camera = MainCamera();
         LookShot spawn = List().shots[0];
         camera.transform.SetPositionAndRotation(spawn.position, Quaternion.Euler(spawn.euler));
@@ -579,6 +812,19 @@ public static class LookBaselineCapture
     {
         if (job.screen == 0)
         {
+            if (job.session == HudSession)
+            {
+                // With time stopped the follow camera never glides to its start pose, so place it there.
+                CameraFollow follow = MainCamera().GetComponent<CameraFollow>();
+                if (follow != null)
+                {
+                    follow.SnapBehind();
+                }
+
+                WaitThen(ScreenFrames, Phase.ScreenGrab);
+                return;
+            }
+
             Go(Phase.ScreenGrab);
             return;
         }
@@ -626,7 +872,7 @@ public static class LookBaselineCapture
 
     static string TempShot()
     {
-        return Path.Combine(job.outputDir, "_screen.png");
+        return Path.Combine(Work(), "_screen.png");
     }
 
     static void SaveScreen()
@@ -655,7 +901,7 @@ public static class LookBaselineCapture
         }
 
         job.screenSize = texture.width + "x" + texture.height;
-        string path = Path.Combine(job.outputDir, "screens", Presets[job.preset].ToString().ToLowerInvariant(), ScreenName() + ".jpg");
+        string path = Path.Combine(Work(), "screens", Presets[job.preset].ToString().ToLowerInvariant(), ScreenName() + ".jpg");
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllBytes(path, ImageConversion.EncodeToJPG(texture, JpegQuality));
         UnityEngine.Object.DestroyImmediate(texture);
@@ -679,6 +925,8 @@ public static class LookBaselineCapture
             {
                 GameManager.Instance.Resume();
             }
+
+            Time.timeScale = 0f;
         }
 
         job.screen++;
@@ -708,17 +956,71 @@ public static class LookBaselineCapture
 
     static void Complete()
     {
-        EditorApplication.update -= Update;
-        hooked = false;
-        LookCaptureState state = JsonUtility.FromJson<LookCaptureState>(job.snapshot);
-        state.Restore();
-        string after = LookCaptureState.Snapshot().Describe();
-        Debug.Log("Look capture AFTER:  " + after);
-        WriteFrameTimes(after);
-        Debug.Log(job.failed ? "Look capture FAILED and restored: " + job.message : "Look capture done: " + job.outputDir);
-        SessionState.EraseString(JobKey);
-        job = null;
-        AssetDatabase.Refresh();
+        try
+        {
+            LookCaptureState state = JsonUtility.FromJson<LookCaptureState>(job.snapshot);
+            state.Restore();
+            string after = LookCaptureState.Snapshot().Describe();
+            Debug.Log("Look capture AFTER:  " + after);
+            if (job.failed)
+            {
+                DeleteWork();
+                Debug.LogError("Look capture FAILED and restored: " + job.message);
+            }
+            else
+            {
+                WriteFrameTimes(after);
+                Publish();
+                Debug.Log("Look capture done: " + job.outputDir);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("Look capture: finishing failed: " + exception);
+        }
+        finally
+        {
+            SessionState.EraseString(JobKey);
+            try
+            {
+                File.Delete(StaleFile());
+            }
+            catch (Exception)
+            {
+            }
+
+            job = null;
+            try
+            {
+                AssetDatabase.Refresh();
+            }
+            catch (Exception)
+            {
+            }
+
+            EditorApplication.update -= Update;
+            hooked = false;
+        }
+    }
+
+    static void DeleteWork()
+    {
+        if (Directory.Exists(Work()))
+        {
+            Directory.Delete(Work(), true);
+        }
+    }
+
+    // The finished set replaces the old one only now, so an aborted run never leaves partial images behind.
+    static void Publish()
+    {
+        if (Directory.Exists(job.outputDir))
+        {
+            Directory.Delete(job.outputDir, true);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(TrimPath(job.outputDir)));
+        Directory.Move(Work(), job.outputDir);
     }
 
     static void WriteFrameTimes(string after)
@@ -728,11 +1030,6 @@ public static class LookBaselineCapture
         text.AppendLine();
         text.AppendLine("Captured " + DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " in the editor (Game view, 1920x1080 fixed size). Average of " + MeasureFrames + " frames after " + WarmFrames + " warm-up frames, at the spawn camera.");
         text.AppendLine("Screens were captured at " + (job.screenSize ?? "n/a") + ".");
-        if (job.failed)
-        {
-            text.AppendLine("RUN FAILED: " + job.message);
-        }
-
         text.AppendLine();
         text.AppendLine("| Island | Preset | Average ms | FPS |");
         text.AppendLine("|---|---|---|---|");
@@ -745,7 +1042,7 @@ public static class LookBaselineCapture
         text.AppendLine("Editor state before the run: `" + job.before + "`");
         text.AppendLine();
         text.AppendLine("Editor state after the run: `" + after + "`");
-        File.WriteAllText(Path.Combine(job.outputDir, "frametimes.md"), text.ToString());
+        File.WriteAllText(Path.Combine(Work(), "frametimes.md"), text.ToString());
     }
 }
 }
