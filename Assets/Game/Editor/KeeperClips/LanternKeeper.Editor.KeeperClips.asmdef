@@ -1,0 +1,16 @@
+{
+    "name": "LanternKeeper.Editor.KeeperClips",
+    "rootNamespace": "LanternKeeper",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
