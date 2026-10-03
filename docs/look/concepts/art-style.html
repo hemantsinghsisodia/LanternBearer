@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Keeper concept board: art-style</title>
+<style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  
+    /* ===== STANDALONE BOARD OVERRIDES ===== */
+    :root {
+      --bg-primary: #0e1020; --bg-secondary: #1d1f2e; --bg-tertiary: #2a2d40; --border: #3a3e55;
+      --text-primary: #f5f5f7; --text-secondary: #9aa0b8; --text-tertiary: #636a85;
+      --accent: #ffb15c; --accent-hover: #ffd38a; --selected-bg: rgba(255,177,92,0.12); --selected-border: #ffb15c;
+    }
+    html, body { background: #0b0e1a; }
+    .card { position: relative; cursor: default; }
+    .chosen-badge { position: absolute; top: 10px; right: 10px; z-index: 5; background: #ffb15c; color: #1a1206; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<div class="main">
+<div id="frame-content">
+<h2>Which art direction should Lantern Keeper commit to?</h2>
+<p class="subtitle">Each panel shows the same moment: the keeper with the lantern on a shore at night, an unlit beacon, the sea and a far islet. Compare the style, not the composition. All three are rough illustrations of a direction, not final art.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="painterly"><span class="chosen-badge">Chosen</span>
+    <div class="card-image">
+      <svg viewBox="0 0 400 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="pSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b1026"/><stop offset="0.6" stop-color="#1c2a4f"/><stop offset="1" stop-color="#2f3f63"/>
+          </linearGradient>
+          <radialGradient id="pGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffd38a" stop-opacity="0.95"/><stop offset="0.35" stop-color="#ff9a3c" stop-opacity="0.45"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="pMoon" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#e8f0ff"/><stop offset="0.5" stop-color="#bcd0ff" stop-opacity="0.35"/><stop offset="1" stop-color="#bcd0ff" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="pSea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#22355e"/><stop offset="1" stop-color="#0e1a33"/>
+          </linearGradient>
+        </defs>
+        <rect width="400" height="260" fill="url(#pSky)"/>
+        <circle cx="320" cy="48" r="40" fill="url(#pMoon)"/><circle cx="320" cy="48" r="11" fill="#eef4ff"/>
+        <g fill="#cfe0ff" opacity="0.8"><circle cx="40" cy="30" r="1.2"/><circle cx="90" cy="60" r="1"/><circle cx="160" cy="22" r="1.4"/><circle cx="210" cy="70" r="0.9"/><circle cx="260" cy="30" r="1.1"/><circle cx="370" cy="100" r="1"/></g>
+        <path d="M0 150 Q60 128 120 142 T260 136 T400 146 L400 160 L0 160Z" fill="#26365c" opacity="0.8"/>
+        <rect y="150" width="400" height="110" fill="url(#pSea)"/>
+        <path d="M300 156 L318 158 L330 157 L346 159" stroke="#dfe9ff" stroke-width="2" opacity="0.7" stroke-linecap="round"/>
+        <path d="M296 166 L340 168" stroke="#dfe9ff" stroke-width="1.5" opacity="0.4" stroke-linecap="round"/>
+        <path d="M250 150 Q275 128 300 150Z" fill="#1a2747"/>
+        <path d="M0 200 Q80 170 170 182 Q230 190 260 210 L260 260 L0 260Z" fill="#141d36"/>
+        <path d="M0 214 Q90 190 180 200" stroke="#3b5a8c" stroke-width="2" fill="none" opacity="0.6"/>
+        <path d="M150 186 q4 -14 8 0 M170 184 q3 -12 6 0 M60 190 q4 -16 8 0" stroke="#24345a" stroke-width="3" fill="none"/>
+        <rect x="40" y="168" width="14" height="26" rx="3" fill="#1e2a48"/><rect x="36" y="164" width="22" height="6" rx="2" fill="#2a3a60"/>
+        <circle cx="120" cy="188" r="70" fill="url(#pGlow)"/>
+        <path d="M112 196 L112 170 Q120 150 128 170 L128 196Z" fill="#0d1428"/>
+        <circle cx="120" cy="160" r="7" fill="#0d1428"/>
+        <path d="M128 172 L138 176" stroke="#0d1428" stroke-width="3"/>
+        <line x1="138" y1="176" x2="138" y2="182" stroke="#3a2a1a" stroke-width="1"/>
+        <rect x="134" y="182" width="8" height="10" rx="1.5" fill="#ffcf7a"/>
+        <circle cx="138" cy="187" r="9" fill="#ffd38a" opacity="0.5"/>
+        <path d="M128 172 L138 176" stroke="#ffb15c" stroke-width="0.8" opacity="0.8"/>
+        <path d="M112 175 Q110 165 116 158" stroke="#ff9a3c" stroke-width="1" fill="none" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A · Stylized painterly night (recommended)</h3>
+      <p>Soft gradients, deep ink-blue and violet, simple shapes read as silhouettes. The lantern is the only warm light, with a strong amber glow and moonlit edges. Texture is painted or kept flat instead of photographic.</p>
+      <p><b>Feels like:</b> Alba, A Short Hike at night, Firewatch's palette.</p>
+      <p><b>Fit:</b> matches the low-poly keeper and our shader-driven look, and is cheapest to make consistent. It reads clearly at night.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="realistic">
+    <div class="card-image">
+      <svg viewBox="0 0 400 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#05070b"/><stop offset="1" stop-color="#151b22"/>
+          </linearGradient>
+          <radialGradient id="rGlow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffe2b0" stop-opacity="0.9"/><stop offset="0.25" stop-color="#e08a3a" stop-opacity="0.35"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="rFog" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3a4552" stop-opacity="0"/><stop offset="1" stop-color="#3a4552" stop-opacity="0.55"/>
+          </linearGradient>
+          <filter id="rNoise"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2"/><feColorMatrix values="0 0 0 0 0.1  0 0 0 0 0.11  0 0 0 0 0.12  0 0 0 0.35 0"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+        </defs>
+        <rect width="400" height="260" fill="url(#rSky)"/>
+        <circle cx="320" cy="44" r="8" fill="#dfe4ea" opacity="0.85"/>
+        <rect y="150" width="400" height="110" fill="#0b1015"/>
+        <path d="M290 158 L350 160" stroke="#9aa6b2" stroke-width="0.8" opacity="0.5"/>
+        <path d="M250 150 Q272 134 296 150Z" fill="#11161c"/>
+        <rect y="120" width="400" height="60" fill="url(#rFog)"/>
+        <path d="M0 196 Q80 176 170 186 Q230 194 262 212 L262 260 L0 260Z" fill="#1a1f19"/>
+        <rect x="0" y="176" width="262" height="84" filter="url(#rNoise)" opacity="0.9"/>
+        <rect x="40" y="166" width="13" height="28" fill="#2a2d30"/><rect x="36" y="162" width="21" height="6" fill="#3a3e42"/>
+        <circle cx="132" cy="186" r="62" fill="url(#rGlow)"/>
+        <path d="M112 197 L113 172 Q120 152 127 172 L128 197Z" fill="#20180f"/>
+        <circle cx="120" cy="161" r="6.5" fill="#2a2018"/>
+        <path d="M127 173 L136 178" stroke="#20180f" stroke-width="3"/>
+        <rect x="132" y="182" width="7" height="10" fill="#fff0c8"/>
+        <path d="M112 197 L128 197 L132 198" stroke="#6a4a2a" stroke-width="1" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B · Grounded realism</h3>
+      <p>Photographic rock, grass and water textures, physically based lighting, heavy fog and darkness. Detail comes from materials rather than shape and colour.</p>
+      <p><b>Feels like:</b> Dear Esther, Kona, realistic survival games at night.</p>
+      <p><b>Fit:</b> builds on the Poly Haven assets, but the keeper, creatures, beacons and UI would all need realistic remakes. That's the most work, and the hardest to keep readable in darkness.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="lowpoly">
+    <div class="card-image">
+      <svg viewBox="0 0 400 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="260" fill="#1b1f3a"/>
+        <polygon points="0,0 400,0 400,90 0,120" fill="#242a4d"/>
+        <polygon points="0,120 400,90 400,150 0,150" fill="#2e3560"/>
+        <polygon points="310,40 326,34 332,50 316,56" fill="#e9ecff"/>
+        <polygon points="0,150 400,150 400,260 0,260" fill="#1a2a52"/>
+        <polygon points="0,150 200,150 0,190" fill="#213565"/>
+        <polygon points="250,150 274,132 300,150" fill="#2a3a6a"/><polygon points="274,132 300,150 286,150" fill="#203058"/>
+        <polygon points="0,200 90,176 170,184 262,214 262,260 0,260" fill="#1e2e3a"/>
+        <polygon points="0,200 90,176 60,220" fill="#25384a"/>
+        <polygon points="90,176 170,184 140,226" fill="#1a2836"/>
+        <polygon points="70,206 200,206 135,150" fill="#ff9a3c" opacity="0.18"/>
+        <polygon points="96,212 176,212 136,176" fill="#ffb15c" opacity="0.28"/>
+        <polygon points="40,194 54,194 54,168 40,168" fill="#2a3550"/><polygon points="36,168 58,168 54,162 40,162" fill="#3a4870"/>
+        <polygon points="113,197 127,197 127,172 120,158 113,172" fill="#151a30"/>
+        <polygon points="114,160 126,160 120,150" fill="#151a30"/>
+        <polygon points="127,172 138,177 136,180 126,175" fill="#151a30"/>
+        <polygon points="133,181 141,181 141,192 133,192" fill="#ffd27a"/>
+        <polygon points="127,197 141,192 141,197" fill="#ffb15c" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>C · Low-poly graphic</h3>
+      <p>Hard-edged facets, flat-shaded triangles, a limited palette and crisp geometric light shapes. The look is clean and readable rather than atmospheric.</p>
+      <p><b>Feels like:</b> Alto's Odyssey at night, Monument Valley, many low-poly indies.</p>
+      <p><b>Fit:</b> matches the current keeper's faceting and is quick to make, but it looks less atmospheric. Darkness and fog are harder to make feel mysterious with hard facets, and the style is common.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <p class="label">How to answer</p>
+  <p>Click the direction you like, then reply in the terminal. Mixing them is fine, e.g. "A, but with the stronger fog from B".</p>
+</div>
+
+</div>
+</div>
+</body>
+</html>

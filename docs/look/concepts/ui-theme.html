@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Keeper concept board: ui-theme</title>
+<style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  
+    /* ===== STANDALONE BOARD OVERRIDES ===== */
+    :root {
+      --bg-primary: #0e1020; --bg-secondary: #1d1f2e; --bg-tertiary: #2a2d40; --border: #3a3e55;
+      --text-primary: #f5f5f7; --text-secondary: #9aa0b8; --text-tertiary: #636a85;
+      --accent: #ffb15c; --accent-hover: #ffd38a; --selected-bg: rgba(255,177,92,0.12); --selected-border: #ffb15c;
+    }
+    html, body { background: #0b0e1a; }
+    .card { position: relative; cursor: default; }
+    .chosen-badge { position: absolute; top: 10px; right: 10px; z-index: 5; background: #ffb15c; color: #1a1206; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<div class="main">
+<div id="frame-content">
+<h2>Which UI theme?</h2>
+<p class="subtitle">Each theme is shown as a mini main menu (left) and an in-game HUD corner (right) on the painterly night background. The fonts are free-licensed (OFL) Google Fonts. If they don't load here, you'll see a fallback serif or sans.</p>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=IM+Fell+English&family=Inter:wght@400;600&family=Spectral:wght@400;600&display=swap');
+.trow{display:grid;grid-template-columns:1fr;gap:18px}
+.tbox{display:grid;grid-template-columns:1.2fr 1fr;gap:0;border-radius:10px;overflow:hidden;background:linear-gradient(110deg,#0b1026 0%,#1c2a4f 55%,#3a2a2a 100%);min-height:230px}
+.menu{padding:18px 22px;background:linear-gradient(90deg,rgba(5,8,18,.85),rgba(5,8,18,0))}
+.hud{position:relative;padding:14px}
+.t-a .title{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:34px;color:#ffcf8a;letter-spacing:.5px;text-shadow:0 0 18px rgba(255,160,70,.35)}
+.t-a .tag{font-family:'Spectral',serif;font-style:italic;color:#c8b9a0;font-size:13px;margin-bottom:12px}
+.t-a .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:#f3e6cf;border:1px solid #6b5a44;background:linear-gradient(#1b1e2c,#121521);padding:7px 14px;margin:6px 0;width:200px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(255,200,140,.06)}
+.t-a .btn.primary{border-color:#ffb15c;color:#1a1208;background:linear-gradient(#ffcf8a,#ff9f4a);box-shadow:0 0 14px rgba(255,160,70,.45)}
+.t-a .card{border:1px solid #6b5a44}
+.t-b .title{font-family:'IM Fell English',serif;font-size:34px;color:#3a2614}
+.t-b .menu{background:linear-gradient(90deg,#e9dcc0,#d9c7a0);box-shadow:inset 0 0 30px rgba(90,60,20,.35)}
+.t-b .tag{font-family:'IM Fell English',serif;font-style:italic;color:#6a4e2c;font-size:13px;margin-bottom:12px}
+.t-b .btn{font-family:'IM Fell English',serif;font-size:15px;color:#3a2614;border-bottom:1px solid #8a6a40;padding:6px 4px;margin:4px 0;width:200px}
+.t-b .btn.primary{color:#8a2e14;font-weight:bold}
+.t-c .title{font-family:'Inter',sans-serif;font-weight:600;font-size:28px;color:#eef2ff;letter-spacing:4px;text-transform:uppercase}
+.t-c .tag{font-family:'Inter',sans-serif;color:#9aa6c8;font-size:12px;margin-bottom:12px;letter-spacing:1px}
+.t-c .btn{font-family:'Inter',sans-serif;font-size:12px;letter-spacing:1px;color:#dfe6ff;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);padding:8px 14px;margin:6px 0;width:200px;border-radius:8px;backdrop-filter:blur(6px)}
+.t-c .btn.primary{background:rgba(255,177,92,.22);border-color:rgba(255,177,92,.6);color:#ffe2b8}
+.lbl{font-size:11px;opacity:.85}
+</style>
+
+<div class="trow">
+
+ <div class="card t-a" data-choice="iron"><span class="chosen-badge">Chosen</span>
+  <div class="tbox">
+   <div class="menu">
+    <div class="title">Lantern Keeper</div>
+    <div class="tag">Light the beacons before the flame dies.</div>
+    <div class="btn primary">Continue — Island 3</div>
+    <div class="btn">Islands</div><div class="btn">Keeper's Log</div><div class="btn">Settings</div><div class="btn">Quit</div>
+   </div>
+   <div class="hud">
+    <svg width="230" height="200" viewBox="0 0 230 200" xmlns="http://www.w3.org/2000/svg">
+     <g transform="translate(14,10)">
+      <rect x="0" y="0" width="54" height="64" rx="6" fill="#121521" stroke="#6b5a44"/>
+      <path d="M13 22 L27 10 L41 22Z" fill="#2c2a34"/><rect x="15" y="22" width="24" height="30" fill="#ffd38a" opacity=".85"/>
+      <path d="M15 22 V52 M39 22 V52 M27 22 V52" stroke="#2c2a34" stroke-width="2"/><rect x="12" y="52" width="30" height="5" fill="#2c2a34"/>
+      <path d="M33 48 Q29 40 33 32 Q37 40 33 48Z" fill="#ff9a3c"/>
+      <g transform="translate(66,8)" font-family="Inter,sans-serif" font-size="11" fill="#f3e6cf">
+       <g><path d="M0 8 L5 2 L10 8Z" fill="#ffb15c"/><path d="M14 8 L19 2 L24 8Z" fill="#ffb15c"/><path d="M28 8 L33 2 L38 8Z" fill="#4a4a5a"/><path d="M42 8 L47 2 L52 8Z" fill="#4a4a5a"/><path d="M56 8 L61 2 L66 8Z" fill="#4a4a5a"/></g>
+       <text x="0" y="28" fill="#c8a8ff">◆ ×2 moths on you</text>
+       <text x="0" y="44" fill="#c8b9a0" font-family="Spectral,serif" font-style="italic">Island 3 · The Drowned Marsh</text>
+      </g>
+     </g>
+     <text x="14" y="120" class="lbl" fill="#c8b9a0" font-family="Inter">fuel = lantern icon, flame shrinks</text>
+     <text x="14" y="136" class="lbl" fill="#c8b9a0" font-family="Inter">beacons = little roofs, lit amber</text>
+    </svg>
+   </div>
+  </div>
+  <div class="card-body"><h3>A · Forged iron and amber (recommended)</h3><p>Deep ink panels framed in thin dark-brass lines. Lantern-amber marks the primary action and the glow. A Cormorant Garamond serif for titles, an italic Spectral for flavour text, and Inter for numbers and buttons. HUD icons share the storm-lantern shape language. Atmospheric but very readable, and it works for menus, HUD and journal alike.</p></div>
+ </div>
+
+ <div class="card t-b" data-choice="journal">
+  <div class="tbox">
+   <div class="menu">
+    <div class="title">Lantern Keeper</div>
+    <div class="tag">Light the beacons before the flame dies.</div>
+    <div class="btn primary">Continue — Island 3</div>
+    <div class="btn">Islands</div><div class="btn">Keeper's Log</div><div class="btn">Settings</div><div class="btn">Quit</div>
+   </div>
+   <div class="hud">
+    <svg width="230" height="200" viewBox="0 0 230 200" xmlns="http://www.w3.org/2000/svg">
+     <g transform="translate(14,10)">
+      <rect x="0" y="0" width="200" height="60" rx="4" fill="#e9dcc0" opacity=".92"/>
+      <text x="12" y="24" font-family="IM Fell English,serif" font-size="15" fill="#3a2614">Fuel ▮▮▮▮▮▯▯</text>
+      <text x="12" y="44" font-family="IM Fell English,serif" font-size="13" fill="#6a2e8a">two moths upon me</text>
+     </g>
+     <text x="14" y="100" class="lbl" fill="#e9dcc0" font-family="Inter">HUD drawn as notes on paper</text>
+    </svg>
+   </div>
+  </div>
+  <div class="card-body"><h3>B · Weathered journal</h3><p>Everything is ink on parchment, with IM Fell English throughout and HUD notes written like journal entries. Very characterful and great for the Keeper's Log. But bright paper panels at night fight the darkness and the lantern glow, and the HUD gets hard to read at a glance in the middle of gameplay.</p></div>
+ </div>
+
+ <div class="card t-c" data-choice="glass">
+  <div class="tbox">
+   <div class="menu" style="background:none">
+    <div class="title">Lantern Keeper</div>
+    <div class="tag">LIGHT THE BEACONS BEFORE THE FLAME DIES</div>
+    <div class="btn primary">Continue — Island 3</div>
+    <div class="btn">Islands</div><div class="btn">Keeper's Log</div><div class="btn">Settings</div><div class="btn">Quit</div>
+   </div>
+   <div class="hud">
+    <svg width="230" height="200" viewBox="0 0 230 200" xmlns="http://www.w3.org/2000/svg">
+     <g transform="translate(14,10)">
+      <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="4"/>
+      <circle cx="26" cy="26" r="22" fill="none" stroke="#ffb15c" stroke-width="4" stroke-dasharray="100 140" transform="rotate(-90 26 26)"/>
+      <text x="60" y="22" font-family="Inter" font-size="11" fill="#dfe6ff">2 / 5 BEACONS</text>
+      <text x="60" y="38" font-family="Inter" font-size="11" fill="#c8a8ff">MOTHS ×2</text>
+     </g>
+     <text x="14" y="100" class="lbl" fill="#9aa6c8" font-family="Inter">clean ring gauge, no ornament</text>
+    </svg>
+   </div>
+  </div>
+  <div class="card-body"><h3>C · Minimal glass</h3><p>Translucent frosted panels, an all-caps Inter sans, and thin ring gauges. Modern, clean and very readable, but it feels like a generic app UI and has none of the "keeper and lantern" personality the painterly world now has.</p></div>
+ </div>
+
+</div>
+
+<div class="section"><p class="label">Whichever you pick</p><p>The Keeper's Log can still use a parchment journal spread as a special screen, even under A or C.</p></div>
+
+</div>
+</div>
+</body>
+</html>

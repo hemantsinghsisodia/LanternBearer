@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Keeper concept board: moths</title>
+<style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  
+    /* ===== STANDALONE BOARD OVERRIDES ===== */
+    :root {
+      --bg-primary: #0e1020; --bg-secondary: #1d1f2e; --bg-tertiary: #2a2d40; --border: #3a3e55;
+      --text-primary: #f5f5f7; --text-secondary: #9aa0b8; --text-tertiary: #636a85;
+      --accent: #ffb15c; --accent-hover: #ffd38a; --selected-bg: rgba(255,177,92,0.12); --selected-border: #ffb15c;
+    }
+    html, body { background: #0b0e1a; }
+    .card { position: relative; cursor: default; }
+    .chosen-badge { position: absolute; top: 10px; right: 10px; z-index: 5; background: #ffb15c; color: #1a1206; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<div class="main">
+<div id="frame-content">
+<h2>What should the moths look like?</h2>
+<p class="subtitle">Each panel shows a moth far from the lantern (left) and one draining you (right, within 1.5 m). Violet stays the "draining" colour, matching the HUD. Wings flap through a shader, so no rig is needed. Today they're black discs with a halo.</p>
+
+<style>.mrow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.mstage{background:radial-gradient(circle at 70% 60%,#4a3020 0%,#141d36 45%,#0b1026 100%);border-radius:8px}</style>
+
+<div class="mrow">
+
+ <div class="card" data-choice="dusty"><span class="chosen-badge">Chosen</span>
+  <div class="card-image mstage">
+   <svg viewBox="0 0 280 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(70,80)" opacity=".75">
+     <path d="M0 0 Q-34 -26 -40 2 Q-30 18 0 6Z" fill="#7d86a0"/><path d="M0 0 Q34 -26 40 2 Q30 18 0 6Z" fill="#7d86a0"/>
+     <path d="M0 6 Q-22 22 -18 34 Q-6 26 0 12Z M0 6 Q22 22 18 34 Q6 26 0 12Z" fill="#6a7290"/>
+     <ellipse cx="0" cy="8" rx="4" ry="12" fill="#2a2a38"/>
+    </g>
+    <g transform="translate(200,96)">
+     <circle r="46" fill="#b48cff" opacity=".18"/>
+     <path d="M0 0 Q-38 -30 -44 2 Q-32 20 0 6Z" fill="#efe2cc"/><path d="M0 0 Q38 -30 44 2 Q32 20 0 6Z" fill="#efe2cc"/>
+     <path d="M-10 -6 Q-24 -14 -30 -2" stroke="#c9a77a" stroke-width="2" fill="none"/><path d="M10 -6 Q24 -14 30 -2" stroke="#c9a77a" stroke-width="2" fill="none"/>
+     <path d="M0 6 Q-24 24 -20 38 Q-6 28 0 12Z M0 6 Q24 24 20 38 Q6 28 0 12Z" fill="#dccab0"/>
+     <ellipse cx="0" cy="8" rx="5" ry="14" fill="#3a2e2a"/>
+     <path d="M-2 -6 Q-10 -20 -14 -22 M2 -6 Q10 -20 14 -22" stroke="#3a2e2a" stroke-width="1.2" fill="none"/>
+     <g fill="#efe2cc" opacity=".6"><circle cx="-30" cy="30" r="1.3"/><circle cx="-38" cy="40" r="1"/><circle cx="-24" cy="44" r=".9"/></g>
+    </g>
+   </svg>
+  </div>
+  <div class="card-body"><h3>A · Dusty moth (recommended)</h3><p>Pale, dusty wings with soft markings and a dark fuzzy body. Far away it's a dim, grey-blue flutter. Up close its wings catch your lantern and glow warm, so it's clearly a moth and clearly attracted to your light. A faint violet aura and falling wing dust show it's draining.</p></div>
+ </div>
+
+ <div class="card" data-choice="ghost">
+  <div class="card-image mstage">
+   <svg viewBox="0 0 280 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(70,80)">
+     <circle r="26" fill="#9fd0ff" opacity=".18"/>
+     <path d="M0 0 Q-34 -26 -40 2 Q-30 18 0 6Z" fill="#bfe2ff" opacity=".6"/><path d="M0 0 Q34 -26 40 2 Q30 18 0 6Z" fill="#bfe2ff" opacity=".6"/>
+     <ellipse cx="0" cy="6" rx="3" ry="10" fill="#e6f4ff"/>
+    </g>
+    <g transform="translate(200,96)">
+     <circle r="48" fill="#b48cff" opacity=".28"/>
+     <path d="M0 0 Q-38 -30 -44 2 Q-32 20 0 6Z" fill="#d6c4ff" opacity=".75"/><path d="M0 0 Q38 -30 44 2 Q32 20 0 6Z" fill="#d6c4ff" opacity=".75"/>
+     <path d="M0 6 Q-24 24 -20 38 Q-6 28 0 12Z M0 6 Q24 24 20 38 Q6 28 0 12Z" fill="#c8b0ff" opacity=".6"/>
+     <ellipse cx="0" cy="8" rx="4" ry="12" fill="#f4ecff"/>
+    </g>
+   </svg>
+  </div>
+  <div class="card-body"><h3>B · Spirit moth</h3><p>Translucent, faintly glowing wings, always visible in the dark. Easy to track, but it competes with the fireflies (also glowing points of light) and makes moths feel magical rather than threatening.</p></div>
+ </div>
+
+ <div class="card" data-choice="ash">
+  <div class="card-image mstage">
+   <svg viewBox="0 0 280 180" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(70,80)">
+     <path d="M0 0 Q-34 -26 -40 2 Q-30 18 0 6Z" fill="#14141c"/><path d="M0 0 Q34 -26 40 2 Q30 18 0 6Z" fill="#14141c"/>
+     <circle cx="-3" cy="-2" r="1.6" fill="#c48cff"/><circle cx="3" cy="-2" r="1.6" fill="#c48cff"/>
+    </g>
+    <g transform="translate(200,96)">
+     <circle r="46" fill="#b48cff" opacity=".2"/>
+     <path d="M0 0 Q-38 -30 -44 2 Q-32 20 0 6Z" fill="#1c1a24"/><path d="M0 0 Q38 -30 44 2 Q32 20 0 6Z" fill="#1c1a24"/>
+     <path d="M-30 -10 Q-38 0 -40 4 M30 -10 Q38 0 40 4" stroke="#ff9a3c" stroke-width="1.5" fill="none" opacity=".7"/>
+     <path d="M0 6 Q-24 24 -20 38 Q-6 28 0 12Z M0 6 Q24 24 20 38 Q6 28 0 12Z" fill="#14141c"/>
+     <circle cx="-4" cy="-4" r="2.4" fill="#d6a8ff"/><circle cx="4" cy="-4" r="2.4" fill="#d6a8ff"/>
+    </g>
+   </svg>
+  </div>
+  <div class="card-body"><h3>C · Ash moth</h3><p>Soot-black wings with violet ember eyes; only the lantern-lit wing edges glow. It's menacing and matches the Shades, but it's nearly invisible in balanced darkness until it's already on you. That's harder to read.</p></div>
+ </div>
+
+</div>
+
+<div class="section"><p class="label">Shared (any choice)</p><p>Shader wing flap, jittery fluttering flight, a violet draining aura and falling wing dust, and they keep the same gameplay (range, drain, avoidance).</p></div>
+
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Keeper concept board: keeper-silhouette</title>
+<style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  
+    /* ===== STANDALONE BOARD OVERRIDES ===== */
+    :root {
+      --bg-primary: #0e1020; --bg-secondary: #1d1f2e; --bg-tertiary: #2a2d40; --border: #3a3e55;
+      --text-primary: #f5f5f7; --text-secondary: #9aa0b8; --text-tertiary: #636a85;
+      --accent: #ffb15c; --accent-hover: #ffd38a; --selected-bg: rgba(255,177,92,0.12); --selected-border: #ffb15c;
+    }
+    html, body { background: #0b0e1a; }
+    .card { position: relative; cursor: default; }
+    .chosen-badge { position: absolute; top: 10px; right: 10px; z-index: 5; background: #ffb15c; color: #1a1206; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<div class="main">
+<div id="frame-content">
+<h2>Who is the keeper? Silhouette concepts</h2>
+<p class="subtitle">In balanced darkness the keeper mostly reads as a silhouette against the lantern glow, so the shape matters more than detail. Each figure holds a real lantern by its handle (bail), not glued to the wrist. The current model is shown for reference.</p>
+
+<style>
+ .row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+ .stage{background:linear-gradient(#0b1026,#26365c);border-radius:8px}
+</style>
+
+<div class="row">
+
+  <div class="card">
+    <div class="card-image stage">
+      <svg viewBox="0 0 200 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="gc" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb15c" stop-opacity=".45"/><stop offset="1" stop-color="#ffb15c" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="120" cy="150" r="60" fill="url(#gc)"/>
+        <circle cx="100" cy="70" r="16" fill="#e0a070"/>
+        <rect x="84" y="88" width="32" height="70" rx="6" fill="#d98a4a"/>
+        <rect x="86" y="158" width="12" height="60" fill="#5a4a7a"/><rect x="102" y="158" width="12" height="60" fill="#5a4a7a"/>
+        <rect x="116" y="92" width="10" height="44" rx="4" fill="#d98a4a"/>
+        <rect x="118" y="132" width="10" height="12" fill="#ffcf7a"/>
+        <text x="100" y="248" fill="#cfd8f0" font-size="11" text-anchor="middle">current: no costume,</text>
+        <text x="100" y="258" fill="#cfd8f0" font-size="11" text-anchor="middle">box on wrist</text>
+      </svg>
+    </div>
+    <div class="card-body"><h3>Today (reference)</h3><p>Generic low-poly figure in flat orange. Nothing says "keeper".</p></div>
+  </div>
+
+  <div class="card" data-choice="wanderer"><span class="chosen-badge">Chosen</span>
+    <div class="card-image stage">
+      <svg viewBox="0 0 200 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="ga" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd38a" stop-opacity=".9"/><stop offset=".4" stop-color="#ff9a3c" stop-opacity=".35"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="138" cy="150" r="66" fill="url(#ga)"/>
+        <path d="M100 40 Q78 46 74 78 Q72 96 80 104 L120 104 Q128 96 126 78 Q122 46 100 40Z" fill="#0d1428"/>
+        <path d="M84 70 Q100 58 116 70 Q116 92 100 96 Q84 92 84 70Z" fill="#05080f"/>
+        <path d="M78 100 Q64 160 58 236 L84 226 L96 238 L110 226 L126 236 L144 228 Q136 160 122 100Z" fill="#0d1428"/>
+        <path d="M58 236 L66 222 L72 238Z M126 236 L132 220 L140 232Z" fill="#0d1428"/>
+        <rect x="70" y="130" width="22" height="18" rx="3" fill="#1a2440"/>
+        <path d="M122 106 Q136 120 136 142" stroke="#0d1428" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <path d="M136 142 Q138 136 140 142" stroke="#3a2a1a" stroke-width="1.2" fill="none"/>
+        <rect x="132" y="146" width="12" height="16" rx="2" fill="#2a1e14"/><rect x="134" y="148" width="8" height="12" rx="1" fill="#ffcf7a"/>
+        <path d="M122 104 Q132 118 134 138" stroke="#ffb15c" stroke-width="1.2" fill="none" opacity=".8"/>
+        <path d="M120 110 Q128 160 134 220" stroke="#ffb15c" stroke-width="1" fill="none" opacity=".55"/>
+      </svg>
+    </div>
+    <div class="card-body"><h3>A · Hooded wanderer (recommended)</h3><p>Deep hood with a face lost in shadow, a long cloak with a torn hem, and a satchel. The lantern is held out at arm's length by its handle. Mysterious and simple: a lone figure carrying light. It rhymes with the Shades without copying them, and the warm cloak rim catches the lantern.</p></div>
+  </div>
+
+  <div class="card" data-choice="lighthouse">
+    <div class="card-image stage">
+      <svg viewBox="0 0 200 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="gb" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd38a" stop-opacity=".9"/><stop offset=".4" stop-color="#ff9a3c" stop-opacity=".35"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="136" cy="128" r="62" fill="url(#gb)"/>
+        <path d="M66 62 Q100 46 134 62 L128 68 Q100 60 72 68Z" fill="#141c30"/>
+        <circle cx="100" cy="76" r="13" fill="#141c30"/>
+        <path d="M86 86 Q100 94 114 86 L118 96 L82 96Z" fill="#7a2e2e"/>
+        <path d="M80 96 L120 96 L128 196 L72 196Z" fill="#1c2a3e"/>
+        <rect x="76" y="196" width="18" height="34" fill="#0d1428"/><rect x="106" y="196" width="18" height="34" fill="#0d1428"/>
+        <path d="M120 100 Q134 108 136 122" stroke="#1c2a3e" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <rect x="130" y="126" width="12" height="16" rx="2" fill="#2a1e14"/><rect x="132" y="128" width="8" height="12" rx="1" fill="#ffcf7a"/>
+        <path d="M120 98 Q130 120 128 196" stroke="#ffb15c" stroke-width="1" fill="none" opacity=".55"/>
+      </svg>
+    </div>
+    <div class="card-body"><h3>B · Lighthouse keeper</h3><p>Oilskin coat, wide-brim rain hat, a red scarf, heavy boots. A grounded, human, nautical figure that ties into the Phase 3 lighthouse finale. Warmer and more relatable, less mysterious.</p></div>
+  </div>
+
+  <div class="card" data-choice="apprentice">
+    <div class="card-image stage">
+      <svg viewBox="0 0 200 260" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="gd" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd38a" stop-opacity=".95"/><stop offset=".4" stop-color="#ff9a3c" stop-opacity=".4"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="132" cy="160" r="72" fill="url(#gd)"/>
+        <circle cx="100" cy="96" r="20" fill="#141c30"/>
+        <path d="M84 112 Q60 118 40 112 L44 120 Q66 128 86 122Z" fill="#c98a3a"/>
+        <path d="M82 116 L118 116 Q130 150 124 196 L76 196 Q70 150 82 116Z" fill="#1c2a3e"/>
+        <path d="M80 118 L60 176 L82 170Z" fill="#141c30"/>
+        <rect x="80" y="196" width="14" height="34" fill="#0d1428"/><rect x="106" y="196" width="14" height="34" fill="#0d1428"/>
+        <path d="M118 124 Q128 136 128 148" stroke="#1c2a3e" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <rect x="118" y="150" width="22" height="28" rx="3" fill="#2a1e14"/><rect x="121" y="153" width="16" height="22" rx="2" fill="#ffcf7a"/>
+      </svg>
+    </div>
+    <div class="card-body"><h3>C · Young apprentice</h3><p>A small, child-like keeper with a trailing scarf, a short cape and an oversized lantern. Vulnerable and charming, so the darkness feels bigger by contrast (think Little Nightmares or Alba). The scarf animates nicely in wind gusts.</p></div>
+  </div>
+
+</div>
+
+<div class="section">
+  <p class="label">How to answer</p>
+  <p>Click a concept and reply in the terminal. Mixing is fine, e.g. "A's hood with B's red scarf".</p>
+</div>
+
+</div>
+</div>
+</body>
+</html>

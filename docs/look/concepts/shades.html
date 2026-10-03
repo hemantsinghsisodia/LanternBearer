@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Keeper concept board: shades</title>
+<style>
+    /*
+     * BRAINSTORM COMPANION FRAME TEMPLATE
+     *
+     * This template provides a consistent frame with:
+     * - OS-aware light/dark theming
+     * - Header branding and connection status
+     * - Scrollable main content area
+     * - CSS helpers for common UI patterns
+     *
+     * Content is injected via placeholder comment in #frame-content.
+     */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ===== THEME VARIABLES ===== */
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #aeaeb2;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --error: #ff3b30;
+      --selected-bg: #e8f4fd;
+      --selected-border: #0071e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #636366;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --selected-bg: rgba(10, 132, 255, 0.15);
+        --selected-border: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* ===== FRAME STRUCTURE ===== */
+    .brand { display: flex; align-items: center; min-width: 0; overflow: hidden; color: var(--text-secondary); line-height: 1; }
+    .brand a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; min-width: 0; max-width: 100%; line-height: 1; }
+    .brand-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(-1px); }
+    .brand-logo { display: block; height: 1em; width: auto; max-width: 180px; flex-shrink: 0; filter: invert(1); }
+    @media (prefers-color-scheme: dark) {
+      .brand-logo { filter: none; }
+    }
+    .status { font-size: 0.7rem; color: var(--status-color, var(--success)); display: flex; align-items: center; gap: 0.4rem; justify-self: end; white-space: nowrap; line-height: 1; }
+    .status::before { content: ''; width: 6px; height: 6px; background: var(--status-color, var(--success)); border-radius: 50%; }
+
+    .main { flex: 1; overflow-y: auto; }
+    #frame-content { padding: 2rem; min-height: 100%; }
+
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1.5rem;
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      min-height: 42px;
+    }
+    .header .brand { justify-self: start; width: 100%; font-size: 0.75rem; line-height: 1; }
+    .header .status { grid-column: 2; line-height: 1; }
+    .header span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header .selected-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== TYPOGRAPHY ===== */
+    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .section { margin-bottom: 2rem; }
+    .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+    /* ===== OPTIONS (for A/B/C choices) ===== */
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .option:hover { border-color: var(--accent); }
+    .option.selected { background: var(--selected-bg); border-color: var(--selected-border); }
+    .option .letter {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      width: 1.75rem; height: 1.75rem;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .option.selected .letter { background: var(--accent); color: white; }
+    .option .content { flex: 1; }
+    .option .content h3 { font-size: 0.95rem; margin-bottom: 0.15rem; }
+    .option .content p { color: var(--text-secondary); font-size: 0.85rem; margin: 0; }
+
+    /* ===== CARDS (for showing designs/mockups) ===== */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .card.selected { border-color: var(--selected-border); border-width: 2px; }
+    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    .card-body { padding: 1rem; }
+    .card-body h3 { margin-bottom: 0.25rem; }
+    .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ===== MOCKUP CONTAINER ===== */
+    .mockup {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mockup-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-body { padding: 1.5rem; }
+
+    /* ===== SPLIT VIEW (side-by-side comparison) ===== */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* ===== PROS/CONS ===== */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .pros, .cons { background: var(--bg-secondary); border-radius: 8px; padding: 1rem; }
+    .pros h4 { color: var(--success); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .cons h4 { color: var(--error); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pros ul, .cons ul { margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); }
+    .pros li, .cons li { margin-bottom: 0.25rem; }
+
+    /* ===== PLACEHOLDER (for mockup areas) ===== */
+    .placeholder {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== INLINE MOCKUP ELEMENTS ===== */
+    .mock-nav { background: var(--accent); color: white; padding: 0.75rem 1rem; display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .mock-sidebar { background: var(--bg-tertiary); padding: 1rem; min-width: 180px; }
+    .mock-content { padding: 1.5rem; flex: 1; }
+    .mock-button { background: var(--accent); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .mock-input { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; width: 100%; }
+  
+    /* ===== STANDALONE BOARD OVERRIDES ===== */
+    :root {
+      --bg-primary: #0e1020; --bg-secondary: #1d1f2e; --bg-tertiary: #2a2d40; --border: #3a3e55;
+      --text-primary: #f5f5f7; --text-secondary: #9aa0b8; --text-tertiary: #636a85;
+      --accent: #ffb15c; --accent-hover: #ffd38a; --selected-bg: rgba(255,177,92,0.12); --selected-border: #ffb15c;
+    }
+    html, body { background: #0b0e1a; }
+    .card { position: relative; cursor: default; }
+    .chosen-badge { position: absolute; top: 10px; right: 10px; z-index: 5; background: #ffb15c; color: #1a1206; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<div class="main">
+<div id="frame-content">
+<h2>How should the Shades be rendered?</h2>
+<p class="subtitle">The hollow-wraith shape stays. This is about treatment: how it reads in darkness, in your lantern's light (frozen), and in a lightning flash (stunned). Today it's a flat, dark, semi-transparent shape.</p>
+
+<style>.srow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.sstage{background:linear-gradient(#0b1026,#1c2a4f);border-radius:8px}</style>
+
+<div class="srow">
+
+ <div class="card" data-choice="smoke"><span class="chosen-badge">Chosen</span>
+  <div class="card-image sstage">
+   <svg viewBox="0 0 300 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs><filter id="rough"><feTurbulence baseFrequency=".08" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="6"/></filter></defs>
+    <g transform="translate(70,10)" filter="url(#rough)">
+     <path d="M0 10 Q-18 14 -20 40 Q-24 60 -26 100 L-40 170 L-20 150 L-10 176 L0 150 L12 178 L22 150 L38 168 L26 100 Q24 60 20 40 Q18 14 0 10Z" fill="#05070f" opacity=".92"/>
+     <path d="M-20 60 Q-40 100 -34 130 M20 60 Q40 100 34 130" stroke="#05070f" stroke-width="5" fill="none"/>
+    </g>
+    <circle cx="66" cy="42" r="2.2" fill="#ffd27a"/><circle cx="76" cy="42" r="2.2" fill="#ffd27a"/>
+    <g fill="#1a2140" opacity=".6"><circle cx="58" cy="182" r="8"/><circle cx="74" cy="176" r="10"/><circle cx="88" cy="184" r="7"/></g>
+    <g transform="translate(225,10)">
+     <path d="M0 10 Q-18 14 -20 40 Q-24 60 -26 100 L-40 170 L-20 150 L-10 176 L0 150 L12 178 L22 150 L38 168 L26 100 Q24 60 20 40 Q18 14 0 10Z" fill="#0a0e1c" stroke="#bcd2ff" stroke-width="2.5"/>
+     <circle cx="-4" cy="32" r="3" fill="#fff4cc"/><circle cx="6" cy="32" r="3" fill="#fff4cc"/>
+     <circle cx="1" cy="32" r="14" fill="#bcd2ff" opacity=".18"/>
+    </g>
+    <text x="72" y="196" fill="#cfd8f0" font-size="10" text-anchor="middle">in darkness</text><text x="225" y="196" fill="#cfd8f0" font-size="10" text-anchor="middle">lightning: outlined, stunned</text>
+   </svg>
+  </div>
+  <div class="card-body"><h3>A · Smoke wraith (recommended)</h3><p>A near-opaque, ink-dark body. The edges are noisy and ragged, and break into smoke at the hem, which trails behind it. The cloak tatters sway through a shader. Pinprick eyes glow softly. A lightning flash gives a crisp pale-blue outline. In your lantern's light it freezes and its edges flicker, as if it's burning away.</p></div>
+ </div>
+
+ <div class="card" data-choice="void">
+  <div class="card-image sstage">
+   <svg viewBox="0 0 300 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(150,10)">
+     <path d="M0 10 Q-18 14 -20 40 Q-24 60 -26 100 L-40 170 L-20 150 L-10 176 L0 150 L12 178 L22 150 L38 168 L26 100 Q24 60 20 40 Q18 14 0 10Z" fill="#000" stroke="#5a6aa0" stroke-width="1.5" stroke-opacity=".4"/>
+     <circle cx="-4" cy="32" r="1.5" fill="#ffffff"/><circle cx="6" cy="32" r="1.5" fill="#ffffff"/>
+    </g>
+    <path d="M100 30 Q120 60 110 100 M200 40 Q186 80 194 120" stroke="#2a3a6a" stroke-width="1" fill="none" opacity=".6"/>
+    <text x="150" y="196" fill="#cfd8f0" font-size="10" text-anchor="middle">a hole in the world</text>
+   </svg>
+  </div>
+  <div class="card-body"><h3>B · Void cutout</h3><p>Pure black that absorbs light, like a hole cut in the world, with a faint warping of the background at its edges. It's striking and graphic, but in balanced darkness against a dark sky it can vanish entirely, and it relies on the warping effect, which is costlier.</p></div>
+ </div>
+
+ <div class="card" data-choice="spectral">
+  <div class="card-image sstage">
+   <svg viewBox="0 0 300 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="sp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fb4e8" stop-opacity=".55"/><stop offset="1" stop-color="#9fb4e8" stop-opacity="0"/></linearGradient></defs>
+    <g transform="translate(150,10)">
+     <path d="M0 10 Q-18 14 -20 40 Q-24 60 -26 100 L-40 170 L-20 150 L-10 176 L0 150 L12 178 L22 150 L38 168 L26 100 Q24 60 20 40 Q18 14 0 10Z" fill="url(#sp)"/>
+     <path d="M0 10 Q-18 14 -20 40" stroke="#dfe8ff" stroke-width="1.5" fill="none" opacity=".7"/>
+     <circle cx="-4" cy="32" r="2.5" fill="#e8f0ff"/><circle cx="6" cy="32" r="2.5" fill="#e8f0ff"/>
+    </g>
+    <text x="150" y="196" fill="#cfd8f0" font-size="10" text-anchor="middle">pale ghost</text>
+   </svg>
+  </div>
+  <div class="card-body"><h3>C · Spectral ghost</h3><p>Pale, translucent and softly glowing, fading out toward the hem. Always visible, but it reads as a classic ghost, which is less scary, and it clashes with "they live in the dark and fear your light".</p></div>
+ </div>
+
+</div>
+
+</div>
+</div>
+</body>
+</html>
