@@ -45,6 +45,13 @@ public static class LookMapping
         return Mathf.Min(profileIntensity, MoonOffIntensityCap);
     }
 
+    // The moon's light colour. A moonless island has a black "off" marker for moon, so it uses the cool fallback as a dim fill.
+    public static Color MoonColour(bool moonOn, Color moon, Color fallback)
+    {
+        Color c = moonOn ? moon : fallback;
+        return new Color(c.r, c.g, c.b, 1f);
+    }
+
     public static Color LerpDawn(Color night, Color dawn, float u)
     {
         return Color.Lerp(night, dawn, Mathf.Clamp01(u));

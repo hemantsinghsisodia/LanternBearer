@@ -52,6 +52,17 @@ public class LookMappingTests
     }
 
     [Test]
+    public void MoonlessIslandGetsCoolNonBlackFill()
+    {
+        LookProfile p = Load(4);
+        Assert.IsFalse(p.moonOn);
+        Color c = LookMapping.MoonColour(p.moonOn, p.moon, p.moonRim);
+        Assert.Greater(Mathf.Max(c.r, Mathf.Max(c.g, c.b)), 0.2f, "moon fill is black");
+        Assert.IsTrue(LookMapping.IsCool(c), "moon fill is warm");
+        Assert.AreEqual(1f, c.a, 1e-6f);
+    }
+
+    [Test]
     public void DawnLerpEndpoints()
     {
         Color a = new Color(0.1f, 0.2f, 0.3f);

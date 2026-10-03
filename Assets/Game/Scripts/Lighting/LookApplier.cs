@@ -89,7 +89,7 @@ public class LookApplier : MonoBehaviour
 
         if (moon != null)
         {
-            moon.color = new Color(profile.moon.r, profile.moon.g, profile.moon.b, 1f);
+            moon.color = LookMapping.MoonColour(profile.moonOn, profile.moon, profile.moonRim);
             moon.intensity = LookMapping.MoonIntensity(profile.moonOn, profile.moonIntensity);
             moon.shadows = LightShadows.Soft;
             RenderSettings.sun = moon;
