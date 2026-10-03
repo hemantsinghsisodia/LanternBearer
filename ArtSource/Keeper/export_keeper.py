@@ -96,6 +96,9 @@ def rename_actions():
         action.use_fake_user = True
 
 
+SPINE_BONES = ["Abdomen", "Torso", "Chest", "Neck", "Head"]
+
+
 def author_lean(arm):
     reset_pose(arm)
     action = new_action(arm, CLIP_PREFIX + "Lean")
