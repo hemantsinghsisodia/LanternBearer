@@ -8,6 +8,19 @@ public class UIThemeTests
 {
     const string ThemePath = "Assets/Game/Art/UI/UITheme.asset";
 
+    // Everything the font assets are created with: ASCII 32-126 plus the punctuation the game prints.
+    static readonly string RequiredGlyphs = BuildRequiredGlyphs();
+
+    static string BuildRequiredGlyphs()
+    {
+        string glyphs = "—·’“”…•";
+        for (int c = 32; c <= 126; c++)
+        {
+            glyphs += (char)c;
+        }
+        return glyphs;
+    }
+
     static UITheme Load()
     {
         UITheme theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
@@ -58,7 +71,7 @@ public class UIThemeTests
         {
             Assert.IsNotNull(font);
             uint[] missing;
-            bool ok = font.HasCharacters("—·’“”…0123456789ABCabc", out missing, false, false);
+            bool ok = font.HasCharacters(RequiredGlyphs, out missing, false, false);
             string list = "";
             if (missing != null)
             {

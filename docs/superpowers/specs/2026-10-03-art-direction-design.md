@@ -186,7 +186,8 @@ Every phase is checked against these.
      - a moth up close
    - **Screens:** the main menu, the HUD, pause and the journal.
    - **Presets:** each shot is taken on Low and on Ultra, at 1920×1080.
-   - **Output:** `docs/look/baseline/<YYYY-MM-DD>/<island>/<preset>/<shot>.png`, plus a `frametimes.md` with the average frame time over a fixed window per island and preset.
+   - **Output:** `docs/look/baseline/<YYYY-MM-DD>/<island>/<preset>/<shot>.jpg` (JPEG quality 92), plus a `frametimes.md` with the average frame time over a fixed window per island and preset.
+     - JPEG instead of PNG keeps each capture run about 33 MB instead of about 200 MB.
    - **Behaviour:**
      - Creatures are placed deterministically for the close-up shots.
      - The tool restores the scene, PlayerPrefs and the graphics preset afterwards, and leaves no scene changes.

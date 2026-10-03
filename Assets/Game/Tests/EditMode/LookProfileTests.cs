@@ -64,6 +64,8 @@ public class LookProfileTests
         CheckPalette(2, "0D1124", "151D33", "1B2A2A", "8A9CC4", "1D2233", "E6ECFF", true, true, false);
         CheckPalette(3, "0A1A1C", "132A28", "1B2E24", "7FB8A2", "7FB8A2", "D8F0D0", true, true, false);
         CheckPalette(4, "120F22", "1C1A30", "2A2638", "B8B2E0", "D6DCFF", "000000", false, false, true);
+        Assert.AreEqual(0f, Load(1).extra.a, "island1 extra must be transparent (none)");
+        Assert.AreEqual(0f, Load(4).moon.a, "island4 moon must be transparent (off)");
     }
 
     [Test]
