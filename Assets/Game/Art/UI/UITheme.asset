@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdc615dee5826c04b834341c10cff9ea, type: 3}
+  m_Name: UITheme
+  m_EditorClassIdentifier: LanternKeeper.Look::LanternKeeper.UITheme
+  titleFont: {fileID: 11400000, guid: 84661db5e747e024085685bdb6be8ba0, type: 2}
+  flavourFont: {fileID: 11400000, guid: ac794456e90e748438cd577ca70c304d, type: 2}
+  uiFont: {fileID: 11400000, guid: 0cdb51f34cc68554a8ccd0b31e1286f1, type: 2}
+  uiFontStrong: {fileID: 11400000, guid: 9bcfd25f0e2e7a04892e79f8d994e817, type: 2}
+  amber: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
+  glowCore: {r: 1, g: 0.827451, b: 0.5411765, a: 1}
+  drainViolet: {r: 0.7058824, g: 0.54901963, b: 1, a: 1}
+  lightningBlue: {r: 0.7372549, g: 0.8235294, b: 1, a: 1}
+  fireflyGreen: {r: 0.72156864, g: 1, b: 0.6901961, a: 1}
+  inkPanel: {r: 0.050980393, g: 0.0627451, b: 0.1254902, a: 0.88}
+  brassLine: {r: 0.41960785, g: 0.3529412, b: 0.26666668, a: 1}
+  textPrimary: {r: 0.9529412, g: 0.9019608, b: 0.8117647, a: 1}
+  textMuted: {r: 0.78431374, g: 0.7254902, b: 0.627451, a: 1}
+  minHudFontPx: 18
+  panelFrame: {fileID: 0}
+  buttonFrame: {fileID: 0}
+  iconLantern: {fileID: 0}
+  iconBeacon: {fileID: 0}
+  iconMoth: {fileID: 0}
+  iconShield: {fileID: 0}
+  iconEmber: {fileID: 0}

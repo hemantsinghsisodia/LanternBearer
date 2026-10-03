@@ -113,6 +113,28 @@ System, AI Navigation, Timeline, uGUI, and TextMesh Pro are Unity
 packages used to make and run the game.
 
 ------------------------------------------------------------------------
+Fonts (SIL Open Font License 1.1)
+------------------------------------------------------------------------
+
+Cormorant Garamond by the Cormorant Project Authors (Christian Thalmann).
+Used for titles (Bold, SemiBold). SIL OFL 1.1.
+https://github.com/CatharsisFonts/Cormorant
+Source: https://fonts.google.com/specimen/Cormorant+Garamond
+Files: Assets/Game/Art/UI/Fonts/CormorantGaramond-*.ttf, licence in OFL-CormorantGaramond.txt
+
+Spectral by Production Type.
+Used for flavour text (Italic, Regular). SIL OFL 1.1.
+https://github.com/productiontype/Spectral
+Source: https://github.com/google/fonts/tree/main/ofl/spectral
+Files: Assets/Game/Art/UI/Fonts/Spectral-*.ttf, licence in OFL-Spectral.txt
+
+Inter by The Inter Project Authors (Rasmus Andersson).
+Used for UI and numbers (Regular, SemiBold; the 18pt static cut). SIL OFL 1.1.
+https://github.com/rsms/inter
+Source: https://fonts.google.com/specimen/Inter
+Files: Assets/Game/Art/UI/Fonts/Inter-*.ttf, licence in OFL-Inter.txt
+
+------------------------------------------------------------------------
 Editor only (not part of the game)
 ------------------------------------------------------------------------
 
