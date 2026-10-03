@@ -587,6 +587,8 @@ public static class SceneWiring
             nulls += RequireNearKeeper(lanterns[i], quiet);
         }
 
+        nulls += RequireKeeperScale(quiet);
+
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)
         {
@@ -1414,6 +1416,11 @@ public static class SceneWiring
         }
 
         float distance = Vector3.Distance(lantern.transform.position, keeper.transform.position);
+        if (!quiet)
+        {
+            Debug.Log("Lantern is " + distance.ToString("0.00") + " m from the keeper on " + lantern.name + ".", lantern);
+        }
+
         if (distance <= MaxLanternKeeperDistance)
         {
             return 0;
@@ -1425,6 +1432,68 @@ public static class SceneWiring
         }
 
         return 1;
+    }
+
+    // The keeper rig is exported at true scale, so nothing under it may carry a scale to compensate for.
+    const float KeeperScaleTolerance = 0.001f;
+
+    static int RequireKeeperScale(bool quiet)
+    {
+        PlayerController keeper = KeeperQuality.FindGameplayKeeper();
+        if (keeper == null)
+        {
+            return 0;
+        }
+
+        int problems = 0;
+        Transform[] all = keeper.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < all.Length; i++)
+        {
+            Transform t = all[i];
+            if (t == keeper.transform || IsLanternOrFxTransform(t, keeper.transform))
+            {
+                continue;
+            }
+
+            Vector3 scale = t.localScale;
+            if (Mathf.Abs(scale.x - 1f) <= KeeperScaleTolerance && Mathf.Abs(scale.y - 1f) <= KeeperScaleTolerance && Mathf.Abs(scale.z - 1f) <= KeeperScaleTolerance)
+            {
+                continue;
+            }
+
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning("Keeper transform " + TransformPath(t, keeper.transform) + " has scale " + scale.ToString("0.000"), t);
+            }
+        }
+
+        return problems;
+    }
+
+    // Lantern, glow and dust children are sized on their own and are skipped by the scale check.
+    static bool IsLanternOrFxTransform(Transform t, Transform keeperRoot)
+    {
+        for (Transform walk = t; walk != null && walk != keeperRoot; walk = walk.parent)
+        {
+            if (walk.name == "LanternPivot" || walk.name == "Dust" || walk.name == "LanternHalo")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static string TransformPath(Transform t, Transform keeperRoot)
+    {
+        string path = t.name;
+        for (Transform walk = t.parent; walk != null && walk != keeperRoot; walk = walk.parent)
+        {
+            path = walk.name + "/" + path;
+        }
+
+        return path;
     }
 
     static int RequireArray(Object target, string property, bool quiet)

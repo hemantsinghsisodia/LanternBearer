@@ -122,6 +122,21 @@ public static partial class IslandBuilder
                 clips[i].loopTime = true;
                 clips[i].loopPose = leaf != "Idle";
             }
+            else if (leaf == "LanternHold")
+            {
+                clips[i].loopTime = true;
+                clips[i].loopPose = true;
+            }
+            else if (leaf == "Lean")
+            {
+                // Frame 0 is the rest pose; frames 1-2 hold the bent spine, so the clip adds only the bend.
+                clips[i].loopTime = true;
+                clips[i].loopPose = true;
+                clips[i].firstFrame = 1f;
+                clips[i].lastFrame = 2f;
+                clips[i].hasAdditiveReferencePose = true;
+                clips[i].additiveReferencePoseFrame = 0f;
+            }
         }
 
         importer.clipAnimations = clips;
@@ -700,16 +715,13 @@ public static partial class IslandBuilder
 
     static void AttachLantern(ArtKit art, Transform root, Transform hand)
     {
+        // HandSocket sits in the closed fist of the re-exported rig; the bare wrist is only a fallback.
+        Transform socket = FindDeep(root, "HandSocket");
         GameObject pivot = new GameObject("LanternPivot");
-        pivot.transform.SetParent(hand, false);
-        Vector3 lossy = hand.lossyScale;
-        pivot.transform.localScale = new Vector3(1f / Mathf.Max(0.0001f, lossy.x), 1f / Mathf.Max(0.0001f, lossy.y), 1f / Mathf.Max(0.0001f, lossy.z));
-        // The offset is meant in metres, so convert it into the hand's scaled space like the scale above.
-        // The imported armature is scaled ~93x; without this the lantern ends up ~9 m from the keeper.
-        pivot.transform.localPosition = new Vector3(
-            0.02f / Mathf.Max(0.0001f, lossy.x),
-            -0.05f / Mathf.Max(0.0001f, lossy.y),
-            0.08f / Mathf.Max(0.0001f, lossy.z));
+        pivot.transform.SetParent(socket != null ? socket : hand, false);
+        pivot.transform.localPosition = Vector3.zero;
+        pivot.transform.localRotation = Quaternion.identity;
+        pivot.transform.localScale = Vector3.one;
         GameObject lantern = Prim(PrimitiveType.Cube, "Lantern", pivot.transform, Vector3.zero, new Vector3(0.12f, 0.16f, 0.12f), art.lanternMat);
         Prim(PrimitiveType.Cube, "Cap", lantern.transform, new Vector3(0f, 0.62f, 0f), new Vector3(0.7f, 0.18f, 0.7f), art.cloak);
         GameObject lightObject = new GameObject("LanternLight");

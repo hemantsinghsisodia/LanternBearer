@@ -55,7 +55,7 @@ public class LanternHalo : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(cachedCamera.transform.forward, cachedCamera.transform.up);
         }
 
-        transform.localScale = Vector3.one * (size / Mathf.Max(0.0001f, transform.parent != null ? transform.parent.lossyScale.x : 1f));
+        transform.localScale = Vector3.one * size;
 
         float alpha = 0f;
         if (sourceLight != null && sourceLight.enabled)
