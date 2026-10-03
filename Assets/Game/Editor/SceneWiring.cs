@@ -625,7 +625,57 @@ public static class SceneWiring
         nulls += ReportHorizon(quiet);
         nulls += ReportGraphicsMenus(quiet);
         nulls += ReportLookProfiles(quiet);
+        nulls += ReportLookApplier(quiet);
         return nulls;
+    }
+
+    // Each island scene needs exactly one LookApplier whose profile matches the scene's LevelConfig, and the night sky shader.
+    static int ReportLookApplier(bool quiet)
+    {
+        string sceneName = EditorSceneManager.GetActiveScene().name;
+        LevelConfig config = null;
+        string[] guids = AssetDatabase.FindAssets("t:LevelConfig");
+        for (int i = 0; i < guids.Length; i++)
+        {
+            LevelConfig candidate = AssetDatabase.LoadAssetAtPath<LevelConfig>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            if (candidate != null && candidate.sceneName == sceneName && sceneName.StartsWith("Island"))
+            {
+                config = candidate;
+                break;
+            }
+        }
+
+        if (config == null)
+        {
+            return 0;
+        }
+
+        string problem = null;
+        LookApplier[] appliers = Object.FindObjectsByType<LookApplier>(FindObjectsInactive.Include);
+        if (appliers.Length != 1)
+        {
+            problem = appliers.Length + " LookApplier components (expected 1)";
+        }
+        else if (appliers[0].Profile == null || appliers[0].Profile.levelId != config.levelId)
+        {
+            problem = "LookApplier profile does not match level '" + config.levelId + "'";
+        }
+        else if (RenderSettings.skybox == null || RenderSettings.skybox.shader.name != "LanternKeeper/NightSky")
+        {
+            problem = "RenderSettings.skybox is not a LanternKeeper/NightSky material";
+        }
+
+        if (problem == null)
+        {
+            return 0;
+        }
+
+        if (!quiet)
+        {
+            Debug.LogWarning("Look applier problem: " + sceneName + ": " + problem);
+        }
+
+        return 1;
     }
 
     // Every LevelConfig used by a build scene needs a lookProfile whose levelId matches its own.

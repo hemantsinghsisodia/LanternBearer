@@ -179,6 +179,8 @@ public static partial class IslandBuilder
         try
         {
             EditorUtility.DisplayProgressBar("Lantern Keeper", "Building " + config.sceneName, 0.15f);
+            // The build unloads unused assets, so keep the profile's path and reload it when the atmosphere needs it.
+            lookProfilePath = AssetDatabase.GetAssetPath(config.lookProfile);
             EnsureFolder("Assets/Game/Scenes");
             EditorSceneManager.SaveOpenScenes();
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -437,33 +439,40 @@ public static partial class IslandBuilder
 
     static void CreateAtmosphere(LevelConfig config, ArtKit art, Stage stage)
     {
-        RenderSettings.skybox = art.sky;
-        RenderSettings.ambientSkyColor = new Color(0.09f, 0.12f, 0.22f);
-        RenderSettings.ambientEquatorColor = new Color(0.1f, 0.28f, 0.28f);
-        RenderSettings.ambientGroundColor = new Color(0.03f, 0.028f, 0.035f);
-        if (art.hdriSky)
+        // Island sky, ambient light and fog come from the look profile through LookApplier (wired below).
+        // The menu preview has no profile and keeps the original values.
+        bool hasLook = LoadLookProfile() != null;
+        if (!hasLook)
         {
-            RenderSettings.ambientMode = AmbientMode.Skybox;
-            RenderSettings.ambientIntensity = 0.18f;
-            RenderSettings.reflectionIntensity = 1f;
-            DynamicGI.UpdateEnvironment();
-        }
-        else
-        {
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.skybox = art.sky;
+            RenderSettings.ambientSkyColor = new Color(0.09f, 0.12f, 0.22f);
+            RenderSettings.ambientEquatorColor = new Color(0.1f, 0.28f, 0.28f);
+            RenderSettings.ambientGroundColor = new Color(0.03f, 0.028f, 0.035f);
+            if (art.hdriSky)
+            {
+                RenderSettings.ambientMode = AmbientMode.Skybox;
+                RenderSettings.ambientIntensity = 0.18f;
+                DynamicGI.UpdateEnvironment();
+            }
+            else
+            {
+                RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientIntensity = 1f;
+            }
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Exponential;
+            RenderSettings.fogColor = config.fogColor;
+            RenderSettings.fogDensity = config.fogDensity;
         }
 
-        RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.Exponential;
-        RenderSettings.fogColor = config.fogColor;
-        RenderSettings.fogDensity = config.fogDensity;
+        RenderSettings.reflectionIntensity = 1f;
 
         GameObject moon = new GameObject("Moonlight");
         Light sun = moon.AddComponent<Light>();
         sun.type = LightType.Directional;
         sun.color = new Color(0.82f, 0.88f, 1f);
-        sun.intensity = 1.08f;
+        sun.intensity = hasLook ? 0.35f : 1.08f;
         sun.shadows = LightShadows.Soft;
         sun.shadowStrength = 0.65f;
         if (art.moonDirection.sqrMagnitude > 0.25f)
@@ -486,6 +495,11 @@ public static partial class IslandBuilder
         fillLight.shadows = LightShadows.None;
         fill.transform.rotation = Quaternion.Euler(18f, 150f, 0f);
 
+        if (hasLook)
+        {
+            CreateLookApplier(config, sun, stage);
+        }
+
         GameObject volumeObject = new GameObject("Global Volume");
         Volume volume = volumeObject.AddComponent<Volume>();
         volume.isGlobal = true;
@@ -495,7 +509,7 @@ public static partial class IslandBuilder
 
         GameObject sky = new GameObject("Sky");
         stage.stars = CreateStars(sky.transform, art);
-        if (art.hdriSky)
+        if (art.hdriSky && !hasLook)
         {
             stage.stars.gameObject.SetActive(false);
         }
@@ -503,7 +517,15 @@ public static partial class IslandBuilder
         CreateHorizon(config, art, stage);
         CreateReflectionProbe(stage);
         DawnSequence.ApplyNightGlobals();
-        CreateMist(art, stage);
+        if (hasLook)
+        {
+            CreateMist(config, art, stage);
+        }
+        else
+        {
+            CreateLegacyMist(art, stage);
+        }
+
         CreateCameraShell(stage, config.islandRadius);
     }
 
@@ -534,7 +556,93 @@ public static partial class IslandBuilder
         return stars.AddComponent<StarTwinkle>();
     }
 
-    static void CreateMist(ArtKit art, Stage stage)
+    static string lookProfilePath = "";
+
+    static LookProfile LoadLookProfile()
+    {
+        return string.IsNullOrEmpty(lookProfilePath) ? null : AssetDatabase.LoadAssetAtPath<LookProfile>(lookProfilePath);
+    }
+
+    static void CreateLookApplier(LevelConfig config, Light moon, Stage stage)
+    {
+        GameObject look = new GameObject("LookApplier");
+        LookApplier applier = look.AddComponent<LookApplier>();
+        SerializedObject serialized = new SerializedObject(applier);
+        serialized.FindProperty("profile").objectReferenceValue = LoadLookProfile();
+        serialized.FindProperty("moon").objectReferenceValue = moon;
+        serialized.FindProperty("skyMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Art/Look/Sky/NightSky_" + config.levelId + ".mat");
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        applier.Apply();
+        DynamicGI.UpdateEnvironment();
+    }
+
+    // Soft radial texture plus an additive card material, created once and reused by every island.
+    static Material EnsureMistMaterial()
+    {
+        const string folder = "Assets/Game/Art/Look/Mist";
+        const string texturePath = folder + "/MistSoft.png";
+        const string materialPath = folder + "/MistCard.mat";
+        EnsureFolder("Assets/Game/Art/Look");
+        EnsureFolder(folder);
+        if (AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath) == null)
+        {
+            const int size = 64;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f;
+                    float dy = (y + 0.5f) / size * 2f - 1f;
+                    float d = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
+                    float a = d * d * (3f - 2f * d);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+            }
+
+            System.IO.File.WriteAllBytes(texturePath, texture.EncodeToPNG());
+            Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(texturePath);
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(texturePath);
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
+        }
+
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+        if (material == null)
+        {
+            material = new Material(Shader.Find("LanternKeeper/AdditiveUnlit"));
+            AssetDatabase.CreateAsset(material, materialPath);
+        }
+
+        material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath));
+        material.SetColor("_BaseColor", Color.white);
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    static void CreateMist(LevelConfig config, ArtKit art, Stage stage)
+    {
+        LookProfile profile = LoadLookProfile();
+        if (profile == null || !profile.mist)
+        {
+            return;
+        }
+
+        GameObject mist = new GameObject("GroundMist");
+        GroundMist ground = mist.AddComponent<GroundMist>();
+        SerializedObject serialized = new SerializedObject(ground);
+        serialized.FindProperty("density").floatValue = 1f;
+        serialized.FindProperty("seed").intValue = config.seed;
+        serialized.FindProperty("radius").floatValue = stage.worldSize * 0.4f;
+        serialized.FindProperty("waterY").floatValue = stage.waterY;
+        serialized.FindProperty("cardMaterial").objectReferenceValue = EnsureMistMaterial();
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void CreateLegacyMist(ArtKit art, Stage stage)
     {
         GameObject mist = new GameObject("GroundMist");
         mist.transform.position = new Vector3(0f, stage.waterY + 0.7f, 0f);
