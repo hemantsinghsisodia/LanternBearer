@@ -278,7 +278,7 @@ CLOAK_WEIGHT_KEYS = [
     (0.58, {"UpperLeg": 0.5, "LowerLeg": 0.5}),
     (0.40, {"UpperLeg": 0.3, "LowerLeg": 0.7}),
 ]
-SIDE_TOKENS = ("Shoulder", "UpperLeg", "LowerLeg", "UpperArm", "LowerArm")
+SIDE_TOKENS = ("Shoulder", "UpperLeg", "LowerLeg")
 MAX_INFLUENCES = 4
 
 
@@ -303,21 +303,8 @@ def finalize(weights):
     return {k: v / total for k, v in items if v > 1e-4}
 
 
-ARM_FOLLOW = 0.0   # how strongly the lateral side panels follow the arm bones
-
-
-def cloak_weights(x, z, y=0.0):
+def cloak_weights(x, z):
     tokens = blend_keys(CLOAK_WEIGHT_KEYS, z)
-    # The side panels beside the arms follow the upper arm (and the forearm lower down), so a swinging or raised
-    # arm carries the cloth with it instead of poking through.
-    lateral = smoothstep(0.10, 0.28, abs(x)) * smoothstep(-0.06, 0.08, y)   # rear-lateral panels only
-    band = smoothstep(0.90, 1.12, z) * smoothstep(1.46, 1.36, z)
-    follow = ARM_FOLLOW * lateral * band
-    if follow > 1e-4:
-        tokens = {k: v * (1.0 - follow) for k, v in tokens.items()}
-        lower = smoothstep(1.22, 1.02, z)
-        tokens["UpperArm"] = follow * (1.0 - 0.45 * lower)
-        tokens["LowerArm"] = follow * 0.45 * lower
     s = smoothstep(-0.14, 0.14, x)       # 1 on the left (+X)
     out = {}
     for k, v in tokens.items():
@@ -495,6 +482,9 @@ CLOAK_RINGS = [
 ]
 
 
+CLOAK_COLS = 24
+
+
 def hem_pattern(ncols):
     rng = random.Random(7)
     drops = []
@@ -513,7 +503,7 @@ def hem_pattern(ncols):
 
 def build_cloak(arm, cloth):
     b = Builder()
-    ncols = 24
+    ncols = CLOAK_COLS
     thick = 0.012
     nr = len(CLOAK_RINGS)
 
@@ -521,7 +511,7 @@ def build_cloak(arm, cloth):
         return (round((k / (nrr - 1)) ** 1.4, 4), 1.0, 1.0 if last else 0.0)
 
     outer, inner = build_shell(b, CLOAK_RINGS, ncols, cloth, thick, colour,
-                               lambda x, z, y=0.0: cloak_weights(x, z, y), hem_drops=hem_pattern(ncols))
+                               lambda x, z, y=0.0: cloak_weights(x, z), hem_drops=hem_pattern(ncols))
     rim_strips(b, outer, inner, cloth, ncols, bottom=True, sides=True)
     fix_winding_kinds(b, outer, inner, ncols, lambda c: (0.0, -0.04))
     return b.make_object("Cloak", [cloth], arm), b
@@ -733,4 +723,5 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
 
 
-main()
+if __name__ == "__main__":
+    main()

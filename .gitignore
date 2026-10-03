@@ -50,3 +50,4 @@ crashlytics-buildid.txt
 
 # Brainstorming companion and SDD workspaces
 .superpowers/
+__pycache__/

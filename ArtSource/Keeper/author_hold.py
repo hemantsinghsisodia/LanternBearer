@@ -4,7 +4,9 @@ Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/author_ho
 
 Replaces CharacterArmature|LanternHold (same name, same two identical keys on frames 1 and 2, same bones) and
 re-seats HandSocket in the new fist (still parented to Wrist.R, +Y up the fist, so the lantern hangs down).
-The helpers are copied from export_keeper.py (importing it would run its build/export).
+
+This module is the single home of the rig helpers (pose/aim/curl, keying) and of the hold authoring:
+export_keeper.py imports it for its rebuild path, so there is one definition. Importing it runs nothing.
 """
 import math
 import os
@@ -52,7 +54,6 @@ def rotate_about_head(arm, name, axis, angle):
 
 
 def aim(arm, name, child, target_dir):
-    pb = arm.pose.bones[name]
     cur = (bone_world_head(arm, child) - bone_world_head(arm, name)).normalized()
     diff = cur.rotation_difference(target_dir.normalized())
     axis, angle = diff.to_axis_angle()
@@ -114,9 +115,6 @@ def curl_hand(arm):
 
 ARM_BONES = ["Shoulder.R", "UpperArm.R", "LowerArm.R", "Wrist.R"] + [
     "%s%d.R" % (f, i) for f in FINGERS for i in range(1, 5)] + ["Thumb1.R", "Thumb2.R", "Thumb3.R"]
-SPINE_BONES = ["Abdomen", "Torso", "Chest", "Neck", "Head"]
-
-
 
 # Fist target relative to the right shoulder joint (world: +X left, -Y forward, Z up). The arm is 0.42 m long,
 # so this is about as far as a nearly straight arm reaches from this height.
@@ -153,8 +151,19 @@ def grip_center(arm):
     return sum(pts, Vector()) / len(pts)
 
 
-def reseat_socket(arm):
-    empty = bpy.data.objects[SOCKET_NAME]
+def seat_socket(arm):
+    """Place HandSocket in the fist (creating it, parented to the hand bone, when missing). Call in the hold pose:
+    +Y up the fist (world up), so the lantern hangs down."""
+    empty = bpy.data.objects.get(SOCKET_NAME)
+    if empty is None:
+        empty = bpy.data.objects.new(SOCKET_NAME, None)
+        empty.empty_display_type = 'ARROWS'
+        empty.empty_display_size = 0.05
+        bpy.context.scene.collection.objects.link(empty)
+        empty.parent = arm
+        empty.parent_type = 'BONE'
+        empty.parent_bone = HAND_BONE
+        update()
     center = grip_center(arm)
     up = Vector((0.0, 0.0, 1.0))
     wrist_pb = arm.pose.bones[HAND_BONE]
@@ -169,8 +178,8 @@ def reseat_socket(arm):
 
 def main():
     arm = get_armature()
-    action = author_lantern_hold(arm)
-    center = reseat_socket(arm)
+    author_lantern_hold(arm)
+    center = seat_socket(arm)
     print("Fist centre", tuple(round(c, 3) for c in center), "shoulder", tuple(round(c, 3) for c in bone_world_head(arm, "UpperArm.R")))
     print("Elbow bend: upper-lower angle deg", round(math.degrees((bone_world_head(arm, "LowerArm.R") - bone_world_head(arm, "UpperArm.R")).angle(bone_world_head(arm, HAND_BONE) - bone_world_head(arm, "LowerArm.R"))), 1))
     reset_pose(arm)
@@ -178,4 +187,5 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
 
 
-main()
+if __name__ == "__main__":
+    main()

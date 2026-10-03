@@ -1,12 +1,12 @@
 """Cloak clipping check over the gameplay clips.
 
-Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/check_clipping.py -- [spot OUTDIR]
+Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/check_clipping.py
 
 For each clip and sampled frame it evaluates the deformed meshes and reports
   A  body vertices that were covered by the cloak in Idle frame 1 and now poke through its side or back wall
      (excluding the open front and a 12 degree margin around it), with the largest protrusion in cm
   B  cloak outer-shell vertices that end up inside the body, with the largest depth in cm
-With `spot OUTDIR` it also renders side and back views of each worst frame to OUTDIR.
+Render spot checks of any clip/frame with render_keeper.py (`-- spot OUTDIR Clip:frame ...`).
 """
 import math
 import os
@@ -15,6 +15,12 @@ import sys
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+
+import build_outfit
 
 CLIPS = {
     "Idle": [1, 13, 26, 39, 51],
@@ -27,7 +33,7 @@ CLIPS = {
     "LanternHold": [1],
 }
 BODY = ["Medieval_Body", "Medieval_Head", "Medieval_Legs", "Medieval_Feet"]
-NCOLS = 24            # keep in step with build_outfit.build_cloak
+NCOLS = build_outfit.CLOAK_COLS
 HAND_GROUPS = ("Index", "Middle", "Ring", "Pinky", "Thumb")
 
 
@@ -75,9 +81,8 @@ def cloak_data(dg):
 
 
 AXIS = Vector((0.0, -0.04, 0.0))
-# Half-opening angle of the cloak's open front (degrees) by height; keep in step with CLOAK_RINGS.
-OPENING = [(1.465, 12.0), (1.415, 18.0), (1.34, 34.0), (1.20, 42.0), (1.02, 46.0), (0.84, 48.0), (0.66, 50.0),
-           (0.52, 52.0)]
+# Half-opening angle of the cloak's open front (degrees) by height, straight from the cloak profile.
+OPENING = [(ring[0], ring[5]) for ring in build_outfit.CLOAK_RINGS]
 OPENING_MARGIN = 12.0   # body coming out within this many degrees of the opening is not a wall poke-through
 
 
@@ -167,4 +172,5 @@ def main():
     print("WORST", [(round(w * 100, 1), c, f) for w, c, f in worst[:8]])
 
 
-main()
+if __name__ == "__main__":
+    main()
