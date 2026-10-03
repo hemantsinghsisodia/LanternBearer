@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 074928c46e0a48d43a84094470ee4936, type: 3}
+  m_Name: LookShots_island3
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::LanternKeeper.LookShotList
+  levelId: island3
+  shots:
+  - label: spawn
+    position: {x: 0, y: 7.746751, z: -5.563103}
+    euler: {x: 21.999996, y: 0, z: 0}
+    fov: 50
+  - label: beacon
+    position: {x: -5.8585725, y: 5.4760275, z: 0.50153077}
+    euler: {x: 349.95468, y: 274.89294, z: 0.00000043353288}
+    fov: 50
+  - label: shoreline
+    position: {x: 24, y: 3.8146858, z: 0}
+    euler: {x: 4.154108, y: 90, z: 0}
+    fov: 50
+  - label: cliff
+    position: {x: 9.050735, y: 2.5513022, z: 41.091343}
+    euler: {x: -0, y: 224.83548, z: 0}
+    fov: 50
+  - label: water
+    position: {x: 34, y: 2.4, z: 0}
+    euler: {x: 25, y: 90, z: 0}
+    fov: 50
+  - label: grass
+    position: {x: 0, y: 4.2648487, z: -1.5}
+    euler: {x: 13.702755, y: 0, z: 0}
+    fov: 60
+  - label: moth
+    position: {x: 0, y: 7.184841, z: -4.1723275}
+    euler: {x: 21.999996, y: 0, z: 0}
+    fov: 50
