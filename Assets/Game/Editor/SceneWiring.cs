@@ -180,7 +180,121 @@ public static class SceneWiring
         assigned += WireLightQuality();
         assigned += WireHorizonQuality();
         assigned += WireGraphicsMenus();
+        assigned += WireMoonRim();
         return assigned;
+    }
+
+    const string RendererPath = "Assets/Settings/PC_Renderer.asset";
+    const string MoonRimShaderPath = "Assets/Game/Shaders/MoonRim.shader";
+
+    // Islands (the scenes with a LookApplier) get a MoonRimSettings beside it; the menu has no look and so no rim.
+    static int WireMoonRim()
+    {
+        int added = 0;
+        LookApplier[] appliers = Object.FindObjectsByType<LookApplier>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < appliers.Length; i++)
+        {
+            if (appliers[i].GetComponent<MoonRimSettings>() == null)
+            {
+                Undo.AddComponent<MoonRimSettings>(appliers[i].gameObject);
+                added++;
+            }
+        }
+
+        return added;
+    }
+
+    // Adds MoonRimFeature to PC_Renderer (once) as a sub-asset and points it at the shader so builds include it.
+    [MenuItem("Lantern Keeper/Look/Ensure Moon Rim Feature")]
+    public static void EnsureMoonRimFeature()
+    {
+        Object[] assets = AssetDatabase.LoadAllAssetsAtPath(RendererPath);
+        Object renderer = null;
+        MoonRimFeature feature = null;
+        for (int i = 0; i < assets.Length; i++)
+        {
+            if (assets[i] is MoonRimFeature)
+            {
+                feature = (MoonRimFeature)assets[i];
+            }
+            else if (assets[i] is UnityEngine.Rendering.Universal.ScriptableRendererData)
+            {
+                renderer = assets[i];
+            }
+        }
+
+        if (renderer == null)
+        {
+            Debug.LogWarning("Ensure Moon Rim Feature: " + RendererPath + " not found.");
+            return;
+        }
+
+        if (feature == null)
+        {
+            feature = ScriptableObject.CreateInstance<MoonRimFeature>();
+            feature.name = "MoonRimFeature";
+            AssetDatabase.AddObjectToAsset(feature, renderer);
+            SerializedObject rendererObject = new SerializedObject(renderer);
+            SerializedProperty list = rendererObject.FindProperty("m_RendererFeatures");
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = feature;
+            rendererObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        SerializedObject featureObject = new SerializedObject(feature);
+        featureObject.FindProperty("shader").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Shader>(MoonRimShaderPath);
+        featureObject.ApplyModifiedPropertiesWithoutUndo();
+        UnityEngine.Rendering.Universal.ScriptableRendererData data = (UnityEngine.Rendering.Universal.ScriptableRendererData)renderer;
+        data.SetDirty();
+        AssetDatabase.SaveAssetIfDirty(renderer);
+        AssetDatabase.SaveAssets();
+    }
+
+    // PC_Renderer must contain a MoonRimFeature with its shader assigned; islands need MoonRimSettings, the menu must not have one.
+    static int ReportMoonRim(bool quiet)
+    {
+        int problems = 0;
+        Object[] assets = AssetDatabase.LoadAllAssetsAtPath(RendererPath);
+        MoonRimFeature feature = null;
+        for (int i = 0; i < assets.Length; i++)
+        {
+            if (assets[i] is MoonRimFeature)
+            {
+                feature = (MoonRimFeature)assets[i];
+            }
+        }
+
+        string problem = null;
+        if (feature == null)
+        {
+            problem = "PC_Renderer has no MoonRimFeature";
+        }
+        else if (GetObject(feature, "shader") == null)
+        {
+            problem = "MoonRimFeature has no shader assigned";
+        }
+
+        if (problem != null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning("Moon rim problem: " + problem);
+            }
+        }
+
+        bool hasLook = Object.FindAnyObjectByType<LookApplier>(FindObjectsInactive.Include) != null;
+        bool hasSettings = Object.FindAnyObjectByType<MoonRimSettings>(FindObjectsInactive.Include) != null;
+        if (hasLook != hasSettings)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning("Moon rim problem: " + EditorSceneManager.GetActiveScene().name + (hasLook ? " has a LookApplier but no MoonRimSettings" : " has MoonRimSettings without a LookApplier"));
+            }
+        }
+
+        return problems;
     }
 
     static Light LanternLight(Lantern lantern)
@@ -642,6 +756,7 @@ public static class SceneWiring
         nulls += ReportLookProfiles(quiet);
         nulls += ReportLookApplier(quiet);
         nulls += ReportVolumes(quiet);
+        nulls += ReportMoonRim(quiet);
         return nulls;
     }
 

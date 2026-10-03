@@ -601,6 +601,7 @@ public static partial class IslandBuilder
         serialized.FindProperty("moon").objectReferenceValue = moon;
         serialized.FindProperty("skyMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Art/Look/Sky/NightSky_" + config.levelId + ".mat");
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        look.AddComponent<MoonRimSettings>();
         applier.Apply();
         DynamicGI.UpdateEnvironment();
     }

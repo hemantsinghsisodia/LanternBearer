@@ -20,6 +20,21 @@ public static class LookMapping
         public float intensity;
     }
 
+    public struct MoonRimQuality
+    {
+        public float resolutionScale;
+        public bool simpleEdge;
+    }
+
+    // The rim is never off: Low only halves its resolution and drops the facing term's extra taps.
+    public static MoonRimQuality MoonRimQualityFor(int moonRimQuality)
+    {
+        MoonRimQuality q;
+        q.resolutionScale = moonRimQuality <= 0 ? 0.5f : 1f;
+        q.simpleEdge = moonRimQuality <= 0;
+        return q;
+    }
+
     public static AmbientValues Ambient(Color sky, Color sea, Color land, float ambientIntensity)
     {
         AmbientValues values;

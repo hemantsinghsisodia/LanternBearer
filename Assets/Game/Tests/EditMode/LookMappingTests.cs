@@ -113,5 +113,25 @@ public class LookMappingTests
             Assert.AreEqual(i == 0 ? 0 : 1, prop.intValue, names[i]);
         }
     }
+
+    [Test]
+    public void MoonRimQualityLowIsHalfResSimple()
+    {
+        LookMapping.MoonRimQuality q = LookMapping.MoonRimQualityFor(0);
+        Assert.AreEqual(0.5f, q.resolutionScale, 1e-6f);
+        Assert.IsTrue(q.simpleEdge);
+    }
+
+    [Test]
+    public void MoonRimQualityFullForMediumAndAbove()
+    {
+        int[] values = { 1, 99 };
+        for (int i = 0; i < values.Length; i++)
+        {
+            LookMapping.MoonRimQuality q = LookMapping.MoonRimQualityFor(values[i]);
+            Assert.AreEqual(1f, q.resolutionScale, 1e-6f, "quality " + values[i]);
+            Assert.IsFalse(q.simpleEdge, "quality " + values[i]);
+        }
+    }
 }
 }

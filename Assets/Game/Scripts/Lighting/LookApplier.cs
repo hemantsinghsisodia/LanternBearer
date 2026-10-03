@@ -45,6 +45,8 @@ public class LookApplier : MonoBehaviour
         if (Current == this)
         {
             Current = null;
+            // Globals outlive the scene, so leaving an island (into the menu) must switch the moon rim off.
+            Shader.SetGlobalFloat("_LKMoonRimStrength", 0f);
         }
     }
 
