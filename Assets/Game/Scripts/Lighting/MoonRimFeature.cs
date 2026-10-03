@@ -22,6 +22,8 @@ public class MoonRimFeature : ScriptableRendererFeature
     static readonly int TexelId = Shader.PropertyToID("_RimTexel");
     static readonly int WidthId = Shader.PropertyToID("_RimWidth");
     static readonly int SimpleId = Shader.PropertyToID("_RimSimple");
+    static readonly int EdgeWeightId = Shader.PropertyToID("_RimEdgeWeight");
+    static readonly int GainId = Shader.PropertyToID("_RimGain");
 
     Material material;
     MoonRimPass pass;
@@ -90,6 +92,7 @@ public class MoonRimFeature : ScriptableRendererFeature
             public Vector4 texel;
             public float width;
             public float simple;
+            public float gain;
         }
 
         Material material;
@@ -117,7 +120,8 @@ public class MoonRimFeature : ScriptableRendererFeature
 
             Vector4 texel = new Vector4(1f / camera.cameraTargetDescriptor.width, 1f / camera.cameraTargetDescriptor.height, 0f, 0f);
             float simple = settings.simpleEdge ? 1f : 0f;
-            float width = settings.simpleEdge ? 3f : 2.2f;
+            float width = settings.simpleEdge ? 2f : 1.2f;
+            float gain = 1f;
 
             if (settings.resolutionScale >= 0.999f)
             {
@@ -129,6 +133,7 @@ public class MoonRimFeature : ScriptableRendererFeature
                     data.texel = texel;
                     data.width = width;
                     data.simple = simple;
+                    data.gain = gain;
                     builder.UseTexture(resources.cameraDepthTexture);
                     builder.SetRenderAttachment(resources.activeColorTexture, 0);
                     builder.AllowPassCulling(false);
@@ -154,6 +159,7 @@ public class MoonRimFeature : ScriptableRendererFeature
                 data.texel = texel;
                 data.width = width;
                 data.simple = simple;
+                data.gain = gain;
                 builder.UseTexture(resources.cameraDepthTexture);
                 builder.SetRenderAttachment(half, 0);
                 builder.SetRenderFunc(static (PassData d, RasterGraphContext context) => DrawRim(d, context));
@@ -179,6 +185,8 @@ public class MoonRimFeature : ScriptableRendererFeature
             data.material.SetVector(TexelId, data.texel);
             data.material.SetFloat(WidthId, data.width);
             data.material.SetFloat(SimpleId, data.simple);
+            data.material.SetFloat(EdgeWeightId, 0.2f);
+            data.material.SetFloat(GainId, data.gain);
             // Blitter sets _BlitScaleBias, which the fullscreen vertex shader needs; the depth source itself is read via _CameraDepthTexture.
             Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, data.passIndex);
         }

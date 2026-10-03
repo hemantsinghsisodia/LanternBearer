@@ -10,7 +10,9 @@ float _LKMoonRimBoost;
 
 float4 _RimTexel;   // xy: one camera pixel in uv
 float _RimWidth;    // edge tap offset in camera pixels
-float _RimSimple;   // 1 on Low: two edge taps and forward-difference normals
+float _RimSimple;   // 1 on Low: a single edge radius instead of two
+float _RimEdgeWeight;
+float _RimGain;     // overall amplitude (Low is a quieter version of the same look)
 
 static const float RimFadeStart = 15.0;
 static const float RimFadeEnd = 70.0;
@@ -30,9 +32,28 @@ float3 RimWorldPos(float2 uv, float raw)
     return ComputeWorldSpacePosition(uv, raw, UNITY_MATRIX_I_VP);
 }
 
+// Eye depth of a tap; sky counts as "a lot farther" relative to the centre rather than an absolute 1000 m.
+float RimTapDepth(float raw, float d)
+{
+    return IsSky(raw) ? d * 4.0 : min(LinearEyeDepth(raw, _ZBufferParams), d * 4.0);
+}
+
 float RimEyeDepth(float raw)
 {
-    return IsSky(raw) ? 1000.0 : LinearEyeDepth(raw, _ZBufferParams);
+    return LinearEyeDepth(raw, _ZBufferParams);
+}
+
+// Plane-aware silhouette measure for one radius: how much farther the far side is than the near side would predict
+// for a plane through the centre, relative to depth. Also reports how "thin" the pixel is (both sides far).
+float RimEdge(float dC, float dA, float dB, float dC2, float dD2, out float thin)
+{
+    float fx = max(dA, dB) - dC;
+    float bx = max(0.0, dC - min(dA, dB));
+    float fy = max(dC2, dD2) - dC;
+    float by = max(0.0, dC - min(dC2, dD2));
+    float disc = max(max(0.0, fx - bx), max(0.0, fy - by)) / dC;
+    thin = max(min(dA, dB) - dC, min(dC2, dD2) - dC) / dC;
+    return smoothstep(0.06, 0.4, disc);
 }
 
 float RimAmount(float2 uv)
@@ -44,7 +65,7 @@ float RimAmount(float2 uv)
     }
 
     float d = RimEyeDepth(raw);
-    float fade = 1.0 - saturate((d - RimFadeStart) / (RimFadeEnd - RimFadeStart));
+    float fade = 1.0 - smoothstep(RimFadeStart, RimFadeEnd, d);
     if (fade <= 0.0)
     {
         return 0.0;
@@ -52,42 +73,36 @@ float RimAmount(float2 uv)
 
     float2 o = _RimTexel.xy * _RimWidth;
     float rawR = SampleSceneDepth(uv + float2(o.x, 0));
+    float rawL = SampleSceneDepth(uv - float2(o.x, 0));
     float rawU = SampleSceneDepth(uv + float2(0, o.y));
-    float dR = RimEyeDepth(rawR);
-    float dU = RimEyeDepth(rawU);
-    float rawL = rawR;
-    float rawD = rawU;
-    float dL = dR;
-    float dD = dU;
+    float rawD = SampleSceneDepth(uv - float2(0, o.y));
+    float dR = RimTapDepth(rawR, d);
+    float dL = RimTapDepth(rawL, d);
+    float dU = RimTapDepth(rawU, d);
+    float dD = RimTapDepth(rawD, d);
+
+    float thin;
+    float edge = RimEdge(d, dR, dL, dU, dD, thin);
     if (_RimSimple < 0.5)
     {
-        rawL = SampleSceneDepth(uv - float2(o.x, 0));
-        rawD = SampleSceneDepth(uv - float2(0, o.y));
-        dL = RimEyeDepth(rawL);
-        dD = RimEyeDepth(rawD);
+        // Second, wider radius softens the band so it falls off instead of ending in a hard line.
+        float2 o2 = o * 2.4;
+        float thin2;
+        float e2 = RimEdge(d,
+            RimTapDepth(SampleSceneDepth(uv + float2(o2.x, 0)), d), RimTapDepth(SampleSceneDepth(uv - float2(o2.x, 0)), d),
+            RimTapDepth(SampleSceneDepth(uv + float2(0, o2.y)), d), RimTapDepth(SampleSceneDepth(uv - float2(0, o2.y)), d), thin2);
+        edge = edge * 0.6 + e2 * 0.4;
     }
 
-    // Edge: the neighbour is clearly farther than this surface, so this pixel is the near side of a silhouette.
-    float t0 = 0.06 * d + 0.3;
-    float far = max(max(dR - d, dU - d), max(dL - d, dD - d));
-    float edge = saturate((far - t0) / (t0 * 2.0));
+    // Isolated thin geometry (leaf cards, grass blades) has far depth on both sides; it must not light up.
+    edge *= 1.0 - smoothstep(0.05, 0.25, thin);
 
     // Normal from the smaller depth step on each axis, so a silhouette does not smear the normal.
     float3 p = RimWorldPos(uv, raw);
-    float3 px;
-    float3 py;
-    if (_RimSimple < 0.5)
-    {
-        bool useR = abs(dR - d) < abs(dL - d);
-        px = useR ? RimWorldPos(uv + float2(o.x, 0), rawR) - p : p - RimWorldPos(uv - float2(o.x, 0), rawL);
-        bool useU = abs(dU - d) < abs(dD - d);
-        py = useU ? RimWorldPos(uv + float2(0, o.y), rawU) - p : p - RimWorldPos(uv - float2(0, o.y), rawD);
-    }
-    else
-    {
-        px = RimWorldPos(uv + float2(o.x, 0), rawR) - p;
-        py = RimWorldPos(uv + float2(0, o.y), rawU) - p;
-    }
+    bool useR = abs(dR - d) < abs(dL - d);
+    float3 px = useR ? RimWorldPos(uv + float2(o.x, 0), rawR) - p : p - RimWorldPos(uv - float2(o.x, 0), rawL);
+    bool useU = abs(dU - d) < abs(dD - d);
+    float3 py = useU ? RimWorldPos(uv + float2(0, o.y), rawU) - p : p - RimWorldPos(uv - float2(0, o.y), rawD);
 
     float3 n = normalize(cross(px, py));
     float3 toCam = _WorldSpaceCameraPos - p;
@@ -96,14 +111,17 @@ float RimAmount(float2 uv)
         n = -n;
     }
 
-    // Slopes that face the moon pick up a little rim; flat ground stays clean. Edges lean toward the moon side too,
-    // so the rim reads as moonlight catching the form rather than a drawn outline.
-    float moonDot = dot(n, normalize(_LKMoonDir.xyz));
-    float facing = smoothstep(0.55, 0.95, moonDot);
-    facing *= 1.0 - smoothstep(0.85, 1.0, n.y);
-    edge *= lerp(0.5, 1.0, saturate(moonDot + 0.25));
+    // Normals are only trusted on smooth surfaces: a large second difference means foliage or a silhouette.
+    float curvature = max(abs(dR + dL - 2.0 * d), abs(dU + dD - 2.0 * d)) / d;
+    float confidence = 1.0 - smoothstep(0.02, 0.08, curvature);
 
-    return (edge * 0.2 + facing * 0.25) * fade;
+    // Moonlight leads: slopes that face the moon get the rim, and edges mostly appear on the moon side.
+    float moonDot = dot(n, normalize(_LKMoonDir.xyz));
+    float facing = smoothstep(0.55, 0.95, moonDot) * confidence;
+    facing *= 1.0 - smoothstep(0.85, 1.0, n.y);
+    edge *= lerp(0.15, 1.0, saturate(moonDot + 0.25));
+
+    return (facing * 0.3 + edge * _RimEdgeWeight) * fade * _RimGain;
 }
 
 float3 RimColour(float amount)
