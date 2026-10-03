@@ -66,7 +66,7 @@ public class LowFuelFX : MonoBehaviour
     {
         if (volume == null)
         {
-            volume = FindAnyObjectByType<Volume>();
+            return;
         }
 
         VolumeProfile shared = volume.sharedProfile;
@@ -116,7 +116,10 @@ public class LowFuelFX : MonoBehaviour
         vignette.intensity.Override(Mathf.Clamp01(amount));
         if (color != null)
         {
-            color.saturation.Override(Mathf.Lerp(-45f, 0f, fuel));
+            // At full fuel the override is released so the look volume's grade shows through.
+            float saturation = Mathf.Lerp(-45f, 0f, fuel);
+            color.saturation.overrideState = Mathf.Abs(saturation) > 0.01f;
+            color.saturation.value = saturation;
         }
     }
 }

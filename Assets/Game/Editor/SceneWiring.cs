@@ -39,7 +39,7 @@ public static class SceneWiring
         HUD hud = Object.FindAnyObjectByType<HUD>();
         CameraFollow follow = Object.FindAnyObjectByType<CameraFollow>();
         DawnSequence dawn = Object.FindAnyObjectByType<DawnSequence>();
-        UnityEngine.Rendering.Volume volume = UnityEngine.Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>();
+        UnityEngine.Rendering.Volume volume = FindVolume("EffectsVolume");
         Transform player = body != null ? body.transform : null;
 
         GameManager manager = Object.FindAnyObjectByType<GameManager>();
@@ -48,6 +48,21 @@ public static class SceneWiring
             assigned += Set(manager, "lantern", lantern);
             assigned += Set(manager, "hud", hud);
             assigned += Set(manager, "dawn", dawn);
+        }
+
+        if (dawn != null)
+        {
+            UnityEngine.Rendering.Volume lookVolume = FindVolume("LookVolume");
+            UnityEngine.Rendering.Volume dawnVolume = FindVolume("LookVolume_dawn");
+            if (lookVolume != null)
+            {
+                assigned += Set(dawn, "lookVolume", lookVolume);
+            }
+
+            if (dawnVolume != null)
+            {
+                assigned += Set(dawn, "dawnVolume", dawnVolume);
+            }
         }
 
         if (hud != null)
@@ -143,7 +158,7 @@ public static class SceneWiring
         for (int i = 0; i < lightnings.Length; i++)
         {
             assigned += Set(lightnings[i], "flashLight", lightnings[i].GetComponentInChildren<Light>(true));
-            assigned += Set(lightnings[i], "volume", Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>());
+            assigned += Set(lightnings[i], "volume", volume);
         }
 
         Rain[] rains = Object.FindObjectsByType<Rain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -626,7 +641,91 @@ public static class SceneWiring
         nulls += ReportGraphicsMenus(quiet);
         nulls += ReportLookProfiles(quiet);
         nulls += ReportLookApplier(quiet);
+        nulls += ReportVolumes(quiet);
         return nulls;
+    }
+
+    static UnityEngine.Rendering.Volume FindVolume(string objectName)
+    {
+        UnityEngine.Rendering.Volume[] volumes = Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < volumes.Length; i++)
+        {
+            if (volumes[i].gameObject.name == objectName)
+            {
+                return volumes[i];
+            }
+        }
+
+        return null;
+    }
+
+    // Gameplay islands need LookVolume below EffectsVolume, with LowFuelFX and Lightning writing only to the effects volume.
+    static int ReportVolumes(bool quiet)
+    {
+        LowFuelFX[] fxs = Object.FindObjectsByType<LowFuelFX>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        UnityEngine.Rendering.Volume[] volumes = Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        string problem = null;
+        for (int i = 0; i < volumes.Length && problem == null; i++)
+        {
+            UnityEngine.Rendering.VolumeProfile profile = volumes[i].sharedProfile;
+            if (profile == null || !LowFuelFX.ProfileAlive(profile))
+            {
+                problem = volumes[i].name + " has a missing or dead profile";
+            }
+            else if (AssetDatabase.GetAssetPath(profile).Contains("NightVolumeProfile"))
+            {
+                problem = volumes[i].name + " references NightVolumeProfile";
+            }
+        }
+
+        if (problem == null && (fxs.Length > 0 || lightnings.Length > 0))
+        {
+            UnityEngine.Rendering.Volume look = FindVolume("LookVolume");
+            UnityEngine.Rendering.Volume effects = FindVolume("EffectsVolume");
+            if (look == null || effects == null)
+            {
+                problem = "LookVolume or EffectsVolume is missing";
+            }
+            else if (effects.priority <= look.priority)
+            {
+                problem = "EffectsVolume priority " + effects.priority + " is not above LookVolume priority " + look.priority;
+            }
+
+            for (int i = 0; problem == null && i < fxs.Length; i++)
+            {
+                if (GetObject(fxs[i], "volume") != effects)
+                {
+                    problem = "LowFuelFX.volume is not EffectsVolume";
+                }
+            }
+
+            for (int i = 0; problem == null && i < lightnings.Length; i++)
+            {
+                if (GetObject(lightnings[i], "volume") != effects)
+                {
+                    problem = "Lightning.volume is not EffectsVolume";
+                }
+            }
+        }
+
+        if (problem == null)
+        {
+            return 0;
+        }
+
+        if (!quiet)
+        {
+            Debug.LogWarning("Volume problem: " + EditorSceneManager.GetActiveScene().name + ": " + problem);
+        }
+
+        return 1;
+    }
+
+    static Object GetObject(Object target, string property)
+    {
+        SerializedProperty serialized = new SerializedObject(target).FindProperty(property);
+        return serialized != null ? serialized.objectReferenceValue : null;
     }
 
     // Each island scene needs exactly one LookApplier whose profile matches the scene's LevelConfig, and the night sky shader.

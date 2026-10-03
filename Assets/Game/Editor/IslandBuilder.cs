@@ -251,7 +251,9 @@ public static partial class IslandBuilder
         public Vector3 spawn;
         public Light sun;
         public StarTwinkle stars;
-        public Volume volume;
+        public Volume lookVolume;
+        public Volume dawnVolume;
+        public Volume effectsVolume;
         public GameObject player;
         public Lantern lantern;
         public int beacons;
@@ -500,12 +502,7 @@ public static partial class IslandBuilder
             CreateLookApplier(config, sun, stage);
         }
 
-        GameObject volumeObject = new GameObject("Global Volume");
-        Volume volume = volumeObject.AddComponent<Volume>();
-        volume.isGlobal = true;
-        volume.sharedProfile = art.volume;
-        volume.weight = 1f;
-        stage.volume = volume;
+        CreateVolumes(config, stage, hasLook);
 
         GameObject sky = new GameObject("Sky");
         stage.stars = CreateStars(sky.transform, art);
@@ -527,6 +524,38 @@ public static partial class IslandBuilder
         }
 
         CreateCameraShell(stage, config.islandRadius);
+    }
+
+    // Look volume (island grade), plus the dawn grade and the effects volume on gameplay islands.
+    // The menu has no look profile, so it borrows Island 1's grade and gets neither of the others.
+    static void CreateVolumes(LevelConfig config, Stage stage, bool hasLook)
+    {
+        LookVolumeBuilder.EnsureAll();
+        string levelId = hasLook ? config.levelId : "island1";
+        stage.lookVolume = CreateVolume("LookVolume", LookVolumeBuilder.LookPath(levelId), 0f, 1f);
+        if (!hasLook)
+        {
+            return;
+        }
+
+        stage.dawnVolume = CreateVolume("LookVolume_dawn", LookVolumeBuilder.DawnPath, 1f, 0f);
+        stage.effectsVolume = CreateVolume("EffectsVolume", LookVolumeBuilder.EffectsPath, 10f, 1f);
+    }
+
+    static Volume CreateVolume(string objectName, string profilePath, float priority, float weight)
+    {
+        GameObject volumeObject = new GameObject(objectName);
+        Volume volume = volumeObject.AddComponent<Volume>();
+        volume.isGlobal = true;
+        volume.priority = priority;
+        volume.weight = weight;
+        volume.sharedProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+        if (objectName != "EffectsVolume")
+        {
+            volumeObject.AddComponent<LookVolumeQuality>();
+        }
+
+        return volume;
     }
 
     static StarTwinkle CreateStars(Transform parent, ArtKit art)
@@ -1474,6 +1503,8 @@ public static partial class IslandBuilder
         dawnObject.FindProperty("sun").objectReferenceValue = stage.sun;
         dawnObject.FindProperty("stars").objectReferenceValue = stage.stars;
         dawnObject.FindProperty("duration").floatValue = 6f;
+        dawnObject.FindProperty("lookVolume").objectReferenceValue = stage.lookVolume;
+        dawnObject.FindProperty("dawnVolume").objectReferenceValue = stage.dawnVolume;
         if (art.dawnDirection.sqrMagnitude > 0.25f)
         {
             dawnObject.FindProperty("dawnEuler").vector3Value = LightEulerFromSkyDirection(art.dawnDirection);
@@ -1482,7 +1513,7 @@ public static partial class IslandBuilder
         dawnObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject fxObject = new SerializedObject(fx);
-        fxObject.FindProperty("volume").objectReferenceValue = stage.volume;
+        fxObject.FindProperty("volume").objectReferenceValue = stage.effectsVolume;
         fxObject.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject mothObject = new SerializedObject(spawner);
@@ -1493,7 +1524,7 @@ public static partial class IslandBuilder
         CreateTide(config, stage);
         CreateWind(config);
         CreateShadeSpawner(config, art);
-        CreateLightning(config);
+        CreateLightning(config, stage);
         CreateRain(config, art);
     }
 
@@ -1534,7 +1565,7 @@ public static partial class IslandBuilder
         windObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
-    static void CreateLightning(LevelConfig config)
+    static void CreateLightning(LevelConfig config, Stage stage)
     {
         if (!config.lightning)
         {
@@ -1555,7 +1586,7 @@ public static partial class IslandBuilder
         SerializedObject lightningObject = new SerializedObject(lightning);
         lightningObject.FindProperty("seed").intValue = config.seed;
         lightningObject.FindProperty("flashLight").objectReferenceValue = flash;
-        lightningObject.FindProperty("volume").objectReferenceValue = Object.FindAnyObjectByType<UnityEngine.Rendering.Volume>();
+        lightningObject.FindProperty("volume").objectReferenceValue = stage.effectsVolume;
         lightningObject.ApplyModifiedPropertiesWithoutUndo();
     }
 

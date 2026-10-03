@@ -57,7 +57,6 @@ public static partial class IslandBuilder
         public TerrainLayer mossLayer;
         public Texture2D detailGrass;
         public Texture2D detailReed;
-        public VolumeProfile volume;
         public GameObject pineS;
         public GameObject pineM;
         public GameObject pineL;
@@ -307,7 +306,6 @@ public static partial class IslandBuilder
         art.dirtLayer = Layer("Assets/Game/Levels/Layers/Dirt.terrainlayer", dirtTex, dirtNormal, dirtMask, new Vector2(5f, 5f));
         art.rockLayer = Layer("Assets/Game/Levels/Layers/Rock.terrainlayer", rockTex, rockNormal, rockMask, new Vector2(6f, 6f));
         art.mossLayer = Layer("Assets/Game/Levels/Layers/Moss.terrainlayer", mossTex, mossNormal, mossMask, new Vector2(6f, 6f));
-        art.volume = EnsureVolume("Assets/Game/Materials/Generated/NightVolumeProfile.asset");
 
         art.pineS = SavePrefab(BuildPine(art, 1.05f), "Assets/Game/Prefabs/Props/PineSmall.prefab");
         art.pineM = SavePrefab(BuildPine(art, 1.45f), "Assets/Game/Prefabs/Props/PineMedium.prefab");
@@ -434,33 +432,6 @@ public static partial class IslandBuilder
         layer.tileSize = tile;
         EditorUtility.SetDirty(layer);
         return layer;
-    }
-
-    static VolumeProfile EnsureVolume(string path)
-    {
-        if (AssetDatabase.LoadAssetAtPath<VolumeProfile>(path) != null)
-        {
-            AssetDatabase.DeleteAsset(path);
-        }
-
-        VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
-        AssetDatabase.CreateAsset(profile, path);
-        Tonemapping tone = profile.Add<Tonemapping>();
-        tone.mode.Override(TonemappingMode.ACES);
-        Bloom bloom = profile.Add<Bloom>();
-        bloom.threshold.Override(1.05f);
-        bloom.intensity.Override(0.45f);
-        bloom.scatter.Override(0.68f);
-        Vignette vignette = profile.Add<Vignette>();
-        vignette.intensity.Override(0.2f);
-        vignette.smoothness.Override(0.42f);
-        vignette.color.Override(Color.black);
-        ColorAdjustments color = profile.Add<ColorAdjustments>();
-        color.saturation.Override(0f);
-        color.postExposure.Override(0.05f);
-        EditorUtility.SetDirty(profile);
-        AssetDatabase.SaveAssets();
-        return profile;
     }
 
     static Texture2D Noise(string path, Color baseColor, float variation, int size, int seed)

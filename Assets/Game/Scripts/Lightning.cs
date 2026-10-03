@@ -77,7 +77,8 @@ public class Lightning : MonoBehaviour
 
         if (exposureReady && color != null)
         {
-            color.postExposure.Override(baseExposure);
+            color.postExposure.overrideState = false;
+            color.postExposure.value = baseExposure;
         }
     }
 
@@ -183,8 +184,10 @@ public class Lightning : MonoBehaviour
 
         if (exposureReady && color != null)
         {
+            // Only the effects volume is written. The override is released between flashes so the look grade shows through.
             float pulse = pulseAllowed ? flash * peakExposure : 0f;
-            color.postExposure.Override(baseExposure + pulse);
+            color.postExposure.overrideState = pulse > 0.001f;
+            color.postExposure.value = baseExposure + pulse;
         }
     }
 }

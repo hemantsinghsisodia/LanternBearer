@@ -9,6 +9,8 @@ public class DawnSequence : MonoBehaviour
     [SerializeField] Light sun;
     [SerializeField] StarTwinkle stars;
     [SerializeField] Vector3 dawnEuler = new Vector3(10f, 28f, 0f);
+    [SerializeField] Volume lookVolume;
+    [SerializeField] Volume dawnVolume;
 
     Color nightLightColor = new Color(0.75f, 0.84f, 1f);
     float nightIntensity = 0.85f;
@@ -30,6 +32,8 @@ public class DawnSequence : MonoBehaviour
     Color nightHazeTint = new Color(0.55f, 0.7f, 0.78f, 1f);
     Material skybox;
     bool captured;
+    float nightLookWeight = 1f;
+    float nightRimStrength = 1f;
 
     public bool IsPlaying { get; private set; }
 
@@ -163,6 +167,18 @@ public class DawnSequence : MonoBehaviour
                 }
             }
 
+            // The dawn grade takes over from the night grade, and the moon rim fades out with the moon.
+            if (lookVolume != null)
+            {
+                lookVolume.weight = Mathf.Lerp(nightLookWeight, 0f, u);
+            }
+
+            if (dawnVolume != null)
+            {
+                dawnVolume.weight = u;
+            }
+
+            Shader.SetGlobalFloat("_LKMoonRimStrength", Mathf.Lerp(nightRimStrength, 0f, u));
             Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? u : 0f);
             Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, dawnWater, u));
             Shader.SetGlobalColor("_SilhouetteTint", Color.Lerp(nightSilhouette, dawnSilhouette, u));
@@ -206,6 +222,12 @@ public class DawnSequence : MonoBehaviour
         nightEquator = RenderSettings.ambientEquatorColor;
         nightGround = RenderSettings.ambientGroundColor;
         nightAmbient = RenderSettings.ambientIntensity;
+        nightRimStrength = Shader.GetGlobalFloat("_LKMoonRimStrength");
+        if (lookVolume != null)
+        {
+            nightLookWeight = lookVolume.weight;
+        }
+
         nightWater = Shader.GetGlobalColor("_WaterTint");
         nightSilhouette = Shader.GetGlobalColor("_SilhouetteTint");
         nightHazeTint = Shader.GetGlobalColor("_HazeTint");
