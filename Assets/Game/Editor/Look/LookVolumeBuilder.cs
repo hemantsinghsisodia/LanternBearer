@@ -17,7 +17,7 @@ public static class LookVolumeBuilder
     const float BloomThreshold = 1.1f;
     const float BloomIntensity = 0.6f;
     const float BloomScatter = 0.65f;
-    const float VignetteIntensity = 0.22f;
+    const float VignetteIntensity = LookMapping.LookVignette;
     const float VignetteSmoothness = 0.42f;
     const float GrainIntensity = 0.12f;
     const float ShadowTint = 0.35f;
@@ -86,10 +86,14 @@ public static class LookVolumeBuilder
         EnsureFolder();
         VolumeProfile profile = LoadOrCreate(EffectsPath);
         Vignette vignette = Component<Vignette>(profile);
-        vignette.intensity.Override(0f);
+        // Every override is saved off: LowFuelFX and Lightning switch them on only while active, so the look and dawn volumes show through.
+        vignette.intensity.overrideState = false;
+        vignette.intensity.value = 0f;
         ColorAdjustments color = Component<ColorAdjustments>(profile);
-        color.postExposure.Override(0f);
-        color.saturation.Override(0f);
+        color.postExposure.overrideState = false;
+        color.postExposure.value = 0f;
+        color.saturation.overrideState = false;
+        color.saturation.value = 0f;
         Save(profile);
         return profile;
     }

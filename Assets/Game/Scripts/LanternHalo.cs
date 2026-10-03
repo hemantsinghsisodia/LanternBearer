@@ -9,7 +9,7 @@ public class LanternHalo : MonoBehaviour
     [SerializeField] Light sourceLight;
     [SerializeField] Renderer haloRenderer;
     // Glow core colour (#FFD38A) and quad size in metres; constants so a rebuild always applies them.
-    static readonly Color color = new Color(1f, 0.827f, 0.541f, 1f);
+    static readonly Color color = LookPalette.FromHex(LookPalette.GlowCore);
     const float maxAlpha = 0.7f;
     const float size = 0.9f;
 

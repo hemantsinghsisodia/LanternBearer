@@ -121,7 +121,7 @@ public class MoonRimFeature : ScriptableRendererFeature
             Vector4 texel = new Vector4(1f / camera.cameraTargetDescriptor.width, 1f / camera.cameraTargetDescriptor.height, 0f, 0f);
             float simple = settings.simpleEdge ? 1f : 0f;
             float width = settings.simpleEdge ? 2f : 1.2f;
-            float gain = 1f;
+            float gain = settings.gain;
 
             if (settings.resolutionScale >= 0.999f)
             {

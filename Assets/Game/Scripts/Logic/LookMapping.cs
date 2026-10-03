@@ -11,6 +11,10 @@ public static class LookMapping
     public const float HorizonBlend = 0.35f;
     public const float MoonOffIntensityCap = 0.12f;
     public const float CoolBlackThreshold = 0.04f;
+    // The look volume's vignette. LowFuelFX adds its fuel and Shade pulses on top of it, so the effect never weakens the look.
+    public const float LookVignette = 0.22f;
+    // LowFuelFX's vignette at full fuel; anything above it is the extra the effect adds.
+    public const float FullFuelVignette = 0.18f;
 
     public struct AmbientValues
     {
@@ -24,6 +28,7 @@ public static class LookMapping
     {
         public float resolutionScale;
         public bool simpleEdge;
+        public float gain;
     }
 
     // The rim is never off: Low only halves its resolution and drops the facing term's extra taps.
@@ -32,6 +37,8 @@ public static class LookMapping
         MoonRimQuality q;
         q.resolutionScale = moonRimQuality <= 0 ? 0.5f : 1f;
         q.simpleEdge = moonRimQuality <= 0;
+        // Overall rim amplitude per tier. 1 on both for now; tuned in the look review.
+        q.gain = 1f;
         return q;
     }
 

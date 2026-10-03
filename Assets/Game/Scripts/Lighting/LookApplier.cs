@@ -84,7 +84,8 @@ public class LookApplier : MonoBehaviour
         }
 
         Material sky = RenderSettings.skybox;
-        if (sky != null && sky.HasProperty("_MoonDir"))
+        // Edit mode would write into the shared NightSky asset (git churn); the island builder bakes the same direction in.
+        if (Application.isPlaying && sky != null && sky.HasProperty("_MoonDir"))
         {
             sky.SetVector("_MoonDir", new Vector4(towardMoon.x, towardMoon.y, towardMoon.z, 0f));
         }

@@ -96,8 +96,8 @@ public class DawnSequence : MonoBehaviour
         IsPlaying = true;
         CaptureNight();
         float elapsed = 0f;
-        Color dawnLight = new Color(1f, 0.72f, 0.48f);
         Quaternion dawnRotation = Quaternion.Euler(dawnEuler);
+        Color dawnLight = new Color(1f, 0.72f, 0.48f);
         Color dawnFog = new Color(1f, 0.72f, 0.58f);
         Color dawnSky = new Color(0.95f, 0.62f, 0.5f);
         Color dawnEquator = new Color(0.92f, 0.5f, 0.36f);
@@ -105,6 +105,23 @@ public class DawnSequence : MonoBehaviour
         Color dawnTop = new Color(0.45f, 0.38f, 0.62f);
         Color dawnHorizon = new Color(1f, 0.62f, 0.42f);
         Color dawnBottom = new Color(0.48f, 0.24f, 0.18f);
+        float ambientBoost = 0.28f;
+        // The island's DawnLook drives the sun, fog and ambient; the constants above are only the fallback without a look.
+        LookApplier applier = LookApplier.Current;
+        DawnLook look = applier != null && applier.Profile != null ? applier.Profile.dawn : null;
+        if (look != null)
+        {
+            dawnLight = look.dawnLight;
+            dawnFog = look.dawnHorizon;
+            dawnSky = look.dawnTop;
+            dawnEquator = look.dawnHorizon;
+            dawnGround = look.dawnGround;
+            dawnTop = look.dawnTop;
+            dawnHorizon = look.dawnHorizon;
+            dawnBottom = look.dawnGround;
+            ambientBoost = look.dawnAmbientBoost;
+        }
+
         Color dawnHaze = new Color(1f, 0.64f, 0.42f, 1f);
         Color dawnTint = new Color(1f, 0.94f, 0.86f, 1f);
         Color dawnWater = new Color(1f, 0.7f, 0.5f, 1f);
@@ -130,7 +147,7 @@ public class DawnSequence : MonoBehaviour
             RenderSettings.ambientGroundColor = Color.Lerp(nightGround, dawnGround, u);
             if (blendSky)
             {
-                RenderSettings.ambientIntensity = Mathf.Lerp(nightAmbient, nightAmbient + 0.28f, u);
+                RenderSettings.ambientIntensity = Mathf.Lerp(nightAmbient, nightAmbient + ambientBoost, u);
             }
 
             if (skybox != null)

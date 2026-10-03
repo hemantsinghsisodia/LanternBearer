@@ -45,15 +45,20 @@ float RimEyeDepth(float raw)
 
 // Plane-aware silhouette measure for one radius: how much farther the far side is than the near side would predict
 // for a plane through the centre, relative to depth. Also reports how "thin" the pixel is (both sides far).
-float RimEdge(float dC, float dA, float dB, float dC2, float dD2, out float thin)
+float RimEdgeOnly(float dC, float dA, float dB, float dC2, float dD2)
 {
     float fx = max(dA, dB) - dC;
     float bx = max(0.0, dC - min(dA, dB));
     float fy = max(dC2, dD2) - dC;
     float by = max(0.0, dC - min(dC2, dD2));
     float disc = max(max(0.0, fx - bx), max(0.0, fy - by)) / dC;
-    thin = max(min(dA, dB) - dC, min(dC2, dD2) - dC) / dC;
     return smoothstep(0.06, 0.4, disc);
+}
+
+float RimEdge(float dC, float dA, float dB, float dC2, float dD2, out float thin)
+{
+    thin = max(min(dA, dB) - dC, min(dC2, dD2) - dC) / dC;
+    return RimEdgeOnly(dC, dA, dB, dC2, dD2);
 }
 
 float RimAmount(float2 uv)
@@ -87,10 +92,9 @@ float RimAmount(float2 uv)
     {
         // Second, wider radius softens the band so it falls off instead of ending in a hard line.
         float2 o2 = o * 2.4;
-        float thin2;
-        float e2 = RimEdge(d,
+        float e2 = RimEdgeOnly(d,
             RimTapDepth(SampleSceneDepth(uv + float2(o2.x, 0)), d), RimTapDepth(SampleSceneDepth(uv - float2(o2.x, 0)), d),
-            RimTapDepth(SampleSceneDepth(uv + float2(0, o2.y)), d), RimTapDepth(SampleSceneDepth(uv - float2(0, o2.y)), d), thin2);
+            RimTapDepth(SampleSceneDepth(uv + float2(0, o2.y)), d), RimTapDepth(SampleSceneDepth(uv - float2(0, o2.y)), d));
         edge = edge * 0.6 + e2 * 0.4;
     }
 

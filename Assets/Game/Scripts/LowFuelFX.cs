@@ -113,7 +113,10 @@ public class LowFuelFX : MonoBehaviour
             edgePulse = Mathf.MoveTowards(edgePulse, 0f, Time.deltaTime / 0.8f);
         }
 
-        vignette.intensity.Override(Mathf.Clamp01(amount));
+        // Released at full fuel so the look volume's vignette shows; otherwise the extra darkening adds to it.
+        float extra = Mathf.Max(0f, amount - LookMapping.FullFuelVignette);
+        vignette.intensity.overrideState = extra > 0.001f;
+        vignette.intensity.value = Mathf.Clamp01(LookMapping.LookVignette + extra);
         if (color != null)
         {
             // At full fuel the override is released so the look volume's grade shows through.

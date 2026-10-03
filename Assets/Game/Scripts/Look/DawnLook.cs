@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// Dawn colours shared by every island. Plain data: nothing reads it at runtime yet.
+// Dawn colours shared by every island. Read by the NightSky materials, the volume builder and DawnSequence (sun, fog and ambient).
 [CreateAssetMenu(fileName = "DawnLook", menuName = "Lantern Keeper/Dawn Look")]
 public class DawnLook : ScriptableObject
 {
