@@ -285,6 +285,8 @@ def export():
         bake_space_transform=False,
         use_mesh_modifiers=True,
         add_leaf_bones=False,
+        # Vertex colours carry data (R sway, G AO, B worn edge), so keep them linear. The default SRGB would curve R/G/B.
+        colors_type='LINEAR',
         primary_bone_axis='Y',
         secondary_bone_axis='X',
         armature_nodetype='NULL',
