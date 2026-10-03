@@ -17,6 +17,11 @@ public class LookProfile : ScriptableObject
     public Color fogColour = Color.black;
     public float fogDensity = 0.012f;
     public float moonRimStrength = 1f;
+    public Color skyHorizon = Color.black;
+    public Color skyGround = Color.black;
+    public float moonIntensity = 0.35f;
+    public float ambientIntensity = 1f;
+    public DawnLook dawn;
     public bool mist;
     public bool rain;
     public float gradeSaturation;
@@ -40,6 +45,24 @@ public class LookProfile : ScriptableObject
         if (moonRimStrength < 0f || moonRimStrength > 2f)
         {
             problem = "moonRimStrength " + moonRimStrength + " is outside [0, 2]";
+            return false;
+        }
+
+        if (moonIntensity < 0f || moonIntensity > 2f)
+        {
+            problem = "moonIntensity " + moonIntensity + " is outside [0, 2]";
+            return false;
+        }
+
+        if (ambientIntensity < 0f || ambientIntensity > 3f)
+        {
+            problem = "ambientIntensity " + ambientIntensity + " is outside [0, 3]";
+            return false;
+        }
+
+        if (dawn == null)
+        {
+            problem = "dawn is not assigned";
             return false;
         }
 

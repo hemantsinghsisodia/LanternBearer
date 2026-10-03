@@ -97,6 +97,10 @@ public class GraphicsProfile : ScriptableObject
     // HorizonQuality scales the scene's cached far clip by this value over Medium's value.
     public float cameraFarPlane;
 
+    [Header("Night lighting")]
+    // 0 is the half-res simple moon rim (Low). 1 is the full rim. The rim is never off.
+    public int moonRimQuality;
+
     [Header("Particles")]
     public float particleCountMultiplier;
 }

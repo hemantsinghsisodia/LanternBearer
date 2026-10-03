@@ -57,4 +57,5 @@ MonoBehaviour:
   extraRidges: 1
   finerHaze: 1
   cameraFarPlane: 1170
+  moonRimQuality: 1
   particleCountMultiplier: 1.5

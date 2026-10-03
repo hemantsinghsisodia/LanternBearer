@@ -23,6 +23,11 @@ MonoBehaviour:
   fogColour: {r: 0.10980392, g: 0.101960786, b: 0.1882353, a: 1}
   fogDensity: 0.016
   moonRimStrength: 0.6
+  skyHorizon: {r: 0.33960783, g: 0.34019607, b: 0.43666667, a: 1}
+  skyGround: {r: 0.065882355, g: 0.061176475, b: 0.11294118, a: 1}
+  moonIntensity: 0.12
+  ambientIntensity: 1
+  dawn: {fileID: 11400000, guid: 5794a40a10bd15f40bd3ed41c82d913c, type: 2}
   mist: 0
   rain: 1
   gradeSaturation: 0
