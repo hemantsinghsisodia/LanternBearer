@@ -2,6 +2,8 @@
 
 Each dated folder is one "before" set for the visual pass: world shots on every island and the UI screens, on Low and Ultra, at 1920x1080 (JPEG q92).
 
+Before/after comparison for Phase B: [`../compare/phase-b.html`](../compare/phase-b.html) (before `2026-10-03`, after `2026-10-03-b`).
+
 ## How to run
 1. `Lantern Keeper/Look/Generate Shot Lists` (only needed once or after a level rebuild; it asks for a Regenerate confirmation if lists exist).
 2. Leave play mode, save open scenes, then run `Lantern Keeper/Look/Capture Look Baseline`. It writes `docs/look/baseline/<today>/`.
