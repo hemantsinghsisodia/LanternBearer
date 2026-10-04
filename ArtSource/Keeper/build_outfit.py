@@ -689,7 +689,8 @@ def build_shell(b, pts_grid, thickness, centre, colour_fn, weight_fn, mat, desig
             else:
                 radial.normalize()
                 ip = p - radial * thickness
-            edge = i in (0, len(row) - 1)
+            closed = (Vector(row[0]) - Vector(row[-1])).length < 1e-6
+            edge = i in (0, len(row) - 1) and not closed
             w = weight_fn(p)
             o = b.vert(p, colour_fn(k, nr, False, edge), w)
             n = b.vert(ip, colour_fn(k, nr, True, edge), w)
@@ -745,6 +746,8 @@ def rim_strips(b, outer, inner, mat, bottom=True, sides=True, top=False):
                 i0, i1 = inner[k][col], inner[k + 1][col]
                 if o0 == o1 or o0 == i0:
                     continue
+                if outer[k][0] == outer[k][ncols] and outer[k + 1][0] == outer[k + 1][ncols]:
+                    continue                  # both rows closed: no open edge here
                 nb = Vector(b.verts[outer[k][1 if col == 0 else ncols - 1]])
                 away = Vector(b.verts[o0]) - nb
                 away.z = 0.0
@@ -759,10 +762,12 @@ def rim_strips(b, outer, inner, mat, bottom=True, sides=True, top=False):
 
 # (z, rx, ry_front, ry_back, cy, phi0 degrees): the Phase C hood, a little deeper and with a narrower opening.
 HOOD_KEYS = [
-    (1.790, 0.020, 0.030, 0.030, -0.030, 70.0),
-    (1.765, 0.075, 0.095, 0.100, -0.032, 60.0),
-    (1.725, 0.125, 0.165, 0.150, -0.034, 40.0),
-    (1.665, 0.150, 0.205, 0.168, -0.035, 32.0),
+    (1.790, 0.020, 0.030, 0.030, -0.030, 0.0),     # phi0 = 0: closed ring (solid crown); the opening is a front arch only
+    (1.765, 0.075, 0.095, 0.100, -0.032, 0.0),
+    (1.735, 0.122, 0.170, 0.150, -0.034, 0.0),
+    (1.715, 0.134, 0.195, 0.158, -0.034, 14.0),
+    (1.690, 0.143, 0.215, 0.164, -0.035, 26.0),
+    (1.650, 0.151, 0.215, 0.170, -0.035, 33.0),
     (1.600, 0.156, 0.218, 0.172, -0.035, 34.0),
     (1.540, 0.150, 0.208, 0.170, -0.034, 40.0),
     (1.480, 0.150, 0.188, 0.165, -0.033, 50.0),
@@ -777,7 +782,7 @@ def hood_points(per_segment=2):
     grid = []
     for k, (z, rx, ryf, ryb, cy, phi0) in enumerate(keys):
         row = []
-        p0 = math.radians(phi0)
+        p0 = math.radians(max(0.0, phi0))
         for i in range(HOOD_COLS + 1):
             phi = p0 + (2.0 * math.pi - 2.0 * p0) * i / HOOD_COLS
             c = math.cos(phi)
