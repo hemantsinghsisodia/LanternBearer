@@ -161,6 +161,9 @@ def render(cam, name, loc, target, lens, w, h):
     scene.render.resolution_y = int(h * SCALE)
     aim(cam, loc, target, lens)
     light_for(loc)
+    vis = sorted("%s(%d)" % (o.name, len(o.data.polygons)) for o in bpy.data.objects
+                 if o.type == 'MESH' and not o.hide_render and (o.name.endswith(("_LOD0", "_LOD1")) or o.name == "Cape_base"))
+    print("VISIBLE", name, vis)
     os.makedirs(OUT_DIR, exist_ok=True)
     scene.render.filepath = os.path.join(OUT_DIR, name)
     bpy.ops.render.render(write_still=True)
@@ -178,10 +181,12 @@ def spot(arm, cam):
 
 
 def set_lod(lod):
-    """Show only the LOD0 (lod=0) or LOD1 (lod=1) meshes."""
+    """Show only the LOD0 (lod=0) or LOD1 (lod=1) meshes; the Cape_base collision proxy is never rendered."""
     for o in bpy.data.objects:
         if o.name == "Cape_base":
             o.hide_render = True
+            o.hide_viewport = True
+            continue
         if o.type == 'MESH' and o.name.endswith(("_LOD0", "_LOD1")):
             o.hide_render = not o.name.endswith("_LOD%d" % lod)
             o.hide_viewport = o.hide_render
