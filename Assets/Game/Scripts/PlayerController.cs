@@ -142,7 +142,7 @@ public class PlayerController : MonoBehaviour
                 lantern.SetDrainModifier(this, 1f);
             }
 
-            UpdateDust(false);
+            UpdateDust();
             return;
         }
 
@@ -293,7 +293,7 @@ public class PlayerController : MonoBehaviour
 
         TryRecordSafe();
 
-        UpdateDust(planarVelocity.sqrMagnitude > 0.04f && controller.isGrounded);
+        UpdateDust();
         UpdateFootsteps();
     }
 
@@ -406,7 +406,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void UpdateDust(bool moving)
+    void UpdateDust()
     {
         if (dust == null)
         {

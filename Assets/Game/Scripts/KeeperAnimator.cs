@@ -273,6 +273,11 @@ public class KeeperAnimator : MonoBehaviour
     void OnStole(float amount)
     {
         Trigger(staggerHash);
+        if (dead)
+        {
+            return;
+        }
+
         if (sway == null)
         {
             sway = GetComponentInChildren<LanternSway>(true);
