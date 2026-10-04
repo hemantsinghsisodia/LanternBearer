@@ -253,7 +253,7 @@ Transform:
   m_GameObject: {fileID: 8386818314294110653}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00000021234152, y: -0.17000017, z: -0.000000057742007}
+  m_LocalPosition: {x: -0.00000021234152, y: -0.12000017, z: -0.000000057742007}
   m_LocalScale: {x: 0.05, y: 0.1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2853,6 +2853,7 @@ MonoBehaviour:
   glassRenderer: {fileID: 3089818638567071070}
   flicker: {fileID: 0}
   baseScale: {x: 0.05, y: 0.1, z: 1}
+  basePosition: {x: -0.00000021234152, y: -0.12000017, z: -0.000000057742007}
 --- !u!1001 &8227881333742430782
 PrefabInstance:
   m_ObjectHideFlags: 0

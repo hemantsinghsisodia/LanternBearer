@@ -64,10 +64,12 @@ Shader "LanternKeeper/KeeperLit"
             CBUFFER_END
             // x = speed01, y = wind01, zw = world wind direction xz. Written by KeeperAnimator.
             float4 _LKKeeperSway;
+            // World-space backward of the keeper (horizontal, normalised). Zero when unset: no backward push.
+            float4 _LKKeeperBack;
 
             float3 KeeperSway(float3 positionWS, float4 vertexColor)
             {
-                float3 back = TransformObjectToWorldDir(float3(0, 0, -1));
+                float3 back = _LKKeeperBack.xyz;
                 float3 wind = float3(_LKKeeperSway.z, 0, _LKKeeperSway.w);
                 float3 push = back * _LKKeeperSway.x + wind * _LKKeeperSway.y;
                 float flutter = sin(_Time.y * 3.0 + positionWS.y * 4.0) * 0.25;
@@ -187,10 +189,12 @@ Shader "LanternKeeper/KeeperLit"
                 float _EdgeLighten;
             CBUFFER_END
             float4 _LKKeeperSway;
+            // World-space backward of the keeper (horizontal, normalised). Zero when unset: no backward push.
+            float4 _LKKeeperBack;
 
             float3 KeeperSway(float3 positionWS, float4 vertexColor)
             {
-                float3 back = TransformObjectToWorldDir(float3(0, 0, -1));
+                float3 back = _LKKeeperBack.xyz;
                 float3 wind = float3(_LKKeeperSway.z, 0, _LKKeeperSway.w);
                 float3 push = back * _LKKeeperSway.x + wind * _LKKeeperSway.y;
                 float flutter = sin(_Time.y * 3.0 + positionWS.y * 4.0) * 0.25;

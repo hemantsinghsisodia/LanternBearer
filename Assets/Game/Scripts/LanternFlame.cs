@@ -12,6 +12,8 @@ public class LanternFlame : MonoBehaviour
     [SerializeField] LanternFlicker flicker;
     // Authored scale of the flame quad. Stays zero until first use, then caches the transform's scale.
     [SerializeField] Vector3 baseScale;
+    // Authored local position of the flame (centre of the full-height quad); the base stays seated at the wick.
+    [SerializeField] Vector3 basePosition;
 
     const float GlassAlpha = 0.35f;
     const float DeathFadeStart = 0.35f;
@@ -62,11 +64,15 @@ public class LanternFlame : MonoBehaviour
             if (baseScale == Vector3.zero)
             {
                 baseScale = flame.localScale;
+                basePosition = flame.localPosition;
             }
 
             Vector3 scale = baseScale;
             scale.y *= LanternFlameMapping.Height(fuel01) * gutter;
             flame.localScale = scale;
+            // The quad scales about its centre; drop it by half the lost height so the base stays on the wick.
+            // The parent frame is hung toward gravity, so local -Y is the lantern's down.
+            flame.localPosition = basePosition + Vector3.up * ((scale.y - baseScale.y) * 0.5f);
         }
 
         if (flameRenderer != null)

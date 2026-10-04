@@ -14,6 +14,7 @@ public class KeeperAnimator : MonoBehaviour
     [SerializeField] float landSquash = 0.92f;
 
     static readonly int SwayId = Shader.PropertyToID("_LKKeeperSway");
+    static readonly int BackId = Shader.PropertyToID("_LKKeeperBack");
     const float RunSpeed = 9f;
 
     // Task 9 writes the wind lean weight (0..1) here; it drives the cloak push on Island 4+.
@@ -344,6 +345,10 @@ public class KeeperAnimator : MonoBehaviour
         }
 
         Shader.SetGlobalVector(SwayId, new Vector4(speed01, wind01, direction.x, direction.y));
+        Vector3 back = -transform.forward;
+        back.y = 0f;
+        back = back.sqrMagnitude > 0.0001f ? back.normalized : Vector3.zero;
+        Shader.SetGlobalVector(BackId, new Vector4(back.x, back.y, back.z, 0f));
     }
 
     void ApplySquash()

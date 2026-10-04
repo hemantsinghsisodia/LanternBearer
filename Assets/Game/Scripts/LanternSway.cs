@@ -19,14 +19,14 @@ public class LanternSway : MonoBehaviour
     // Adds a decaying impulse (a stagger, a stolen step) on top of the sine swing.
     public void Kick(float degrees)
     {
-        kick += degrees;
+        kick = Mathf.Clamp(kick + degrees, -TotalLimitDegrees, TotalLimitDegrees);
     }
 
     void Awake()
     {
-        if (trackedBody == null && transform.parent != null)
+        if (trackedBody == null)
         {
-            trackedBody = transform.parent;
+            trackedBody = transform.root;
         }
 
         if (trackedBody != null)
@@ -50,7 +50,15 @@ public class LanternSway : MonoBehaviour
         float rate = 2.2f + Mathf.Clamp(speed, 0f, 8f) * 0.35f;
         kick *= Mathf.Pow(0.5f, Time.deltaTime / KickHalfLife);
         swing = Mathf.Clamp(Mathf.Sin(Time.time * rate) * amount + kick, -TotalLimitDegrees, TotalLimitDegrees);
-        transform.localRotation = Quaternion.Euler(swing, 0f, swing * 0.55f);
+        // A lantern hangs from its ring toward gravity in every pose: rest is world down, yaw follows the keeper's facing.
+        Vector3 facing = trackedBody != null ? trackedBody.forward : transform.forward;
+        facing.y = 0f;
+        if (facing.sqrMagnitude < 0.0001f)
+        {
+            facing = Vector3.forward;
+        }
+
+        transform.rotation = Quaternion.LookRotation(facing.normalized, Vector3.up) * Quaternion.Euler(swing, 0f, swing * 0.55f);
     }
 }
 }

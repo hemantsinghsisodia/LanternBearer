@@ -626,7 +626,8 @@ public static partial class IslandBuilder
             Object.DestroyImmediate(collider);
         }
 
-        flame.position = anchor.position;
+        // Base of the full-height quad sits on the wick (FlameAnchor); Lantern-local up is gravity-up once LanternSway hangs it.
+        flame.localPosition = lantern.transform.InverseTransformPoint(anchor.position) + Vector3.up * (LanternFlameSize.y * 0.5f);
         flame.localRotation = Quaternion.identity;
         flame.localScale = LanternFlameSize;
         MeshRenderer flameRenderer = flame.GetComponent<MeshRenderer>();
@@ -658,6 +659,7 @@ public static partial class IslandBuilder
         so.FindProperty("flameRenderer").objectReferenceValue = flameRenderer;
         so.FindProperty("glassRenderer").objectReferenceValue = glass;
         so.FindProperty("baseScale").vector3Value = LanternFlameSize;
+        so.FindProperty("basePosition").vector3Value = flame.localPosition;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
