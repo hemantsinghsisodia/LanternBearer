@@ -136,6 +136,8 @@ public class MoonRimFeature : ScriptableRendererFeature
                     data.gain = gain;
                     builder.UseTexture(resources.cameraDepthTexture);
                     builder.SetRenderAttachment(resources.activeColorTexture, 0);
+                    // Read-only depth-stencil: the shader's stencil test excludes the keeper.
+                    builder.SetRenderAttachmentDepth(resources.activeDepthTexture, AccessFlags.Read);
                     builder.AllowPassCulling(false);
                     builder.SetRenderFunc(static (PassData d, RasterGraphContext context) => DrawRim(d, context));
                 }
@@ -172,6 +174,7 @@ public class MoonRimFeature : ScriptableRendererFeature
                 data.passIndex = 2;
                 builder.UseTexture(half);
                 builder.SetRenderAttachment(resources.activeColorTexture, 0);
+                builder.SetRenderAttachmentDepth(resources.activeDepthTexture, AccessFlags.Read);
                 builder.AllowPassCulling(false);
                 builder.SetRenderFunc(static (PassData d, RasterGraphContext context) =>
                 {

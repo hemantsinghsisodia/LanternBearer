@@ -33,6 +33,14 @@ Shader "LanternKeeper/KeeperLit"
             Tags { "LightMode" = "UniversalForward" }
             Cull Back
             ZWrite On
+            // Marks the keeper (and its lantern iron) for the screen-space moon rim, which skips stencil bit 32 so the keeper keeps only its own rim.
+            Stencil
+            {
+                Ref 32
+                WriteMask 32
+                Comp Always
+                Pass Replace
+            }
             HLSLPROGRAM
             #pragma target 3.5
             #pragma vertex vert
