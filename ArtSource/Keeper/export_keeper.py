@@ -167,7 +167,10 @@ def export():
     for o in bpy.data.objects:
         o.select_set(False)
     for o in keep:
+        o.hide_viewport = False
+        o.hide_set(False)
         o.select_set(True)
+        assert o.select_get(), "allow-listed object could not be selected: " + o.name
     bpy.context.view_layer.objects.active = arm
     bpy.ops.export_scene.fbx(
         filepath=FBX_PATH,
