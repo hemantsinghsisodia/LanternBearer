@@ -1415,6 +1415,26 @@ public static class SceneWiring
             return 0;
         }
 
+        int missing = 0;
+        bool underSocket = false;
+        for (Transform walk = lantern.transform.parent; walk != null; walk = walk.parent)
+        {
+            if (walk.name == "HandSocket")
+            {
+                underSocket = true;
+                break;
+            }
+        }
+
+        if (!underSocket)
+        {
+            missing = 1;
+            if (!quiet)
+            {
+                Debug.LogWarning("Lantern is not under HandSocket on " + lantern.name, lantern);
+            }
+        }
+
         float distance = Vector3.Distance(lantern.transform.position, keeper.transform.position);
         if (!quiet)
         {
@@ -1423,7 +1443,7 @@ public static class SceneWiring
 
         if (distance <= MaxLanternKeeperDistance)
         {
-            return 0;
+            return missing;
         }
 
         if (!quiet)
@@ -1431,7 +1451,7 @@ public static class SceneWiring
             Debug.LogWarning("Lantern is " + distance.ToString("0.00") + " m from the keeper (max " + MaxLanternKeeperDistance.ToString("0.0") + " m) on " + lantern.name, lantern);
         }
 
-        return 1;
+        return missing + 1;
     }
 
     // The keeper rig is exported at true scale, so nothing under it may carry a scale to compensate for.

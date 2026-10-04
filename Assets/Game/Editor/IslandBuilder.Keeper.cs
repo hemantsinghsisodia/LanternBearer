@@ -519,6 +519,11 @@ public static partial class IslandBuilder
         return hand;
     }
 
+    const string LanternFbxPath = "Assets/Game/Art/Lantern/Lantern.fbx";
+    const string LanternFlameMaterialPath = "Assets/Game/Art/Lantern/LanternFlame.mat";
+    // Flame quad size in metres at full fuel (width, height). The flame shader billboards it.
+    static readonly Vector3 LanternFlameSize = new Vector3(0.05f, 0.1f, 1f);
+
     static void AttachLantern(ArtKit art, Transform root, Transform hand)
     {
         // HandSocket sits in the closed fist of the re-exported rig; the bare wrist is only a fallback.
@@ -528,17 +533,132 @@ public static partial class IslandBuilder
         pivot.transform.localPosition = Vector3.zero;
         pivot.transform.localRotation = Quaternion.identity;
         pivot.transform.localScale = Vector3.one;
-        GameObject lantern = Prim(PrimitiveType.Cube, "Lantern", pivot.transform, Vector3.zero, new Vector3(0.12f, 0.16f, 0.12f), art.lanternMat);
-        Prim(PrimitiveType.Cube, "Cap", lantern.transform, new Vector3(0f, 0.62f, 0f), new Vector3(0.7f, 0.18f, 0.7f), art.cloak);
+
+        GameObject fbx = AssetDatabase.LoadAssetAtPath<GameObject>(LanternFbxPath);
+        GameObject lantern;
+        Transform anchor;
+        if (fbx != null)
+        {
+            lantern = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+            lantern.name = "Lantern";
+            lantern.transform.SetParent(pivot.transform, false);
+            lantern.transform.localPosition = Vector3.zero;
+            lantern.transform.localRotation = Quaternion.identity;
+            lantern.transform.localScale = Vector3.one;
+            anchor = FindDeep(lantern.transform, "FlameAnchor");
+            AssignLanternMaterials(lantern.transform);
+        }
+        else
+        {
+            Debug.LogWarning("Lantern.fbx is missing, using the cube lantern fallback.");
+            lantern = Prim(PrimitiveType.Cube, "Lantern", pivot.transform, Vector3.zero, new Vector3(0.12f, 0.16f, 0.12f), art.lanternMat);
+            anchor = null;
+        }
+
+        if (anchor == null)
+        {
+            anchor = lantern.transform;
+        }
+
         GameObject lightObject = new GameObject("LanternLight");
         lightObject.transform.SetParent(lantern.transform, false);
         Light light = lightObject.AddComponent<Light>();
         ConfigureLanternPoint(light);
-        PlaceLanternLight(lightObject.transform, hand, root);
-        lantern.AddComponent<Lantern>();
+        PlaceLanternLight(lightObject.transform, anchor);
+        if (lantern.GetComponent<Lantern>() == null)
+        {
+            lantern.AddComponent<Lantern>();
+        }
+
         EnsureLanternHalo(lantern.transform);
+        EnsureLanternFlame(lantern, anchor);
         StripColliders(pivot);
         EnsureChestFill(root);
+    }
+
+    static void AssignLanternMaterials(Transform lantern)
+    {
+        Material iron = AssetDatabase.LoadAssetAtPath<Material>(LanternMaterialFolder + "/LanternIron.mat");
+        Material glass = EnsureLanternGlassMaterial();
+        Renderer[] renderers = lantern.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            string name = renderers[i].name;
+            if (name == "Iron" && iron != null)
+            {
+                renderers[i].sharedMaterial = iron;
+            }
+            else if (name == "Glass")
+            {
+                renderers[i].sharedMaterial = glass;
+            }
+        }
+    }
+
+    static Material EnsureLanternFlameMaterial()
+    {
+        Shader shader = Shader.Find("LanternKeeper/Flame");
+        if (shader == null)
+        {
+            return null;
+        }
+
+        Material mat = FlameMat(LanternFlameMaterialPath, shader, 1.6f, 0f, 1.5f, 0.14f);
+        AssetDatabase.SaveAssetIfDirty(mat);
+        return mat;
+    }
+
+    // The flame quad, at FlameAnchor, with LanternFlame on the Lantern object.
+    static void EnsureLanternFlame(GameObject lantern, Transform anchor)
+    {
+        Transform flame = lantern.transform.Find("Flame");
+        if (flame == null)
+        {
+            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Flame";
+            quad.transform.SetParent(lantern.transform, false);
+            flame = quad.transform;
+        }
+
+        Collider collider = flame.GetComponent<Collider>();
+        if (collider != null)
+        {
+            Object.DestroyImmediate(collider);
+        }
+
+        flame.position = anchor.position;
+        flame.localRotation = Quaternion.identity;
+        flame.localScale = LanternFlameSize;
+        MeshRenderer flameRenderer = flame.GetComponent<MeshRenderer>();
+        flameRenderer.sharedMaterial = EnsureLanternFlameMaterial();
+        flameRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        flameRenderer.receiveShadows = false;
+        flameRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        flameRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+        Renderer glass = null;
+        Renderer[] renderers = lantern.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i].name == "Glass")
+            {
+                glass = renderers[i];
+            }
+        }
+
+        LanternFlame flameComponent = lantern.GetComponent<LanternFlame>();
+        if (flameComponent == null)
+        {
+            flameComponent = lantern.AddComponent<LanternFlame>();
+        }
+
+        SerializedObject so = new SerializedObject(flameComponent);
+        so.FindProperty("lantern").objectReferenceValue = lantern.GetComponent<Lantern>();
+        so.FindProperty("flame").objectReferenceValue = flame;
+        so.FindProperty("flameRenderer").objectReferenceValue = flameRenderer;
+        so.FindProperty("glassRenderer").objectReferenceValue = glass;
+        so.FindProperty("baseScale").vector3Value = LanternFlameSize;
+        so.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void ConfigureLanternPoint(Light light)
@@ -608,8 +728,13 @@ public static partial class IslandBuilder
 
     static void EnsureLanternHalo(Transform lanternObject)
     {
-        Transform pivot = lanternObject.parent != null ? lanternObject.parent : lanternObject;
-        Transform existing = FindDeep(pivot, "LanternHalo");
+        Transform anchor = FindDeep(lanternObject, "FlameAnchor");
+        if (anchor == null)
+        {
+            anchor = lanternObject;
+        }
+
+        Transform existing = FindDeep(lanternObject, "LanternHalo");
         GameObject halo;
         if (existing != null)
         {
@@ -619,7 +744,7 @@ public static partial class IslandBuilder
         {
             halo = GameObject.CreatePrimitive(PrimitiveType.Quad);
             halo.name = "LanternHalo";
-            halo.transform.SetParent(pivot, false);
+            halo.transform.SetParent(lanternObject, false);
         }
 
         Collider collider = halo.GetComponent<Collider>();
@@ -628,7 +753,7 @@ public static partial class IslandBuilder
             Object.DestroyImmediate(collider);
         }
 
-        halo.transform.localPosition = lanternObject.localPosition;
+        halo.transform.position = anchor.position;
         halo.transform.localScale = Vector3.one * 0.9f;
         MeshRenderer renderer = halo.GetComponent<MeshRenderer>();
         renderer.sharedMaterial = EnsureLanternHaloMaterial();
@@ -642,16 +767,9 @@ public static partial class IslandBuilder
         }
     }
 
-    static void PlaceLanternLight(Transform lightTransform, Transform hand, Transform root)
+    static void PlaceLanternLight(Transform lightTransform, Transform anchor)
     {
-        Vector3 outward = hand.position - root.position;
-        outward.y = 0.12f;
-        if (outward.sqrMagnitude < 0.0004f)
-        {
-            outward = Vector3.right;
-        }
-
-        lightTransform.position = hand.position + outward.normalized * 0.32f + Vector3.up * 0.05f;
+        lightTransform.position = anchor.position;
     }
 
     static void EnsureChestFill(Transform root)
@@ -733,21 +851,15 @@ public static partial class IslandBuilder
                 animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(KeeperControllerPath);
             }
 
-            Transform hand = FindDeep(contents.transform, "Wrist.R");
-            if (hand == null)
-            {
-                hand = FindDeep(contents.transform, "RightHand");
-            }
-
-            if (hand == null)
-            {
-                hand = contents.transform;
-            }
-
             Transform lanternLight = FindDeep(contents.transform, "LanternLight");
             if (lanternLight != null)
             {
-                PlaceLanternLight(lanternLight, hand, contents.transform);
+                Transform refreshAnchor = FindDeep(contents.transform, "FlameAnchor");
+                if (refreshAnchor != null)
+                {
+                    PlaceLanternLight(lanternLight, refreshAnchor);
+                }
+
                 Light point = lanternLight.GetComponent<Light>();
                 if (point != null)
                 {
