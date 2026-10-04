@@ -642,23 +642,35 @@ public static partial class IslandBuilder
         cloth.SetFloat("_SwayStrength", 0.12f);
         cloth.SetFloat("_VertexAO", 1f);
         cloth.SetFloat("_EdgeLighten", 0.25f);
-        cloth.SetFloat("_RimStrength", 0.7f);
+        cloth.SetFloat("_AOFloor", 0f);
         EditorUtility.SetDirty(cloth);
-        EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperLeather.mat", "2B2119", 0.3f, 0f, 0f);
-        EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperDark.mat", "232C3B", 0.18f, 0f, 0f);
-        Material skin = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperSkin.mat", "A5806A", 0.28f, 0f, 0.2f);
+        // Vertex G is the design AO (gloves 0.42, eyes and brows near 0, neck 0): leather and dark follow it, with the Blender preview's linear mix (floor 0).
+        Material leather = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperLeather.mat", "2B2119", 0.3f, 0f, 0f);
+        leather.SetFloat("_VertexAO", 1f);
+        leather.SetFloat("_AOFloor", 0f);
+        EditorUtility.SetDirty(leather);
+        Material darkMat = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperDark.mat", "232C3B", 0.18f, 0f, 0f);
+        darkMat.SetFloat("_VertexAO", 1f);
+        darkMat.SetFloat("_AOFloor", 0f);
+        EditorUtility.SetDirty(darkMat);
+        // The head is the Skin slot only (hands and gloves are leather). The design wants a black void inside the hood, so
+        // the skin material is a near-black treatment: a very dark albedo, no AO floor, no rim, so neither the moon nor the lantern lifts it.
+        Material skin = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperSkin.mat", "050608", 0.05f, 0f, 0f);
         skin.SetFloat("_VertexAO", 1f);
-        // The head's face verts carry G = 0.14: the floor and the steeper curve keep the face a dark hollow under the lantern.
-        skin.SetFloat("_AOFloor", 0.03f);
+        skin.SetFloat("_AOFloor", 0f);
         skin.SetFloat("_AOContrast", 2.5f);
+        skin.SetFloat("_RimStrength", 0f);
         EditorUtility.SetDirty(skin);
         Material iron = EnsureKeeperLitMaterial(LanternMaterialFolder + "/LanternIron.mat", "2A2A2E", 0.35f, 0.6f, 0f);
-        iron.SetFloat("_RimStrength", 1f);
+        iron.SetFloat("_RimStrength", 0.5f);
         EditorUtility.SetDirty(iron);
         EnsureLanternGlassMaterial();
         AssetDatabase.SaveAssets();
         return cloth;
     }
+
+    // Near-lantern cap on the attenuation: low enough that the dark cloth keeps its colour next to the lantern.
+    const float KeeperLightCap = 0.12f;
 
     static Material EnsureKeeperLitMaterial(string path, string hex, float smoothness, float metallic, float desaturate)
     {
@@ -676,14 +688,14 @@ public static partial class IslandBuilder
         mat.SetFloat("_Metallic", metallic);
         mat.SetFloat("_Desaturate", desaturate);
         mat.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
-        mat.SetFloat("_RimPower", 2.4f);
-        mat.SetFloat("_RimStrength", 0.7f);
+        mat.SetFloat("_RimPower", 4f);
+        mat.SetFloat("_RimStrength", 0.2f);
         mat.SetFloat("_SwayStrength", 0f);
         mat.SetFloat("_VertexAO", 0f);
         mat.SetFloat("_AOFloor", 0.15f);
         mat.SetFloat("_AOContrast", 1f);
         // The lantern hangs a hand's width from the cloth: cap 1/d^2 at 1 (as if no surface were nearer than 1 m) so the near surfaces are not blown out.
-        mat.SetFloat("_LightCap", 1.0f);
+        mat.SetFloat("_LightCap", KeeperLightCap);
         mat.SetFloat("_EdgeLighten", 0f);
         EditorUtility.SetDirty(mat);
         return mat;

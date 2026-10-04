@@ -34,17 +34,17 @@ Material:
     m_Ints: []
     m_Floats:
     - _AOContrast: 1
-    - _AOFloor: 0.15
+    - _AOFloor: 0
     - _BumpScale: 1
     - _Desaturate: 0
     - _EdgeLighten: 0
-    - _LightCap: 1
+    - _LightCap: 0.12
     - _Metallic: 0
-    - _RimPower: 2.4
-    - _RimStrength: 0.7
+    - _RimPower: 4
+    - _RimStrength: 0.2
     - _Smoothness: 0.3
     - _SwayStrength: 0
-    - _VertexAO: 0
+    - _VertexAO: 1
     m_Colors:
     - _BaseColor: {r: 0.16862746, g: 0.12941177, b: 0.09803922, a: 1}
     - _RimColor: {r: 0.58, g: 0.72, b: 0.95, a: 1}

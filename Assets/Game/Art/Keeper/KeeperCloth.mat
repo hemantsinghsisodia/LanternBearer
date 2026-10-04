@@ -34,14 +34,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _AOContrast: 1
-    - _AOFloor: 0.15
+    - _AOFloor: 0
     - _BumpScale: 1
     - _Desaturate: 0
     - _EdgeLighten: 0.25
-    - _LightCap: 1
+    - _LightCap: 0.12
     - _Metallic: 0
-    - _RimPower: 2.4
-    - _RimStrength: 0.7
+    - _RimPower: 4
+    - _RimStrength: 0.2
     - _Smoothness: 0.18
     - _SwayStrength: 0.12
     - _VertexAO: 1

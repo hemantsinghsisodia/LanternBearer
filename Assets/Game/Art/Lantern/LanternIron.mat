@@ -38,10 +38,10 @@ Material:
     - _BumpScale: 1
     - _Desaturate: 0
     - _EdgeLighten: 0
-    - _LightCap: 1
+    - _LightCap: 0.12
     - _Metallic: 0.6
-    - _RimPower: 2.4
-    - _RimStrength: 1
+    - _RimPower: 4
+    - _RimStrength: 0.5
     - _Smoothness: 0.35
     - _SwayStrength: 0
     - _VertexAO: 0
