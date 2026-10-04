@@ -471,6 +471,7 @@ public static partial class IslandBuilder
         GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(model);
         root.name = "Keeper";
         TintKeeper(root);
+        EnsureKeeperLodGroup(root);
         StripColliders(root);
         Transform hand = FindDeep(root.transform, "Wrist.R");
         if (hand == null)
@@ -549,11 +550,72 @@ public static partial class IslandBuilder
         }
     }
 
+    static void CopyKeeperMaterials(GameObject from, GameObject to)
+    {
+        Renderer[] targets = to.GetComponentsInChildren<Renderer>(true);
+        Renderer[] sources = from.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < targets.Length; i++)
+        {
+            for (int s = 0; s < sources.Length; s++)
+            {
+                if (sources[s].name == targets[i].name && sources[s] is SkinnedMeshRenderer && targets[i] is SkinnedMeshRenderer)
+                {
+                    targets[i].sharedMaterials = sources[s].sharedMaterials;
+                    break;
+                }
+            }
+        }
+    }
+
+    // LOD 0 holds every *_LOD0 renderer, LOD 1 every *_LOD1. GraphicsProfile.keeperLod forces one of them per preset.
+    const float KeeperLod0Height = 0.01f;
+    const float KeeperLod1Height = 0.001f;
+
+    static void EnsureKeeperLodGroup(GameObject root)
+    {
+        List<Renderer> lod0 = new List<Renderer>();
+        List<Renderer> lod1 = new List<Renderer>();
+        SkinnedMeshRenderer[] skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        for (int i = 0; i < skins.Length; i++)
+        {
+            if (skins[i].name.EndsWith("_LOD0"))
+            {
+                lod0.Add(skins[i]);
+            }
+            else if (skins[i].name.EndsWith("_LOD1"))
+            {
+                lod1.Add(skins[i]);
+            }
+        }
+
+        if (lod0.Count == 0 || lod1.Count == 0)
+        {
+            Debug.LogError("Keeper has no _LOD0/_LOD1 renderers to build a LODGroup from.");
+            return;
+        }
+
+        LODGroup group = root.GetComponent<LODGroup>();
+        if (group == null)
+        {
+            group = root.AddComponent<LODGroup>();
+        }
+
+        group.fadeMode = LODFadeMode.None;
+        group.animateCrossFading = false;
+        group.SetLODs(new[]
+        {
+            new LOD(KeeperLod0Height, lod0.ToArray()),
+            new LOD(KeeperLod1Height, lod1.ToArray())
+        });
+        group.RecalculateBounds();
+        EditorUtility.SetDirty(group);
+    }
+
     // Slot names come from the FBX. Black (trousers, hair) uses KeeperDark: it must not use cloth, which sways.
     // Every brown/gold slot reads as dark leather.
     static Material KeeperMaterialForSlot(string slot, Material cloth, Material leather, Material skin, Material dark)
     {
-        if (slot == "Black")
+        if (slot == "Black" || slot == "KeeperDark")
         {
             return dark;
         }
@@ -563,7 +625,7 @@ public static partial class IslandBuilder
             return cloth;
         }
 
-        if (slot == "Skin")
+        if (slot == "Skin" || slot == "KeeperSkin")
         {
             return skin;
         }
@@ -1011,13 +1073,14 @@ public static partial class IslandBuilder
             return;
         }
 
+        // Materials are mapped from the FBX's own slot names, so a refresh gives the same result every time.
         GameObject temp = (GameObject)PrefabUtility.InstantiatePrefab(model);
         TintKeeper(temp);
-        Object.DestroyImmediate(temp);
-
         GameObject contents = PrefabUtility.LoadPrefabContents(KeeperPrefabPath);
         try
         {
+            CopyKeeperMaterials(temp, contents);
+            EnsureKeeperLodGroup(contents);
             Animator animator = contents.GetComponentInChildren<Animator>();
             if (animator != null)
             {
@@ -1056,6 +1119,7 @@ public static partial class IslandBuilder
         finally
         {
             PrefabUtility.UnloadPrefabContents(contents);
+            Object.DestroyImmediate(temp);
         }
 
         AssetDatabase.SaveAssets();

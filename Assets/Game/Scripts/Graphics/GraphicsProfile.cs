@@ -86,6 +86,8 @@ public class GraphicsProfile : ScriptableObject
     public bool keeperSelfShadow;
     public bool keeperAlwaysAnimate;
     public bool lanternSoftShadowOnKeeper;
+    // Forced keeper LOD set: 0 = full detail (LOD0), 1 = reduced detail (LOD1).
+    public int keeperLod;
 
     [Header("Horizon")]
     public bool distantMountains;

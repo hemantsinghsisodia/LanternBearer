@@ -52,6 +52,7 @@ MonoBehaviour:
   keeperSelfShadow: 1
   keeperAlwaysAnimate: 1
   lanternSoftShadowOnKeeper: 1
+  keeperLod: 0
   distantMountains: 1
   hazeLayers: 2
   extraRidges: 1

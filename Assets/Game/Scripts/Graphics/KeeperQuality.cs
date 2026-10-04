@@ -19,6 +19,7 @@ public class KeeperQuality : MonoBehaviour
     [SerializeField] Light chestFill;
     [SerializeField] Light lanternLight;
     [SerializeField] Animator animator;
+    [SerializeField] LODGroup lodGroup;
 
     static bool fallbackWarned;
 
@@ -71,6 +72,7 @@ public class KeeperQuality : MonoBehaviour
         quality.chestFill = FindChildLight(keeper, ChestFillName);
         quality.lanternLight = FindChildLight(keeper, LanternLightName);
         quality.animator = FindKeeperAnimator(keeper);
+        quality.lodGroup = FindKeeperLodGroup(keeper);
         host.SetActive(wasActive);
     }
 
@@ -153,6 +155,11 @@ public class KeeperQuality : MonoBehaviour
     public static Animator FindKeeperAnimator(PlayerController keeper)
     {
         return keeper != null ? keeper.GetComponentInChildren<Animator>(true) : null;
+    }
+
+    public static LODGroup FindKeeperLodGroup(PlayerController keeper)
+    {
+        return keeper != null ? keeper.GetComponentInChildren<LODGroup>(true) : null;
     }
 
     static bool IsIsland(Scene scene)
@@ -244,6 +251,7 @@ public class KeeperQuality : MonoBehaviour
         chestFill = FindChildLight(keeper, ChestFillName);
         lanternLight = FindChildLight(keeper, LanternLightName);
         animator = FindKeeperAnimator(keeper);
+        lodGroup = FindKeeperLodGroup(keeper);
         if (!fallbackWarned)
         {
             fallbackWarned = true;
@@ -321,12 +329,14 @@ public class KeeperQuality : MonoBehaviour
         if (profile.level == GraphicsLevel.Medium)
         {
             RestoreBaseline();
+            ApplyLod(profile);
             SetRimKeyword(false);
             LogApplied(profile, false, false);
             return;
         }
 
         bool receiving = ApplyRenderers(profile.keeperSelfShadow);
+        ApplyLod(profile);
         ApplyChestFill(profile);
         animator.cullingMode = profile.keeperAlwaysAnimate ? AnimatorCullingMode.AlwaysAnimate : baseCulling;
         bool lanternSoft = ApplyLanternShadow(profile, receiving);
@@ -355,6 +365,24 @@ public class KeeperQuality : MonoBehaviour
         lanternLight.shadows = baseLanternShadows;
         RestoreLanternTier();
         animator.cullingMode = baseCulling;
+        if (lodGroup != null)
+        {
+            lodGroup.ForceLOD(-1);
+        }
+    }
+
+    // Forces the preset's LOD set. Both sets share the keeper's skeleton, so the Animator is unaffected.
+    void ApplyLod(GraphicsProfile profile)
+    {
+        if (lodGroup == null)
+        {
+            lodGroup = FindKeeperLodGroup(FindGameplayKeeper());
+        }
+
+        if (lodGroup != null)
+        {
+            lodGroup.ForceLOD(Mathf.Clamp(profile.keeperLod, 0, Mathf.Max(0, lodGroup.lodCount - 1)));
+        }
     }
 
     bool ApplyRenderers(bool selfShadow)

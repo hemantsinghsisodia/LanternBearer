@@ -123,6 +123,7 @@ public static class GraphicsProfileSetup
         profile.keeperSelfShadow = !low;
         profile.keeperAlwaysAnimate = high;
         profile.lanternSoftShadowOnKeeper = ultra;
+        profile.keeperLod = high ? 0 : 1;
 
         profile.distantMountains = !low;
         profile.hazeLayers = ultra ? 2 : 1;

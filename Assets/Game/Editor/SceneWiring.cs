@@ -588,6 +588,7 @@ public static class SceneWiring
         }
 
         nulls += RequireKeeperScale(quiet);
+        nulls += RequireKeeperLod(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)
@@ -1531,6 +1532,117 @@ public static class SceneWiring
         }
 
         return problems;
+    }
+
+    const int KeeperLod0TriangleCap = 40000;
+    const int KeeperLod1TriangleCap = 8000;
+
+    // The keeper needs a two-level LODGroup (LOD0 / LOD1 renderers), every renderer skinned to CharacterArmature, and triangle caps per level.
+    static int RequireKeeperLod(bool quiet)
+    {
+        PlayerController keeper = KeeperQuality.FindGameplayKeeper();
+        if (keeper == null)
+        {
+            return 0;
+        }
+
+        LODGroup group = keeper.GetComponentInChildren<LODGroup>(true);
+        if (group == null)
+        {
+            if (!quiet)
+            {
+                Debug.LogWarning("Keeper has no LODGroup", keeper);
+            }
+
+            return 1;
+        }
+
+        if (group.lodCount != 2)
+        {
+            if (!quiet)
+            {
+                Debug.LogWarning("Keeper LODGroup must have 2 levels (has " + group.lodCount + ")", group);
+            }
+
+            return 1;
+        }
+
+        int problems = 0;
+        LOD[] lods = group.GetLODs();
+        int[] caps = { KeeperLod0TriangleCap, KeeperLod1TriangleCap };
+        for (int level = 0; level < 2; level++)
+        {
+            long triangles = 0;
+            Renderer[] renderers = lods[level].renderers;
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                SkinnedMeshRenderer skin = renderers[i] as SkinnedMeshRenderer;
+                if (skin == null)
+                {
+                    continue;
+                }
+
+                if (!IsSkinnedToArmature(skin))
+                {
+                    problems++;
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("Keeper LOD" + level + " renderer " + skin.name + " is not skinned to CharacterArmature", skin);
+                    }
+                }
+
+                Mesh mesh = skin.sharedMesh;
+                if (mesh == null)
+                {
+                    continue;
+                }
+
+                for (int sub = 0; sub < mesh.subMeshCount; sub++)
+                {
+                    triangles += mesh.GetIndexCount(sub) / 3;
+                }
+            }
+
+            if (triangles > caps[level])
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning("Keeper LOD" + level + " has " + triangles + " triangles (cap " + caps[level] + ")", group);
+                }
+            }
+        }
+
+        return problems;
+    }
+
+    static bool IsSkinnedToArmature(SkinnedMeshRenderer skin)
+    {
+        Transform[] bones = skin.bones;
+        if (bones == null || bones.Length == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < bones.Length; i++)
+        {
+            bool found = false;
+            for (Transform walk = bones[i]; walk != null; walk = walk.parent)
+            {
+                if (walk.name == "CharacterArmature")
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // Lantern, glow and dust children are sized on their own and are skipped by the scale check.

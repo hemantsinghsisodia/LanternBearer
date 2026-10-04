@@ -157,6 +157,8 @@ public static class KeeperCloseupCapture
         for (int p = 0; p < Presets.Length; p++)
         {
             GraphicsQuality.Set(Presets[p]);
+            // KeeperQuality does not run in edit mode, so force the preset's LOD set here.
+            ForcePresetLod(keeper, Presets[p]);
             camera.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;
             for (int s = 0; s < States.Length; s++)
             {
@@ -195,6 +197,19 @@ public static class KeeperCloseupCapture
         }
 
         return written;
+    }
+
+    static void ForcePresetLod(GameObject keeper, GraphicsLevel preset)
+    {
+        LODGroup group = keeper.GetComponentInChildren<LODGroup>(true);
+        GraphicsProfile profile = AssetDatabase.LoadAssetAtPath<GraphicsProfile>("Assets/Game/Settings/Graphics/GraphicsProfile_" + preset + ".asset");
+        if (group == null || profile == null)
+        {
+            Debug.LogWarning("Keeper close-ups: no LODGroup or graphics profile for " + preset + "; the LOD is not forced.");
+            return;
+        }
+
+        group.ForceLOD(profile.keeperLod);
     }
 
     // Samples the pose the way the runtime would at rest: fresh bind, the layer weights KeeperAnimator writes
