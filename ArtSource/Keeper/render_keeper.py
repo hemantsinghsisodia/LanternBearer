@@ -4,7 +4,7 @@ Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/render_ke
       blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/render_keeper.py -- quick OUTDIR
       blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/render_keeper.py -- spot OUTDIR Clip:frame ...
 
-final: writes docs/look/keeper/renders/keeper_{front,side,threequarter,lantern}.png
+final: writes docs/look/keeper/renders/c2/lod{0,1}_{front,side,threequarter,lantern}.png and lod0_face.png
 quick: small previews of the same shots into OUTDIR (default: next to this script)
 
 The preview palette follows the art direction: cloth #2E3A4F, leather #2B2119, skin #A5806A.
@@ -21,12 +21,12 @@ from mathutils import Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.abspath(os.path.join(HERE, "..", ".."))
 LANTERN_BLEND = os.path.join(PROJECT, "ArtSource", "Lantern", "Lantern.blend")
-RENDER_DIR = os.path.join(PROJECT, "docs", "look", "keeper", "renders")
+RENDER_DIR = os.path.join(PROJECT, "docs", "look", "keeper", "renders", "c2")
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 MODE = argv[0] if argv else "quick"
 OUT_DIR = RENDER_DIR if MODE == "final" else (argv[1] if len(argv) > 1 else HERE)
-SCALE = 1.0 if MODE == "final" else (0.6 if MODE == "spot" else 0.4)
+SCALE = 1.0 if MODE == "final" else (0.6 if MODE == "spot" else 0.5)
 
 
 def lin(h):
@@ -47,7 +47,7 @@ def set_color(mat, rgba, rough=0.85):
 
 def preview_palette():
     for name, col in (("DarkBrown", lin("2B2119")), ("LightBrown", lin("3A2C20")),
-                      ("Black", lin("1B2230")), ("Brown", lin("2B2119")), ("Metal", lin("3A4048")),
+                      ("Black", lin("232C3B")), ("Brown", lin("2B2119")), ("Metal", lin("3A4048")),
                       ("Gold", lin("6A5030"))):
         m = bpy.data.materials.get(name)
         if m:
@@ -177,40 +177,62 @@ def spot(arm, cam):
         render(cam, "spot_%s_c.png" % tag, (0.0, -3.4, 1.0), (0.0, 0.0, 0.85), 70, 1024, 1024)
 
 
+def set_lod(lod):
+    """Show only the LOD0 (lod=0) or LOD1 (lod=1) meshes."""
+    for o in bpy.data.objects:
+        if o.type == 'MESH' and o.name.endswith(("_LOD0", "_LOD1")):
+            o.hide_render = not o.name.endswith("_LOD%d" % lod)
+            o.hide_viewport = o.hide_render
+
+
 def main():
     arm = bpy.data.objects["CharacterArmature"]
     preview_palette()
     cam = setup_scene()
     if MODE == "spot":
+        set_lod(0)
         spot(arm, cam)
         return
     W, H = 1024, 1536
-    set_pose(arm, "Idle", 1)
     full_t = (0.0, 0.0, 0.92)
-    render(cam, "keeper_front.png", (0.0, -5.2, 0.95), full_t, 85, W, H)
-    render(cam, "keeper_side.png", (5.2, 0.0, 0.95), full_t, 85, W, H)
-    render(cam, "keeper_threequarter.png", (3.6, -3.9, 1.0), full_t, 85, W, H)
-    # lantern shot
-    set_pose(arm, "LanternHold", 1)
-    flame = add_lantern(arm)
-    warm = bpy.data.objects.new("Flame", bpy.data.lights.new("Flame", 'POINT'))
-    warm.data.color = (1.0, 0.69, 0.36)
-    warm.data.energy = 14.0
-    warm.data.use_shadow = False   # the iron cage would otherwise swallow the light; in game the lantern light is not blocked by it
-    warm.data.shadow_soft_size = 0.02
-    bpy.context.scene.collection.objects.link(warm)
-    warm.location = flame.matrix_world.translation
-    print("Flame at", tuple(warm.location))
-    render(cam, "keeper_lantern.png", (-3.6, -1.0, 1.15), (-0.15, -0.22, 1.05), 55, 1280, 1280)
-    if MODE != "final":
+    lods = (0, 1)
+    flame = None
+    warm = None
+    for lod in lods:
+        set_lod(lod)
+        prefix = "lod%d_" % lod
         set_pose(arm, "Idle", 1)
-        warm.hide_render = True
+        if warm is not None:
+            warm.hide_render = True
+            for o in bpy.data.objects:
+                if o.parent and o.parent.name == "HandSocket":
+                    o.hide_render = True
+        render(cam, prefix + "front.png", (0.0, -5.2, 0.95), full_t, 85, W, H)
+        render(cam, prefix + "side.png", (5.2, 0.0, 0.95), full_t, 85, W, H)
+        render(cam, prefix + "threequarter.png", (3.6, -3.9, 1.0), full_t, 85, W, H)
+        if MODE == "quick" and lod == 0:
+            render(cam, "back.png", (0.0, 5.2, 0.95), full_t, 85, W, H)
+            render(cam, "back34.png", (-3.6, 3.9, 1.0), full_t, 85, W, H)
+        # lantern shots: LanternHold with the lantern parented to HandSocket and a warm light at the flame
+        set_pose(arm, "LanternHold", 1)
+        if flame is None:
+            flame = add_lantern(arm)
+            warm = bpy.data.objects.new("Flame", bpy.data.lights.new("Flame", 'POINT'))
+            warm.data.color = (1.0, 0.69, 0.36)
+            warm.data.energy = 14.0
+            warm.data.use_shadow = False   # the iron cage would otherwise swallow the light; in game it is not blocked
+            warm.data.shadow_soft_size = 0.02
+            bpy.context.scene.collection.objects.link(warm)
+        warm.hide_render = False
         for o in bpy.data.objects:
             if o.parent and o.parent.name == "HandSocket":
-                o.hide_render = True
-        render(cam, "head_front.png", (0.0, -1.3, 1.6), (0.0, 0.0, 1.55), 70, 1024, 1024)
-        render(cam, "head_34.png", (0.9, -1.0, 1.65), (0.0, 0.0, 1.55), 70, 1024, 1024)
-        render(cam, "back.png", (0.0, 5.2, 0.95), full_t, 85, W, H)
+                o.hide_render = False
+        warm.location = flame.matrix_world.translation
+        render(cam, prefix + "lantern.png", (-3.6, -1.0, 1.15), (-0.15, -0.22, 1.05), 55, 1280, 1280)
+        if lod == 0:
+            render(cam, "lod0_face.png", (0.10, -1.35, 1.50), (-0.03, -0.20, 1.56), 55, 1280, 1280)
+        if MODE == "quick" and lod == 0:
+            render(cam, "hand.png", (-0.9, -1.0, 1.15), (-0.25, -0.3, 1.04), 60, 1024, 1024)
 
 
 main()
