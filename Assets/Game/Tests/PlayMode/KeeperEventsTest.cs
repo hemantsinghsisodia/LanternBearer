@@ -70,6 +70,8 @@ namespace LanternKeeper.Tests
             Animator animator = keeper.GetComponentInChildren<Animator>();
             Assert.IsNotNull(animator, "Keeper Animator missing");
             int actions = animator.GetLayerIndex("Actions");
+            int upper = animator.GetLayerIndex("UpperActions");
+            Assert.GreaterOrEqual(upper, 0, "Keeper.controller missing layer UpperActions");
             Assert.GreaterOrEqual(actions, 0, "Keeper.controller missing layer Actions");
             Assert.GreaterOrEqual(animator.GetLayerIndex("LanternArm"), 0, "Keeper.controller missing layer LanternArm");
             Assert.GreaterOrEqual(animator.GetLayerIndex("Lean"), 0, "Keeper.controller missing layer Lean");
@@ -98,10 +100,12 @@ namespace LanternKeeper.Tests
             for (int i = 0; i < 6 && !lightPlayed; i++)
             {
                 yield return null;
-                lightPlayed = InState(animator, actions, "Light");
+                lightPlayed = InState(animator, upper, "Light");
             }
 
             Assert.IsTrue(lightPlayed, "Light state not entered after Beacon.TryLight. " + Describe(animator, actions, keeper));
+            Assert.IsTrue(Settled(animator, actions, "Empty") || InState(animator, actions, "Empty"), "Light must not use the full-body Actions layer. " + Describe(animator, actions, keeper));
+            Assert.IsTrue(animator.GetCurrentAnimatorStateInfo(animator.GetLayerIndex("Base Layer")).IsName("Move"), "Base layer stopped playing locomotion during Light");
             float armDropped = 1f;
             for (int i = 0; i < 30 && armDropped >= 0.5f; i++)
             {
@@ -132,7 +136,7 @@ namespace LanternKeeper.Tests
             }
 
             Assert.GreaterOrEqual(ArmWeight(keeper), 0.99f, "ArmWeight did not return to 1 after the Light gesture");
-            yield return WaitForState(animator, actions, "Empty", 2f);
+            yield return WaitForState(animator, upper, "Empty", 2f);
 
             // 4. A water rescue plays ShakeOff.
             MonoBehaviour hazard = FindOne("WaterHazard");
@@ -157,12 +161,10 @@ namespace LanternKeeper.Tests
 
             // 5. Death wins over an overlapping gesture and a later steal.
             MonoBehaviour second = FindUnlitBeacon();
-            if (second != null)
-            {
-                tryLight.Invoke(second, null);
-                yield return null;
-                yield return null;
-            }
+            Assert.IsNotNull(second, "A second unlit Beacon is needed for the overlapping-event check");
+            tryLight.Invoke(second, null);
+            yield return null;
+            yield return null;
 
             RaiseStole();
             yield return null;

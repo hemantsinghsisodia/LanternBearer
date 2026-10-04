@@ -33,6 +33,7 @@ public class KeeperAnimator : MonoBehaviour
     int armLayer = -1;
     int leanLayer = -1;
     int actionsLayer = -1;
+    int upperLayer = -1;
     int staggerHash;
     int lightHash;
     int dieHash;
@@ -325,7 +326,8 @@ public class KeeperAnimator : MonoBehaviour
         armLayer = animator.GetLayerIndex("LanternArm");
         leanLayer = animator.GetLayerIndex("Lean");
         actionsLayer = animator.GetLayerIndex("Actions");
-        hasActions = actionsLayer >= 0 && HasParameter("Stagger") && HasParameter("Light") && HasParameter("Die") && HasParameter("ShakeOff") && HasParameter("Dead");
+        upperLayer = animator.GetLayerIndex("UpperActions");
+        hasActions = actionsLayer >= 0 && upperLayer >= 0 && HasParameter("Stagger") && HasParameter("Light") && HasParameter("Die") && HasParameter("ShakeOff") && HasParameter("Dead");
         staggerHash = Animator.StringToHash("Stagger");
         lightHash = Animator.StringToHash("Light");
         dieHash = Animator.StringToHash("Die");
@@ -364,8 +366,8 @@ public class KeeperAnimator : MonoBehaviour
             armHoldRemaining -= dt;
         }
 
-        // An interrupted gesture must not leave the arm stuck down: with the Actions layer idle, the arm is released.
-        bool actionsIdle = hasActions && !animator.IsInTransition(actionsLayer) && animator.GetCurrentAnimatorStateInfo(actionsLayer).IsName("Empty");
+        // An interrupted gesture must not leave the arm stuck down: with UpperActions idle, the arm is released.
+        bool actionsIdle = hasActions && !animator.IsInTransition(upperLayer) && animator.GetCurrentAnimatorStateInfo(upperLayer).IsName("Empty");
         if (actionsIdle && Time.frameCount > gestureFrame + 2)
         {
             armHoldRemaining = 0f;
@@ -387,6 +389,12 @@ public class KeeperAnimator : MonoBehaviour
             if (leanLayer >= 0)
             {
                 animator.SetLayerWeight(leanLayer, leanWeight);
+            }
+
+            // Belt and braces with the Dead transition: the reach layer never shows over the Death clip.
+            if (upperLayer >= 0)
+            {
+                animator.SetLayerWeight(upperLayer, dead ? 0f : 1f);
             }
         }
     }

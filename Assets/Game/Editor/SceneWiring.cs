@@ -719,7 +719,7 @@ public static class SceneWiring
                 }
 
                 KeeperAnimator[] keepers = Object.FindObjectsByType<KeeperAnimator>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-                string[] layerNames = { "LanternArm", "Lean", "Actions" };
+                string[] layerNames = { "LanternArm", "Lean", "Actions", "UpperActions" };
                 for (int i = 0; i < keepers.Length; i++)
                 {
                     Animator keeperAnimator = keepers[i].GetComponentInChildren<Animator>(true);

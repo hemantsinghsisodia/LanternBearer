@@ -199,6 +199,7 @@ public static partial class IslandBuilder
 
     const string KeeperArmMaskPath = "Assets/Game/Models/Keeper/KeeperArmMask.mask";
     const string KeeperSpineMaskPath = "Assets/Game/Models/Keeper/KeeperSpineMask.mask";
+    const string KeeperUpperMaskPath = "Assets/Game/Models/Keeper/KeeperUpperMask.mask";
 
     static RuntimeAnimatorController EnsureKeeperController()
     {
@@ -225,6 +226,8 @@ public static partial class IslandBuilder
 
         AvatarMask armMask = EnsureKeeperMask(KeeperArmMaskPath, new[] { "Shoulder.R", "UpperArm.R", "LowerArm.R", "Wrist.R" }, true);
         AvatarMask spineMask = EnsureKeeperMask(KeeperSpineMaskPath, new[] { "Abdomen", "Torso", "Chest", "Neck", "Head" }, false);
+        // Everything under Abdomen: spine, neck, head, both shoulders, arms, hands and fingers. Not Hips, not the legs.
+        AvatarMask upperMask = EnsureKeeperMask(KeeperUpperMaskPath, new[] { "Abdomen" }, true);
 
         // Rebuild in place so the controller keeps its GUID and the prefab Animator reference survives.
         AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(KeeperControllerPath);
@@ -274,9 +277,21 @@ public static partial class IslandBuilder
         AnimatorState empty = actions.AddState("Empty");
         actions.defaultState = empty;
         AddActionState(actions, empty, "Stagger", hit, "Stagger", true);
-        AddActionState(actions, empty, "Light", interact, "Light", true);
         AddActionState(actions, empty, "ShakeOff", shake, "ShakeOff", true);
         AddActionState(actions, empty, "Die", death, "Die", false);
+
+        // The beacon reach is upper body only, so the legs keep running under it.
+        AnimatorStateMachine upper = AddKeeperLayer(controller, "UpperActions", upperMask, AnimatorLayerBlendingMode.Override, 1f);
+        AnimatorState upperEmpty = upper.AddState("Empty");
+        upper.defaultState = upperEmpty;
+        AddActionState(upper, upperEmpty, "Light", interact, "Light", true);
+        // Death wins: once Dead is set the reach is dropped so it cannot show over the Death clip.
+        AnimatorStateTransition drop = upper.AddAnyStateTransition(upperEmpty);
+        drop.hasExitTime = false;
+        drop.hasFixedDuration = true;
+        drop.duration = 0.1f;
+        drop.canTransitionToSelf = false;
+        drop.AddCondition(AnimatorConditionMode.If, 0f, "Dead");
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
         return controller;
