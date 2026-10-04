@@ -18,6 +18,7 @@ Shader "LanternKeeper/KeeperLit"
         _AOContrast ("AO Contrast", Range(1, 4)) = 1
         _LightCap ("Near Light Cap", Range(0.1, 1000)) = 1000
         _EdgeLighten ("Edge Lighten", Range(0, 0.5)) = 0
+        _MoonLift ("Moon And Ambient Lift", Range(0.5, 4)) = 1
     }
     SubShader
     {
@@ -75,6 +76,7 @@ Shader "LanternKeeper/KeeperLit"
                 float _AOContrast;
                 float _LightCap;
                 float _EdgeLighten;
+                float _MoonLift;
             CBUFFER_END
             // x = speed01, y = wind01, zw = world wind direction xz. Written by KeeperAnimator.
             float4 _LKKeeperSway;
@@ -147,7 +149,7 @@ Shader "LanternKeeper/KeeperLit"
                 Light mainLight = GetMainLight(shadowCoord);
                 float wrap = saturate(dot(normalWS, mainLight.direction) * 0.55 + 0.45);
                 float3 ambient = max(SampleSH(normalWS), float3(0.07, 0.08, 0.10));
-                float3 color = albedo * (ambient + mainLight.color * (wrap * mainLight.shadowAttenuation));
+                float3 color = albedo * _MoonLift * (ambient + mainLight.color * (wrap * mainLight.shadowAttenuation));
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
@@ -208,6 +210,7 @@ Shader "LanternKeeper/KeeperLit"
                 float _AOContrast;
                 float _LightCap;
                 float _EdgeLighten;
+                float _MoonLift;
             CBUFFER_END
             float4 _LKKeeperSway;
             // World-space backward of the keeper (horizontal, normalised). Zero when unset: no backward push.

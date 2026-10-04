@@ -643,15 +643,18 @@ public static partial class IslandBuilder
         cloth.SetFloat("_VertexAO", 1f);
         cloth.SetFloat("_EdgeLighten", 0.25f);
         cloth.SetFloat("_AOFloor", 0f);
+        cloth.SetFloat("_MoonLift", KeeperMoonLift);
         EditorUtility.SetDirty(cloth);
         // Vertex G is the design AO (gloves 0.42, eyes and brows near 0, neck 0): leather and dark follow it, with the Blender preview's linear mix (floor 0).
         Material leather = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperLeather.mat", "2B2119", 0.3f, 0f, 0f);
         leather.SetFloat("_VertexAO", 1f);
         leather.SetFloat("_AOFloor", 0f);
+        leather.SetFloat("_MoonLift", KeeperMoonLift);
         EditorUtility.SetDirty(leather);
         Material darkMat = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperDark.mat", "232C3B", 0.18f, 0f, 0f);
         darkMat.SetFloat("_VertexAO", 1f);
         darkMat.SetFloat("_AOFloor", 0f);
+        darkMat.SetFloat("_MoonLift", KeeperMoonLift);
         EditorUtility.SetDirty(darkMat);
         // The head is the Skin slot only (hands and gloves are leather). The design wants a black void inside the hood, so
         // the skin material is a near-black treatment: a very dark albedo, no AO floor, no rim, so neither the moon nor the lantern lifts it.
@@ -670,7 +673,9 @@ public static partial class IslandBuilder
     }
 
     // Near-lantern cap on the attenuation: low enough that the dark cloth keeps its colour next to the lantern.
-    const float KeeperLightCap = 0.12f;
+    const float KeeperLightCap = 0.25f;
+    // Response to the moon key and ambient for cloth, dark and leather (not the face void): lifts the folds without touching the lantern term.
+    const float KeeperMoonLift = 2.0f;
 
     static Material EnsureKeeperLitMaterial(string path, string hex, float smoothness, float metallic, float desaturate)
     {
@@ -697,6 +702,7 @@ public static partial class IslandBuilder
         // The lantern hangs a hand's width from the cloth: cap 1/d^2 at 1 (as if no surface were nearer than 1 m) so the near surfaces are not blown out.
         mat.SetFloat("_LightCap", KeeperLightCap);
         mat.SetFloat("_EdgeLighten", 0f);
+        mat.SetFloat("_MoonLift", 1f);
         EditorUtility.SetDirty(mat);
         return mat;
     }
@@ -1001,7 +1007,7 @@ public static partial class IslandBuilder
         }
 
         halo.transform.position = anchor.position;
-        halo.transform.localScale = Vector3.one * 0.9f;
+        halo.transform.localScale = Vector3.one * 0.78f;
         MeshRenderer renderer = halo.GetComponent<MeshRenderer>();
         renderer.sharedMaterial = EnsureLanternHaloMaterial();
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

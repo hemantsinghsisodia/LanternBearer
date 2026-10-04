@@ -11,8 +11,8 @@ public class LanternHalo : MonoBehaviour
     // Glow core colour (#FFD38A) and quad size in metres; constants so a rebuild always applies them.
     static readonly Color color = LookPalette.FromHex(LookPalette.GlowCore);
     // Kept under the glass tint: a hotter halo behind the panes whitens them.
-    const float maxAlpha = 0.45f;
-    const float size = 0.9f;
+    const float maxAlpha = 0.36f;
+    const float size = 0.78f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     MaterialPropertyBlock block;

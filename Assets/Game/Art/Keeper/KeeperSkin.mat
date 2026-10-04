@@ -38,8 +38,9 @@ Material:
     - _BumpScale: 1
     - _Desaturate: 0
     - _EdgeLighten: 0
-    - _LightCap: 0.12
+    - _LightCap: 0.25
     - _Metallic: 0
+    - _MoonLift: 1
     - _RimPower: 4
     - _RimStrength: 0
     - _Smoothness: 0.05
