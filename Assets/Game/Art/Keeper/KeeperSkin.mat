@@ -33,9 +33,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOContrast: 2.5
+    - _AOFloor: 0.03
     - _BumpScale: 1
     - _Desaturate: 0.2
     - _EdgeLighten: 0
+    - _LightCap: 1
     - _Metallic: 0
     - _RimPower: 2.4
     - _RimStrength: 0.7

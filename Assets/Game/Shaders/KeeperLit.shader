@@ -14,6 +14,9 @@ Shader "LanternKeeper/KeeperLit"
         _RimStrength ("Rim Strength", Range(0, 2)) = 0.7
         _SwayStrength ("Sway Strength (m)", Range(0, 0.3)) = 0
         _VertexAO ("Vertex AO", Range(0, 1)) = 0
+        _AOFloor ("AO Floor", Range(0, 0.5)) = 0.15
+        _AOContrast ("AO Contrast", Range(1, 4)) = 1
+        _LightCap ("Near Light Cap", Range(0.1, 1000)) = 1000
         _EdgeLighten ("Edge Lighten", Range(0, 0.5)) = 0
     }
     SubShader
@@ -60,6 +63,9 @@ Shader "LanternKeeper/KeeperLit"
                 float _RimStrength;
                 float _SwayStrength;
                 float _VertexAO;
+                float _AOFloor;
+                float _AOContrast;
+                float _LightCap;
                 float _EdgeLighten;
             CBUFFER_END
             // x = speed01, y = wind01, zw = world wind direction xz. Written by KeeperAnimator.
@@ -122,7 +128,9 @@ Shader "LanternKeeper/KeeperLit"
                 float3 albedo = albedoSample.rgb * _BaseColor.rgb;
                 float luma = dot(albedo, float3(0.2126, 0.7152, 0.0722));
                 albedo = lerp(albedo, luma.xxx, saturate(_Desaturate));
-                albedo *= lerp(1.0, lerp(0.15, 1.0, input.color.g), _VertexAO);
+                // Vertex AO: the floor and the contrast curve are per material, so skin can go nearly black in the hood's hollow.
+                float ao = lerp(1.0, lerp(_AOFloor, 1.0, pow(saturate(input.color.g), _AOContrast)), _VertexAO);
+                albedo *= ao;
                 albedo *= 1.0 + _EdgeLighten * input.color.b;
                 float3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 float3 normalWS = normalize(mul(normalTS, float3x3(input.tangentWS, input.bitangentWS, input.normalWS)));
@@ -143,13 +151,15 @@ Shader "LanternKeeper/KeeperLit"
                 LIGHT_LOOP_BEGIN(pixelLightCount)
                     Light addLight = GetAdditionalLight(lightIndex, input.positionWS);
                     float addDot = saturate(dot(normalWS, addLight.direction));
-                    color += albedo * addLight.color * (addLight.distanceAttenuation * addLight.shadowAttenuation * addDot);
+                    // The lantern sits a hand's width from the cloth, so 1/d^2 alone blows it out: cap the attenuation.
+                    float addAtten = min(addLight.distanceAttenuation, _LightCap);
+                    color += albedo * addLight.color * (addAtten * addLight.shadowAttenuation * addDot);
                 LIGHT_LOOP_END
                 #endif
 
                 #if !defined(_LK_KEEPER_NO_RIM)
                 float fresnel = pow(saturate(1.0 - abs(dot(normalWS, viewDir))), _RimPower);
-                color += _RimColor.rgb * fresnel * _RimStrength;
+                color += _RimColor.rgb * fresnel * _RimStrength * ao;
                 #endif
                 return half4(color, 1);
             }
@@ -186,6 +196,9 @@ Shader "LanternKeeper/KeeperLit"
                 float _RimStrength;
                 float _SwayStrength;
                 float _VertexAO;
+                float _AOFloor;
+                float _AOContrast;
+                float _LightCap;
                 float _EdgeLighten;
             CBUFFER_END
             float4 _LKKeeperSway;

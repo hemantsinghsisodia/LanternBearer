@@ -15,7 +15,8 @@ public class LanternFlame : MonoBehaviour
     // Authored local position of the flame (centre of the full-height quad); the base stays seated at the wick.
     [SerializeField] Vector3 basePosition;
 
-    const float GlassAlpha = 0.35f;
+    // The glass mesh is drawn double sided and additive over its own far wall, so the pane reads about twice this value.
+    const float GlassAlpha = 0.12f;
     const float DeathFadeStart = 0.35f;
     static readonly Color glassColor = LookPalette.FromHex(LookPalette.GlowCore);
     static readonly Color coreFull = new Color(1f, 0.96f, 0.7f, 1f);

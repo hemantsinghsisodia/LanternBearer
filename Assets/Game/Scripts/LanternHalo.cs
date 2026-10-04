@@ -10,7 +10,8 @@ public class LanternHalo : MonoBehaviour
     [SerializeField] Renderer haloRenderer;
     // Glow core colour (#FFD38A) and quad size in metres; constants so a rebuild always applies them.
     static readonly Color color = LookPalette.FromHex(LookPalette.GlowCore);
-    const float maxAlpha = 0.7f;
+    // Kept under the glass tint: a hotter halo behind the panes whitens them.
+    const float maxAlpha = 0.45f;
     const float size = 0.9f;
 
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -44,19 +45,6 @@ public class LanternHalo : MonoBehaviour
             return;
         }
 
-        if (cachedCamera == null)
-        {
-            cachedCamera = Camera.main;
-        }
-
-        if (cachedCamera != null)
-        {
-            // Cull Off, so the quad only has to be parallel to the camera plane.
-            transform.rotation = Quaternion.LookRotation(cachedCamera.transform.forward, cachedCamera.transform.up);
-        }
-
-        transform.localScale = Vector3.one * (size * LanternFlameMapping.HaloScale(lantern.FuelNormalized));
-
         float alpha = 0f;
         if (sourceLight != null && sourceLight.enabled)
         {
@@ -72,6 +60,45 @@ public class LanternHalo : MonoBehaviour
             }
         }
 
+        Apply(lantern.FuelNormalized, alpha);
+    }
+
+    // Static look for a given fuel at full flicker (the close-up capture runs without a running Lantern).
+    public void ApplyFuel(float fuel01)
+    {
+        Apply(fuel01, Mathf.Clamp01(fuel01));
+    }
+
+    void Apply(float fuel01, float alpha)
+    {
+        // Awake has not run when the close-up capture drives this in edit mode.
+        if (haloRenderer == null)
+        {
+            haloRenderer = GetComponent<Renderer>();
+        }
+
+        if (haloRenderer == null)
+        {
+            return;
+        }
+
+        if (block == null)
+        {
+            block = new MaterialPropertyBlock();
+        }
+
+        if (cachedCamera == null)
+        {
+            cachedCamera = Camera.main;
+        }
+
+        if (cachedCamera != null)
+        {
+            // Cull Off, so the quad only has to be parallel to the camera plane.
+            transform.rotation = Quaternion.LookRotation(cachedCamera.transform.forward, cachedCamera.transform.up);
+        }
+
+        transform.localScale = Vector3.one * (size * LanternFlameMapping.HaloScale(fuel01));
         haloRenderer.enabled = alpha > 0.002f;
         block.SetColor(BaseColorId, new Color(color.r, color.g, color.b, Mathf.Clamp01(alpha) * maxAlpha));
         haloRenderer.SetPropertyBlock(block);

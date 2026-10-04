@@ -26,7 +26,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _Distort: 0.14
-    - _Intensity: 1.5
+    - _Intensity: 2.4
     - _Roll: 0
     - _Speed: 1.6
     m_Colors:

@@ -586,6 +586,9 @@ public static partial class IslandBuilder
         EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperDark.mat", "232C3B", 0.18f, 0f, 0f);
         Material skin = EnsureKeeperLitMaterial(KeeperMaterialFolder + "/KeeperSkin.mat", "A5806A", 0.28f, 0f, 0.2f);
         skin.SetFloat("_VertexAO", 1f);
+        // The head's face verts carry G = 0.14: the floor and the steeper curve keep the face a dark hollow under the lantern.
+        skin.SetFloat("_AOFloor", 0.03f);
+        skin.SetFloat("_AOContrast", 2.5f);
         EditorUtility.SetDirty(skin);
         Material iron = EnsureKeeperLitMaterial(LanternMaterialFolder + "/LanternIron.mat", "2A2A2E", 0.35f, 0.6f, 0f);
         iron.SetFloat("_RimStrength", 1f);
@@ -615,6 +618,10 @@ public static partial class IslandBuilder
         mat.SetFloat("_RimStrength", 0.7f);
         mat.SetFloat("_SwayStrength", 0f);
         mat.SetFloat("_VertexAO", 0f);
+        mat.SetFloat("_AOFloor", 0.15f);
+        mat.SetFloat("_AOContrast", 1f);
+        // The lantern hangs a hand's width from the cloth: cap 1/d^2 at 1 (as if no surface were nearer than 1 m) so the near surfaces are not blown out.
+        mat.SetFloat("_LightCap", 1.0f);
         mat.SetFloat("_EdgeLighten", 0f);
         EditorUtility.SetDirty(mat);
         return mat;
@@ -700,7 +707,7 @@ public static partial class IslandBuilder
     const string LanternFbxPath = "Assets/Game/Art/Lantern/Lantern.fbx";
     const string LanternFlameMaterialPath = "Assets/Game/Art/Lantern/LanternFlame.mat";
     // Flame quad size in metres at full fuel (width, height). The flame shader billboards it.
-    static readonly Vector3 LanternFlameSize = new Vector3(0.05f, 0.1f, 1f);
+    static readonly Vector3 LanternFlameSize = new Vector3(0.06f, 0.085f, 1f);
 
     static void AttachLantern(ArtKit art, Transform root, Transform hand)
     {
@@ -781,7 +788,7 @@ public static partial class IslandBuilder
             return null;
         }
 
-        Material mat = FlameMat(LanternFlameMaterialPath, shader, 1.6f, 0f, 1.5f, 0.14f);
+        Material mat = FlameMat(LanternFlameMaterialPath, shader, 1.6f, 0f, 2.4f, 0.14f);
         AssetDatabase.SaveAssetIfDirty(mat);
         return mat;
     }

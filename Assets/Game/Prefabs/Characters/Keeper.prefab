@@ -123,7 +123,7 @@ Transform:
   m_GameObject: {fileID: 7301652052257128180}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00000021234152, y: -0.17000017, z: -0.000000057742007}
+  m_LocalPosition: {x: -0.00000016391277, y: -0.1700001, z: -0.000000049360107}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -253,8 +253,8 @@ Transform:
   m_GameObject: {fileID: 8386818314294110653}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00000021234152, y: -0.12000017, z: -0.000000057742007}
-  m_LocalScale: {x: 0.05, y: 0.1, z: 1}
+  m_LocalPosition: {x: -0.00000016391277, y: -0.1275001, z: -0.000000049360107}
+  m_LocalScale: {x: 0.06, y: 0.085, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4757660255028179507}
@@ -344,7 +344,7 @@ Transform:
   m_GameObject: {fileID: 8795540715570332623}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00000021234152, y: -0.17000017, z: -0.000000057742007}
+  m_LocalPosition: {x: -0.00000016391277, y: -0.1700001, z: -0.000000049360107}
   m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2852,8 +2852,8 @@ MonoBehaviour:
   flameRenderer: {fileID: 7791463960766851054}
   glassRenderer: {fileID: 3089818638567071070}
   flicker: {fileID: 0}
-  baseScale: {x: 0.05, y: 0.1, z: 1}
-  basePosition: {x: -0.00000021234152, y: -0.12000017, z: -0.000000057742007}
+  baseScale: {x: 0.06, y: 0.085, z: 1}
+  basePosition: {x: -0.00000016391277, y: -0.1275001, z: -0.000000049360107}
 --- !u!1001 &8227881333742430782
 PrefabInstance:
   m_ObjectHideFlags: 0
