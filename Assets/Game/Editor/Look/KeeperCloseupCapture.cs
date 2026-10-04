@@ -144,6 +144,7 @@ public static class KeeperCloseupCapture
         float fullRange = lantern != null ? lantern.range : 0f;
         bool hasLean = animator != null && animator.GetLayerIndex("Lean") >= 0;
         Component flame = FindByTypeName(keeper, "LanternFlame");
+        LanternHalo halo = keeper.GetComponentInChildren<LanternHalo>(true);
         Debug.Log("Keeper close-ups: height " + bounds.size.y.ToString("F2") + " m, lean layer " + hasLean + ", LanternFlame " + (flame != null)
             + ", lantern light " + (lantern != null) + ", animator " + (animator != null));
 
@@ -166,22 +167,26 @@ public static class KeeperCloseupCapture
                     lantern.range = state == "lowfuel" ? lowRange : fullRange;
                 }
 
-                if (flame != null && state == "lowfuel")
+                float fuel = state == "lowfuel" ? LowFuel : 1f;
+                if (flame != null)
                 {
-                    CallApplyFuel(flame, LowFuel);
-                }
-                else if (flame != null)
-                {
-                    CallApplyFuel(flame, 1f);
+                    CallApplyFuel(flame, fuel);
                 }
 
                 Pose(animator, state == "gust" && hasLean);
+                RefreshSkin(keeper);
                 for (int i = 0; i < Shots.Length; i++)
                 {
                     Quaternion yaw = Quaternion.Euler(0f, ShotYaw[i], 0f);
                     Vector3 offset = keeper.transform.rotation * yaw * Vector3.forward * Distance;
                     camera.transform.position = chest + offset;
                     camera.transform.LookAt(chest);
+                    if (halo != null)
+                    {
+                        // The halo quad faces the camera, so it follows each shot's camera.
+                        halo.ApplyFuel(fuel);
+                    }
+
                     string path = Path.Combine(output, Presets[p].ToString().ToLowerInvariant(), Shots[i] + "_" + state + ".jpg");
                     Render(camera, path);
                     written++;
@@ -192,7 +197,8 @@ public static class KeeperCloseupCapture
         return written;
     }
 
-    // Samples the pose the way the runtime would at rest: fresh bind, then a short update.
+    // Samples the pose the way the runtime would at rest: fresh bind, the layer weights KeeperAnimator writes
+    // (LanternArm 1, Lean 0 or 1 for a gust, UpperActions 1, Actions at its default of 1, both in Empty), then a short update.
     static void Pose(Animator animator, bool lean)
     {
         if (animator == null)
@@ -201,13 +207,33 @@ public static class KeeperCloseupCapture
         }
 
         animator.Rebind();
-        if (lean)
-        {
-            animator.SetLayerWeight(animator.GetLayerIndex("Lean"), 1f);
-        }
-
+        SetWeight(animator, "LanternArm", 1f);
+        SetWeight(animator, "Lean", lean ? 1f : 0f);
+        SetWeight(animator, "Actions", 1f);
+        SetWeight(animator, "UpperActions", 1f);
         animator.Update(0f);
         animator.Update(PoseTime);
+    }
+
+    // An edit-mode Animator.Update moves the bones, but a skinned mesh that was already rendered keeps its previous skinning
+    // until the renderer is toggled: without this, re-posing left the hood, cloak and body in the first pose.
+    static void RefreshSkin(GameObject keeper)
+    {
+        SkinnedMeshRenderer[] skins = keeper.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        for (int i = 0; i < skins.Length; i++)
+        {
+            skins[i].enabled = false;
+            skins[i].enabled = true;
+        }
+    }
+
+    static void SetWeight(Animator animator, string layer, float weight)
+    {
+        int index = animator.GetLayerIndex(layer);
+        if (index >= 0)
+        {
+            animator.SetLayerWeight(index, weight);
+        }
     }
 
     static Bounds KeeperBounds(GameObject keeper)
@@ -300,7 +326,8 @@ public static class KeeperCloseupCapture
     {
         GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "StudioGround";
-        ground.transform.localScale = new Vector3(6f, 1f, 6f);
+        // Large enough that its far edge is past the camera far plane (the moon rim pass draws a line on a nearer edge).
+        ground.transform.localScale = new Vector3(40f, 1f, 40f);
         Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         material.color = new Color(0.16f, 0.2f, 0.17f);
         material.SetFloat("_Smoothness", 0.1f);
