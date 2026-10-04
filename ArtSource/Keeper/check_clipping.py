@@ -1,12 +1,15 @@
-"""Cape clipping check over the gameplay clips (LOD0 cape against Body_LOD0).
+"""Clipping check over the gameplay clips: the two-layer cowl against Body_LOD0, plus the sash, skirt and tail.
 
-Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/check_clipping.py [-- Cape_LOD1 Body_LOD1]
+Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/check_clipping.py [-- Cape_base Body_LOD0]
 
-For each clip and sampled frame it evaluates the deformed meshes and reports
-  A  body vertices that were covered by the cape in Idle frame 1 and now poke through its side or back wall
-     (excluding the open front and a 12 degree margin around it), with the largest protrusion in cm
-  B  cape inner-shell vertices that end up inside the body, with the largest depth in cm
-and a per-clip worst value (the larger of A and B). Target: <= 3 cm for Walk, Run, Interact and LanternHold.
+The cowl is measured on Cape_base, the unsubdivided render-hidden copy of Cape_LOD0 (the subdivided mesh renumbers
+vertices). For each clip and sampled frame it evaluates the deformed meshes and reports
+  A  body vertices (hands, head and neck excluded) that were covered by the cowl in Idle frame 1 and now poke
+     through its side or back wall (excluding the open front and a 12 degree margin around it), largest in cm
+  B  cowl inner-shell vertices that end up inside the body (collar under the hood excluded), largest depth in cm
+  tail  skirt and sash-tail inner vertices inside the legs, largest depth in cm
+and a per-clip worst value. Target: <= 3 cm for Walk, Run, Interact and LanternHold (LanternHold is evaluated on
+top of Idle because it keys only the arm bones).
 Render spot checks of any clip/frame with render_keeper.py (`-- spot OUTDIR Clip:frame ...`).
 """
 import math

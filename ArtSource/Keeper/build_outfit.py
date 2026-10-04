@@ -1,27 +1,33 @@
-"""Keeper outfit, Phase C2: deep hood, short torn shoulder cape, upgraded body, satchel. LOD0 meshes.
+"""Keeper outfit, Phase C2 (LOD0 meshes): closed-top hood, two-layer draped cowl, fitted tunic, boots, satchel.
 
 Run:  blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/build_outfit.py
 Then: blender.exe -b ArtSource/Keeper/Keeper.blend -P ArtSource/Keeper/build_lods.py   (LOD1 copies)
 
 Works inside Keeper.blend (true scale, Z up, the keeper faces -Y, left = +X). Idempotent: the first run keeps
 pristine copies of the four Medieval_* body meshes as "<name>.orig" (fake user, not exported) and every run
-rebuilds from them. The Phase C hood/cloak/satchel objects and the four body objects are removed.
+rebuilds from them. The Phase C hood/cloak/satchel objects, the four body objects and any stale *_LOD1 meshes are
+removed (the LOD1 set must be rebuilt with build_lods.py afterwards).
 
-Produces (all skinned to CharacterArmature with an Armature modifier):
-  Body_LOD0     Body, Head, Legs and Feet welded, quad-joined, one subdivision level on the clothing (creases kept at
-                cuffs, belt, collar and boot soles), folds on the trousers and tunic, smoothed hands, smooth shading.
-                Slots KeeperLeather, KeeperSkin, Black.
-  Hood_LOD0     slot KeeperCloth. Deep, round, open front, double shell; the inner shell is the dark hollow.
-  Cape_LOD0     slot KeeperCloth. Short shoulder cape, torn lower edge, double shell.
+Produces (all skinned to CharacterArmature with an Armature modifier, at most 4 influences per vertex):
+  Body_LOD0     Body, Head and Legs welded, quad-joined, one subdivision level, folds on tunic and trousers, fitted
+                (then looser) trousers, dark tunic and sleeves, leather-slot gloves darkened by vertex G, leather
+                cuffs with seam grooves and the procedural boots (sole, toe cap, shaft with strap, rolled cuff).
+                Slots KeeperLeather, KeeperSkin (face only), Black.
+  Hood_LOD0     slot KeeperCloth. Fitted, closed on top and sides; the opening is a front arch under a slight brim.
+                Double shell, subdivided once; the inner shell is the black void.
+  Cape_LOD0     slot KeeperCloth. Two-layer draped cowl with torn edges, the waist sash (band and short tail) and the
+                short tunic skirt below the sash, all subdivided once. Cape_base is the unsubdivided copy used only by
+                check_clipping.py (render-hidden, never exported).
   Satchel_LOD0  slot KeeperLeather. Bag on the left hip, strap from the right shoulder across the back.
 
 Vertex colours ("Color", point domain, linear floats; export with colors_type LINEAR):
-  R = sway weight: cape edge 1 -> collar 0; 0 on everything else
-  G = AO: 1 normally, 0 on the hood's inner shell, ~0.14 on the face
-  B = worn edge: 1 on the cape's torn edge and the hood rim, 0 elsewhere
+  R = sway weight: cowl edge 1 -> collar 0 and the sash tail 0 -> 1; 0 on everything else
+  G = AO: 1 normally, 0 on the hood's inner shell and on the face (a full black void), 0.42 on the gloves
+  B = worn edge: 1 on the cowl's torn edges, the sash tail end and the hood rim, 0 elsewhere
 
-The cape and satchel are designed in the Idle pose (frame 1) and mapped back to the rest pose through the inverse of
-their own skin weights, so they fit the idle body exactly and the armature modifier reproduces the design at Idle.
+The cowl, sash, hood and satchel are designed in the Idle pose (frame 1) and mapped back to the rest pose through
+the inverse of their own skin weights, so they fit the idle body exactly and the armature modifier reproduces the
+design at Idle.
 """
 import math
 import os
@@ -41,6 +47,7 @@ SKIN_HEX = "A5806A"
 DARK_HEX = "232C3B"
 BODY_PARTS = ["Medieval_Body", "Medieval_Head", "Medieval_Legs", "Medieval_Feet"]
 LOD0_NAMES = ["Body_LOD0", "Hood_LOD0", "Cape_LOD0", "Satchel_LOD0"]
+# "Cloak" is legacy cleanup of the Phase C long cloak; the other names are the Phase C hood, satchel and body parts.
 OLD_OBJECTS = ["Hood", "Cloak", "Satchel"] + BODY_PARTS
 # Source material -> slot of the joined body. Metal (pauldrons) and White (hair) are culled before this.
 MAT_MAP = {"LightBrown": "KeeperLeather", "DarkBrown": "KeeperLeather", "Brown": "KeeperLeather",
@@ -65,10 +72,6 @@ def hex_to_linear(h):
 def smoothstep(a, b, x):
     t = max(0.0, min(1.0, (x - a) / (b - a)))
     return t * t * (3.0 - 2.0 * t)
-
-
-def lerp(a, b, t):
-    return a + (b - a) * t
 
 
 # ---------------------------------------------------------------------------------------------- materials
@@ -352,7 +355,6 @@ def build_part(name, arm, group_names, slot_index, subdivide, crease_deg):
     bm.from_mesh(me)
     cull_faces(bm, name, mats, names)
     hand_mark = [f for f in bm.faces if name == "Medieval_Body" and mats[f.material_index] in ("Skin", "KeeperSkin")]
-    hand_set = set(id(f) for f in hand_mark)
     hand_idx = [f.index for f in hand_mark]
     for f in bm.faces:
         f.material_index = slot_index[(BODY_MAT_MAP if name == "Medieval_Body" else MAT_MAP)[mats[f.material_index]]]
@@ -508,7 +510,6 @@ def build_body(arm, slot_index, group_names):
 
 # ---------------------------------------------------------------------------------------------- weights
 
-SIDE_TOKENS = ("Shoulder", "UpperArm", "UpperLeg", "LowerLeg")
 MAX_INFLUENCES = 4
 
 
@@ -665,7 +666,7 @@ def refine_rings(rings, per_segment):
     return out
 
 
-def build_shell(b, pts_grid, thickness, centre, colour_fn, weight_fn, mat, design_weights=True):
+def build_shell(b, pts_grid, thickness, centre, colour_fn, weight_fn, mat):
     """Double shell over a grid of points pts_grid[k][i] (rings top to bottom, columns around). Ring 0 may be a
     single repeated point (apex). The inner shell is offset towards `centre(point)`.
     Returns (outer index grid, inner index grid)."""
@@ -830,9 +831,6 @@ COWL_LAYERS = [
                (1.365, 0.275, 0.152, 0.134, 30.0), (1.300, 0.305, 0.165, 0.144, 34.0),
                (1.230, 0.318, 0.170, 0.150, 38.0)]),
 ]
-CAPE_THICK = 0.0075
-
-
 def hem_pattern(ncols, seed=23):
     """Drop (metres) of the torn lower edge per column: irregular, lopsided teeth of varied width and length."""
     rng = random.Random(seed)
@@ -1394,7 +1392,6 @@ def join_into(body, extra):
     with bpy.context.temp_override(object=body, active_object=body, selected_objects=objs,
                                    selected_editable_objects=objs):
         bpy.ops.object.join()
-    shade = body.data
     return body
 
 # ---------------------------------------------------------------------------------------------- main
@@ -1419,6 +1416,20 @@ def subdivide_soft(obj, crease=0.7, sharp_deg=55.0):
     if "crease_edge" in obj.data.attributes:
         obj.data.attributes.remove(obj.data.attributes["crease_edge"])
     shade_smooth_with_sharp(obj.data, sharp_deg, material_edges=False)
+
+
+def limit_influences(objs, limit=4):
+    """Cap every vertex at `limit` bone influences and renormalise (subdivision, welding and decimation blend
+    weights and can exceed 4). Prints the maximum influences per mesh."""
+    for o in objs:
+        for v in bpy.context.view_layer.objects:
+            v.select_set(False)
+        o.select_set(True)
+        with bpy.context.temp_override(object=o, active_object=o, selected_objects=[o], selected_editable_objects=[o]):
+            bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=limit)
+            bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
+        top = max((sum(1 for g in v.groups if g.weight > 1e-5) for v in o.data.vertices), default=0)
+        print("INFLUENCES %-14s max %d" % (o.name, top))
 
 
 def evaluated_bvh(obj):
@@ -1476,13 +1487,10 @@ def main():
         black.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = hex_to_linear(DARK_HEX)
     slot_index = {n: i for i, n in enumerate(BODY_SLOTS)}
 
-    remove_objects(LOD0_NAMES)
+    remove_objects(LOD0_NAMES + [n[:-1] + "1" for n in LOD0_NAMES])      # stale LOD1 meshes too
     body = build_body(arm, slot_index, group_names)
     # old objects go after the body is built (build_part reads their vertex groups)
     remove_objects(OLD_OBJECTS)
-    for m in [m for m in bpy.data.materials if m.users == 0 and m.name in ("Metal", "White", "Gold", "Brown",
-                                                                          "LightBrown", "DarkBrown")]:
-        pass
 
     set_pose(arm, "Idle", 1)
     mats = skin_matrices(arm)
@@ -1506,6 +1514,7 @@ def main():
     base.hide_render = True
     subdivide_soft(cape)
     subdivide_soft(hood)
+    limit_influences([body, cape, hood, satchel])
     reset_pose(arm)
     tris = tri_total()
     print("TRIS", tris)

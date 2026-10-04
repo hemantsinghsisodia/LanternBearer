@@ -47,9 +47,30 @@ def decimate_copy(src, target):
             break
         ratio = max(0.01, min(1.0, ratio * target / float(max(got, 1))))
     # decimation leaves the smoothing flags alone but the face/edge ordering changed: redo creases
+    build_outfit.limit_influences([obj])
     is_body = name.startswith("Body")
     build_outfit.shade_smooth_with_sharp(obj.data, 42.0 if is_body else 50.0, material_edges=is_body)
     return obj
+
+
+def check_colours(lod1):
+    """The vertex colours must survive decimation: the face stays a black void, the cowl sway still spans 0..1."""
+    cols = lod1.data.color_attributes["Color"].data
+    mw = lod1.matrix_world
+    if lod1.name.startswith("Body"):
+        face = [cols[i].color[1] for i, v in enumerate(lod1.data.vertices) if (mw @ v.co).z > 1.47]
+        top = max(face)
+        print("COLOUR Body_LOD1 face G max %.3f (expect ~0)" % top)
+        assert top < 0.05, "face G not preserved"
+    elif lod1.name.startswith("Cape"):
+        r = [c.color[0] for c in cols]
+        print("COLOUR Cape_LOD1 R range %.3f .. %.3f (expect 0..1)" % (min(r), max(r)))
+        assert min(r) < 0.05 and max(r) > 0.9, "cape R not preserved"
+    elif lod1.name.startswith("Hood"):
+        g = [c.color[1] for c in cols]
+        b = [c.color[2] for c in cols]
+        print("COLOUR Hood_LOD1 G min %.3f B max %.3f (expect 0 / 1)" % (min(g), max(b)))
+        assert min(g) < 0.05 and max(b) > 0.9, "hood colours not preserved"
 
 
 def main():
@@ -59,6 +80,7 @@ def main():
         src = bpy.data.objects[name]
         key = name.split("_")[0]
         lod1 = decimate_copy(src, TARGETS[key])
+        check_colours(lod1)
         t0 = build_outfit.tri_count(src.data)
         t1 = build_outfit.tri_count(lod1.data)
         per[key] = (t0, t1)
@@ -67,6 +89,7 @@ def main():
     for k, (a, b) in per.items():
         print("LOD_TRIS %-8s LOD0 %6d  LOD1 %6d" % (k, a, b))
     print("LOD_TOTALS", totals)
+    build_outfit.limit_influences([bpy.data.objects[n] for n in build_outfit.LOD0_NAMES])
     bpy.ops.wm.save_as_mainfile(filepath=build_outfit.BLEND_PATH)
 
 

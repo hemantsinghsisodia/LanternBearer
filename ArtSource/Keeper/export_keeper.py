@@ -8,12 +8,14 @@ bakes the armature scale of ~93 into the bones, scales the pose bone location cu
 then runs the rest of the pipeline in this order:
   1. bake scale (bake_scale, tidy_bone_lengths, rename_actions)
   2. author the Lean action (here) and the LanternHold action plus the HandSocket (author_hold.py)
-  3. build_outfit.py: cull the body, build Hood, Cloak and Satchel, save Keeper.blend
+  3. build_outfit.py (LOD0 hood, cowl, tunic, boots, satchel) then build_lods.py (LOD1), save Keeper.blend
   4. export (below)
 Stage 2 (export) always runs and writes Assets/Game/Models/Keeper/Keeper.fbx from Keeper.blend.
 For a real rebuild KEEPER_SOURCE_FBX must point at the ORIGINAL Quaternius-derived FBX (the Keeper.fbx from git
 history before the true-scale commit); the FBX now in Assets already has the outfit and the scale baked in.
-To change only the hold or the outfit, open Keeper.blend and run author_hold.py or build_outfit.py on its own.
+To change only the hold or the outfit, open Keeper.blend and run author_hold.py, or build_outfit.py then build_lods.py.
+The export uses an explicit allow-list: the *_LOD0/*_LOD1 meshes, CharacterArmature and HandSocket. Helpers such as
+Cape_base and any *_tmp objects are never exported.
 
 The FBX axis and bone settings must stay in step with the importer defaults: Y up, -Z forward,
 primary bone axis Y, secondary bone axis X, and Automatic Bone Orientation off. The keeper clip guard
@@ -140,14 +142,36 @@ def build():
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
     import build_outfit
     build_outfit.main()
+    import build_lods
+    build_lods.main()
+
+
+def export_objects():
+    """Allow-list of objects to export; everything else (Cape_base, *_tmp, helpers) is left out."""
+    keep = []
+    for o in bpy.data.objects:
+        if o.type == 'MESH' and o.name.endswith(("_LOD0", "_LOD1")):
+            keep.append(o)
+        elif o.type == 'ARMATURE' and o.name == "CharacterArmature":
+            keep.append(o)
+        elif o.type == 'EMPTY' and o.name == "HandSocket":
+            keep.append(o)
+    return keep
 
 
 def export():
     arm = get_armature()
     arm.animation_data.action = None
+    keep = export_objects()
+    print("EXPORT objects:", sorted(o.name for o in keep))
+    for o in bpy.data.objects:
+        o.select_set(False)
+    for o in keep:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = arm
     bpy.ops.export_scene.fbx(
         filepath=FBX_PATH,
-        use_selection=False,
+        use_selection=True,
         object_types={'ARMATURE', 'MESH', 'EMPTY'},
         apply_scale_options='FBX_SCALE_UNITS',
         global_scale=1.0,
