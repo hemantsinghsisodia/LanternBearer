@@ -11,6 +11,14 @@ AvatarMask:
   m_Elements:
   - m_Path: 
     m_Weight: 0
+  - m_Path: Body_LOD0
+    m_Weight: 0
+  - m_Path: Body_LOD1
+    m_Weight: 0
+  - m_Path: Cape_LOD0
+    m_Weight: 0
+  - m_Path: Cape_LOD1
+    m_Weight: 0
   - m_Path: CharacterArmature
     m_Weight: 0
   - m_Path: CharacterArmature/Root
@@ -139,17 +147,11 @@ AvatarMask:
     m_Weight: 0
   - m_Path: CharacterArmature/Root/PT.R
     m_Weight: 0
-  - m_Path: Cloak
+  - m_Path: Hood_LOD0
     m_Weight: 0
-  - m_Path: Hood
+  - m_Path: Hood_LOD1
     m_Weight: 0
-  - m_Path: Medieval_Body
+  - m_Path: Satchel_LOD0
     m_Weight: 0
-  - m_Path: Medieval_Feet
-    m_Weight: 0
-  - m_Path: Medieval_Head
-    m_Weight: 0
-  - m_Path: Medieval_Legs
-    m_Weight: 0
-  - m_Path: Satchel
+  - m_Path: Satchel_LOD1
     m_Weight: 0

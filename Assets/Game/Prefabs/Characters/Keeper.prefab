@@ -253,7 +253,7 @@ Transform:
   m_GameObject: {fileID: 8386818314294110653}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.00000016391277, y: -0.1275001, z: -0.000000049360107}
+  m_LocalPosition: {x: -0.0000002440065, y: -0.12750013, z: -0.00000005587936}
   m_LocalScale: {x: 0.06, y: 0.085, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2853,7 +2853,7 @@ MonoBehaviour:
   glassRenderer: {fileID: 3089818638567071070}
   flicker: {fileID: 0}
   baseScale: {x: 0.06, y: 0.085, z: 1}
-  basePosition: {x: -0.00000016391277, y: -0.1275001, z: -0.000000049360107}
+  basePosition: {x: -0.0000002440065, y: -0.12750013, z: -0.00000005587936}
 --- !u!1001 &8227881333742430782
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2862,10 +2862,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: -9042587762045654420, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 918c4100455cb0f4893ed19b1493149e, type: 2}
     - target: {fileID: -8679921383154817045, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -2906,36 +2902,12 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -4991222158192107970, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 01284cca7efa78c4aacda089d4ce3e01, type: 2}
     - target: {fileID: -4011019932543493049, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 918c4100455cb0f4893ed19b1493149e, type: 2}
     - target: {fileID: -2964797531347912460, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
-    - target: {fileID: -1955884724000416369, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 01284cca7efa78c4aacda089d4ce3e01, type: 2}
-    - target: {fileID: -1955884724000416369, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
-    - target: {fileID: -1955884724000416369, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
-    - target: {fileID: -1955884724000416369, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[3]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 32a605f320e24ac478b70b1a7a67be66, type: 2}
-    - target: {fileID: -1955884724000416369, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[4]'
       value: 
       objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
     - target: {fileID: -264868485506864404, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
@@ -2946,10 +2918,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Keeper
       objectReference: {fileID: 0}
-    - target: {fileID: 1450279722512650608, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
     - target: {fileID: 2305908379898636046, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -2962,10 +2930,6 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[2]'
       value: 
       objectReference: {fileID: 2100000, guid: 32a605f320e24ac478b70b1a7a67be66, type: 2}
-    - target: {fileID: 3669792126955847883, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 918c4100455cb0f4893ed19b1493149e, type: 2}
     - target: {fileID: 3716121972699972062, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3002,26 +2966,6 @@ PrefabInstance:
       propertyPath: m_CullingMode
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8243649851095878791, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
-    - target: {fileID: 8243649851095878791, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
-    - target: {fileID: 9049950090439348676, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 01284cca7efa78c4aacda089d4ce3e01, type: 2}
-    - target: {fileID: 9049950090439348676, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 32a605f320e24ac478b70b1a7a67be66, type: 2}
-    - target: {fileID: 9049950090439348676, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f96d9d3a8da6ea34eae86bf36028ba09, type: 2}
     - target: {fileID: 9220760082837856262, guid: 1a8702f7db929ac44a677715fdc7d846, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
