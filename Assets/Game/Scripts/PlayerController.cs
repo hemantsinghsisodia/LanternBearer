@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
     static readonly int PlayerPosId = Shader.PropertyToID("_LKPlayerPos");
     static readonly int PlayerRadiusId = Shader.PropertyToID("_LKPlayerRadius");
     ParticleSystem dust;
+    KeeperAnimator keeperAnimator;
     Vector3 planarVelocity;
     Vector3 lastPosition;
     float verticalVelocity;
@@ -71,6 +72,7 @@ public class PlayerController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         lantern = GetComponentInChildren<Lantern>();
+        keeperAnimator = GetComponentInChildren<KeeperAnimator>();
         Transform dustTransform = transform.Find("Dust");
         if (dustTransform != null)
         {
@@ -412,14 +414,23 @@ public class PlayerController : MonoBehaviour
         }
 
         ParticleSystem.EmissionModule emission = dust.emission;
-        emission.rateOverTime = ParticleQuality.ScaleRate(moving ? 16f : 0f);
+        emission.rateOverTime = 0f; // footsteps emit puffs at the feet instead (KeeperAnimator.EmitFootDust)
     }
 
     public void OnFootstep()
     {
+        EmitFootDust();
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayFootstep(transform.position);
+        }
+    }
+
+    void EmitFootDust()
+    {
+        if (keeperAnimator != null)
+        {
+            keeperAnimator.EmitFootDust();
         }
     }
 
@@ -437,6 +448,7 @@ public class PlayerController : MonoBehaviour
         }
 
         walked = 0f;
+        EmitFootDust();
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayFootstep(transform.position);

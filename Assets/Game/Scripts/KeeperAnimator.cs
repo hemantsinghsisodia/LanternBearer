@@ -53,6 +53,9 @@ public class KeeperAnimator : MonoBehaviour
     Transform spine;
     Transform legL;
     Transform legR;
+    Transform footL;
+    Transform footR;
+    ParticleSystem footDust;
     Transform armL;
     Transform armR;
     Transform bob;
@@ -156,6 +159,8 @@ public class KeeperAnimator : MonoBehaviour
             armR = FindFirst(transform, "Arm.R", "UpperArm.R", "RightUpperArm");
         }
 
+        footL = FindNamed(transform, "Foot.L");
+        footR = FindNamed(transform, "Foot.R");
         bob = FindNamed(transform, "Body");
         if (FindNamed(transform, "Leg.L") != null)
         {
@@ -652,10 +657,47 @@ public class KeeperAnimator : MonoBehaviour
 
     public void OnFootstep()
     {
+        EmitFootDust();
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayFootstep(transform.position);
         }
+    }
+
+    // A small puff at whichever foot is lower; the Dust system simulates in world space.
+    public void EmitFootDust()
+    {
+        if (footDust == null)
+        {
+            Transform root = player != null ? player.transform : transform;
+            Transform dustTransform = root.Find("Dust");
+            if (dustTransform != null)
+            {
+                footDust = dustTransform.GetComponent<ParticleSystem>();
+            }
+
+            if (footDust == null)
+            {
+                return;
+            }
+        }
+
+        Transform foot = footL != null ? footL : footR;
+        if (footL != null && footR != null)
+        {
+            foot = footL.position.y <= footR.position.y ? footL : footR;
+        }
+
+        Vector3 position = foot != null ? foot.position : transform.position;
+        int count = ParticleQuality.ScaleCount(Random.Range(4, 7));
+        if (count <= 0)
+        {
+            return;
+        }
+
+        ParticleSystem.EmitParams emit = new ParticleSystem.EmitParams();
+        emit.position = position;
+        footDust.Emit(emit, count);
     }
 
     static void Swing(Transform bone, float pitch)
