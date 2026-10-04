@@ -462,6 +462,7 @@ public static class SceneWiring
         assigned += Set(quality, "chestFill", chestFill);
         assigned += Set(quality, "lanternLight", lanternLight);
         assigned += Set(quality, "animator", animator);
+        assigned += Set(quality, "lodGroup", KeeperQuality.FindKeeperLodGroup(keeper));
         return assigned;
     }
 
@@ -717,6 +718,7 @@ public static class SceneWiring
                     nulls += Require(keeperQuality[i], "chestFill", quiet);
                     nulls += Require(keeperQuality[i], "lanternLight", quiet);
                     nulls += Require(keeperQuality[i], "animator", quiet);
+                    nulls += Require(keeperQuality[i], "lodGroup", quiet);
                 }
 
                 KeeperAnimator[] keepers = Object.FindObjectsByType<KeeperAnimator>(FindObjectsInactive.Include, FindObjectsSortMode.None);

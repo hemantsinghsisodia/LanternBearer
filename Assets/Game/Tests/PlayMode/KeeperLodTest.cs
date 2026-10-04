@@ -31,6 +31,8 @@ namespace LanternKeeper.Tests
         public void TearDown()
         {
             Application.logMessageReceived -= OnLog;
+            // Put the in-memory preset back too, not just the saved pref.
+            SetLevel(Enum.GetName(Type.GetType("LanternKeeper.GraphicsLevel, Assembly-CSharp"), previousLevel));
             if (hadPref)
             {
                 PlayerPrefs.SetInt("LanternKeeperGraphics", previousLevel);

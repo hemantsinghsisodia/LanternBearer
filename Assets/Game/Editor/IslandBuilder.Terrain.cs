@@ -189,6 +189,12 @@ public static partial class IslandBuilder
             lanternProp.objectReferenceValue = lanternLight;
         }
 
+        SerializedProperty lodProp = keeperObject.FindProperty("lodGroup");
+        if (lodProp != null)
+        {
+            lodProp.objectReferenceValue = KeeperQuality.FindKeeperLodGroup(keeper);
+        }
+
         SerializedProperty animatorProp = keeperObject.FindProperty("animator");
         if (animatorProp != null)
         {
