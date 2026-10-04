@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LanternKeeper
@@ -17,8 +18,34 @@ public class KeeperAnimator : MonoBehaviour
     static readonly int BackId = Shader.PropertyToID("_LKKeeperBack");
     const float RunSpeed = 9f;
 
-    // Task 9 writes the wind lean weight (0..1) here; it drives the cloak push on Island 4+.
+    const float ArmEaseSeconds = 0.2f;
+    const float MaxFacingDegrees = 25f;
+    const float MinFacingWeight = 0.05f;
+    const float StaggerKickDegrees = 14f;
+
+    // Eased wind lean weight (0..1); it drives the Lean layer, the cloak push and the facing.
     float leanWeight = 0f;
+    float armWeight = 1f;
+    float armWeightTarget = 1f;
+    float armHoldRemaining;
+    int gestureFrame = -100;
+    bool dead;
+    int armLayer = -1;
+    int leanLayer = -1;
+    int actionsLayer = -1;
+    int staggerHash;
+    int lightHash;
+    int dieHash;
+    int shakeOffHash;
+    int deadHash;
+    bool hasActions;
+    float interactLength = 1.5833f;
+    Transform visualRoot;
+    Quaternion visualBase = Quaternion.identity;
+    LanternSway sway;
+    GameManager subscribedManager;
+    readonly List<WaterHazard> subscribedHazards = new List<WaterHazard>();
+    bool staticSubscribed;
 
     PlayerController player;
     Transform head;
@@ -54,6 +81,8 @@ public class KeeperAnimator : MonoBehaviour
     int verticalHash;
     int jumpHash;
 
+    public float LeanWeight => leanWeight;
+    public float ArmWeight => armWeight;
     public float PoseScaleY { get; private set; } = 1f;
     public bool JumpPoseActive => takeoffTimer > 0f;
     public float LandTimer => landTimer;
@@ -74,6 +103,7 @@ public class KeeperAnimator : MonoBehaviour
         procedural = animator == null || animator.runtimeAnimatorController == null;
         CacheBones();
         CacheParameters();
+        CacheLayers();
         lastYaw = transform.eulerAngles.y;
         lookTimer = 2.5f;
         PoseScaleY = 1f;
@@ -151,9 +181,243 @@ public class KeeperAnimator : MonoBehaviour
         ClearDrives();
     }
 
+    void OnEnable()
+    {
+        SubscribeStatic();
+        SubscribeScene();
+    }
+
+    void Start()
+    {
+        // GameManager and the hazards may not exist yet in OnEnable, so subscribe again here.
+        SubscribeScene();
+    }
+
     void OnDisable()
     {
         ClearDrives();
+        UnsubscribeAll();
+        Shader.SetGlobalVector(SwayId, new Vector4(0f, 0f, 0f, 1f));
+        Shader.SetGlobalVector(BackId, Vector4.zero);
+    }
+
+    void SubscribeStatic()
+    {
+        if (staticSubscribed)
+        {
+            return;
+        }
+
+        staticSubscribed = true;
+        Shade.Stole += OnStole;
+        Beacon.Lit += OnBeaconLit;
+    }
+
+    void SubscribeScene()
+    {
+        GameManager manager = GameManager.Instance;
+        if (manager != null && manager != subscribedManager)
+        {
+            if (subscribedManager != null)
+            {
+                subscribedManager.DeathStarted -= OnDeathStarted;
+            }
+
+            subscribedManager = manager;
+            manager.DeathStarted += OnDeathStarted;
+        }
+
+        WaterHazard[] hazards = FindObjectsByType<WaterHazard>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < hazards.Length; i++)
+        {
+            if (hazards[i] != null && !subscribedHazards.Contains(hazards[i]))
+            {
+                subscribedHazards.Add(hazards[i]);
+                hazards[i].Rescued += OnRescued;
+            }
+        }
+    }
+
+    void UnsubscribeAll()
+    {
+        if (staticSubscribed)
+        {
+            staticSubscribed = false;
+            Shade.Stole -= OnStole;
+            Beacon.Lit -= OnBeaconLit;
+        }
+
+        if (subscribedManager != null)
+        {
+            subscribedManager.DeathStarted -= OnDeathStarted;
+        }
+
+        subscribedManager = null;
+        for (int i = 0; i < subscribedHazards.Count; i++)
+        {
+            if (subscribedHazards[i] != null)
+            {
+                subscribedHazards[i].Rescued -= OnRescued;
+            }
+        }
+
+        subscribedHazards.Clear();
+    }
+
+    void OnStole(float amount)
+    {
+        Trigger(staggerHash);
+        if (sway == null)
+        {
+            sway = GetComponentInChildren<LanternSway>(true);
+        }
+
+        if (sway != null)
+        {
+            sway.Kick(StaggerKickDegrees);
+        }
+    }
+
+    void OnBeaconLit(Beacon beacon)
+    {
+        if (dead)
+        {
+            return;
+        }
+
+        Trigger(lightHash);
+        armHoldRemaining = interactLength * 0.8f;
+        gestureFrame = Time.frameCount;
+    }
+
+    void OnDeathStarted()
+    {
+        dead = true;
+        if (hasActions)
+        {
+            animator.SetBool(deadHash, true);
+        }
+
+        Trigger(dieHash);
+    }
+
+    void OnRescued()
+    {
+        Trigger(shakeOffHash);
+    }
+
+    void Trigger(int hash)
+    {
+        if (hasActions && animator != null)
+        {
+            animator.SetTrigger(hash);
+        }
+    }
+
+    void CacheLayers()
+    {
+        hasActions = false;
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        armLayer = animator.GetLayerIndex("LanternArm");
+        leanLayer = animator.GetLayerIndex("Lean");
+        actionsLayer = animator.GetLayerIndex("Actions");
+        hasActions = actionsLayer >= 0 && HasParameter("Stagger") && HasParameter("Light") && HasParameter("Die") && HasParameter("ShakeOff") && HasParameter("Dead");
+        staggerHash = Animator.StringToHash("Stagger");
+        lightHash = Animator.StringToHash("Light");
+        dieHash = Animator.StringToHash("Die");
+        shakeOffHash = Animator.StringToHash("ShakeOff");
+        deadHash = Animator.StringToHash("Dead");
+        visualRoot = FindNamed(transform, "CharacterArmature");
+        if (visualRoot != null)
+        {
+            visualBase = visualRoot.localRotation;
+        }
+
+        AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] != null && clips[i].name.EndsWith("Interact"))
+            {
+                interactLength = clips[i].length;
+            }
+        }
+    }
+
+    void UpdateWeights()
+    {
+        float dt = Time.deltaTime;
+        Wind wind = Wind.Instance;
+        float target = 0f;
+        if (wind != null && !dead)
+        {
+            target = KeeperLean.TargetWeight(wind.Phase, wind.Strength01, wind.Sheltered, true);
+        }
+
+        leanWeight = KeeperLean.Step(leanWeight, target, dt);
+
+        if (armHoldRemaining > 0f)
+        {
+            armHoldRemaining -= dt;
+        }
+
+        // An interrupted gesture must not leave the arm stuck down: with the Actions layer idle, the arm is released.
+        bool actionsIdle = hasActions && !animator.IsInTransition(actionsLayer) && animator.GetCurrentAnimatorStateInfo(actionsLayer).IsName("Empty");
+        if (actionsIdle && Time.frameCount > gestureFrame + 2)
+        {
+            armHoldRemaining = 0f;
+        }
+
+        armWeightTarget = dead || armHoldRemaining > 0f ? 0f : 1f;
+        if (dt > 0f)
+        {
+            armWeight = Mathf.MoveTowards(armWeight, armWeightTarget, dt / ArmEaseSeconds);
+        }
+
+        if (animator != null && animator.runtimeAnimatorController != null)
+        {
+            if (armLayer >= 0)
+            {
+                animator.SetLayerWeight(armLayer, armWeight);
+            }
+
+            if (leanLayer >= 0)
+            {
+                animator.SetLayerWeight(leanLayer, leanWeight);
+            }
+        }
+    }
+
+    // Turns the visual model (not the CharacterController root) up to 25 degrees toward the gust. Visual only.
+    void ApplyFacing()
+    {
+        if (visualRoot == null)
+        {
+            return;
+        }
+
+        float offset = 0f;
+        Wind wind = Wind.Instance;
+        if (wind != null && leanWeight > MinFacingWeight)
+        {
+            Vector3 into = -wind.Direction;
+            into.y = 0f;
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            if (into.sqrMagnitude > 0.0001f && forward.sqrMagnitude > 0.0001f)
+            {
+                float delta = Vector3.SignedAngle(forward, into, Vector3.up);
+                offset = Mathf.Clamp(delta, -MaxFacingDegrees, MaxFacingDegrees) * leanWeight;
+            }
+        }
+
+        // The offset is a world-space yaw, so the armature's own import rotation can't flip its sign.
+        Transform parent = visualRoot.parent;
+        Quaternion parentRotation = parent != null ? parent.rotation : Quaternion.identity;
+        visualRoot.localRotation = Quaternion.Inverse(parentRotation) * Quaternion.AngleAxis(offset, Vector3.up) * parentRotation * visualBase;
     }
 
     void ClearDrives()
@@ -222,6 +486,8 @@ public class KeeperAnimator : MonoBehaviour
         {
             takeoffTimer -= Time.deltaTime;
         }
+
+        UpdateWeights();
 
         if (animator != null && animator.runtimeAnimatorController != null)
         {
@@ -329,6 +595,7 @@ public class KeeperAnimator : MonoBehaviour
         }
 
         ApplySquash();
+        ApplyFacing();
         WriteSway();
     }
 

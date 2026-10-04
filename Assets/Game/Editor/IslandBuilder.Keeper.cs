@@ -197,6 +197,9 @@ public static partial class IslandBuilder
         return mapped;
     }
 
+    const string KeeperArmMaskPath = "Assets/Game/Models/Keeper/KeeperArmMask.mask";
+    const string KeeperSpineMaskPath = "Assets/Game/Models/Keeper/KeeperSpineMask.mask";
+
     static RuntimeAnimatorController EnsureKeeperController()
     {
         AnimationClip idle = FindKeeperClip("Idle");
@@ -208,16 +211,41 @@ public static partial class IslandBuilder
             return null;
         }
 
-        if (AssetDatabase.LoadAssetAtPath<AnimatorController>(KeeperControllerPath) != null)
+        AnimationClip hold = FindKeeperClip("LanternHold");
+        AnimationClip lean = FindKeeperClip("Lean");
+        AnimationClip hit = FindKeeperClip("HitRecieve");
+        AnimationClip interact = FindKeeperClip("Interact");
+        AnimationClip death = FindKeeperClip("Death");
+        AnimationClip shake = FindKeeperClip("HitRecieve_2");
+        if (hold == null || lean == null || hit == null || interact == null || death == null || shake == null)
         {
-            AssetDatabase.DeleteAsset(KeeperControllerPath);
+            Debug.LogError("Keeper action clips missing. LanternHold=" + (hold != null) + " Lean=" + (lean != null) + " HitRecieve=" + (hit != null) + " Interact=" + (interact != null) + " Death=" + (death != null) + " HitRecieve_2=" + (shake != null));
+            return null;
         }
 
-        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(KeeperControllerPath);
+        AvatarMask armMask = EnsureKeeperMask(KeeperArmMaskPath, new[] { "Shoulder.R", "UpperArm.R", "LowerArm.R", "Wrist.R" }, true);
+        AvatarMask spineMask = EnsureKeeperMask(KeeperSpineMaskPath, new[] { "Abdomen", "Torso", "Chest", "Neck", "Head" }, false);
+
+        // Rebuild in place so the controller keeps its GUID and the prefab Animator reference survives.
+        AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(KeeperControllerPath);
+        if (controller == null)
+        {
+            controller = AnimatorController.CreateAnimatorControllerAtPath(KeeperControllerPath);
+        }
+        else
+        {
+            ResetKeeperController(controller);
+        }
+
         controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
         controller.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
         controller.AddParameter("VerticalSpeed", AnimatorControllerParameterType.Float);
         controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
+        controller.AddParameter("Stagger", AnimatorControllerParameterType.Trigger);
+        controller.AddParameter("Light", AnimatorControllerParameterType.Trigger);
+        controller.AddParameter("Die", AnimatorControllerParameterType.Trigger);
+        controller.AddParameter("ShakeOff", AnimatorControllerParameterType.Trigger);
+        controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
         BlendTree tree = new BlendTree();
         tree.name = "Locomotion";
         tree.blendType = BlendTreeType.Simple1D;
@@ -231,8 +259,143 @@ public static partial class IslandBuilder
         AnimatorState state = machine.AddState("Move");
         state.motion = tree;
         machine.defaultState = state;
+
+        AnimatorStateMachine armMachine = AddKeeperLayer(controller, "LanternArm", armMask, AnimatorLayerBlendingMode.Override, 1f);
+        AnimatorState armState = armMachine.AddState("LanternHold");
+        armState.motion = hold;
+        armMachine.defaultState = armState;
+
+        AnimatorStateMachine leanMachine = AddKeeperLayer(controller, "Lean", spineMask, AnimatorLayerBlendingMode.Additive, 0f);
+        AnimatorState leanState = leanMachine.AddState("Lean");
+        leanState.motion = lean;
+        leanMachine.defaultState = leanState;
+
+        AnimatorStateMachine actions = AddKeeperLayer(controller, "Actions", null, AnimatorLayerBlendingMode.Override, 1f);
+        AnimatorState empty = actions.AddState("Empty");
+        actions.defaultState = empty;
+        AddActionState(actions, empty, "Stagger", hit, "Stagger", true);
+        AddActionState(actions, empty, "Light", interact, "Light", true);
+        AddActionState(actions, empty, "ShakeOff", shake, "ShakeOff", true);
+        AddActionState(actions, empty, "Die", death, "Die", false);
         EditorUtility.SetDirty(controller);
+        AssetDatabase.SaveAssets();
         return controller;
+    }
+
+    static void ResetKeeperController(AnimatorController controller)
+    {
+        for (int i = controller.layers.Length - 1; i >= 1; i--)
+        {
+            controller.RemoveLayer(i);
+        }
+
+        AnimatorStateMachine machine = controller.layers[0].stateMachine;
+        ChildAnimatorState[] states = machine.states;
+        for (int i = 0; i < states.Length; i++)
+        {
+            machine.RemoveState(states[i].state);
+        }
+
+        AnimatorControllerParameter[] parameters = controller.parameters;
+        for (int i = parameters.Length - 1; i >= 0; i--)
+        {
+            controller.RemoveParameter(i);
+        }
+
+        Object[] subs = AssetDatabase.LoadAllAssetsAtPath(KeeperControllerPath);
+        for (int i = 0; i < subs.Length; i++)
+        {
+            if (subs[i] is BlendTree)
+            {
+                Object.DestroyImmediate(subs[i], true);
+            }
+        }
+    }
+
+    static AnimatorStateMachine AddKeeperLayer(AnimatorController controller, string name, AvatarMask mask, AnimatorLayerBlendingMode mode, float weight)
+    {
+        controller.AddLayer(name);
+        AnimatorControllerLayer[] layers = controller.layers;
+        AnimatorControllerLayer layer = layers[layers.Length - 1];
+        layer.avatarMask = mask;
+        layer.blendingMode = mode;
+        layer.defaultWeight = weight;
+        controller.layers = layers;
+        return controller.layers[layers.Length - 1].stateMachine;
+    }
+
+    static AnimatorState AddActionState(AnimatorStateMachine machine, AnimatorState empty, string name, AnimationClip clip, string trigger, bool returns)
+    {
+        AnimatorState state = machine.AddState(name);
+        state.motion = clip;
+        AnimatorStateTransition entry = machine.AddAnyStateTransition(state);
+        entry.hasExitTime = false;
+        entry.hasFixedDuration = true;
+        entry.duration = 0.1f;
+        entry.canTransitionToSelf = returns;
+        entry.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+        if (returns)
+        {
+            // Death always wins: a stagger, reach or shake-off cannot start once Dead is set.
+            entry.AddCondition(AnimatorConditionMode.IfNot, 0f, "Dead");
+            AnimatorStateTransition exit = state.AddTransition(empty);
+            exit.hasExitTime = true;
+            exit.exitTime = 0.9f;
+            exit.hasFixedDuration = true;
+            exit.duration = 0.15f;
+        }
+
+        return state;
+    }
+
+    // Generic-rig mask: every transform listed, active only for the named bones (and, when asked, their descendants).
+    static AvatarMask EnsureKeeperMask(string path, string[] boneNames, bool includeDescendants)
+    {
+        AvatarMask mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
+        if (mask == null)
+        {
+            mask = new AvatarMask();
+            AssetDatabase.CreateAsset(mask, path);
+        }
+
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(KeeperFbxPath);
+        Transform[] all = model.GetComponentsInChildren<Transform>(true);
+        HashSet<Transform> active = new HashSet<Transform>();
+        for (int i = 0; i < boneNames.Length; i++)
+        {
+            Transform bone = FindDeep(model.transform, boneNames[i]);
+            if (bone == null)
+            {
+                Debug.LogError("Keeper rig has no bone " + boneNames[i] + " for " + path);
+                continue;
+            }
+
+            active.Add(bone);
+            if (includeDescendants)
+            {
+                Transform[] below = bone.GetComponentsInChildren<Transform>(true);
+                for (int d = 0; d < below.Length; d++)
+                {
+                    active.Add(below[d]);
+                }
+            }
+        }
+
+        for (int part = 0; part < (int)AvatarMaskBodyPart.LastBodyPart; part++)
+        {
+            mask.SetHumanoidBodyPartActive((AvatarMaskBodyPart)part, false);
+        }
+
+        mask.transformCount = all.Length;
+        for (int i = 0; i < all.Length; i++)
+        {
+            mask.SetTransformPath(i, AnimationUtility.CalculateTransformPath(all[i], model.transform));
+            mask.SetTransformActive(i, active.Contains(all[i]));
+        }
+
+        EditorUtility.SetDirty(mask);
+        AssetDatabase.SaveAssetIfDirty(mask);
+        return mask;
     }
 
     static AnimationClip FindKeeperClip(string leaf)

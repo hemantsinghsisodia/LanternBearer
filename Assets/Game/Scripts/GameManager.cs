@@ -68,6 +68,7 @@ public class GameManager : MonoBehaviour
     public event Action PromptChanged;
     public event Action WonGame;
     public event Action LostGame;
+    public event Action DeathStarted;
     public event Action<float> TimeChanged;
 
     public float BestTime
@@ -423,6 +424,11 @@ public class GameManager : MonoBehaviour
         }
 
         dying = true;
+        if (DeathStarted != null)
+        {
+            DeathStarted.Invoke();
+        }
+
         controlsLocked = true;
         DeathStartedUnscaled = Time.unscaledTime;
         StartCoroutine(DeathSequence());

@@ -717,6 +717,28 @@ public static class SceneWiring
                     nulls += Require(keeperQuality[i], "lanternLight", quiet);
                     nulls += Require(keeperQuality[i], "animator", quiet);
                 }
+
+                KeeperAnimator[] keepers = Object.FindObjectsByType<KeeperAnimator>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                string[] layerNames = { "LanternArm", "Lean", "Actions" };
+                for (int i = 0; i < keepers.Length; i++)
+                {
+                    Animator keeperAnimator = keepers[i].GetComponentInChildren<Animator>(true);
+                    RuntimeAnimatorController keeperController = keeperAnimator != null ? keeperAnimator.runtimeAnimatorController : null;
+                    for (int n = 0; n < layerNames.Length; n++)
+                    {
+                        if (keeperController != null && HasLayer(keeperController, layerNames[n]))
+                        {
+                            continue;
+                        }
+
+                        if (!quiet)
+                        {
+                            Debug.LogWarning("Keeper.controller missing layer " + layerNames[n]);
+                        }
+
+                        nulls++;
+                    }
+                }
             }
 
             if (IsIslandScene())
@@ -1375,6 +1397,26 @@ public static class SceneWiring
 
         so.ApplyModifiedPropertiesWithoutUndo();
         return 1;
+    }
+
+    static bool HasLayer(RuntimeAnimatorController controller, string layerName)
+    {
+        UnityEditor.Animations.AnimatorController editable = controller as UnityEditor.Animations.AnimatorController;
+        if (editable == null)
+        {
+            return false;
+        }
+
+        UnityEditor.Animations.AnimatorControllerLayer[] layers = editable.layers;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].name == layerName)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static int Require(Object target, string property, bool quiet)

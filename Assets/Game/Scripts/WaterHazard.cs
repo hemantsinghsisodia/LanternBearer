@@ -28,6 +28,7 @@ public class WaterHazard : MonoBehaviour
     public bool IsRescuing => rescuing;
     public float Penalty => penalty;
     public float LastRescueTime { get; private set; } = -1000f;
+    public event System.Action Rescued;
 
     public void SetSurface(float worldY)
     {
@@ -162,6 +163,11 @@ public class WaterHazard : MonoBehaviour
         yield return Fade(hud, 0f, 1f, half);
         Teleport(lantern, hud);
         yield return Fade(hud, 1f, 0f, half);
+        if (Rescued != null)
+        {
+            Rescued.Invoke();
+        }
+
         if (hud != null)
         {
             hud.SetFadeAlpha(0f);

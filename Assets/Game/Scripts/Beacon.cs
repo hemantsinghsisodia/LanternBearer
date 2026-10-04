@@ -23,6 +23,7 @@ public class Beacon : MonoBehaviour
     [SerializeField] AudioSource whooshSource;
 
     public static event Action LightFailed;
+    public static event Action<Beacon> Lit;
 
     public bool IsLit { get; private set; }
     public float ZoneRadius => safeRadius;
@@ -321,6 +322,11 @@ public class Beacon : MonoBehaviour
         }
 
         IsLit = true;
+        if (Lit != null)
+        {
+            Lit.Invoke(this);
+        }
+
         flashLit = false;
         playerNear = false;
         NotifyNearby(false);
