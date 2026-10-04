@@ -24,7 +24,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -100,14 +100,22 @@ SPINE_BONES = ["Abdomen", "Torso", "Chest", "Neck", "Head"]
 
 
 def author_lean(arm):
+    """Additive wind lean, keyed at frame 0 (reference) and frames 1-2 (the leaned pose).
+
+    The bones are keyed directly in their local frames: pose bone local X is the world X axis for all five spine
+    bones (their rest matrices are half-turns about X), and +X moves the top of the spine forward (-Y in Blender).
+    Setting them through world-space matrices while the action is evaluating lost the Abdomen share, so the total
+    bend was about 14 degrees instead of the authored amount.
+    """
     reset_pose(arm)
     action = new_action(arm, CLIP_PREFIX + "Lean")
     key_bones(arm, SPINE_BONES, 0)
-    bend = {"Abdomen": 4.0, "Torso": 5.0, "Chest": 3.0, "Neck": 2.0, "Head": 4.0}
-    # Forward is -Y, so +X rotation moves the top of the spine forward.
-    for name, deg in bend.items():
-        rotate_about_head(arm, name, Vector((1.0, 0.0, 0.0)), math.radians(deg))
+    bend = {"Abdomen": 4.0, "Torso": 5.0, "Chest": 4.0, "Neck": 2.0, "Head": 4.0}
     for frame in (1, 2):
+        for name, deg in bend.items():
+            pb = arm.pose.bones[name]
+            pb.rotation_mode = 'QUATERNION'
+            pb.rotation_quaternion = Quaternion((1.0, 0.0, 0.0), math.radians(deg))
         key_bones(arm, SPINE_BONES, frame)
     reset_pose(arm)
     return action
