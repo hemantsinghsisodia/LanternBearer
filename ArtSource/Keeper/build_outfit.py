@@ -45,6 +45,8 @@ OLD_OBJECTS = ["Hood", "Cloak", "Satchel"] + BODY_PARTS
 # Source material -> slot of the joined body. Metal (pauldrons) and White (hair) are culled before this.
 MAT_MAP = {"LightBrown": "KeeperLeather", "DarkBrown": "KeeperLeather", "Brown": "KeeperLeather",
            "Gold": "KeeperLeather", "Skin": "KeeperSkin", "KeeperSkin": "KeeperSkin", "Black": "Black"}
+# The fitted tunic (all of the old torso and sleeves) and the gloves use the dark slot; only the belt buckle stays leather.
+BODY_MAT_MAP = dict(MAT_MAP, LightBrown="Black", DarkBrown="Black", Brown="Black", Skin="Black", KeeperSkin="Black")
 BODY_SLOTS = ["KeeperLeather", "KeeperSkin", "Black"]
 HAND_GROUPS = ("Index", "Middle", "Ring", "Pinky", "Thumb", "Wrist")
 
@@ -307,6 +309,29 @@ def mark_creases(me, crease_deg, material_edges=True):
     attr.data.foreach_set("value", data)
 
 
+LEG_FIT = [(0.30, 0.52), (0.40, 0.54), (0.50, 0.58), (0.60, 0.66), (0.70, 0.75), (0.80, 0.82), (0.90, 0.85),
+           (0.95, 0.92), (1.00, 1.0)]
+
+
+def fit_trousers(bm):
+    """The Quaternius trousers are baggy capris: pull every vertex towards its leg axis so they fit and tuck into
+    the boots (rest pose, world coordinates)."""
+    for v in bm.verts:
+        p = v.co
+        side = 1.0 if p.x >= 0.0 else -1.0
+        z = p.z
+        if z >= LEG_FIT[-1][0]:
+            continue
+        f = LEG_FIT[0][1]
+        for (z0, f0), (z1, f1) in zip(LEG_FIT, LEG_FIT[1:]):
+            if z0 <= z <= z1:
+                f = f0 + (f1 - f0) * (z - z0) / (z1 - z0)
+                break
+        t = smoothstep(0.4, 1.0, z)
+        axis = Vector((side * (0.085 + 0.005 * t), -0.050 - 0.015 * t, z))
+        v.co = Vector((axis.x + (p.x - axis.x) * f, axis.y + (p.y - axis.y) * f, z))
+
+
 def source_matrix(name):
     flat = bpy.context.scene["keeper_mw_" + name]
     return Matrix([list(flat[i * 4:i * 4 + 4]) for i in range(4)])
@@ -326,17 +351,20 @@ def build_part(name, arm, group_names, slot_index, subdivide, crease_deg):
     bm = bmesh.new()
     bm.from_mesh(me)
     cull_faces(bm, name, mats, names)
+    hand_mark = [f for f in bm.faces if name == "Medieval_Body" and mats[f.material_index] in ("Skin", "KeeperSkin")]
+    hand_set = set(id(f) for f in hand_mark)
+    hand_idx = [f.index for f in hand_mark]
     for f in bm.faces:
-        f.material_index = slot_index[MAT_MAP[mats[f.material_index]]]
+        f.material_index = slot_index[(BODY_MAT_MAP if name == "Medieval_Body" else MAT_MAP)[mats[f.material_index]]]
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1.0e-4)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if name == "Medieval_Legs":
+        fit_trousers(bm)
     bm.faces.ensure_lookup_table()
     hand_faces = []
     if name == "Medieval_Body":
-        dl = bm.verts.layers.deform.active
-        for f in bm.faces:
-            if f.material_index == slot_index["KeeperSkin"]:
-                hand_faces.append(f.index)
+        bm.faces.ensure_lookup_table()
+        hand_faces = list(hand_idx)
     bm_hand = None
     if hand_faces:
         bm_hand = bm.copy()
@@ -353,7 +381,7 @@ def build_part(name, arm, group_names, slot_index, subdivide, crease_deg):
             continue
         if is_hand:
             for f in b.faces:
-                f.material_index = slot_index["KeeperLeather"]      # dark leather gloves
+                f.material_index = slot_index["Black"]              # dark gloves
         if not is_hand:
             bmesh.ops.join_triangles(b, faces=list(b.faces), cmp_seam=False, cmp_sharp=False, cmp_uvs=False,
                                      cmp_vcols=False, cmp_materials=True,
@@ -384,7 +412,7 @@ def smooth_hand(obj, iterations=2, factor=0.5, inflate=0.0028):
     bm.free()
 
 
-def fold_shaping(obj):
+def fold_shaping(obj, kind):
     """Cloth folds on the trousers and tunic: displacement along the vertex normal in the rest pose."""
     me = obj.data
     mw = obj.matrix_world
@@ -413,17 +441,14 @@ def fold_shaping(obj):
         mi = faces[0].material_index
         p = mw @ v.co
         d = 0.0
-        if mi == black and p.z < 1.05 and p.z > 0.36:
+        if kind == "legs" and p.z < 1.0 and p.z > 0.40:
             side = 1.0 if p.x >= 0.0 else -1.0
-            cx = side * 0.085
-            th = math.atan2(p.x - cx, p.y + 0.07)
-            # bunching above the boots, a crease at the back of the knee and vertical drape folds on the thighs
-            d += 0.0065 * math.sin(p.z * 150.0 + 2.0 * th) * smoothstep(0.52, 0.42, p.z)
-            d += 0.010 * math.exp(-((p.z - 0.64) / 0.035) ** 2) * math.cos(th - math.pi) * 0.5
-            d += 0.0045 * math.sin(5.0 * th + p.z * 9.0) * smoothstep(0.55, 0.75, p.z) * smoothstep(1.02, 0.9, p.z)
-        elif mi == leather and 1.0 < p.z < 1.40:
+            th = math.atan2(p.x - side * 0.085, p.y + 0.055)
+            d += 0.006 * math.exp(-((p.z - 0.585) / 0.03) ** 2) * math.cos(th - math.pi)       # back of the knee
+            d += 0.0035 * math.sin(4.0 * th + p.z * 11.0) * smoothstep(0.5, 0.7, p.z) * smoothstep(1.0, 0.9, p.z)
+        elif kind == "tunic" and 1.0 < p.z < 1.40 and mi == black:
             th = math.atan2(p.x, p.y + 0.07)
-            d += 0.0035 * math.sin(9.0 * th + p.z * 14.0) * smoothstep(1.06, 1.14, p.z) * smoothstep(1.4, 1.3, p.z)
+            d += 0.004 * math.sin(7.0 * th + p.z * 12.0) * smoothstep(1.02, 1.12, p.z) * smoothstep(1.4, 1.3, p.z)
         if d != 0.0:
             v.co += v.normal * d
     bm.to_mesh(me)
@@ -436,12 +461,12 @@ def face_colour(z):
 
 def build_body(arm, slot_index, group_names):
     pieces = []
-    for name in BODY_PARTS:
+    for name in BODY_PARTS[:3]:
         cloth, hand = build_part(name, arm, group_names, slot_index, subdivide=True, crease_deg=48.0)
-        if name == "Medieval_Feet":
-            pass
-        if name == "Medieval_Legs" or name == "Medieval_Body":
-            fold_shaping(cloth)
+        if name == "Medieval_Legs":
+            fold_shaping(cloth, "legs")
+        elif name == "Medieval_Body":
+            fold_shaping(cloth, "tunic")
         pieces.append(cloth)
         if hand is not None:
             smooth_hand(hand)
@@ -726,17 +751,17 @@ def rim_strips(b, outer, inner, mat, bottom=True, sides=True, top=False):
 
 # (z, rx, ry_front, ry_back, cy, phi0 degrees): the Phase C hood, a little deeper and with a narrower opening.
 HOOD_KEYS = [
-    (1.855, 0.020, 0.030, 0.030, -0.060, 70.0),
-    (1.820, 0.090, 0.120, 0.120, -0.058, 58.0),
-    (1.770, 0.150, 0.265, 0.178, -0.050, 33.0),
-    (1.700, 0.186, 0.375, 0.188, -0.044, 20.0),
-    (1.620, 0.198, 0.410, 0.190, -0.040, 16.0),
-    (1.545, 0.187, 0.360, 0.176, -0.036, 17.0),
-    (1.480, 0.182, 0.285, 0.170, -0.033, 29.0),
-    (1.420, 0.205, 0.250, 0.195, -0.032, 52.0),
-    (1.370, 0.238, 0.240, 0.230, -0.031, 76.0),
+    (1.790, 0.020, 0.030, 0.030, -0.030, 70.0),
+    (1.765, 0.075, 0.095, 0.100, -0.032, 60.0),
+    (1.725, 0.125, 0.165, 0.150, -0.034, 40.0),
+    (1.665, 0.150, 0.205, 0.168, -0.035, 32.0),
+    (1.600, 0.156, 0.218, 0.172, -0.035, 34.0),
+    (1.540, 0.150, 0.208, 0.170, -0.034, 40.0),
+    (1.480, 0.150, 0.188, 0.165, -0.033, 50.0),
+    (1.425, 0.170, 0.188, 0.176, -0.032, 64.0),
+    (1.375, 0.205, 0.205, 0.205, -0.031, 80.0),
 ]
-HOOD_COLS = 34
+HOOD_COLS = 36
 
 
 def hood_points(per_segment=2):
@@ -769,8 +794,8 @@ def build_hood(arm, cloth, mats):
     def colour(k, nrr, inner, edge):
         return (0.0, 0.0 if inner else 1.0, 1.0 if (edge or k == nrr - 1) else 0.0)
 
-    centre = lambda p: (AXIS_X + HOOD_OFFSET.x + 0.013, -0.040 + HOOD_OFFSET.y, 1.55 + HOOD_OFFSET.z)
-    outer, inner = build_shell(b, grid, 0.016, centre, colour, lambda p: hood_weights(p.z), cloth)
+    centre = lambda p: (AXIS_X + HOOD_OFFSET.x + 0.013, -0.034 + HOOD_OFFSET.y, 1.55 + HOOD_OFFSET.z)
+    outer, inner = build_shell(b, grid, 0.011, centre, colour, lambda p: hood_weights(p.z), cloth)
     rim_strips(b, outer, inner, cloth)
     return b.make_object("Hood_LOD0", [cloth], arm, mats=mats), b
 
@@ -780,37 +805,37 @@ def build_hood(arm, cloth, mats):
 # Layered draped cowl: three overlapping wrapped layers, each a double shell designed in the Idle pose.
 # keys: (z, rx, ry_front, ry_back, phi0 degrees) collar to hem, centred on (AXIS_X, AXIS_Y).
 COWL_LAYERS = [
-    dict(name="mantle", seed=23, teeth=1.0, clear=0.0, thick=0.011, skew=0.0, cols=44, front_rise=0.11, side_rise=0.095,
+    dict(name="mantle", seed=23, teeth=1.0, clear=0.0, thick=0.0075, skew=6.0, cols=52, front_rise=0.10, side_rise=0.09,
+         tilt=0.05, tilt_phase=2.2, fold=0.016, fold_k=5.0, fold_z=30.0,
          keys=[(1.462, 0.075, 0.070, 0.078, 8.0), (1.435, 0.135, 0.100, 0.108, 10.0),
                (1.395, 0.205, 0.120, 0.118, 16.0), (1.350, 0.245, 0.135, 0.124, 22.0),
                (1.295, 0.268, 0.145, 0.128, 28.0), (1.225, 0.280, 0.150, 0.134, 32.0),
                (1.150, 0.290, 0.157, 0.146, 34.0), (1.100, 0.300, 0.162, 0.156, 36.0)]),
-    dict(name="wrap", seed=5, teeth=0.4, clear=0.020, thick=0.010, skew=0.0, cols=40, front_rise=0.0, side_rise=0.0,
-         keys=[(1.430, 0.232, 0.150, 0.150, 5.0), (1.400, 0.250, 0.158, 0.158, 7.0),
-               (1.355, 0.262, 0.164, 0.160, 9.0), (1.310, 0.268, 0.168, 0.164, 12.0)]),
-    dict(name="drape", seed=41, teeth=0.8, clear=0.034, thick=0.010, skew=42.0, cols=40, front_rise=0.04, side_rise=0.09,
+    dict(name="drape", seed=41, teeth=0.9, clear=0.026, thick=0.0075, skew=52.0, cols=52, front_rise=0.05, side_rise=0.07,
+         tilt=0.10, tilt_phase=0.7, fold=0.026, fold_k=4.0, fold_z=-24.0,
          keys=[(1.452, 0.150, 0.105, 0.115, 22.0), (1.415, 0.225, 0.132, 0.125, 26.0),
                (1.365, 0.275, 0.152, 0.134, 30.0), (1.300, 0.305, 0.165, 0.144, 34.0),
                (1.230, 0.318, 0.170, 0.150, 38.0)]),
 ]
-CAPE_THICK = 0.011
+CAPE_THICK = 0.0075
 
 
 def hem_pattern(ncols, seed=23):
-    """Drop (metres) of the torn lower edge per column: irregular, lopsided teeth with a few deep tears."""
+    """Drop (metres) of the torn lower edge per column: irregular, lopsided teeth of varied width and length."""
     rng = random.Random(seed)
     drops = []
     while len(drops) <= ncols:
-        width = rng.choice((3, 4, 4, 5, 6))
-        depth = 0.040 + rng.random() * 0.075
-        if rng.random() < 0.2:
-            depth += 0.06
+        width = rng.choice((2, 3, 3, 4, 5, 7, 8))
+        depth = 0.015 + rng.random() * rng.random() * 0.13
+        if rng.random() < 0.15:
+            depth += 0.07
             width = max(width, 4)
-        peak = 0.3 + 0.4 * rng.random()
+        peak = 0.2 + 0.6 * rng.random()
+        base = 0.008 + rng.random() * 0.02
         for k in range(width):
             t = k / width
             tri = t / peak if t < peak else (1.0 - t) / (1.0 - peak)
-            drops.append(0.012 + depth * tri ** 1.1)
+            drops.append(base + depth * tri ** 1.3)
     return drops[:ncols + 1]
 
 
@@ -837,7 +862,11 @@ def layer_points(layer, per_segment=2):
                 zz -= tooth
             elif k == nr - 2:
                 zz -= tooth * 0.22
-            row.append((AXIS_X + rx * math.sin(phi), AXIS_Y - ry * c, zz))
+            # diagonal wrap: the whole layer tilts around the neck, and soft folds run diagonally across it
+            zz += layer["tilt"] * math.cos(phi - layer["tilt_phase"]) * low
+            fold = layer["fold"] * smoothstep(1.45, 1.38, z) * (
+                math.sin(layer["fold_k"] * phi + layer["fold_z"] * z) + 0.5 * math.sin(2.3 * layer["fold_k"] * phi - 0.6 * layer["fold_z"] * z + 1.3))
+            row.append((AXIS_X + (rx + fold) * math.sin(phi), AXIS_Y - (ry + fold) * c, zz))
         grid.append(row)
     return grid
 
@@ -924,7 +953,7 @@ def build_cape(arm, cloth, body_bvh, mats):
 
     for layer in COWL_LAYERS:
         grid = layer_points(layer, 2)
-        grid = relax_from_body(grid, body_bvh, 0.026 + layer["clear"] + layer["thick"], below, 0.014)
+        grid = relax_from_body(grid, body_bvh, 0.024 + layer["clear"] + layer["thick"], below, 0.010)
         outer, inner = build_shell(b, grid, layer["thick"], centre, colour, cape_weights, cloth)
         rim_strips(b, outer, inner, cloth)
         below.append(layer_bvh(b, set(v for row in outer for v in row)))
@@ -1134,6 +1163,125 @@ def build_satchel(arm, leather, mats):
 
 
 
+
+# ---------------------------------------------------------------------------------------------- boots
+
+BOOT_X = 0.083
+BOOT_Y = -0.045
+
+
+def bridge(b, r0, r1, mat, exp_fn):
+    n = len(r0)
+    for i in range(n):
+        j = (i + 1) % n
+        idx = (r0[i], r0[j], r1[j], r1[i])
+        mid = sum((Vector(b.verts[q]) for q in idx), Vector()) / 4.0
+        b.face(idx, mat, tuple(exp_fn(mid)))
+
+
+def superellipse_ring(b, cx, y, w, zb, zt, n, e, rgb, wfn):
+    ids = []
+    for i in range(n):
+        a = 2.0 * math.pi * i / n
+        c, sn = math.cos(a), math.sin(a)
+        x = cx + w * math.copysign(abs(c) ** (2.0 / e), c)
+        z = zb + (zt - zb) * 0.5 * (1.0 + math.copysign(abs(sn) ** (2.0 / e), sn))
+        p = (x, y, z)
+        ids.append(b.vert(p, rgb, wfn(Vector(p))))
+    return ids
+
+
+def cap_fan(b, ring, mat, direction, rgb, wfn):
+    pts = [Vector(b.verts[i]) for i in ring]
+    c = sum(pts, Vector()) / len(pts)
+    ci = b.vert(c, rgb, wfn(c))
+    for i in range(len(ring)):
+        b.face((ring[i], ring[(i + 1) % len(ring)], ci), mat, tuple(direction))
+
+
+def build_boots(arm, slots, side):
+    """One boot (rest pose): sole slab, leather upper with a toe cap, calf-height shaft and a folded cuff.
+    slots = [KeeperLeather, KeeperSkin, Black]."""
+    b = Builder()
+    leather, dark = slots[0], slots[2]
+    cx = side * BOOT_X
+    rgb = (0.0, 1.0, 0.0)
+    L = ".L" if side > 0 else ".R"
+
+    def foot_w(p):
+        t = smoothstep(0.02, -0.04, p.y)
+        return finalize({"LowerLeg" + L: 0.0 + (1.0 - t) * 0.55, "Foot" + L: 0.45 + t * 0.55})
+
+    def shaft_w(p):
+        t = smoothstep(0.17, 0.12, p.z)
+        return finalize({"LowerLeg" + L: 1.0 - t * 0.5, "Foot" + L: t * 0.5})
+
+    # upper: rows heel -> toe
+    rows = [(0.022, 0.044, 0.150), (0.004, 0.055, 0.130), (-0.040, 0.058, 0.098), (-0.090, 0.060, 0.074),
+            (-0.140, 0.059, 0.062), (-0.190, 0.052, 0.054), (-0.226, 0.036, 0.042), (-0.240, 0.016, 0.034)]
+    n = 16
+    rings = [superellipse_ring(b, cx, y, w, 0.020, zt, n, 2.6, rgb, foot_w) for (y, w, zt) in rows]
+    for r0, r1 in zip(rings, rings[1:]):
+        bridge(b, r0, r1, leather, lambda m: (m.x - cx, 0.0, m.z - 0.07))
+    cap_fan(b, rings[0], leather, (0.0, 1.0, 0.0), rgb, foot_w)
+    cap_fan(b, rings[-1], leather, (0.0, -1.0, 0.0), rgb, foot_w)
+    # toe cap: a slightly raised leather patch over the front of the foot, with a visible step
+    cap_rows = [(-0.112, 0.062, 0.071), (-0.140, 0.062, 0.066), (-0.190, 0.056, 0.058), (-0.226, 0.040, 0.046),
+                (-0.243, 0.018, 0.038)]
+    crings = [superellipse_ring(b, cx, y, w, 0.019, zt, n, 2.6, rgb, foot_w) for (y, w, zt) in cap_rows]
+    for r0, r1 in zip(crings, crings[1:]):
+        bridge(b, r0, r1, leather, lambda m: (m.x - cx, 0.0, m.z - 0.07))
+    cap_fan(b, crings[-1], leather, (0.0, -1.0, 0.0), rgb, foot_w)
+    # step wall back to the upper at the cap's rear edge
+    back = [superellipse_ring(b, cx, -0.112, 0.0575, 0.020, 0.0705, n, 2.6, rgb, foot_w)]
+    bridge(b, crings[0], back[0], leather, lambda m: (0.0, 1.0, 0.0))
+    # sole slab
+    srows = [(0.030, 0.050), (0.006, 0.062), (-0.060, 0.067), (-0.140, 0.066), (-0.205, 0.057), (-0.238, 0.040),
+             (-0.250, 0.016)]
+    srings = [superellipse_ring(b, cx, y, w, 0.0, 0.026, n, 4.0, rgb, foot_w) for (y, w) in srows]
+    for r0, r1 in zip(srings, srings[1:]):
+        bridge(b, r0, r1, dark, lambda m: (m.x - cx, 0.0, m.z - 0.013))
+    cap_fan(b, srings[0], dark, (0.0, 1.0, 0.0), rgb, foot_w)
+    cap_fan(b, srings[-1], dark, (0.0, -1.0, 0.0), rgb, foot_w)
+    # shaft: ankle to calf, circular
+    cy = BOOT_Y
+    shaft = [(0.07, 0.049), (0.13, 0.050), (0.20, 0.050), (0.30, 0.056), (0.38, 0.060), (0.405, 0.061)]
+    sr = []
+    for z, r in shaft:
+        ids = []
+        for i in range(n):
+            a = 2.0 * math.pi * i / n
+            p = (cx + r * math.cos(a) * 1.0, cy + r * math.sin(a) * 1.05, z)
+            ids.append(b.vert(p, rgb, shaft_w(Vector(p))))
+        sr.append(ids)
+    for r0, r1 in zip(sr, sr[1:]):
+        bridge(b, r0, r1, leather, lambda m: (m.x - cx, m.y - cy, 0.0))
+    # folded cuff: a closed rolled profile (z, r) revolved around the calf
+    prof = [(0.392, 0.062), (0.405, 0.074), (0.435, 0.078), (0.462, 0.071), (0.466, 0.062), (0.450, 0.058),
+            (0.420, 0.060)]
+    pr = []
+    for z, r in prof:
+        ids = []
+        for i in range(n):
+            a = 2.0 * math.pi * i / n
+            p = (cx + r * math.cos(a), cy + r * math.sin(a) * 1.05, z)
+            ids.append(b.vert(p, rgb, {"LowerLeg" + L: 1.0}))
+        pr.append(ids)
+    zc, rc = 0.43, 0.068
+    for k in range(len(pr)):
+        bridge(b, pr[k], pr[(k + 1) % len(pr)], leather,
+               lambda m: (Vector((m.x - cx, m.y - cy, 0.0)).normalized() * (Vector((m.x - cx, m.y - cy, 0.0)).length - rc)
+                          + Vector((0.0, 0.0, m.z - zc))))
+    return b
+
+
+def build_boots_both(arm, slots):
+    objs = []
+    for side in (1, -1):
+        b = build_boots(arm, slots, side)
+        objs.append(b.make_object("Boot_tmp_%d" % side, list(slots), arm, mats=None, sharp_deg=50.0))
+    return objs
+
 # ---------------------------------------------------------------------------------------------- cuffs
 
 def build_cuffs(arm, slots, mats):
@@ -1263,7 +1411,8 @@ def main():
     mats = skin_matrices(arm)
     body_bvh = evaluated_bvh(body)
     cuffs = build_cuffs(arm, [leather, skin, black], mats)
-    join_into(body, [cuffs])
+    boots = build_boots_both(arm, [leather, skin, black])
+    join_into(body, [cuffs] + boots)
     hood, hb = build_hood(arm, cloth, mats)
     cape, cb = build_cape(arm, cloth, body_bvh, mats)
     satchel, sb = build_satchel(arm, leather, mats)
