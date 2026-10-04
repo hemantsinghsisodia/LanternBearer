@@ -82,6 +82,14 @@ Smooth shading is used on all outfit and body meshes. Sharp edges mark creases o
 - **Performance:** the player-build probe on all islands, Ultra and Low. Ultra average ≤ 12.5 ms.
 - **Regression:** all EditMode and PlayMode tests; Build All Levels and Validate Scene Wiring with 0 problems; the lantern ≤ 1.5 m.
 
+## Amendment (2026-10-04, user reference images)
+The user supplied concept renders (a deep hood with a black void face, a layered scarf/cowl over the shoulders, gloves, a sash). Taken as shape and silhouette references only; the game's stylized look is kept. Changes to Section 1:
+- **Cape → a layered draped cowl.** Two or three wrapped fabric layers over the shoulders and upper chest, with a torn lower edge. It ends around the upper chest, the elbows and mid-back, and stays clear of the lantern arm.
+- **Face:** a **full black void** inside the hood, with no visible features, on both LODs. The face region gets vertex colour G = 0.
+- **Gloves:** dark leather gloves with short cuffs, using the KeeperLeather slot.
+- **Sash:** a cloth sash at the waist, with a short tail above mid-thigh, weighted to Hips. Its R sway is on the tail only.
+- **Legs stay clear:** no robe or skirt below the waist.
+
 ## Out of scope
 - A new base body or new proportions.
 - New animations.
