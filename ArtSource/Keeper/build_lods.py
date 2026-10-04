@@ -19,7 +19,7 @@ if HERE not in sys.path:
 import build_outfit
 
 # triangle targets per mesh (sum about 7,000)
-TARGETS = {"Body": 3900, "Hood": 900, "Cape": 1900, "Satchel": 420}
+TARGETS = {"Body": 3500, "Hood": 800, "Cape": 2300, "Satchel": 400}
 
 
 def decimate_copy(src, target):

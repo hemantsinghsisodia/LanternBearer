@@ -95,7 +95,7 @@ def setup_scene():
         scene.view_settings.view_transform = 'Standard'
     except TypeError:
         pass
-    scene.view_settings.exposure = 0.6
+    scene.view_settings.exposure = 0.0
     world = bpy.data.worlds.new("Night")
     world.use_nodes = True
     nt = world.node_tree
@@ -113,18 +113,18 @@ def setup_scene():
     # cool moon key from the keeper's right/back, a faint fill from the opposite side
     key = bpy.data.objects.new("MoonKey", bpy.data.lights.new("MoonKey", 'SUN'))
     key.data.color = (0.78, 0.86, 1.0)
-    key.data.energy = 4.5
+    key.data.energy = 2.6
     key.data.angle = math.radians(2.0)
     key.rotation_euler = (math.radians(58), 0, math.radians(-55))
     scene.collection.objects.link(key)
     rim = bpy.data.objects.new("MoonRim", bpy.data.lights.new("MoonRim", 'SUN'))
     rim.data.color = (0.45, 0.6, 1.0)
-    rim.data.energy = 0.9
+    rim.data.energy = 0.8
     rim.rotation_euler = (math.radians(70), 0, math.radians(150))
     scene.collection.objects.link(rim)
     fill = bpy.data.objects.new("MoonFill", bpy.data.lights.new("MoonFill", 'SUN'))
     fill.data.color = (0.6, 0.7, 0.95)
-    fill.data.energy = 0.25
+    fill.data.energy = 0.3
     fill.data.angle = math.radians(8.0)
     scene.collection.objects.link(fill)
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam"))
@@ -180,6 +180,8 @@ def spot(arm, cam):
 def set_lod(lod):
     """Show only the LOD0 (lod=0) or LOD1 (lod=1) meshes."""
     for o in bpy.data.objects:
+        if o.name == "Cape_base":
+            o.hide_render = True
         if o.type == 'MESH' and o.name.endswith(("_LOD0", "_LOD1")):
             o.hide_render = not o.name.endswith("_LOD%d" % lod)
             o.hide_viewport = o.hide_render

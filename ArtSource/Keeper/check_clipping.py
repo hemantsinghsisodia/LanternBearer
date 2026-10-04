@@ -24,7 +24,7 @@ if HERE not in sys.path:
 import build_outfit
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-CAPE_NAME = argv[0] if len(argv) > 0 else "Cape_LOD0"
+CAPE_NAME = argv[0] if len(argv) > 0 else "Cape_base"   # unsubdivided proxy of Cape_LOD0
 BODY_NAME = argv[1] if len(argv) > 1 else "Body_LOD0"
 
 CLIPS = {
@@ -48,7 +48,8 @@ MIN_Z = 0.95            # the cape does not reach below this height
 _cape = bpy.data.objects[CAPE_NAME]
 SASH_FIRST = _cape.data.get("sash_first_vertex", 10 ** 9)
 _col = _cape.data.color_attributes["Color"].data
-TAIL = [i for i in range(len(_cape.data.vertices)) if i >= SASH_FIRST and i % 2 == 1 and _col[i].color[0] > 0.02]
+LEGS_FIRST = _cape.data.get("legs_first_vertex", 10 ** 9)
+TAIL = [i for i in range(len(_cape.data.vertices)) if i >= LEGS_FIRST and i % 2 == 1]
 
 
 def set_pose(arm, clip, frame):
@@ -88,7 +89,7 @@ def cape_data(dg):
     obj = bpy.data.objects[CAPE_NAME]
     ev, me, verts, polys = evaluated(obj, dg)
     ev.to_mesh_clear()
-    outer = [p for p in polys if all(i % 2 == 0 for i in p)]
+    outer = [p for p in polys if all(i % 2 == 0 and i < SASH_FIRST for i in p)]   # cowl layers only
     return verts, polys, outer
 
 
