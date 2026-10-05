@@ -33,3 +33,9 @@ MonoBehaviour:
   gradeSaturation: 0
   gradeContrast: 0
   gradeExposure: 0
+  waterShallow: {r: 0, g: 0, b: 0, a: 0}
+  waterDeep: {r: 0, g: 0, b: 0, a: 0}
+  foamColour: {r: 0, g: 0, b: 0, a: 0}
+  ridgeColour: {r: 0, g: 0, b: 0, a: 0}
+  tideBand: {r: 0.30588236, g: 0.43137255, b: 0.4, a: 1}
+  groundTones: []

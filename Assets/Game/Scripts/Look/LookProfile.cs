@@ -28,6 +28,14 @@ public class LookProfile : ScriptableObject
     public float gradeContrast;
     public float gradeExposure;
 
+    // D1 environment palette. Color.clear (alpha 0) or null means "derive from the base colours" through LookMapping.
+    public Color waterShallow = Color.clear;
+    public Color waterDeep = Color.clear;
+    public Color foamColour = Color.clear;
+    public Color ridgeColour = Color.clear;
+    public Color tideBand = Color.clear;
+    public Color[] groundTones;
+
     public bool Validate(out string problem)
     {
         if (string.IsNullOrEmpty(levelId))

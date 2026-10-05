@@ -100,6 +100,103 @@ public class LookMappingTests
         }
     }
 
+    static float Value(Color c)
+    {
+        Color.RGBToHSV(c, out _, out _, out float v);
+        return v;
+    }
+
+    static float Dist(Color a, Color b)
+    {
+        return new Vector3(a.r - b.r, a.g - b.g, a.b - b.b).magnitude;
+    }
+
+    [Test]
+    public void WaterAndRidgeTonesStayCool()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            Assert.IsTrue(LookMapping.IsCool(LookMapping.WaterShallow(p.sea, p.moonRim)), "island" + i + " shallow");
+            Assert.IsTrue(LookMapping.IsCool(LookMapping.WaterDeep(p.sea)), "island" + i + " deep");
+            Assert.IsTrue(LookMapping.IsCool(LookMapping.Foam(p.moonRim)), "island" + i + " foam");
+            Color[] ridges = LookMapping.RidgeLayers(p.land, p.skyHorizon, 3);
+            Assert.AreEqual(3, ridges.Length);
+            for (int r = 0; r < ridges.Length; r++)
+            {
+                Assert.IsTrue(LookMapping.IsCool(ridges[r]), "island" + i + " ridge" + r);
+            }
+        }
+    }
+
+    [Test]
+    public void RidgeLayersApproachHorizon()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            Color[] ridges = LookMapping.RidgeLayers(p.land, p.skyHorizon, 3);
+            for (int r = 1; r < ridges.Length; r++)
+            {
+                Assert.Less(Dist(ridges[r], p.skyHorizon), Dist(ridges[r - 1], p.skyHorizon), "island" + i + " layer" + r);
+            }
+        }
+    }
+
+    [Test]
+    public void GroundTonesStayNearBase()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            Color[] tones = LookMapping.GroundTones(p.land);
+            Assert.AreEqual(3, tones.Length);
+            Color.RGBToHSV(p.land, out float h0, out _, out float v0);
+            for (int t = 0; t < tones.Length; t++)
+            {
+                Color.RGBToHSV(tones[t], out float h, out _, out float v);
+                float dh = Mathf.Abs(h - h0);
+                dh = Mathf.Min(dh, 1f - dh);
+                Assert.LessOrEqual(Mathf.Abs(v - v0), 0.15f, "island" + i + " tone" + t + " value");
+                Assert.LessOrEqual(dh, 0.08f, "island" + i + " tone" + t + " hue");
+            }
+        }
+    }
+
+    [Test]
+    public void OrDerivedFallsBackOnlyWhenUnauthored()
+    {
+        Color derived = new Color(0.2f, 0.3f, 0.4f, 1f);
+        Color authored = new Color(0.5f, 0.6f, 0.7f, 1f);
+        Assert.AreEqual(derived, LookMapping.OrDerived(Color.clear, derived));
+        Assert.AreEqual(authored, LookMapping.OrDerived(authored, derived));
+    }
+
+    [Test]
+    public void DeepWaterIsDarkerThanShallow()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            Assert.Less(Value(LookMapping.WaterDeep(p.sea)), Value(LookMapping.WaterShallow(p.sea, p.moonRim)), "island" + i);
+        }
+    }
+
+    [Test]
+    public void NewPaletteFieldsDoNotBreakValidation()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            Assert.IsTrue(Load(i).Validate(out string problem), "island" + i + ": " + problem);
+        }
+    }
+
+    [Test]
+    public void Island3HasPaleTideBand()
+    {
+        Assert.AreEqual("4E6E66", LookPalette.ToHex(Load(3).tideBand));
+    }
+
     [Test]
     public void MoonRimQualityPerPreset()
     {

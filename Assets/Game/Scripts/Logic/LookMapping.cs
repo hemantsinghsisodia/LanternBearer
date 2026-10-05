@@ -90,6 +90,61 @@ public static class LookMapping
         return Mathf.Max(c.r, Mathf.Max(c.g, c.b)) < CoolBlackThreshold;
     }
 
+    // Shallows: the sea pulled a quarter of the way to the moon rim, then brightened by 10% value.
+    public static Color WaterShallow(Color sea, Color moonRim)
+    {
+        Color c = Color.Lerp(sea, moonRim, 0.25f);
+        Color.RGBToHSV(c, out float h, out float s, out float v);
+        Color result = Color.HSVToRGB(h, s, Mathf.Clamp01(v + 0.10f));
+        result.a = 1f;
+        return result;
+    }
+
+    public static Color WaterDeep(Color sea)
+    {
+        Color.RGBToHSV(sea, out float h, out float s, out float v);
+        Color result = Color.HSVToRGB(h, s, v * 0.45f);
+        result.a = 1f;
+        return result;
+    }
+
+    public static Color Foam(Color moonRim)
+    {
+        Color c = Color.Lerp(moonRim, Color.white, 0.4f);
+        c.a = 0.55f;
+        return c;
+    }
+
+    // Layer 0 is the nearest and darkest; each further layer fades toward the sky horizon.
+    public static Color[] RidgeLayers(Color land, Color skyHorizon, int count)
+    {
+        Color start = new Color(land.r * 0.8f, land.g * 0.8f, land.b * 0.8f, 1f);
+        Color[] layers = new Color[count];
+        for (int i = 0; i < count; i++)
+        {
+            Color c = Color.Lerp(start, skyHorizon, (i + 1f) / (count + 1f));
+            c.a = 1f;
+            layers[i] = c;
+        }
+
+        return layers;
+    }
+
+    public static Color[] GroundTones(Color baseColour)
+    {
+        Color.RGBToHSV(baseColour, out float h, out float s, out float v);
+        Color dark = Color.HSVToRGB(h, s, v * 0.85f);
+        Color light = Color.HSVToRGB(h, s * 0.9f, Mathf.Clamp01(v * 1.12f));
+        dark.a = 1f;
+        light.a = 1f;
+        return new Color[] { dark, new Color(baseColour.r, baseColour.g, baseColour.b, 1f), light };
+    }
+
+    public static Color OrDerived(Color authored, Color derived)
+    {
+        return authored.a == 0f ? derived : authored;
+    }
+
     static Color Scale(Color c, float k)
     {
         return new Color(Mathf.Clamp01(c.r * k), Mathf.Clamp01(c.g * k), Mathf.Clamp01(c.b * k), 1f);
