@@ -1392,7 +1392,7 @@ public static partial class IslandBuilder
             layer.normalMapTexture = textures.normal;
             layer.maskMapTexture = null;
             layer.normalScale = 1f;
-            layer.tileSize = sources[i].tileSize;
+            layer.tileSize = GroundTextureBuilder.TileFor(name);
             layer.smoothness = 0.08f;
             layer.metallic = 0f;
             layer.diffuseRemapMin = Vector4.zero;
