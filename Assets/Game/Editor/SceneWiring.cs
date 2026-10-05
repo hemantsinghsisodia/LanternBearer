@@ -871,7 +871,6 @@ public static class SceneWiring
         return serialized != null ? serialized.objectReferenceValue : null;
     }
 
-    // Each island scene needs exactly one LookApplier whose profile matches the scene's LevelConfig, and the night sky shader.
     // Water materials must use the painterly shader and carry no textures (no normals, cubemaps or noise).
     static int ReportWaterMaterials(bool quiet)
     {
@@ -921,6 +920,7 @@ public static class SceneWiring
         return problems;
     }
 
+    // Each island scene needs exactly one LookApplier whose profile matches the scene's LevelConfig, and the night sky shader.
     static int ReportLookApplier(bool quiet)
     {
         string sceneName = EditorSceneManager.GetActiveScene().name;

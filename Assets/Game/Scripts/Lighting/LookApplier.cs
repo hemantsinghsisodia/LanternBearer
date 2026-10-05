@@ -144,8 +144,13 @@ public class LookApplier : MonoBehaviour
             }
 
             Material water = renderers[i].material;
-            water.SetColor("_ShallowColor", LookMapping.OrDerived(p.waterShallow, LookMapping.WaterShallow(p.sea, p.moonRim)));
-            water.SetColor("_DeepColor", LookMapping.OrDerived(p.waterDeep, LookMapping.WaterDeep(p.sea)));
+            // Keep the material's own alpha: shallow alpha is what lets the bank, stones and bed show through.
+            Color shallow = LookMapping.OrDerived(p.waterShallow, LookMapping.WaterShallow(p.sea, p.moonRim));
+            Color deep = LookMapping.OrDerived(p.waterDeep, LookMapping.WaterDeep(p.sea));
+            shallow.a = water.GetColor("_ShallowColor").a;
+            deep.a = water.GetColor("_DeepColor").a;
+            water.SetColor("_ShallowColor", shallow);
+            water.SetColor("_DeepColor", deep);
             water.SetColor("_FoamColor", LookMapping.OrDerived(p.foamColour, LookMapping.Foam(p.moonRim)));
             water.SetColor("_RimColor", p.moonRim);
             water.SetColor("_TideBandColor", p.tideBand);

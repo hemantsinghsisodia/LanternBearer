@@ -8,11 +8,11 @@ namespace LanternKeeper
 // The saved water material is cached once and is the Medium baseline.
 // Quality changes are written to a runtime material instance and to shader globals.
 // The saved material asset is never edited.
+// The painterly shader reads only the Low keyword. The GraphicsProfile foam reach, ripple range, detail and glint fields are unused by it.
 public class WaterQuality : MonoBehaviour
 {
     const string WaterShaderName = "LanternKeeper/Water";
     const string LowKeywordName = "_LK_WATER_LOW";
-    const string HighKeywordName = "_LK_WATER_HIGH";
     const float ShaderFoamReach = 8f;
     const float ShaderRippleRange = 1f;
 
@@ -176,13 +176,9 @@ public class WaterQuality : MonoBehaviour
         }
 
         bool low = UseLow(profile);
-        bool high = UseHigh(profile);
         float foamReach = FoamReach(profile);
         float rippleRange = RippleRange(profile);
         float detail = profile.waterDetailLayer ? profile.waterDetailStrength : 0f;
-        Shader.SetGlobalFloat("_LK_FoamReach", foamReach);
-        Shader.SetGlobalFloat("_LK_RippleRange", rippleRange);
-        Shader.SetGlobalFloat("_LK_DetailStrength", detail);
 
         for (int i = 0; i < instances.Length; i++)
         {
@@ -201,15 +197,6 @@ public class WaterQuality : MonoBehaviour
                 material.DisableKeyword(LowKeywordName);
             }
 
-            if (high)
-            {
-                material.EnableKeyword(HighKeywordName);
-            }
-            else
-            {
-                material.DisableKeyword(HighKeywordName);
-            }
-
             LogApplied(profile, material, i, foamReach, rippleRange, detail);
         }
 
@@ -219,12 +206,10 @@ public class WaterQuality : MonoBehaviour
     void LogApplied(GraphicsProfile profile, Material material, int index, float foamReach, float rippleRange, float detail)
     {
         bool lowOn = material.IsKeywordEnabled(LowKeywordName);
-        bool highOn = material.IsKeywordEnabled(HighKeywordName);
         Debug.Log(
             "WaterQuality " + profile.level
             + " renderer=" + index
             + " low=" + lowOn
-            + " high=" + highOn
             + " foamReach=" + foamReach.ToString("0.###")
             + " rippleRange=" + rippleRange.ToString("0.###")
             + " detail=" + detail.ToString("0.###")

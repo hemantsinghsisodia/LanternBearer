@@ -29,7 +29,7 @@ Material:
     - _FadeEnd: 630
     - _FadeStart: 520
     - _FoamWidth: 0.35
-    - _MoonPathStrength: 0.55
+    - _MoonPathStrength: 1.32
     - _RimWidth: 0.12
     - _SwellScale: 0.02
     - _SwellSpeed: 0.04

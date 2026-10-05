@@ -13,7 +13,7 @@ Shader "LanternKeeper/Water"
         _SwellScale ("Swell Scale", Float) = 0.02
         _SwellSpeed ("Swell Speed", Float) = 0.04
         _MoonDir ("Moon Dir (xz, w = on)", Vector) = (0, 0, 0, 0)
-        _MoonPathStrength ("Moon Path Strength", Float) = 0.55
+        _MoonPathStrength ("Moon Path Strength", Float) = 1.32
         _WaveAmp ("Wave Amp", Float) = 8
         _FadeStart ("Ring Start", Float) = 520
         _FadeEnd ("Ring End", Float) = 630
@@ -184,7 +184,7 @@ Shader "LanternKeeper/Water"
                     float width = 4.0 + 0.12 * max(along, 0.0);
                     float streak = (1.0 - smoothstep(0.0, width, abs(lateral))) * smoothstep(6.0, 40.0, along);
                     float dashes = smoothstep(0.4, 0.75, ValueNoise(float2(along * 0.2 - time * 0.15, lateral * 0.08)));
-                    water += _RimColor.rgb * (streak * dashes * _MoonPathStrength * 2.4);
+                    water += _RimColor.rgb * (streak * dashes * _MoonPathStrength);
                 }
 #endif
 
@@ -225,7 +225,7 @@ Shader "LanternKeeper/Water"
                     water = lerp(water, _TideBandColor.rgb, band * _TideBandColor.a * 0.6);
                 }
 
-                water += _LKLightningFlash * 0.25 * _RimColor.rgb;
+                water += _LKLightningFlash * 0.10 * _RimColor.rgb;
 
                 water *= TintOrWhite(_WaterTint.rgb);
 

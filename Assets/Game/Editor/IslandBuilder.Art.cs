@@ -1056,7 +1056,8 @@ public static partial class IslandBuilder
         water.SetFloat("_RimWidth", 0.12f);
         water.SetFloat("_SwellScale", 0.02f);
         water.SetFloat("_SwellSpeed", 0.04f);
-        water.SetFloat("_MoonPathStrength", 0.55f);
+        // Effective strength: the spec value 0.55 times the 2.4 gain found by eye, so the shader carries no hidden multiplier.
+        water.SetFloat("_MoonPathStrength", 1.32f);
         PurgeStaleWaterProperties(water);
         EditorUtility.SetDirty(water);
     }
