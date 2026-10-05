@@ -118,43 +118,130 @@ public static class GroundTexturePainter
         Scatter(tone, height, rng, 140, 1f, 2.6f, 0.3f, 0.5f, 0.4f);
     }
 
+    // Natural rough ground: mottled earth and eroded rock patches, clustered stones with lit tops and dark undersides, short broken cracks.
     static void PaintRock(int seed, float[] tone, float[] height)
     {
-        Cells big = Worley(6, seed + 1, 0.35f);
-        Cells small = Worley(17, seed + 2, 0.3f);
-        float[] grain = Fbm(24, 2, seed + 3);
-        float[] wash = Fbm(4, 3, seed + 4);
-        float[] broken = Fbm(8, 2, seed + 6);
-        System.Random rng = new System.Random(seed + 5);
-        float[] bigTone = new float[6 * 6];
-        float[] bigHeight = new float[6 * 6];
-        float[] bigAx = new float[6 * 6];
-        float[] bigAy = new float[6 * 6];
-        for (int i = 0; i < bigTone.Length; i++)
+        float[] warpA = Fbm(3, 2, seed + 1);
+        float[] warpB = Fbm(3, 2, seed + 2);
+        float[] patch = Fbm(4, 4, seed + 3);
+        float[] lumps = Fbm(11, 3, seed + 4);
+        float[] erode = Fbm(26, 2, seed + 5);
+        float[] brush = LatticeXY(14, 5, seed + 6);
+        float[] fine = Lattice(150, seed + 7);
+        for (int y = 0; y < Size; y++)
         {
-            bigTone[i] = (float)rng.NextDouble() - 0.5f;
-            bigHeight[i] = (float)rng.NextDouble();
-            bigAx[i] = (float)rng.NextDouble() * 2f - 1f;
-            bigAy[i] = (float)rng.NextDouble() * 2f - 1f;
+            for (int x = 0; x < Size; x++)
+            {
+                int i = y * Size + x;
+                // Warped patch mask: soft rock areas inside earth.
+                int sx = Wrap(x + Mathf.RoundToInt((warpA[i] - 0.5f) * 120f));
+                int sy = Wrap(y + Mathf.RoundToInt((warpB[i] - 0.5f) * 120f));
+                float m = SmoothStep(0.38f, 0.66f, patch[sy * Size + sx]);
+                float rockiness = m * (0.6f + 0.4f * SmoothStep(0.35f, 0.7f, erode[i]));
+                tone[i] = (m - 0.5f) * 0.22f + (lumps[i] - 0.5f) * 0.24f + (erode[i] - 0.5f) * 0.2f * (0.5f + m) + (brush[i] - 0.5f) * 0.12f + (fine[i] - 0.5f) * 0.1f;
+                height[i] = 0.25f + rockiness * 0.22f + (lumps[i] - 0.5f) * 0.4f + (erode[i] - 0.5f) * 0.12f + (fine[i] - 0.5f) * 0.1f;
+            }
         }
 
-        float[] smallTone = new float[17 * 17];
-        for (int i = 0; i < smallTone.Length; i++)
+        System.Random rng = new System.Random(seed + 8);
+        // Clusters of stones, plus a thin even sprinkle.
+        for (int c = 0; c < 22; c++)
         {
-            smallTone[i] = (float)rng.NextDouble() - 0.5f;
+            float cx = (float)rng.NextDouble() * Size;
+            float cy = (float)rng.NextDouble() * Size;
+            float spread = 30f + (float)rng.NextDouble() * 50f;
+            int n = 8 + rng.Next(14);
+            for (int k = 0; k < n; k++)
+            {
+                float px = cx + Gauss(rng) * spread;
+                float py = cy + Gauss(rng) * spread;
+                float r = 2.5f + (float)rng.NextDouble() * (float)rng.NextDouble() * 16f;
+                Stone(tone, height, rng, px, py, r);
+            }
         }
 
-        for (int i = 0; i < tone.Length; i++)
+        for (int k = 0; k < 90; k++)
         {
-            int b = big.id[i];
-            float crack = (1f - SmoothStep(0.025f, 0.1f, big.f2[i] - big.f1[i])) * (0.35f + 0.65f * SmoothStep(0.3f, 0.6f, broken[i]));
-            float chip = 1f - SmoothStep(0f, 0.06f, small.f2[i] - small.f1[i]);
-            float plane = bigAx[b] * big.dx[i] + bigAy[b] * big.dy[i];
-            tone[i] = bigTone[b] * 0.26f + plane * 0.35f + (wash[i] - 0.5f) * 0.14f + smallTone[small.id[i]] * 0.2f + (grain[i] - 0.5f) * 0.14f - crack * 0.32f - chip * 0.07f;
-            height[i] = 0.3f + bigHeight[b] * 0.35f + plane * 0.5f + smallTone[small.id[i]] * 0.1f + (grain[i] - 0.5f) * 0.08f - crack * 0.45f - chip * 0.05f;
+            Stone(tone, height, rng, (float)rng.NextDouble() * Size, (float)rng.NextDouble() * Size, 2f + (float)rng.NextDouble() * 5f);
         }
 
-        Scatter(tone, height, rng, 160, 0.8f, 2.2f, 0.28f, 0.5f, 0.3f);
+        Scatter(tone, height, rng, 500, 0.8f, 2f, 0.28f, 0.5f, 0.3f);
+        for (int k = 0; k < 22; k++)
+        {
+            Crack(tone, height, rng, (float)rng.NextDouble() * Size, (float)rng.NextDouble() * Size, (float)rng.NextDouble() * Mathf.PI * 2f, 22f + (float)rng.NextDouble() * 40f, 0);
+        }
+    }
+
+    static float Gauss(System.Random rng)
+    {
+        return (float)(rng.NextDouble() + rng.NextDouble() + rng.NextDouble() - 1.5);
+    }
+
+    // One irregular stone: lit on its upper side, dark underneath, with a small contact shadow below it.
+    static void Stone(float[] tone, float[] height, System.Random rng, float cx, float cy, float r)
+    {
+        float squash = 0.65f + (float)rng.NextDouble() * 0.35f;
+        float p1 = (float)rng.NextDouble() * 6.28f;
+        float p2 = (float)rng.NextDouble() * 6.28f;
+        float own = ((float)rng.NextDouble() - 0.5f) * 0.3f;
+        float top = 0.3f + (float)rng.NextDouble() * 0.15f;
+        int ir = Mathf.CeilToInt(r * 1.4f) + 2;
+        for (int oy = -ir; oy <= ir; oy++)
+        {
+            for (int ox = -ir; ox <= ir; ox++)
+            {
+                int px = Mathf.FloorToInt(cx) + ox;
+                int py = Mathf.FloorToInt(cy) + oy;
+                float dx = px + 0.5f - cx;
+                float dy = py + 0.5f - cy;
+                float ang = Mathf.Atan2(dy, dx);
+                float rr = r * (1f + 0.18f * Mathf.Sin(3f * ang + p1) + 0.1f * Mathf.Sin(5f * ang + p2));
+                float u = Mathf.Sqrt(dx * dx + dy * dy / (squash * squash)) / rr;
+                int i = Wrap(py) * Size + Wrap(px);
+                if (u >= 1f)
+                {
+                    // Contact shadow just below the stone (texture y is up, so below is smaller y).
+                    if (u < 1.35f && dy < 0f)
+                    {
+                        tone[i] -= 0.1f * (1.35f - u) / 0.35f;
+                    }
+
+                    continue;
+                }
+
+                float dome = Mathf.Sqrt(1f - u * u);
+                float light = dy / (rr * squash);
+                tone[i] = own + light * 0.18f + (dome - 0.5f) * 0.12f - (u > 0.8f ? (u - 0.8f) * 0.5f : 0f);
+                height[i] = Mathf.Max(height[i], 0.22f + top * dome);
+            }
+        }
+    }
+
+    // Short broken crack: a wobbling walk that sometimes forks once. Never encloses cells.
+    static void Crack(float[] tone, float[] height, System.Random rng, float x, float y, float dir, float length, int depth)
+    {
+        for (float s = 0f; s < length; s += 1f)
+        {
+            dir += ((float)rng.NextDouble() - 0.5f) * 0.5f;
+            x += Mathf.Cos(dir);
+            y += Mathf.Sin(dir);
+            float fade = 1f - s / length;
+            for (int oy = -1; oy <= 1; oy++)
+            {
+                for (int ox = -1; ox <= 1; ox++)
+                {
+                    float w = (ox == 0 && oy == 0 ? 1f : 0.45f) * fade;
+                    int i = Wrap(Mathf.FloorToInt(y) + oy) * Size + Wrap(Mathf.FloorToInt(x) + ox);
+                    tone[i] -= 0.22f * w;
+                    height[i] -= 0.2f * w;
+                }
+            }
+
+            if (depth < 1 && s > 6f && rng.NextDouble() < 0.04)
+            {
+                Crack(tone, height, rng, x, y, dir + (rng.NextDouble() < 0.5 ? 0.7f : -0.7f), length * 0.5f, depth + 1);
+            }
+        }
     }
 
     // Grass ground and moss: clumpy patches with dark gaps between them, plus small leaf-litter specks.
