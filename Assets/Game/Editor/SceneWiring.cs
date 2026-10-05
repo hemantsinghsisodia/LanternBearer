@@ -936,14 +936,16 @@ public static class SceneWiring
                 continue;
             }
 
-            string[] textures = material.GetTexturePropertyNames();
-            for (int t = 0; t < textures.Length; t++)
+            // The shader declares no textures, so check the saved entries a rebuilt or older material may still carry.
+            SerializedProperty entries = new SerializedObject(material).FindProperty("m_SavedProperties.m_TexEnvs");
+            for (int t = 0; entries != null && t < entries.arraySize; t++)
             {
-                if (material.GetTexture(textures[t]) != null)
+                SerializedProperty entry = entries.GetArrayElementAtIndex(t);
+                if (entry.FindPropertyRelative("second.m_Texture").objectReferenceValue != null)
                 {
                     if (!quiet)
                     {
-                        Debug.LogWarning("Ridge material " + material.name + " still references texture " + textures[t]);
+                        Debug.LogWarning("Ridge material " + material.name + " still references texture " + entry.FindPropertyRelative("first").stringValue);
                     }
 
                     problems++;

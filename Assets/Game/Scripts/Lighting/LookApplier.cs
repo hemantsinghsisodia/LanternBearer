@@ -121,6 +121,7 @@ public class LookApplier : MonoBehaviour
         Shader.SetGlobalColor("_LKGrassTip", LookMapping.GrassTip(profile.land, profile.moonRim));
 
         ApplyWater(profile, towardMoon);
+        ApplyRidges(profile);
     }
 
     // Per-frame global so the water (and anything else) can brighten on a lightning flash and fall back to 0 after it.
@@ -147,7 +148,7 @@ public class LookApplier : MonoBehaviour
             return;
         }
 
-        Color baseLand = p.ridgeColour.a > 0f ? p.ridgeColour : p.land;
+        Color baseLand = LookMapping.OrDerived(p.ridgeColour, p.land);
         Color[] layers = LookMapping.RidgeLayers(baseLand, p.skyHorizon, 3);
         Renderer[] renderers = horizon.GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < renderers.Length; i++)

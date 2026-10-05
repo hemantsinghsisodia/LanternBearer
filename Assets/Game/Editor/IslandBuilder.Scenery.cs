@@ -352,7 +352,7 @@ public static partial class IslandBuilder
         return defaults[Mathf.Clamp(band, 0, 2)];
     }
 
-    // Flat colour only: no textures, no cubemaps. The nearest layers keep more of their colour at dawn, the far ones melt into the horizon.
+    // Flat colour only: no textures, no cubemaps. At dawn every layer reaches the horizon colour times its shade; the near layers are darker.
     static Material DistantMat(Shader shader, Color layerColor, float aerialStart, float aerialEnd, int layer)
     {
         if (shader == null)
@@ -362,13 +362,14 @@ public static partial class IslandBuilder
 
         Material mat = new Material(shader);
         mat.name = "Ridge" + layer;
-        float[] dawnMix = { 0.45f, 0.65f, 0.85f };
+        float[] dawnShade = { 0.62f, 0.78f, 0.92f };
         layerColor.a = 1f;
         mat.SetColor("_LayerColor", layerColor);
         mat.SetFloat("_RimStrength", 0.25f);
         mat.SetFloat("_AerialStart", aerialStart);
         mat.SetFloat("_AerialEnd", aerialEnd);
-        mat.SetFloat("_DawnMix", dawnMix[Mathf.Clamp(layer, 0, 2)]);
+        mat.SetFloat("_DawnShade", dawnShade[Mathf.Clamp(layer, 0, 2)]);
+        PurgeStaleWaterProperties(mat);
         return mat;
     }
 

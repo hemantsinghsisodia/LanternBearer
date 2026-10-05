@@ -29,11 +29,12 @@ public class DawnSequence : MonoBehaviour
     float nightAmbient = 0.18f;
     Color nightWater = new Color(0.72f, 0.84f, 1f, 1f);
     Color nightSilhouette = new Color(0.58f, 0.68f, 0.82f, 1f);
-    Color nightHazeTint = new Color(0.55f, 0.7f, 0.78f, 1f);
     Material skybox;
     bool captured;
     float nightLookWeight = 1f;
     float nightRimStrength = 1f;
+    Color nightGrassRoot;
+    Color nightGrassTip;
 
     public bool IsPlaying { get; private set; }
 
@@ -41,7 +42,6 @@ public class DawnSequence : MonoBehaviour
     {
         Shader.SetGlobalColor("_WaterTint", new Color(0.72f, 0.84f, 1f, 1f));
         Shader.SetGlobalColor("_SilhouetteTint", new Color(0.58f, 0.68f, 0.82f, 1f));
-        Shader.SetGlobalColor("_HazeTint", new Color(0.55f, 0.7f, 0.78f, 1f));
         Shader.SetGlobalFloat("_LanternSkyBlend", 0f);
     }
 
@@ -126,8 +126,18 @@ public class DawnSequence : MonoBehaviour
         Color dawnTint = new Color(1f, 0.94f, 0.86f, 1f);
         Color dawnWater = new Color(1f, 0.7f, 0.5f, 1f);
         Color dawnSilhouette = new Color(1f, 0.64f, 0.46f, 1f);
-        Color dawnHazeTint = new Color(1f, 0.72f, 0.5f, 1f);
         bool blendSky = skybox != null && skybox.HasProperty("_Blend");
+
+        // Grass follows the dawn too: the island land colour pulled toward the dawn ground, lit by the dawn light. Daylight, so mild warmth is fine.
+        bool blendGrass = nightGrassRoot.a > 0.5f && applier != null && applier.Profile != null && look != null;
+        Color dawnGrassRoot = nightGrassRoot;
+        Color dawnGrassTip = nightGrassTip;
+        if (blendGrass)
+        {
+            Color dawnLand = Color.Lerp(applier.Profile.land, look.dawnGround, 0.35f);
+            dawnGrassRoot = LookMapping.GrassRoot(dawnLand);
+            dawnGrassTip = LookMapping.GrassTip(dawnLand, look.dawnLight);
+        }
 
         while (elapsed < duration)
         {
@@ -198,8 +208,12 @@ public class DawnSequence : MonoBehaviour
             Shader.SetGlobalFloat("_LKMoonRimStrength", Mathf.Lerp(nightRimStrength, 0f, u));
             Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? u : 0f);
             Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, dawnWater, u));
+            if (blendGrass)
+            {
+                Shader.SetGlobalColor("_LKGrassRoot", Color.Lerp(nightGrassRoot, dawnGrassRoot, u));
+                Shader.SetGlobalColor("_LKGrassTip", Color.Lerp(nightGrassTip, dawnGrassTip, u));
+            }
             Shader.SetGlobalColor("_SilhouetteTint", Color.Lerp(nightSilhouette, dawnSilhouette, u));
-            Shader.SetGlobalColor("_HazeTint", Color.Lerp(nightHazeTint, dawnHazeTint, u));
 
             if (stars != null)
             {
@@ -246,8 +260,9 @@ public class DawnSequence : MonoBehaviour
         }
 
         nightWater = Shader.GetGlobalColor("_WaterTint");
+        nightGrassRoot = Shader.GetGlobalColor("_LKGrassRoot");
+        nightGrassTip = Shader.GetGlobalColor("_LKGrassTip");
         nightSilhouette = Shader.GetGlobalColor("_SilhouetteTint");
-        nightHazeTint = Shader.GetGlobalColor("_HazeTint");
         if (skybox != null && skybox.HasProperty("_Top"))
         {
             skyTop = skybox.GetColor("_Top");
