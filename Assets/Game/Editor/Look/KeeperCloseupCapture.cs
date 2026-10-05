@@ -196,7 +196,18 @@ public static class KeeperCloseupCapture
             }
         }
 
+        // Hand the LODGroup back to automatic selection.
+        RestoreLod(keeper);
         return written;
+    }
+
+    static void RestoreLod(GameObject keeper)
+    {
+        LODGroup group = keeper.GetComponentInChildren<LODGroup>(true);
+        if (group != null)
+        {
+            group.ForceLOD(-1);
+        }
     }
 
     static void ForcePresetLod(GameObject keeper, GraphicsLevel preset)

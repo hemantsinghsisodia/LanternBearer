@@ -19,11 +19,11 @@ Shader "Hidden/LanternKeeper/MoonRim"
         {
             Name "MoonRimDirect"
             Blend One One
-            // Skips pixels the keeper wrote (KeeperLit stencil bit 32): the keeper has its own rim.
+            // Skips pixels the keeper wrote (KeeperLit stencil bit 8 (URP user bit; 32 is Deferred MaterialLit)): the keeper has its own rim.
             Stencil
             {
-                Ref 32
-                ReadMask 32
+                Ref 8
+                ReadMask 8
                 Comp NotEqual
                 Pass Keep
             }
@@ -49,11 +49,11 @@ Shader "Hidden/LanternKeeper/MoonRim"
         {
             Name "MoonRimUpsample"
             Blend One One
-            // Skips pixels the keeper wrote (KeeperLit stencil bit 32): the keeper has its own rim.
+            // Skips pixels the keeper wrote (KeeperLit stencil bit 8 (URP user bit; 32 is Deferred MaterialLit)): the keeper has its own rim.
             Stencil
             {
-                Ref 32
-                ReadMask 32
+                Ref 8
+                ReadMask 8
                 Comp NotEqual
                 Pass Keep
             }
