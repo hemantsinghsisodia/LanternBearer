@@ -30,8 +30,6 @@ public static class NatureKitImporter
         public float target;
         public bool byExtent;
         public bool layDown;
-        // Only scale down: models already smaller than the target keep their size.
-        public bool onlyShrink;
         // Only change size when the model is outside [min, max] (used for trees).
         public float clampMin;
         public float clampMax;
@@ -232,7 +230,7 @@ public static class NatureKitImporter
             }
 
             bool normal = Textures[i].EndsWith("_Normal");
-            bool leaf = Textures[i].StartsWith("Leaf") || Textures[i] == "Flowers";
+            bool leaf = Textures[i].StartsWith("Leaf") || Textures[i] == "Flowers" || Textures[i] == "Grass";
             importer.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
             importer.sRGBTexture = !normal;
             importer.mipmapEnabled = true;
@@ -525,11 +523,27 @@ public static class NatureKitImporter
             EditorUtility.CopySerialized(mesh, baked);
             Object.DestroyImmediate(mesh);
             EditorUtility.SetDirty(baked);
+            SetReadable(baked, spec);
             return baked;
         }
 
         AssetDatabase.CreateAsset(mesh, path);
+        SetReadable(mesh, spec);
         return mesh;
+    }
+
+    // Only meshes that feed a MeshCollider stay CPU-readable.
+    static void SetReadable(Mesh mesh, Spec spec)
+    {
+        bool needsCollider = spec.category == BiomeCategory.Rock || spec.category == BiomeCategory.Deadwood || spec.category == BiomeCategory.SetPiece;
+        SerializedObject serialized = new SerializedObject(mesh);
+        SerializedProperty readable = serialized.FindProperty("m_IsReadable");
+        if (readable != null && readable.boolValue != needsCollider)
+        {
+            readable.boolValue = needsCollider;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(mesh);
+        }
     }
 
     static Color Opaque(Color c)

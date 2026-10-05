@@ -65,6 +65,10 @@ public class NaturePaletteTests
             LookProfile profile = Load(i);
             Assert.AreEqual(1f, profile.bark.a, 0.001f, "bark alpha island" + i);
             Assert.AreEqual(1f, profile.rockTint.a, 0.001f, "rockTint alpha island" + i);
+            Assert.AreNotEqual(Color.white, profile.bark, "bark is still the white default on island" + i);
+            Assert.AreNotEqual(Color.white, profile.rockTint, "rockTint is still the white default on island" + i);
+            Assert.Less(profile.bark.r + profile.bark.g + profile.bark.b, 2.4f, "bark too bright island" + i);
+            Assert.Less(profile.rockTint.r + profile.rockTint.g + profile.rockTint.b, 2.4f, "rockTint too bright island" + i);
             Assert.AreEqual(1f, profile.foliage.a, 0.001f, "foliage alpha island" + i);
         }
     }

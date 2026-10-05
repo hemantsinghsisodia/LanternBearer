@@ -11,7 +11,6 @@ Shader "LanternKeeper/Foliage"
         _SwayHeight ("Sway Height (m)", Float) = 3
         _SwayAmount ("Sway Amount (m)", Float) = 0.06
         _Wrap ("Wrap Light", Range(0, 1)) = 0.5
-        [HideInInspector] _Cull ("Cull", Float) = 0
     }
     SubShader
     {
@@ -37,7 +36,6 @@ Shader "LanternKeeper/Foliage"
             float _SwayHeight;
             float _SwayAmount;
             float _Wrap;
-            float _Cull;
         CBUFFER_END
 
         // Set by Wind: (dirX, dirZ, strength01, 0). Zero on Low.
@@ -79,6 +77,7 @@ Shader "LanternKeeper/Foliage"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
+            #pragma multi_compile_fog
             #pragma multi_compile _ _LK_FOLIAGE_LOW
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
@@ -100,6 +99,7 @@ Shader "LanternKeeper/Foliage"
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
                 float2 uv : TEXCOORD2;
+                float fogFactor : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -111,6 +111,7 @@ Shader "LanternKeeper/Foliage"
                 float3 positionWS = Sway(TransformObjectToWorld(input.positionOS.xyz));
                 output.positionWS = positionWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
+                output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 return output;
@@ -150,6 +151,7 @@ Shader "LanternKeeper/Foliage"
                 LIGHT_LOOP_END
                 #endif
 
+                color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
             }
             ENDHLSL
@@ -212,6 +214,108 @@ Shader "LanternKeeper/Foliage"
                 UNITY_SETUP_INSTANCE_ID(input);
                 clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a - _Cutoff);
                 return 0;
+            }
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            Cull Off
+            ZWrite On
+            ColorMask R
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+            #pragma instancing_options renderinglayer
+            #pragma multi_compile _ _LK_FOLIAGE_LOW
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                output.positionCS = TransformWorldToHClip(Sway(TransformObjectToWorld(input.positionOS.xyz)));
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a - _Cutoff);
+                return 0;
+            }
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            Cull Off
+            ZWrite On
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+            #pragma instancing_options renderinglayer
+            #pragma multi_compile _ _LK_FOLIAGE_LOW
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD1;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                output.positionCS = TransformWorldToHClip(Sway(TransformObjectToWorld(input.positionOS.xyz)));
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                return output;
+            }
+
+            half4 frag(Varyings input, float facing : VFACE) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a - _Cutoff);
+                float3 normalWS = normalize(input.normalWS);
+                if (facing < 0.0)
+                {
+                    normalWS = -normalWS;
+                }
+
+                return half4(NormalizeNormalPerPixel(normalWS), 0.0);
             }
             ENDHLSL
         }
