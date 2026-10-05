@@ -52,7 +52,7 @@ public static partial class IslandBuilder
         stage.terrain.basemapDistance = 280f;
         stage.terrain.heightmapPixelError = 4f;
         stage.terrain.detailObjectDistance = 20f;
-        stage.terrain.detailObjectDensity = 1.0f;
+        stage.terrain.detailObjectDensity = GraphicsProfileSetup.GrassDensityMedium;
         stage.waterY = WaterFraction * config.hillHeight;
         stage.highWaterY = stage.waterY + Mathf.Max(0f, config.tideAmplitude);
         stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
@@ -1315,7 +1315,7 @@ public static partial class IslandBuilder
         mat.SetColor("_BaseColor", tint);
         mat.SetFloat("_Cutoff", cutoff);
         mat.SetFloat("_BumpScale", 1f);
-        mat.SetFloat("_TipHeight", 0.42f);
+        mat.SetFloat("_TipHeight", 0.30f);
         mat.enableInstancing = true;
         mat.doubleSidedGI = true;
         mat.SetOverrideTag("RenderType", "TransparentCutout");

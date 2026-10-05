@@ -130,6 +130,22 @@ public class LookMappingTests
     }
 
     [Test]
+    public void GrassTonesStayCoolAndDark()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            Color root = LookMapping.GrassRoot(p.land);
+            Color tip = LookMapping.GrassTip(p.land, p.moonRim);
+            Assert.IsTrue(LookMapping.IsCool(root), "island" + i + " root");
+            Assert.IsTrue(LookMapping.IsCool(tip), "island" + i + " tip");
+            Assert.LessOrEqual(Value(root), Value(p.land) + 0.001f, "island" + i + " root darker than land");
+            Assert.Less(Value(tip), 0.6f, "island" + i + " tip stays dim");
+            Assert.Greater(Value(tip), Value(root), "island" + i + " tip lighter than root");
+        }
+    }
+
+    [Test]
     public void RidgeLayersApproachHorizon()
     {
         for (int i = 1; i <= 4; i++)

@@ -12,6 +12,7 @@ public static class GraphicsProfileSetup
     const string PcRendererPath = "Assets/Settings/PC_Renderer.asset";
     const string UrpFolder = "Assets/Settings/Graphics";
     const string ProfileFolder = "Assets/Game/Settings/Graphics";
+    public const float GrassDensityMedium = 0.6f;
     const string ProfileSetPath = "Assets/Game/Resources/GraphicsProfileSet.asset";
 
     [MenuItem("Lantern Keeper/Create Graphics Profiles")]
@@ -97,9 +98,9 @@ public static class GraphicsProfileSetup
         profile.glowLightCapDistance = 30f;
 
         profile.grassDrawDistance = low ? 8f : level == GraphicsLevel.Medium ? 20f : level == GraphicsLevel.High ? 30f : 45f;
-        // Unity clamps Terrain.detailObjectDensity to 1, and Medium's saved density is already 1,
-        // so Ultra stays at 1. A value above 1 does not draw more grass.
-        profile.grassDensity = low ? 0.25f : 1f;
+        // Sparse tufts (D1): 60% of the old density. Unity clamps Terrain.detailObjectDensity to 1, so
+        // Ultra equals Medium. IslandBuilder bakes the same Medium value into each terrain.
+        profile.grassDensity = low ? GrassDensityMedium * 0.25f : GrassDensityMedium;
         profile.terrainPixelError = low ? 12f : level == GraphicsLevel.Medium ? 4f : level == GraphicsLevel.High ? 3f : 2f;
         profile.terrainBasemapDistance = low ? 150f : level == GraphicsLevel.Medium ? 280f : level == GraphicsLevel.High ? 400f : 600f;
         profile.treeLodBias = low ? 0.7f : level == GraphicsLevel.Medium ? 1f : level == GraphicsLevel.High ? 1.5f : 2f;

@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 namespace LanternKeeper
 {
-// Applies one island's look profile to the scene: sky, moonlight, ambient light, fog and the moon-rim globals.
+// Applies one island's look profile to the scene: sky, moonlight, ambient light, fog, the moon-rim globals and the grass root and tip colours.
 // Runs in Awake and again whenever the graphics preset changes, so nothing from a previous island survives.
 [ExecuteAlways]
 [DefaultExecutionOrder(-100)]
@@ -113,6 +113,9 @@ public class LookApplier : MonoBehaviour
         Shader.SetGlobalColor("_LKMoonRimColor", profile.moonRim);
         Shader.SetGlobalFloat("_LKMoonRimStrength", profile.moonRimStrength);
         Shader.SetGlobalVector("_LKMoonDir", new Vector4(towardMoon.x, towardMoon.y, towardMoon.z, 0f));
+
+        Shader.SetGlobalColor("_LKGrassRoot", LookMapping.GrassRoot(profile.land));
+        Shader.SetGlobalColor("_LKGrassTip", LookMapping.GrassTip(profile.land, profile.moonRim));
 
         ApplyWater(profile, towardMoon);
     }

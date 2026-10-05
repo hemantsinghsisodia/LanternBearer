@@ -32,7 +32,7 @@ MonoBehaviour:
   glowLightCapMoths: 0
   glowLightCapDistance: 30
   grassDrawDistance: 45
-  grassDensity: 1
+  grassDensity: 0.6
   terrainPixelError: 2
   terrainBasemapDistance: 600
   treeLodBias: 2

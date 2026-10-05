@@ -7,7 +7,7 @@ Shader "LanternKeeper/GrassBend"
         _BumpMap ("Normal", 2D) = "bump" {}
         _BumpScale ("Normal Scale", Float) = 1
         _Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.4
-        _TipHeight ("Tip Height", Float) = 0.42
+        _TipHeight ("Tip Height", Float) = 0.30
         [HideInInspector] _Cull ("Cull", Float) = 0
     }
     SubShader
@@ -52,6 +52,12 @@ Shader "LanternKeeper/GrassBend"
 
             float4 _LKPlayerPos;
             float _LKPlayerRadius;
+            // Set per island by LookApplier. The texture only supplies the blade shape.
+            float4 _LKGrassRoot;
+            float4 _LKGrassTip;
+            float4 _LKMoonRimColor;
+            float _LKMoonRimStrength;
+            float4 _LKMoonDir;
 
             struct Attributes
             {
@@ -122,13 +128,17 @@ Shader "LanternKeeper/GrassBend"
                 UNITY_SETUP_INSTANCE_ID(input);
                 float4 albedoSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
                 clip(albedoSample.a - _Cutoff);
-                float3 albedo = albedoSample.rgb * _BaseColor.rgb;
+                float3 albedo = lerp(_LKGrassRoot.rgb, _LKGrassTip.rgb, saturate(input.uv.y));
                 float3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 float3 normalWS = normalize(mul(normalTS, float3x3(input.tangentWS, input.bitangentWS, input.normalWS)));
                 if (facing < 0.0)
                 {
                     normalWS = -normalWS;
                 }
+
+                // Faint moon-rim tint on moon-facing tips. It goes through the lighting below, so it is never emissive.
+                float moonFacing = saturate(dot(normalWS, normalize(_LKMoonDir.xyz)));
+                albedo += 0.15 * _LKMoonRimColor.rgb * _LKMoonRimStrength * moonFacing * saturate(input.uv.y);
 
                 Light mainLight = GetMainLight();
                 float ndotl = saturate(dot(normalWS, mainLight.direction));

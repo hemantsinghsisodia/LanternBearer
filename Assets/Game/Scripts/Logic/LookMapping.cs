@@ -140,6 +140,25 @@ public static class LookMapping
         return new Color[] { dark, new Color(baseColour.r, baseColour.g, baseColour.b, 1f), light };
     }
 
+    // Grass root: the land colour at 70% value, so tufts sit dark against the ground.
+    public static Color GrassRoot(Color land)
+    {
+        Color.RGBToHSV(land, out float h, out float s, out float v);
+        Color result = Color.HSVToRGB(h, s, v * 0.7f);
+        result.a = 1f;
+        return result;
+    }
+
+    // Grass tip: the land colour pulled 40% toward the moon rim, desaturated by 20%.
+    public static Color GrassTip(Color land, Color moonRim)
+    {
+        Color c = Color.Lerp(land, moonRim, 0.4f);
+        Color.RGBToHSV(c, out float h, out float s, out float v);
+        Color result = Color.HSVToRGB(h, s * 0.8f, v);
+        result.a = 1f;
+        return result;
+    }
+
     public static Color OrDerived(Color authored, Color derived)
     {
         return authored.a == 0f ? derived : authored;

@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 namespace LanternKeeper
 {
 // Own-authored grass clump for the terrain carpet. Crossed blade ribbons, under 300 triangles.
-// The blade texture is generated here (no third-party art). Wind uses LanternKeeper/GrassBend.
+// The blade texture (shape only: white albedo plus alpha) is generated here (no third-party art). Wind uses LanternKeeper/GrassBend.
 public static class GrassTuftBuilder
 {
     public const string MeshPath = "Assets/Game/Meshes/Grass/GrassTuft.asset";
@@ -72,7 +72,7 @@ public static class GrassTuftBuilder
     {
         const int blades = 12;
         const int segments = 4;
-        const float targetHeight = 0.42f;
+        const float targetHeight = 0.30f;
         const float targetRadius = 0.20f;
 
         int rows = segments + 1;
@@ -195,7 +195,7 @@ public static class GrassTuftBuilder
         material.SetColor("_BaseColor", Color.white);
         material.SetFloat("_Cutoff", 0.3f);
         material.SetFloat("_BumpScale", 0f);
-        material.SetFloat("_TipHeight", 0.42f);
+        material.SetFloat("_TipHeight", 0.30f);
         material.enableInstancing = true;
         material.doubleSidedGI = true;
         material.SetOverrideTag("RenderType", "TransparentCutout");
@@ -215,18 +215,11 @@ public static class GrassTuftBuilder
         {
             float v = y / (float)(height - 1);
             float taper = Mathf.Lerp(1f, 0.08f, Mathf.SmoothStep(0f, 1f, v));
-            Color low = new Color(0.40f, 0.52f, 0.16f, 1f);
-            Color mid = new Color(0.55f, 0.64f, 0.22f, 1f);
-            Color tip = new Color(0.72f, 0.74f, 0.34f, 1f);
-            Color body = v < 0.55f ? Color.Lerp(low, mid, v / 0.55f) : Color.Lerp(mid, tip, (v - 0.55f) / 0.45f);
-            float vein = 0.88f + 0.12f * Mathf.Sin(v * 36f);
             for (int x = 0; x < width; x++)
             {
                 float dx = (x - half) / half;
-                float shade = Mathf.Lerp(0.9f, 1.08f, 1f - Mathf.Abs(dx)) * vein;
-                Color color = body * shade;
                 float alpha = Mathf.Abs(dx) < taper * 0.72f ? 1f : 0f;
-                pixels[y * width + x] = new Color(color.r, color.g, color.b, alpha);
+                pixels[y * width + x] = new Color(1f, 1f, 1f, alpha);
             }
         }
 
