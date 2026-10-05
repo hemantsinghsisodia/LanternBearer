@@ -51,3 +51,6 @@ crashlytics-buildid.txt
 # Brainstorming companion and SDD workspaces
 .superpowers/
 __pycache__/
+
+# Downloaded third-party source packs (only the used models are imported under Assets/)
+ArtSource/Nature/
