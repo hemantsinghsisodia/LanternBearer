@@ -133,8 +133,8 @@ public static class LookMapping
     public static Color[] GroundTones(Color baseColour)
     {
         Color.RGBToHSV(baseColour, out float h, out float s, out float v);
-        Color dark = Color.HSVToRGB(h, s, v * 0.85f);
-        Color light = Color.HSVToRGB(h, s * 0.9f, Mathf.Clamp01(v * 1.12f));
+        Color dark = Color.HSVToRGB(h, s, v * 0.8f);
+        Color light = Color.HSVToRGB(h, s * 0.92f, Mathf.Clamp01(v * 1.16f));
         dark.a = 1f;
         light.a = 1f;
         return new Color[] { dark, new Color(baseColour.r, baseColour.g, baseColour.b, 1f), light };
@@ -149,7 +149,17 @@ public static class LookMapping
         return result;
     }
 
-    // Grass tip: the land colour pulled 40% toward the moon rim, desaturated by 20%.
+    // Authored grass tip with a soft moonlit highlight: the island's tip hue nudged a little toward the moon rim, so the gradient keeps its own hue.
+    public const float GrassMoonlight = 0.15f;
+
+    public static Color GrassTipLit(Color tip, Color moonRim)
+    {
+        Color c = Color.Lerp(tip, moonRim, GrassMoonlight);
+        c.a = 1f;
+        return c;
+    }
+
+    // Grass tip (derived fallback): the land colour pulled 40% toward the moon rim, desaturated by 20%.
     public static Color GrassTip(Color land, Color moonRim)
     {
         Color c = Color.Lerp(land, moonRim, 0.4f);

@@ -36,6 +36,10 @@ public class LookProfile : ScriptableObject
     public Color tideBand = Color.clear;
     public Color[] groundTones;
 
+    // Per-island grass hue (authored albedo): a darker root and a lighter, warmer tip. Alpha 0 falls back to the derived land-based tones.
+    public Color grassRoot = Color.clear;
+    public Color grassTip = Color.clear;
+
     public bool Validate(out string problem)
     {
         if (string.IsNullOrEmpty(levelId))

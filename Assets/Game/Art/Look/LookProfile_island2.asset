@@ -32,4 +32,6 @@ MonoBehaviour:
   rain: 0
   gradeSaturation: 0
   gradeContrast: 0
+  grassRoot: {r: 0.62, g: 0.38, b: 0.03, a: 1}
+  grassTip: {r: 1.0, g: 0.74, b: 0.12, a: 1}
   gradeExposure: 0

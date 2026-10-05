@@ -129,8 +129,8 @@ Shader "LanternKeeper/GrassBend"
                 float4 albedoSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
                 clip(albedoSample.a - _Cutoff);
                 // LookApplier sets alpha 1 on both. Unset (main menu, or after leaving an island) falls back to the island 1 tones.
-                float3 grassRoot = _LKGrassTip.a > 0.5 ? _LKGrassRoot.rgb : float3(0.060, 0.132, 0.107);
-                float3 grassTip = _LKGrassTip.a > 0.5 ? _LKGrassTip.rgb : float3(0.262, 0.396, 0.405);
+                float3 grassRoot = _LKGrassTip.a > 0.5 ? _LKGrassRoot.rgb : float3(0.060, 0.300, 0.050);
+                float3 grassTip = _LKGrassTip.a > 0.5 ? _LKGrassTip.rgb : float3(0.320, 0.720, 0.140);
                 float3 albedo = lerp(grassRoot, grassTip, saturate(input.uv.y));
                 float3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 float3 normalWS = normalize(mul(normalTS, float3x3(input.tangentWS, input.bitangentWS, input.normalWS)));

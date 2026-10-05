@@ -117,8 +117,8 @@ public class LookApplier : MonoBehaviour
         Shader.SetGlobalFloat("_LKMoonRimStrength", profile.moonRimStrength);
         Shader.SetGlobalVector("_LKMoonDir", new Vector4(towardMoon.x, towardMoon.y, towardMoon.z, 0f));
 
-        Shader.SetGlobalColor("_LKGrassRoot", LookMapping.GrassRoot(profile.land));
-        Shader.SetGlobalColor("_LKGrassTip", LookMapping.GrassTip(profile.land, profile.moonRim));
+        Shader.SetGlobalColor("_LKGrassRoot", GroundPalette.GrassRootFor(profile));
+        Shader.SetGlobalColor("_LKGrassTip", GroundPalette.GrassTipFor(profile));
 
         ApplyWater(profile, towardMoon);
         ApplyRidges(profile);

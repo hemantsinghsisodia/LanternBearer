@@ -134,9 +134,20 @@ public class DawnSequence : MonoBehaviour
         Color dawnGrassTip = nightGrassTip;
         if (blendGrass)
         {
-            Color dawnLand = Color.Lerp(applier.Profile.land, look.dawnGround, 0.35f);
-            dawnGrassRoot = LookMapping.GrassRoot(dawnLand);
-            dawnGrassTip = LookMapping.GrassTip(dawnLand, look.dawnLight);
+            LookProfile gp = applier.Profile;
+            if (gp.grassRoot.a > 0f && gp.grassTip.a > 0f)
+            {
+                // Same island hue, pulled a little toward the dawn ground and lit by the dawn light.
+                dawnGrassRoot = Color.Lerp(gp.grassRoot, look.dawnGround, 0.2f);
+                dawnGrassRoot.a = 1f;
+                dawnGrassTip = LookMapping.GrassTipLit(Color.Lerp(gp.grassTip, look.dawnGround, 0.2f), look.dawnLight);
+            }
+            else
+            {
+                Color dawnLand = Color.Lerp(gp.land, look.dawnGround, 0.35f);
+                dawnGrassRoot = LookMapping.GrassRoot(dawnLand);
+                dawnGrassTip = LookMapping.GrassTip(dawnLand, look.dawnLight);
+            }
         }
 
         while (elapsed < duration)

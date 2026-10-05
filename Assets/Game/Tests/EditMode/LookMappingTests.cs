@@ -130,19 +130,51 @@ public class LookMappingTests
     }
 
     [Test]
-    public void GrassTonesStayCoolAndDark()
+    public void GrassGradientStaysInIslandHue()
     {
         for (int i = 1; i <= 4; i++)
         {
             LookProfile p = Load(i);
-            Color root = LookMapping.GrassRoot(p.land);
-            Color tip = LookMapping.GrassTip(p.land, p.moonRim);
-            Assert.IsTrue(LookMapping.IsCool(root), "island" + i + " root");
-            Assert.IsTrue(LookMapping.IsCool(tip), "island" + i + " tip");
-            Assert.LessOrEqual(Value(root), Value(p.land) + 0.001f, "island" + i + " root darker than land");
-            Assert.Less(Value(tip), 0.6f, "island" + i + " tip stays dim");
-            Assert.Greater(Value(tip), Value(root), "island" + i + " tip lighter than root");
+            Assert.Greater(p.grassRoot.a, 0f, "island" + i + " authors grassRoot");
+            Assert.Greater(p.grassTip.a, 0f, "island" + i + " authors grassTip");
+            Color root = GroundPalette.GrassRootFor(p);
+            Color tip = GroundPalette.GrassTipFor(p);
+            Assert.Less(Value(root), Value(tip), "island" + i + " tip lighter than root");
+            Assert.Less(Value(tip), 0.97f, "island" + i + " tip is not blown out");
+            Color.RGBToHSV(root, out float rh, out _, out _);
+            Color.RGBToHSV(tip, out float th, out _, out _);
+            Assert.Less(HueDistance(rh, th), 0.12f, "island" + i + " gradient stays in one hue");
         }
+    }
+
+    [Test]
+    public void IslandGrassHuesAreDistinct()
+    {
+        float[] hues = new float[4];
+        for (int i = 1; i <= 4; i++)
+        {
+            Color.RGBToHSV(Load(i).grassTip, out hues[i - 1], out _, out _);
+        }
+
+        // Island 1 green, 2 golden, 3 olive, 4 heath purple: every pair apart, and a wide overall spread.
+        float widest = 0f;
+        for (int a = 0; a < 4; a++)
+        {
+            for (int b = a + 1; b < 4; b++)
+            {
+                float d = HueDistance(hues[a], hues[b]);
+                widest = Mathf.Max(widest, d);
+                Assert.Greater(d, 0.03f, "islands " + (a + 1) + " and " + (b + 1) + " grass hues collapse");
+            }
+        }
+
+        Assert.Greater(widest, 0.25f, "grass hue spread across the islands is too narrow");
+    }
+
+    static float HueDistance(float a, float b)
+    {
+        float d = Mathf.Abs(a - b);
+        return Mathf.Min(d, 1f - d);
     }
 
     [Test]

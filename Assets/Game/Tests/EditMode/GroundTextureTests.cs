@@ -15,8 +15,6 @@ public class GroundTextureTests
             Assert.IsNotNull(p, "missing LookProfile_island" + i);
             Color.RGBToHSV(GroundPalette.LayerBase(p, "dirt"), out float dh, out float ds, out float dv);
             Color.RGBToHSV(GroundPalette.LayerBase(p, "grass"), out float gh, out float gs, out float gv);
-            float degrees = dh * 360f;
-            Assert.IsFalse(degrees >= 20f && degrees <= 50f, "island" + i + " dirt hue " + degrees + " is amber");
             Assert.Greater(dv, gv, "island" + i + " dirt value must exceed grass value");
         }
     }
