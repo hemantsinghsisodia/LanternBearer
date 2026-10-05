@@ -1224,7 +1224,7 @@ public static partial class IslandBuilder
 
     static GameObject DryGrassPrefab(GameObject source)
     {
-        return GrassBendPrefab(source, true, "Assets/Game/Levels/Layers/DryGrass.mat", "Assets/Game/Levels/Layers/DryGrassClump.prefab", "DryGrassClump", new Color(1.8f, 1.15f, 0.45f));
+        return GrassBendPrefab(source, true, "Assets/Game/Levels/Layers/DryGrass.mat", "Assets/Game/Levels/Layers/DryGrassClump.prefab", "DryGrassClump", Color.white); // GrassBend ignores _BaseColor now: grass colour comes from the _LKGrass globals, so no warm tint.
     }
 
     static GameObject GrassBendPrefab(GameObject source, bool warm, string matPath, string prefabPath, string prefabName, Color tint)

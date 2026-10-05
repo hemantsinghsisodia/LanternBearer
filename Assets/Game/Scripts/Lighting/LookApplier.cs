@@ -47,6 +47,9 @@ public class LookApplier : MonoBehaviour
             Current = null;
             // Globals outlive the scene, so leaving an island (into the menu) must switch the moon rim off.
             Shader.SetGlobalFloat("_LKMoonRimStrength", 0f);
+            // Alpha 0 tells GrassBend to use its built-in fallback tones (the menu has no LookApplier).
+            Shader.SetGlobalColor("_LKGrassRoot", Color.clear);
+            Shader.SetGlobalColor("_LKGrassTip", Color.clear);
         }
     }
 
