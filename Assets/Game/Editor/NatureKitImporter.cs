@@ -1,0 +1,566 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using UnityEditor;
+using UnityEngine;
+
+namespace LanternKeeper
+{
+// Imports the Quaternius Stylized Nature MegaKit (CC0) models we use, builds per-island tinted materials
+// and per-category prefabs with colliders. Source files live in the git-ignored ArtSource/Nature/MegaKit folder.
+// Mesh scale and orientation are baked into shared mesh assets, because island placement overwrites the root scale.
+public static class NatureKitImporter
+{
+    const string SourceRoot = "ArtSource/Nature/MegaKit";
+    const string Root = "Assets/Game/Art/Environment/Nature";
+    const string ModelRoot = Root + "/Models";
+    const string TextureRoot = Root + "/Textures";
+    const string MeshRoot = Root + "/Meshes";
+    const string MaterialRoot = Root + "/Materials";
+    const string PrefabRoot = Root + "/Prefabs";
+    const string ProfilePath = "Assets/Game/Art/Look/LookProfile_island";
+    const int IslandCount = 4;
+
+    struct Spec
+    {
+        public string model;
+        public BiomeCategory category;
+        public string prefix;
+        // Target height in metres, or the largest horizontal extent when byExtent is set.
+        public float target;
+        public bool byExtent;
+        public bool layDown;
+        // Only scale down: models already smaller than the target keep their size.
+        public bool onlyShrink;
+        // Only change size when the model is outside [min, max] (used for trees).
+        public float clampMin;
+        public float clampMax;
+    }
+
+    static readonly string[] Textures =
+    {
+        "Bark_DeadTree", "Bark_DeadTree_Normal", "Bark_NormalTree", "Bark_NormalTree_Normal", "Bark_TwistedTree", "Bark_TwistedTree_Normal",
+        "Flowers", "Grass", "Leaf_Pine", "Leaves", "Leaves_NormalTree", "Leaves_TwistedTree", "Mushrooms", "PathRocks_Diffuse", "Rocks_Diffuse"
+    };
+
+    static Spec Tree(string model)
+    {
+        Spec s = new Spec();
+        s.model = model;
+        s.category = BiomeCategory.Tree;
+        s.prefix = "";
+        s.clampMin = 4f;
+        s.clampMax = 8f;
+        return s;
+    }
+
+    static Spec Fixed(string model, BiomeCategory category, string prefix, float height)
+    {
+        Spec s = new Spec();
+        s.model = model;
+        s.category = category;
+        s.prefix = prefix;
+        s.target = height;
+        return s;
+    }
+
+    static Spec Extent(string model, BiomeCategory category, string prefix, float extent, bool layDown)
+    {
+        Spec s = Fixed(model, category, prefix, extent);
+        s.byExtent = true;
+        s.layDown = layDown;
+        return s;
+    }
+
+    static List<Spec> Specs()
+    {
+        List<Spec> list = new List<Spec>();
+        string[] trees = { "CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "Pine_1", "Pine_2", "Pine_3", "Pine_4", "TwistedTree_1", "TwistedTree_2", "TwistedTree_3", "DeadTree_1", "DeadTree_2", "DeadTree_3" };
+        for (int i = 0; i < trees.Length; i++)
+        {
+            list.Add(Tree(trees[i]));
+        }
+
+        string[] saplings = { "CommonTree_1", "CommonTree_2", "Pine_1", "Pine_2", "TwistedTree_1" };
+        for (int i = 0; i < saplings.Length; i++)
+        {
+            list.Add(Fixed(saplings[i], BiomeCategory.Sapling, "Sapling_", 2.5f));
+        }
+
+        list.Add(Extent("DeadTree_4", BiomeCategory.Deadwood, "Deadwood_", 5.5f, true));
+        list.Add(Extent("DeadTree_5", BiomeCategory.Deadwood, "Deadwood_", 6.5f, true));
+
+        for (int i = 1; i <= 3; i++)
+        {
+            list.Add(Fixed("Rock_Medium_" + i, BiomeCategory.Rock, "", 1.2f));
+            list.Add(Extent("Pebble_Round_" + i, BiomeCategory.Rock, "", 1.4f, false));
+            list.Add(Extent("Pebble_Square_" + i, BiomeCategory.Rock, "", 1.2f, false));
+        }
+
+        list.Add(Fixed("Bush_Common", BiomeCategory.Undergrowth, "", 1.0f));
+        list.Add(Extent("Fern_1", BiomeCategory.Undergrowth, "", 1.8f, false));
+        list.Add(Fixed("Plant_1", BiomeCategory.Undergrowth, "", 1.0f));
+        list.Add(Fixed("Plant_1_Big", BiomeCategory.Undergrowth, "", 1.3f));
+        list.Add(Extent("Plant_7", BiomeCategory.Undergrowth, "", 1.0f, false));
+        list.Add(Extent("Plant_7_Big", BiomeCategory.Undergrowth, "", 1.3f, false));
+
+        list.Add(Fixed("Bush_Common_Flowers", BiomeCategory.Flower, "", 1.0f));
+        list.Add(Fixed("Flower_3_Single", BiomeCategory.Flower, "", 0.35f));
+        list.Add(Fixed("Flower_3_Group", BiomeCategory.Flower, "", 0.4f));
+        list.Add(Fixed("Flower_4_Single", BiomeCategory.Flower, "", 0.35f));
+        list.Add(Fixed("Flower_4_Group", BiomeCategory.Flower, "", 0.4f));
+
+        list.Add(Fixed("Clover_1", BiomeCategory.GroundCover, "", 0.25f));
+        list.Add(Fixed("Clover_2", BiomeCategory.GroundCover, "", 0.25f));
+        list.Add(Fixed("Grass_Common_Short", BiomeCategory.GroundCover, "", 0.4f));
+        list.Add(Fixed("Grass_Common_Tall", BiomeCategory.GroundCover, "", 0.7f));
+        list.Add(Fixed("Grass_Wispy_Short", BiomeCategory.GroundCover, "", 0.4f));
+        list.Add(Fixed("Grass_Wispy_Tall", BiomeCategory.GroundCover, "", 0.7f));
+        list.Add(Fixed("Mushroom_Common", BiomeCategory.GroundCover, "", 0.2f));
+        list.Add(Fixed("Mushroom_Laetiporus", BiomeCategory.GroundCover, "", 0.3f));
+        list.Add(Extent("Petal_1", BiomeCategory.GroundCover, "", 0.25f, false));
+        list.Add(Extent("Petal_2", BiomeCategory.GroundCover, "", 0.3f, false));
+        list.Add(Extent("Petal_3", BiomeCategory.GroundCover, "", 0.3f, false));
+        return list;
+    }
+
+    [MenuItem("Lantern Keeper/Nature/Import Kit")]
+    public static void ImportKit()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Exit Play mode before importing the nature kit.");
+            return;
+        }
+
+        List<Spec> specs = Specs();
+        CopySources(specs);
+        AssetDatabase.Refresh();
+        PrepareTextures();
+        PrepareModels(specs);
+        EnsureFolder(MaterialRoot);
+        EnsureFolder(MeshRoot);
+
+        Shader foliage = Shader.Find("LanternKeeper/Foliage");
+        Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+        if (foliage == null || lit == null)
+        {
+            Debug.LogError("NatureKitImporter: missing shader. Foliage=" + (foliage != null) + " Lit=" + (lit != null));
+            return;
+        }
+
+        StringBuilder log = new StringBuilder();
+        int prefabCount = 0;
+        for (int island = 1; island <= IslandCount; island++)
+        {
+            LookProfile profile = AssetDatabase.LoadAssetAtPath<LookProfile>(ProfilePath + island + ".asset");
+            if (profile == null)
+            {
+                Debug.LogError("NatureKitImporter: missing look profile for island" + island);
+                return;
+            }
+
+            string id = string.IsNullOrEmpty(profile.levelId) ? "island" + island : profile.levelId;
+            Dictionary<string, Material> materials = BuildMaterials(id, profile, foliage, lit);
+            for (int i = 0; i < specs.Count; i++)
+            {
+                string line = BuildPrefab(specs[i], id, materials);
+                if (line != null)
+                {
+                    prefabCount++;
+                    if (island == 1)
+                    {
+                        log.AppendLine(line);
+                    }
+                }
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Nature kit import done: " + prefabCount + " prefabs (" + specs.Count + " per island).\n" + log);
+    }
+
+    static void CopySources(List<Spec> specs)
+    {
+        EnsureFolder(ModelRoot);
+        EnsureFolder(TextureRoot);
+        HashSet<string> models = new HashSet<string>();
+        for (int i = 0; i < specs.Count; i++)
+        {
+            models.Add(specs[i].model);
+        }
+
+        foreach (string model in models)
+        {
+            CopyIfMissing(SourceRoot + "/FBX (Unity)/" + model + ".fbx", ModelRoot + "/" + model + ".fbx");
+        }
+
+        for (int i = 0; i < Textures.Length; i++)
+        {
+            CopyIfMissing(SourceRoot + "/Textures/" + Textures[i] + ".png", TextureRoot + "/" + Textures[i] + ".png");
+        }
+    }
+
+    static void CopyIfMissing(string source, string destination)
+    {
+        string from = ToFull(source);
+        string to = ToFull(destination);
+        if (File.Exists(to))
+        {
+            return;
+        }
+
+        if (!File.Exists(from))
+        {
+            Debug.LogError("NatureKitImporter: source missing " + source);
+            return;
+        }
+
+        File.Copy(from, to);
+    }
+
+    static void PrepareTextures()
+    {
+        for (int i = 0; i < Textures.Length; i++)
+        {
+            string path = TextureRoot + "/" + Textures[i] + ".png";
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                continue;
+            }
+
+            bool normal = Textures[i].EndsWith("_Normal");
+            bool leaf = Textures[i].StartsWith("Leaf") || Textures[i] == "Flowers";
+            importer.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            importer.sRGBTexture = !normal;
+            importer.mipmapEnabled = true;
+            importer.maxTextureSize = 1024;
+            importer.alphaIsTransparency = leaf;
+            importer.mipMapsPreserveCoverage = leaf;
+            importer.alphaTestReferenceValue = 0.5f;
+            importer.SaveAndReimport();
+        }
+
+        // Greyscale copies of the bark and rock colour textures, so the island bark / rock tint sets the hue instead of multiplying into the pack's own.
+        string[] greys = { "Bark_NormalTree", "Bark_DeadTree", "Bark_TwistedTree", "Rocks_Diffuse", "PathRocks_Diffuse" };
+        for (int i = 0; i < greys.Length; i++)
+        {
+            MakeGrey(greys[i]);
+        }
+    }
+
+    static string GreyPath(string name)
+    {
+        return TextureRoot + "/" + name + "_Grey.png";
+    }
+
+    static void MakeGrey(string name)
+    {
+        string source = TextureRoot + "/" + name + ".png";
+        string target = GreyPath(name);
+        if (!File.Exists(ToFull(target)))
+        {
+            Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+            if (!texture.LoadImage(File.ReadAllBytes(ToFull(source))))
+            {
+                Object.DestroyImmediate(texture);
+                return;
+            }
+
+            Color32[] pixels = texture.GetPixels32();
+            float sum = 0f;
+            float[] luma = new float[pixels.Length];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                luma[i] = (0.2126f * pixels[i].r + 0.7152f * pixels[i].g + 0.0722f * pixels[i].b) / 255f;
+                sum += luma[i];
+            }
+
+            // Mean maps to 0.8, so a mid tint colour keeps its own brightness.
+            float mean = Mathf.Max(0.01f, sum / pixels.Length);
+            float gain = 0.8f / mean;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                byte g = (byte)Mathf.Clamp(Mathf.RoundToInt(luma[i] * gain * 255f), 0, 255);
+                pixels[i] = new Color32(g, g, g, 255);
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            File.WriteAllBytes(ToFull(target), texture.EncodeToPNG());
+            Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(target);
+        }
+
+        TextureImporter importer = AssetImporter.GetAtPath(target) as TextureImporter;
+        if (importer != null)
+        {
+            importer.sRGBTexture = true;
+            importer.mipmapEnabled = true;
+            importer.maxTextureSize = 1024;
+            importer.SaveAndReimport();
+        }
+    }
+
+    static void PrepareModels(List<Spec> specs)
+    {
+        HashSet<string> done = new HashSet<string>();
+        AssetDatabase.StartAssetEditing();
+        try
+        {
+            for (int i = 0; i < specs.Count; i++)
+            {
+                if (!done.Add(specs[i].model))
+                {
+                    continue;
+                }
+
+                ModelImporter importer = AssetImporter.GetAtPath(ModelRoot + "/" + specs[i].model + ".fbx") as ModelImporter;
+                if (importer == null)
+                {
+                    continue;
+                }
+
+                importer.useFileScale = true;
+                importer.isReadable = true;
+                importer.importAnimation = false;
+                importer.importCameras = false;
+                importer.importLights = false;
+                importer.SaveAndReimport();
+            }
+        }
+        finally
+        {
+            AssetDatabase.StopAssetEditing();
+        }
+
+        AssetDatabase.Refresh();
+    }
+
+    // Material kinds, keyed by the FBX material name.
+    static Dictionary<string, Material> BuildMaterials(string id, LookProfile profile, Shader foliage, Shader lit)
+    {
+        Dictionary<string, Material> map = new Dictionary<string, Material>();
+        Color leaf = Opaque(profile.foliage);
+        Color pine = Scale(leaf, 0.82f);
+        Color twisted = Scale(leaf, 0.95f);
+        Color plant = Scale(leaf, 1.08f);
+        Color grass = Color.Lerp(Scale(leaf, 1.12f), Color.white, 0.12f);
+
+        map["Leaves_NormalTree"] = Foliage(id, "LeavesNormal", foliage, "Leaves_NormalTree", leaf, 0f, 4f, 0.12f);
+        map["Leaves_Pine"] = Foliage(id, "LeavesPine", foliage, "Leaf_Pine", pine, 0f, 4f, 0.09f);
+        map["Leaves_TwistedTree"] = Foliage(id, "LeavesTwisted", foliage, "Leaves_TwistedTree", twisted, 0f, 4f, 0.1f);
+        map["Leaves"] = Foliage(id, "LeavesPlant", foliage, "Leaves", plant, 1f, 1f, 0.05f);
+        map["Grass"] = Foliage(id, "Grass", foliage, "Grass", grass, 0f, 0.6f, 0.04f);
+        map["Flowers"] = Foliage(id, "Flowers", foliage, "Flowers", Color.white, 0f, 0.8f, 0.04f);
+
+        Color bark = Opaque(profile.bark);
+        map["Bark_NormalTree"] = Lit(id, "BarkNormal", lit, GreyPath("Bark_NormalTree"), TextureRoot + "/Bark_NormalTree_Normal.png", bark, 0.1f);
+        map["Bark_DeadTree"] = Lit(id, "BarkDead", lit, GreyPath("Bark_DeadTree"), TextureRoot + "/Bark_DeadTree_Normal.png", Scale(bark, 0.92f), 0.08f);
+        map["Bark_TwistedTree"] = Lit(id, "BarkTwisted", lit, GreyPath("Bark_TwistedTree"), TextureRoot + "/Bark_TwistedTree_Normal.png", bark, 0.1f);
+
+        Color rock = Opaque(profile.rockTint);
+        map["Rocks"] = Lit(id, "Rock", lit, GreyPath("Rocks_Diffuse"), null, rock, 0.12f);
+        map["PathRocks"] = Lit(id, "Pebble", lit, GreyPath("PathRocks_Diffuse"), null, rock, 0.12f);
+        map["Mushrooms"] = Lit(id, "Mushroom", lit, TextureRoot + "/Mushrooms.png", null, Color.white, 0.2f);
+        return map;
+    }
+
+    static Material Foliage(string id, string kind, Shader shader, string texture, Color tint, float desaturate, float swayHeight, float swayAmount)
+    {
+        Material mat = LoadOrCreate(MaterialRoot + "/Nature_" + kind + "_" + id + ".mat", shader);
+        mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(TextureRoot + "/" + texture + ".png"));
+        mat.SetColor("_BaseColor", tint);
+        mat.SetFloat("_Cutoff", 0.5f);
+        mat.SetFloat("_Desaturate", desaturate);
+        mat.SetFloat("_SwayHeight", swayHeight);
+        mat.SetFloat("_SwayAmount", swayAmount);
+        mat.SetFloat("_Wrap", 0.5f);
+        mat.enableInstancing = true;
+        mat.doubleSidedGI = true;
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
+    static Material Lit(string id, string kind, Shader shader, string albedo, string normal, Color tint, float smoothness)
+    {
+        Material mat = LoadOrCreate(MaterialRoot + "/Nature_" + kind + "_" + id + ".mat", shader);
+        mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(albedo));
+        mat.SetColor("_BaseColor", tint);
+        mat.SetFloat("_Smoothness", smoothness);
+        mat.SetFloat("_Metallic", 0f);
+        if (normal != null)
+        {
+            mat.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(normal));
+            mat.SetFloat("_BumpScale", 1f);
+            mat.EnableKeyword("_NORMALMAP");
+        }
+
+        mat.enableInstancing = true;
+        EditorUtility.SetDirty(mat);
+        return mat;
+    }
+
+    static Material LoadOrCreate(string path, Shader shader)
+    {
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
+        {
+            mat = new Material(shader);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = shader;
+        return mat;
+    }
+
+    static string PrefabName(Spec spec, string id)
+    {
+        return "Nature_" + spec.prefix + spec.model + "_" + id;
+    }
+
+    static string BuildPrefab(Spec spec, string id, Dictionary<string, Material> materials)
+    {
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelRoot + "/" + spec.model + ".fbx");
+        MeshFilter sourceFilter = model != null ? model.GetComponentInChildren<MeshFilter>() : null;
+        MeshRenderer sourceRenderer = model != null ? model.GetComponentInChildren<MeshRenderer>() : null;
+        if (sourceFilter == null || sourceRenderer == null || sourceFilter.sharedMesh == null)
+        {
+            Debug.LogWarning("NatureKitImporter: no mesh in " + spec.model);
+            return null;
+        }
+
+        Mesh mesh = BakedMesh(spec, sourceFilter.sharedMesh);
+        Material[] source = sourceRenderer.sharedMaterials;
+        Material[] assigned = new Material[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            string key = source[i] != null ? source[i].name : "";
+            if (!materials.TryGetValue(key, out assigned[i]))
+            {
+                Debug.LogWarning("NatureKitImporter: no material mapping for '" + key + "' on " + spec.model);
+            }
+        }
+
+        string folder = PrefabRoot + "/" + spec.category;
+        EnsureFolder(folder);
+        string name = PrefabName(spec, id);
+        GameObject root = new GameObject(name);
+        root.AddComponent<MeshFilter>().sharedMesh = mesh;
+        MeshRenderer renderer = root.AddComponent<MeshRenderer>();
+        renderer.sharedMaterials = assigned;
+        PolyHavenImporter.AddCollider(root, spec.category);
+        string path = folder + "/" + name + ".prefab";
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        Object.DestroyImmediate(root);
+        Bounds b = mesh.bounds;
+        return spec.category + "/" + name + " height=" + b.size.y.ToString("0.00") + " extent=" + Mathf.Max(b.size.x, b.size.z).ToString("0.00");
+    }
+
+    // The scaled (and, for deadwood, laid-down) copy of the source mesh. Shared by every island's prefab.
+    static Mesh BakedMesh(Spec spec, Mesh source)
+    {
+        string path = MeshRoot + "/" + spec.prefix + spec.model + ".asset";
+        Mesh baked = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+        Mesh mesh = Object.Instantiate(source);
+        mesh.name = spec.prefix + spec.model;
+        Quaternion rotation = spec.layDown ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
+        Bounds original = source.bounds;
+        // A laid-down trunk is sized by its length, which is the source height.
+        float measure = spec.byExtent && !spec.layDown ? Mathf.Max(original.size.x, original.size.z) : original.size.y;
+        float scale = 1f;
+        if (spec.clampMax > 0f)
+        {
+            scale = Mathf.Clamp(measure, spec.clampMin, spec.clampMax) / measure;
+        }
+        else if (spec.target > 0f)
+        {
+            scale = spec.target / measure;
+        }
+
+        Vector3[] vertices = mesh.vertices;
+        Vector3[] normals = mesh.normals;
+        Vector4[] tangents = mesh.tangents;
+        float minY = float.MaxValue;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i] = rotation * (vertices[i] * scale);
+            minY = Mathf.Min(minY, vertices[i].y);
+        }
+
+        // A laid-down trunk rests half sunk. Everything else keeps the source origin, which already sits at the base.
+        float lift = spec.layDown ? -0.2f - minY : 0f;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i].y += lift;
+        }
+
+        mesh.vertices = vertices;
+        if (normals != null && normals.Length == vertices.Length)
+        {
+            for (int i = 0; i < normals.Length; i++)
+            {
+                normals[i] = rotation * normals[i];
+            }
+
+            mesh.normals = normals;
+        }
+
+        if (tangents != null && tangents.Length == vertices.Length)
+        {
+            for (int i = 0; i < tangents.Length; i++)
+            {
+                Vector3 t = rotation * new Vector3(tangents[i].x, tangents[i].y, tangents[i].z);
+                tangents[i] = new Vector4(t.x, t.y, t.z, tangents[i].w);
+            }
+
+            mesh.tangents = tangents;
+        }
+
+        mesh.RecalculateBounds();
+        if (baked != null)
+        {
+            EditorUtility.CopySerialized(mesh, baked);
+            Object.DestroyImmediate(mesh);
+            EditorUtility.SetDirty(baked);
+            return baked;
+        }
+
+        AssetDatabase.CreateAsset(mesh, path);
+        return mesh;
+    }
+
+    static Color Opaque(Color c)
+    {
+        return new Color(c.r, c.g, c.b, 1f);
+    }
+
+    static Color Scale(Color c, float k)
+    {
+        return new Color(Mathf.Clamp01(c.r * k), Mathf.Clamp01(c.g * k), Mathf.Clamp01(c.b * k), 1f);
+    }
+
+    static void EnsureFolder(string path)
+    {
+        if (AssetDatabase.IsValidFolder(path))
+        {
+            return;
+        }
+
+        string parent = Path.GetDirectoryName(path).Replace('\\', '/');
+        if (!AssetDatabase.IsValidFolder(parent))
+        {
+            EnsureFolder(parent);
+        }
+
+        AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
+    }
+
+    static string ToFull(string assetPath)
+    {
+        return Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), assetPath));
+    }
+}
+}

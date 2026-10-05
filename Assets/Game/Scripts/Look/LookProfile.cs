@@ -40,6 +40,11 @@ public class LookProfile : ScriptableObject
     public Color grassRoot = Color.clear;
     public Color grassTip = Color.clear;
 
+    // D2 nature-kit tints: leaf, trunk and rock multipliers. Authored per island; alpha 1 once set.
+    public Color foliage = Color.white;
+    public Color bark = Color.white;
+    public Color rockTint = Color.white;
+
     public bool Validate(out string problem)
     {
         if (string.IsNullOrEmpty(levelId))

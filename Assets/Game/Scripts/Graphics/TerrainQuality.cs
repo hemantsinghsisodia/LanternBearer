@@ -12,6 +12,7 @@ namespace LanternKeeper
 public class TerrainQuality : MonoBehaviour
 {
     const string GrassNoBendKeyword = "_LK_GRASS_NO_BEND";
+    const string FoliageLowKeyword = "_LK_FOLIAGE_LOW";
 
     [SerializeField] Terrain terrain;
 
@@ -152,6 +153,16 @@ public class TerrainQuality : MonoBehaviour
         else
         {
             Shader.EnableKeyword(GrassNoBendKeyword);
+        }
+
+        // Low stops the nature-kit foliage sway (LanternKeeper/Foliage), the same switch that stills the grass.
+        if (profile.level == GraphicsLevel.Low)
+        {
+            Shader.EnableKeyword(FoliageLowKeyword);
+        }
+        else
+        {
+            Shader.DisableKeyword(FoliageLowKeyword);
         }
 
         if (terrain == null || !baselineCached)

@@ -179,6 +179,34 @@ public static class LookMapping
         return result;
     }
 
+    // The largest pairwise circular hue distance between the colours (0..0.5).
+    public static float HueSpread(Color[] colours)
+    {
+        if (colours == null || colours.Length < 2)
+        {
+            return 0f;
+        }
+
+        float[] hues = new float[colours.Length];
+        for (int i = 0; i < colours.Length; i++)
+        {
+            Color.RGBToHSV(colours[i], out float h, out float s, out float v);
+            hues[i] = h;
+        }
+
+        float spread = 0f;
+        for (int a = 0; a < hues.Length; a++)
+        {
+            for (int b = a + 1; b < hues.Length; b++)
+            {
+                float d = Mathf.Abs(hues[a] - hues[b]);
+                spread = Mathf.Max(spread, Mathf.Min(d, 1f - d));
+            }
+        }
+
+        return spread;
+    }
+
     public static Color OrDerived(Color authored, Color derived)
     {
         return authored.a == 0f ? derived : authored;

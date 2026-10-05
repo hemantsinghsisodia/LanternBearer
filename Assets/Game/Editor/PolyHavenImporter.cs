@@ -518,7 +518,7 @@ public static class PolyHavenImporter
         renderer.receiveShadows = !cover;
     }
 
-    static void AddCollider(GameObject root, BiomeCategory category)
+    internal static void AddCollider(GameObject root, BiomeCategory category)
     {
         if (category == BiomeCategory.GroundCover || category == BiomeCategory.Flower || category == BiomeCategory.Undergrowth)
         {
