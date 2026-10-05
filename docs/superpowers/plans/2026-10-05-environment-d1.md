@@ -148,7 +148,7 @@
   Island 2 rock uses its slate (`extra` if set). Island 3 sand gets an extra pale band handled by its tide (the shader in Task 3).
 - **Validation:** "Terrain layer <name> uses photo texture <path>" for any layer whose diffuse or normal path is under `Textures/PolyHaven/`.
 
-- [ ] **Step 1:** Write `KeeperPathHueTest` as an EditMode test in `LookMappingTests` or a new `GroundTextureTests`. For each island profile, the derived dirt base colour's hue is outside 20–50°, and its value is above the grass base value, so paths read.
+- [ ] **Step 1:** Write `DirtPathReadsInMoonlight` as an EditMode test in `LookMappingTests` or a new `GroundTextureTests`. For each island profile, the derived dirt base colour's hue is outside 20–50°, and its value is above the grass base value, so paths read.
 - [ ] **Step 2:** Run it. Expected: FAIL.
 - [ ] **Step 3:** Implement the builder, the base-colour helper (`static Color LayerBase(LookProfile p, string layer)` in the builder) and the terrain-layer assignment for all islands and biomes.
 - [ ] **Step 4:** Run the tests. Expected: pass.
