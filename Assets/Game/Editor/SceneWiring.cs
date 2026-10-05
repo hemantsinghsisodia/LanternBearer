@@ -785,6 +785,7 @@ public static class SceneWiring
         nulls += ReportWaterMaterials(quiet);
         nulls += ReportVolumes(quiet);
         nulls += ReportMoonRim(quiet);
+        nulls += ReportTerrainLayers(quiet);
         return nulls;
     }
 
@@ -967,6 +968,47 @@ public static class SceneWiring
         }
 
         return 1;
+    }
+
+    // Terrain layers are painted, never photographic: no diffuse or normal map may come from the Poly Haven folder.
+    static int ReportTerrainLayers(bool quiet)
+    {
+        int problems = 0;
+        Terrain[] terrains = Object.FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int t = 0; t < terrains.Length; t++)
+        {
+            TerrainData data = terrains[t].terrainData;
+            if (data == null || data.terrainLayers == null)
+            {
+                continue;
+            }
+
+            TerrainLayer[] layers = data.terrainLayers;
+            for (int i = 0; i < layers.Length; i++)
+            {
+                if (layers[i] == null)
+                {
+                    continue;
+                }
+
+                Object[] maps = { layers[i].diffuseTexture, layers[i].normalMapTexture };
+                for (int m = 0; m < maps.Length; m++)
+                {
+                    string path = maps[m] != null ? AssetDatabase.GetAssetPath(maps[m]) : "";
+                    if (path.Contains("Textures/PolyHaven/"))
+                    {
+                        if (!quiet)
+                        {
+                            Debug.LogWarning("Terrain layer " + layers[i].name + " uses photo texture " + path, layers[i]);
+                        }
+
+                        problems++;
+                    }
+                }
+            }
+        }
+
+        return problems;
     }
 
     // Every LevelConfig used by a build scene needs a lookProfile whose levelId matches its own.

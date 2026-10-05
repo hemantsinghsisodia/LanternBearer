@@ -8,6 +8,8 @@ public static partial class IslandBuilder
 {
     static void BuildSculptedTerrain(LevelConfig config, ArtKit art, string terrainPath, Stage stage)
     {
+        // Texture imports reload assets, so the painted layers are built before the TerrainData exists.
+        TerrainLayer[] paintedLayers = BuildPaintedLayers(config, art);
         const int resolution = 513;
         const int alphaResolution = 512;
         stage.worldSize = config.islandRadius * 2f;
@@ -31,17 +33,7 @@ public static partial class IslandBuilder
         data.SetHeights(0, 0, heights);
         data.alphamapResolution = alphaResolution;
         data.baseMapResolution = 512;
-        TerrainLayer[] layers = new[] { art.sandLayer, art.grassLayer, art.dirtLayer, art.rockLayer, art.mossLayer };
-        if (config.levelId == "island2")
-        {
-            layers = WarmKarooLayers(art);
-        }
-        else
-        {
-            layers[1] = TintForestGrass(art.grassLayer);
-        }
-
-        data.terrainLayers = layers;
+        data.terrainLayers = paintedLayers;
         float[,,] alphamaps = PaintTerrain(heights, resolution, alphaResolution, config, stage.worldSize, stage.trails);
         data.SetAlphamaps(0, 0, alphamaps);
         ApplyDetails(data, alphamaps, heights, resolution, config, stage.worldSize, art, stage.trails);
@@ -1360,55 +1352,57 @@ public static partial class IslandBuilder
         return prototype;
     }
 
-    static TerrainLayer[] WarmKarooLayers(ArtKit art)
+    // Per-island painted layers (sand, grass, dirt, rock, moss), each generated from the island's look profile.
+    static TerrainLayer[] BuildPaintedLayers(LevelConfig config, ArtKit art)
     {
-        string folder = "Assets/Game/Levels/Layers/Karoo";
-        if (!UnityEditor.AssetDatabase.IsValidFolder(folder))
+        LookProfile profile = LoadLookProfile();
+        if (profile == null)
         {
-            if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Game/Levels/Layers"))
+            profile = config.lookProfile;
+        }
+
+        if (profile == null)
+        {
+            // The menu backdrop has no profile of its own; it borrows Island 1's palette.
+            profile = UnityEditor.AssetDatabase.LoadAssetAtPath<LookProfile>("Assets/Game/Art/Look/LookProfile_island1.asset");
+        }
+
+        TerrainLayer[] sources = { art.sandLayer, art.grassLayer, art.dirtLayer, art.rockLayer, art.mossLayer };
+        TerrainLayer[] result = new TerrainLayer[GroundPalette.Layers.Length];
+        int idHash = 0;
+        for (int c = 0; c < config.levelId.Length; c++)
+        {
+            idHash = idHash * 31 + config.levelId[c];
+        }
+
+        for (int i = 0; i < result.Length; i++)
+        {
+            string name = GroundPalette.Layers[i];
+            Color baseColour = GroundPalette.LayerBase(profile, name);
+            var textures = GroundTextureBuilder.Build(config.levelId, name, baseColour, (idHash & 0xFFFF) + i * 101 + 1);
+            string path = GroundTextureBuilder.FolderFor(config.levelId) + "/" + name + ".terrainlayer";
+            TerrainLayer layer = UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
+            if (layer == null)
             {
-                UnityEditor.AssetDatabase.CreateFolder("Assets/Game/Levels", "Layers");
+                layer = new TerrainLayer();
+                UnityEditor.AssetDatabase.CreateAsset(layer, path);
             }
 
-            UnityEditor.AssetDatabase.CreateFolder("Assets/Game/Levels/Layers", "Karoo");
+            layer.diffuseTexture = textures.albedo;
+            layer.normalMapTexture = textures.normal;
+            layer.maskMapTexture = null;
+            layer.normalScale = 1f;
+            layer.tileSize = sources[i].tileSize;
+            layer.smoothness = 0.08f;
+            layer.metallic = 0f;
+            layer.diffuseRemapMin = Vector4.zero;
+            layer.diffuseRemapMax = Vector4.one;
+            UnityEditor.EditorUtility.SetDirty(layer);
+            result[i] = layer;
         }
 
-        return new[]
-        {
-            TintLayer(art.sandLayer, folder + "/Sand.terrainlayer", new Color(0.1f, 0.05f, 0.015f), new Color(1.12f, 0.9f, 0.62f)),
-            TintLayer(art.grassLayer, folder + "/Grass.terrainlayer", new Color(0.12f, 0.08f, 0.02f), new Color(0.95f, 0.82f, 0.48f)),
-            TintLayer(art.dirtLayer, folder + "/Dirt.terrainlayer", new Color(0.14f, 0.07f, 0.02f), new Color(1.08f, 0.78f, 0.46f)),
-            art.rockLayer,
-            TintLayer(art.mossLayer, folder + "/Moss.terrainlayer", new Color(0.05f, 0.05f, 0.02f), new Color(0.55f, 0.58f, 0.4f))
-        };
-    }
-
-    static TerrainLayer TintForestGrass(TerrainLayer source)
-    {
-        return TintLayer(source, "Assets/Game/Levels/Layers/ForestGrass.terrainlayer", new Color(0.04f, 0.08f, 0.03f), new Color(0.78f, 0.98f, 0.7f));
-    }
-
-    static TerrainLayer TintLayer(TerrainLayer source, string path, Color min, Color max)
-    {
-        TerrainLayer layer = UnityEditor.AssetDatabase.LoadAssetAtPath<TerrainLayer>(path);
-        if (layer == null)
-        {
-            layer = new TerrainLayer();
-            UnityEditor.EditorUtility.CopySerialized(source, layer);
-            UnityEditor.AssetDatabase.CreateAsset(layer, path);
-        }
-        else
-        {
-            layer.diffuseTexture = source.diffuseTexture;
-            layer.normalMapTexture = source.normalMapTexture;
-            layer.maskMapTexture = source.maskMapTexture;
-            layer.tileSize = source.tileSize;
-        }
-
-        layer.diffuseRemapMin = min;
-        layer.diffuseRemapMax = max;
-        UnityEditor.EditorUtility.SetDirty(layer);
-        return layer;
+        UnityEditor.AssetDatabase.SaveAssets();
+        return result;
     }
 
     static DetailPrototype Billboard(Texture2D texture, Color healthy, Color dry, float minHeight, float maxHeight, float minWidth, float maxWidth)
