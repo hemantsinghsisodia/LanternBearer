@@ -782,6 +782,7 @@ public static class SceneWiring
         nulls += ReportGraphicsMenus(quiet);
         nulls += ReportLookProfiles(quiet);
         nulls += ReportLookApplier(quiet);
+        nulls += ReportWaterMaterials(quiet);
         nulls += ReportVolumes(quiet);
         nulls += ReportMoonRim(quiet);
         return nulls;
@@ -871,6 +872,55 @@ public static class SceneWiring
     }
 
     // Each island scene needs exactly one LookApplier whose profile matches the scene's LevelConfig, and the night sky shader.
+    // Water materials must use the painterly shader and carry no textures (no normals, cubemaps or noise).
+    static int ReportWaterMaterials(bool quiet)
+    {
+        int problems = 0;
+        Renderer[] all = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include);
+        System.Collections.Generic.HashSet<Material> seen = new System.Collections.Generic.HashSet<Material>();
+        for (int i = 0; i < all.Length; i++)
+        {
+            Material material = all[i].sharedMaterial;
+            if (material == null || !seen.Add(material))
+            {
+                continue;
+            }
+
+            bool named = material.name.StartsWith("Water");
+            bool isWater = material.shader != null && material.shader.name == "LanternKeeper/Water";
+            if (named && !isWater)
+            {
+                if (!quiet)
+                {
+                    Debug.LogWarning("Water material " + material.name + " uses " + (material.shader != null ? material.shader.name : "no shader"));
+                }
+
+                problems++;
+            }
+
+            if (!isWater)
+            {
+                continue;
+            }
+
+            string[] textures = material.GetTexturePropertyNames();
+            for (int t = 0; t < textures.Length; t++)
+            {
+                if (material.GetTexture(textures[t]) != null)
+                {
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("Water material " + material.name + " still references texture " + textures[t]);
+                    }
+
+                    problems++;
+                }
+            }
+        }
+
+        return problems;
+    }
+
     static int ReportLookApplier(bool quiet)
     {
         string sceneName = EditorSceneManager.GetActiveScene().name;

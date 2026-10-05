@@ -22,42 +22,24 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _DawnCube:
-        m_Texture: {fileID: 8900000, guid: 338bf39625694da4c928f775dfd18245, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _FoamNoise:
-        m_Texture: {fileID: 2800000, guid: a821abda2c4747c479827fba07aa7559, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _NormalA:
-        m_Texture: {fileID: 2800000, guid: cca27f7e83cf99d4fba696ef2cc490de, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _NormalB:
-        m_Texture: {fileID: 2800000, guid: ff222cea2e1a11e438dbd39e205493ae, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _SkyCube:
-        m_Texture: {fileID: 8900000, guid: 48184b61da43d9946bf306e4072cf7e5, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _DawnExposure: 0.50091803
     - _DepthFade: 2.4
     - _FadeEnd: 630
     - _FadeStart: 520
-    - _FoamDepth: 1.6
-    - _Glitter: 0.55
-    - _NormalScale: 0.28
-    - _Refraction: 0.03
-    - _SkyExposure: 0.45
+    - _FoamWidth: 0.35
+    - _MoonPathStrength: 0.55
+    - _RimWidth: 0.12
+    - _SwellScale: 0.02
+    - _SwellSpeed: 0.04
     - _WaveAmp: 8
     m_Colors:
     - _DeepColor: {r: 0.016, g: 0.055, b: 0.064, a: 0.9}
-    - _FoamColor: {r: 0.78, g: 0.86, b: 0.84, a: 0.8}
+    - _FoamColor: {r: 0.78, g: 0.86, b: 0.84, a: 0.55}
+    - _MoonDir: {r: 0, g: 0, b: 0, a: 0}
+    - _RimColor: {r: 0.55, g: 0.72, b: 0.85, a: 1}
     - _ShallowColor: {r: 0.105, g: 0.344, b: 0.402, a: 0.42}
+    - _TideBandColor: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

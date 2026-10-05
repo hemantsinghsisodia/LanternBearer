@@ -13,7 +13,6 @@ public class WaterQuality : MonoBehaviour
     const string WaterShaderName = "LanternKeeper/Water";
     const string LowKeywordName = "_LK_WATER_LOW";
     const string HighKeywordName = "_LK_WATER_HIGH";
-    const string GlitterProperty = "_Glitter";
     const float ShaderFoamReach = 8f;
     const float ShaderRippleRange = 1f;
 
@@ -27,7 +26,6 @@ public class WaterQuality : MonoBehaviour
     bool searched;
     bool probeRendered;
     Material[] instances;
-    float[] baseGlitter;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
@@ -153,12 +151,10 @@ public class WaterQuality : MonoBehaviour
         }
 
         instances = new Material[waterRenderers.Length];
-        baseGlitter = new float[waterRenderers.Length];
         for (int i = 0; i < waterRenderers.Length; i++)
         {
             Renderer renderer = waterRenderers[i];
             Material shared = renderer.sharedMaterial;
-            baseGlitter[i] = shared != null ? shared.GetFloat(GlitterProperty) : 0f;
             instances[i] = renderer.material;
         }
 
@@ -181,8 +177,6 @@ public class WaterQuality : MonoBehaviour
 
         bool low = UseLow(profile);
         bool high = UseHigh(profile);
-        GraphicsProfile medium = MediumProfile();
-        float mediumGlint = medium != null ? medium.waterGlint : 0f;
         float foamReach = FoamReach(profile);
         float rippleRange = RippleRange(profile);
         float detail = profile.waterDetailLayer ? profile.waterDetailStrength : 0f;
@@ -198,8 +192,6 @@ public class WaterQuality : MonoBehaviour
                 continue;
             }
 
-            float glitter = profile.level == GraphicsLevel.Medium ? baseGlitter[i] : Scale(baseGlitter[i], mediumGlint, profile.waterGlint);
-            material.SetFloat(GlitterProperty, glitter);
             if (low)
             {
                 material.EnableKeyword(LowKeywordName);
@@ -218,31 +210,19 @@ public class WaterQuality : MonoBehaviour
                 material.DisableKeyword(HighKeywordName);
             }
 
-            LogApplied(profile, material, i, glitter, foamReach, rippleRange, detail);
+            LogApplied(profile, material, i, foamReach, rippleRange, detail);
         }
 
         UpdateProbe(profile);
     }
 
-    void LogApplied(GraphicsProfile profile, Material material, int index, float glitter, float foamReach, float rippleRange, float detail)
+    void LogApplied(GraphicsProfile profile, Material material, int index, float foamReach, float rippleRange, float detail)
     {
         bool lowOn = material.IsKeywordEnabled(LowKeywordName);
         bool highOn = material.IsKeywordEnabled(HighKeywordName);
-        float assetGlitter = 0f;
-        if (waterRenderers != null && index < waterRenderers.Length && waterRenderers[index] != null)
-        {
-            Material shared = waterRenderers[index].sharedMaterial;
-            if (shared != null)
-            {
-                assetGlitter = shared.GetFloat(GlitterProperty);
-            }
-        }
-
         Debug.Log(
             "WaterQuality " + profile.level
             + " renderer=" + index
-            + " glitter=" + glitter.ToString("0.###")
-            + " assetGlitter=" + assetGlitter.ToString("0.###")
             + " low=" + lowOn
             + " high=" + highOn
             + " foamReach=" + foamReach.ToString("0.###")

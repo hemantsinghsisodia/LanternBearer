@@ -201,10 +201,6 @@ public static partial class IslandBuilder
         Texture2D mossTex = PolyOrNoise("forest_leaves_02_Diffuse.jpg", new Color(0.22f, 0.32f, 0.16f), 21);
         Texture2D mossNormal = PolyOrNormal("forest_leaves_02_nor_gl.jpg", 22);
         Texture2D mossMask = SmoothnessMask("forest_leaves_02_Rough.jpg", "Assets/Game/Textures/PolyHaven/forest_leaves_02_mask.png", 23);
-        Texture2D waterNormalA;
-        Texture2D waterNormalB;
-        Texture2D foamNoise;
-        LoadWaterMaps(out waterNormalA, out waterNormalB, out foamNoise);
         Texture2D blade = GrassBlade("Assets/Game/Textures/GrassBlade.png");
         art.detailGrass = blade;
         art.detailReed = ReedBlade("Assets/Game/Textures/ReedBlade.png");
@@ -227,15 +223,7 @@ public static partial class IslandBuilder
         art.mushroomStem = LitMat("Assets/Game/Materials/Generated/MushroomStem.mat", lit, new Color(0.78f, 0.74f, 0.66f), 0.3f, 0f, Color.black);
         art.mushroomCap = LitMat("Assets/Game/Materials/Generated/MushroomCap.mat", lit, new Color(0.15f, 0.55f, 0.62f), 0.45f, 0f, new Color(0.15f, 2.4f, 2.6f));
         art.water = ShaderMat("Assets/Game/Materials/Generated/Water.mat", waterShader);
-        ApplyWaterLook(art.water, waterNormalA, waterNormalB, foamNoise);
-        art.water.SetColor("_FoamColor", new Color(0.78f, 0.86f, 0.84f, 0.8f));
-        art.water.SetFloat("_NormalScale", 0.28f);
-        art.water.SetFloat("_DepthFade", 2.4f);
-        art.water.SetFloat("_Refraction", 0.03f);
-        art.water.SetFloat("_FoamDepth", 1.6f);
-        art.water.SetFloat("_Glitter", 0.55f);
-        art.water.SetFloat("_SkyExposure", 1.5f);
-        art.water.SetFloat("_DawnExposure", 1.2f);
+        ApplyWaterLook(art.water);
         art.water.SetFloat("_WaveAmp", 8f);
         art.water.SetFloat("_FadeStart", 520f);
         art.water.SetFloat("_FadeEnd", 630f);
@@ -280,8 +268,6 @@ public static partial class IslandBuilder
             art.sky.SetColor("_Tint", Color.white);
             art.sky.SetColor("_HazeColor", new Color(0.07f, 0.16f, 0.2f, 1f));
             art.sky.SetFloat("_Haze", 0.48f);
-            art.water.SetTexture("_SkyCube", nightCube);
-            art.water.SetTexture("_DawnCube", dawnCube);
             art.moonDirection = BrightestCubemapDirection(nightCube);
             art.dawnDirection = BrightestCubemapDirection(dawnCube);
             ApplySkyExposure(art.sky, art.water);
@@ -1057,36 +1043,48 @@ public static partial class IslandBuilder
         return mat;
     }
 
-    static void LoadWaterMaps(out Texture2D normalA, out Texture2D normalB, out Texture2D foam)
+    // Defaults only: LookApplier overwrites the colours per island at runtime. No textures, cubemaps or glitter.
+    static void ApplyWaterLook(Material water)
     {
-        normalA = LoadWaterTexture("Assets/Game/Textures/Water/WaterRippleNormalA.png", true);
-        normalB = LoadWaterTexture("Assets/Game/Textures/Water/WaterRippleNormalB.png", true);
-        foam = LoadWaterTexture("Assets/Game/Textures/Water/WaterFoam.png", false);
-        if (normalA == null)
-        {
-            normalA = TileableNormal("Assets/Game/Textures/Generated/WaterNormalA.png", 256, 3f, 0.35f, 2.6f);
-        }
-
-        if (normalB == null)
-        {
-            normalB = TileableNormal("Assets/Game/Textures/Generated/WaterNormalB.png", 256, 5f, 1.8f, 3.1f);
-        }
-
-        if (foam == null)
-        {
-            foam = TileableFoam("Assets/Game/Textures/Generated/FoamNoise.png", 256);
-        }
-    }
-
-    static void ApplyWaterLook(Material water, Texture2D normalA, Texture2D normalB, Texture2D foam)
-    {
-        water.SetTexture("_NormalA", normalA);
-        water.SetTexture("_NormalB", normalB);
-        water.SetTexture("_FoamNoise", foam);
-        // Pack absorption (0.210, 0.688, 0.805), darkened so the night lake stays teal rather than daylight cyan.
         water.SetColor("_ShallowColor", new Color(0.105f, 0.344f, 0.402f, 0.42f));
         water.SetColor("_DeepColor", new Color(0.016f, 0.055f, 0.064f, 0.9f));
+        water.SetColor("_FoamColor", new Color(0.78f, 0.86f, 0.84f, 0.55f));
+        water.SetColor("_RimColor", new Color(0.55f, 0.72f, 0.85f, 1f));
+        water.SetColor("_TideBandColor", Color.clear);
+        water.SetFloat("_DepthFade", 2.4f);
+        water.SetFloat("_FoamWidth", 0.35f);
+        water.SetFloat("_RimWidth", 0.12f);
+        water.SetFloat("_SwellScale", 0.02f);
+        water.SetFloat("_SwellSpeed", 0.04f);
+        water.SetFloat("_MoonPathStrength", 0.55f);
+        PurgeStaleWaterProperties(water);
         EditorUtility.SetDirty(water);
+    }
+
+    // The old shader's textures and floats linger in the saved material; drop everything the shader no longer declares.
+    static void PurgeStaleWaterProperties(Material water)
+    {
+        SerializedObject so = new SerializedObject(water);
+        string[] groups = { "m_TexEnvs", "m_Floats", "m_Ints", "m_Colors" };
+        for (int g = 0; g < groups.Length; g++)
+        {
+            SerializedProperty list = so.FindProperty("m_SavedProperties." + groups[g]);
+            if (list == null)
+            {
+                continue;
+            }
+
+            for (int i = list.arraySize - 1; i >= 0; i--)
+            {
+                string name = list.GetArrayElementAtIndex(i).FindPropertyRelative("first").stringValue;
+                if (!water.HasProperty(name))
+                {
+                    list.DeleteArrayElementAtIndex(i);
+                }
+            }
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
     }
 
     static void ApplyWaterTextures(Material water)
@@ -1096,11 +1094,7 @@ public static partial class IslandBuilder
             return;
         }
 
-        Texture2D normalA;
-        Texture2D normalB;
-        Texture2D foam;
-        LoadWaterMaps(out normalA, out normalB, out foam);
-        ApplyWaterLook(water, normalA, normalB, foam);
+        ApplyWaterLook(water);
     }
 
     static Texture2D LoadWaterTexture(string path, bool normal)
@@ -1433,23 +1427,11 @@ public static partial class IslandBuilder
 
         if (water != null)
         {
-            water.SetFloat("_SkyExposure", nightExposure);
             water.SetFloat("_WaveAmp", 8f);
-            water.SetFloat("_FoamDepth", 1.6f);
-            if (water.HasProperty("_DawnExposure"))
-            {
-                water.SetFloat("_DawnExposure", dawnExposure);
-            }
-
             if (water.HasProperty("_FadeStart"))
             {
                 water.SetFloat("_FadeStart", 520f);
                 water.SetFloat("_FadeEnd", 630f);
-            }
-
-            if (dawnCube != null)
-            {
-                water.SetTexture("_DawnCube", dawnCube);
             }
 
             EditorUtility.SetDirty(water);

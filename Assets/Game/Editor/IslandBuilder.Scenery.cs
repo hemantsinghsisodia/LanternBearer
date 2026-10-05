@@ -51,7 +51,6 @@ public static partial class IslandBuilder
             mat.SetFloat("_FadeStart", 520f);
             mat.SetFloat("_FadeEnd", 630f);
             mat.SetFloat("_WaveAmp", 8f);
-            mat.SetFloat("_FoamDepth", 1.6f);
             EditorUtility.SetDirty(mat);
         }
 

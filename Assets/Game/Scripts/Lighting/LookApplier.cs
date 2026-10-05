@@ -113,6 +113,44 @@ public class LookApplier : MonoBehaviour
         Shader.SetGlobalColor("_LKMoonRimColor", profile.moonRim);
         Shader.SetGlobalFloat("_LKMoonRimStrength", profile.moonRimStrength);
         Shader.SetGlobalVector("_LKMoonDir", new Vector4(towardMoon.x, towardMoon.y, towardMoon.z, 0f));
+
+        ApplyWater(profile, towardMoon);
+    }
+
+    // Per-frame global so the water (and anything else) can brighten on a lightning flash and fall back to 0 after it.
+    void Update()
+    {
+        if (Application.isPlaying)
+        {
+            Shader.SetGlobalFloat("_LKLightningFlash", Lightning.CurrentFlash);
+        }
+    }
+
+    // Sets the island's water colours on the live water materials. Runtime instances only, so the saved asset never changes.
+    void ApplyWater(LookProfile p, Vector3 towardMoon)
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        Renderer[] renderers = FindObjectsByType<Renderer>(FindObjectsInactive.Include);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Material shared = renderers[i].sharedMaterial;
+            if (shared == null || shared.shader == null || shared.shader.name != "LanternKeeper/Water")
+            {
+                continue;
+            }
+
+            Material water = renderers[i].material;
+            water.SetColor("_ShallowColor", LookMapping.OrDerived(p.waterShallow, LookMapping.WaterShallow(p.sea, p.moonRim)));
+            water.SetColor("_DeepColor", LookMapping.OrDerived(p.waterDeep, LookMapping.WaterDeep(p.sea)));
+            water.SetColor("_FoamColor", LookMapping.OrDerived(p.foamColour, LookMapping.Foam(p.moonRim)));
+            water.SetColor("_RimColor", p.moonRim);
+            water.SetColor("_TideBandColor", p.tideBand);
+            water.SetVector("_MoonDir", new Vector4(towardMoon.x, 0f, towardMoon.z, p.moonOn ? 1f : 0f));
+        }
     }
 
     // In play mode the sky is an instance, so per-island writes never dirty the asset and DawnSequence clones the same thing.
