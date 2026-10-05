@@ -795,7 +795,8 @@ public static partial class IslandBuilder
 
         if (art.detailReed != null)
         {
-            prototypes.Add(Billboard(art.detailReed, new Color(0.45f, 0.5f, 0.22f), new Color(0.28f, 0.32f, 0.14f), 0.55f, 1.25f, 0.18f, 0.36f));
+            // Generated reed clumps (1.0-1.6 m, island 3 olive-to-straw tones) replace the old billboard.
+            prototypes.Add(MeshDetail(ReedTuftBuilder.EnsurePrefab(), 0.9f, 1.15f, false));
             int[,] reeds = new int[detailRes, detailRes];
             for (int z = 0; z < detailRes; z++)
             {

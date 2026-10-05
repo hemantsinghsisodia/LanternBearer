@@ -72,5 +72,26 @@ public class NaturePaletteTests
             Assert.AreEqual(1f, profile.foliage.a, 0.001f, "foliage alpha island" + i);
         }
     }
+
+    [Test]
+    public void TreeFoliageDiffersOnlyOnIsland4()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile profile = Load(i);
+            Color tree = LookMapping.OrDerived(profile.treeFoliage, profile.foliage);
+            if (i == 4)
+            {
+                Assert.Greater(profile.treeFoliage.a, 0f, "island4 authors treeFoliage");
+                Assert.GreaterOrEqual(HueDistance(tree, profile.foliage), 0.15f, "island4 trees must differ in hue from the purple bushes");
+                Assert.Greater(Hue(tree), 0.1f, "island4 tree hue is green-brown, not purple");
+                Assert.Less(Hue(tree), 0.4f, "island4 tree hue is green-brown, not purple");
+            }
+            else
+            {
+                Assert.AreEqual(profile.foliage, tree, "treeFoliage defaults to foliage on island" + i);
+            }
+        }
+    }
 }
 }

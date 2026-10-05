@@ -41,6 +41,8 @@ public static class NatureKitImporter
         "Flowers", "Grass", "Leaf_Pine", "Leaves", "Leaves_NormalTree", "Leaves_TwistedTree", "Mushrooms", "PathRocks_Diffuse", "Rocks_Diffuse"
     };
 
+    const string BushLeafKey = "Leaves_TwistedTree_Bush";
+
     static Spec Tree(string model)
     {
         Spec s = new Spec();
@@ -85,8 +87,7 @@ public static class NatureKitImporter
             list.Add(Fixed(saplings[i], BiomeCategory.Sapling, "Sapling_", 2.5f));
         }
 
-        list.Add(Extent("DeadTree_4", BiomeCategory.Deadwood, "Deadwood_", 5.5f, true));
-        list.Add(Extent("DeadTree_5", BiomeCategory.Deadwood, "Deadwood_", 6.5f, true));
+        // Deadwood is generated (DeadwoodBuilder): the kit's DeadTree_4/5 read as spidery branch heaps even at 3.5 m.
 
         for (int i = 1; i <= 3; i++)
         {
@@ -175,12 +176,25 @@ public static class NatureKitImporter
         }
 
         AssetDatabase.SaveAssets();
+        string[] ids = new string[IslandCount];
+        for (int island = 1; island <= IslandCount; island++)
+        {
+            LookProfile profile = AssetDatabase.LoadAssetAtPath<LookProfile>(ProfilePath + island + ".asset");
+            ids[island - 1] = string.IsNullOrEmpty(profile.levelId) ? "island" + island : profile.levelId;
+        }
+
+        prefabCount += DeadwoodBuilder.BuildAll(ids);
+        AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("Nature kit import done: " + prefabCount + " prefabs (" + specs.Count + " per island).\n" + log);
+        Debug.Log("Nature kit import done: " + prefabCount + " prefabs (" + specs.Count + " kit models + " + DeadwoodBuilder.Models.Length + " generated deadwood per island).\n" + log);
     }
 
-    // Poly Haven prefabs deliberately kept after a biome rebuild (prefab name -> reason). Island 1 keeps none.
-    public static readonly Dictionary<string, string> AllowList = new Dictionary<string, string>();
+    // Poly Haven prefabs deliberately kept after a biome rebuild (prefab name -> reason).
+    public static readonly Dictionary<string, string> AllowList = new Dictionary<string, string>
+    {
+        // Island 2 set piece: no kit equivalent. Task 5 replaces it with rock cladding; drop this entry then.
+        { "namaqualand_cliff_01", "SetPiece cliff, replaced by cladding in Task 5" }
+    };
 
     [MenuItem("Lantern Keeper/Nature/Rebuild Island 1 Biome")]
     public static void RebuildIsland1()
@@ -188,8 +202,114 @@ public static class NatureKitImporter
         RebuildBiome("PineForest", "island1");
     }
 
+    [MenuItem("Lantern Keeper/Nature/Rebuild Islands 2-4 Biomes")]
+    public static void RebuildIslands2To4()
+    {
+        RebuildBiome("Namaqualand", "island2");
+        RebuildBiome("Marsh", "island3");
+        RebuildBiome("Heath", "island4");
+    }
+
+    [MenuItem("Lantern Keeper/Nature/Rebuild All Biomes")]
+    public static void RebuildAll()
+    {
+        RebuildIsland1();
+        RebuildIslands2To4();
+    }
+
+    // Per-biome model choices. Entries are matched by category and order (and by the old prefab name for ground cover and undergrowth).
+    class Table
+    {
+        public string[] trees;
+        public string[] saplings;
+        public string[] bushes;
+        public string[] deadwood;
+        public string[] flowers;
+        public string[] grasses = { "Grass_Common_Short", "Grass_Common_Tall", "Grass_Wispy_Short", "Grass_Wispy_Tall" };
+        public string[] mushrooms = { "Mushroom_Common", "Mushroom_Laetiporus" };
+        public string[] lowPlants = { "Clover_1", "Clover_2" };
+        public string[] litter = { "Petal_1", "Petal_2", "Petal_3" };
+    }
+
+    static Table TableFor(string biomeName)
+    {
+        Table t = new Table();
+        t.deadwood = DeadwoodModels;
+        switch (biomeName)
+        {
+            case "Namaqualand":
+                t.trees = new[] { "TwistedTree_1", "DeadTree_2" };
+                t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
+                t.flowers = new[] { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
+                break;
+            case "Marsh":
+                t.trees = new[] { "TwistedTree_3", "TwistedTree_2" };
+                t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
+                t.flowers = new[] { "Flower_3_Group", "Flower_4_Group" };
+                break;
+            case "Heath":
+                t.trees = new[] { "DeadTree_3", "TwistedTree_1" };
+                t.saplings = new[] { "Sapling_TwistedTree_1" };
+                t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big" };
+                t.flowers = new[] { "Flower_3_Single" };
+                break;
+            default:
+                t.trees = new[] { "", "Pine_1", "Pine_3" };
+                t.saplings = new[] { "Sapling_Pine_1", "Sapling_CommonTree_1", "Sapling_Pine_2", "Sapling_CommonTree_2", "Sapling_TwistedTree_1" };
+                t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
+                t.flowers = new[] { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
+                break;
+        }
+
+        return t;
+    }
+
+    // Deadwood prefabs: generated logs and stumps of about 3.5 m and under (DeadwoodBuilder). A deadwood entry already on a prefab with this tag has its halved count.
+    static readonly string[] DeadwoodModels = DeadwoodBuilder.Models;
+    const string DeadwoodTag = "Nature_Wood_";
+
+    // True once any entry of the biome uses a nature-kit prefab.
+    public static bool IsConverted(Biome biome)
+    {
+        if (biome == null || biome.entries == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < biome.entries.Length; i++)
+        {
+            BiomeEntry entry = biome.entries[i];
+            if (entry != null && entry.prefab != null && entry.prefab.name.StartsWith("Nature_"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static float MaxExtent(GameObject prefab)
+    {
+        float extent = 0f;
+        MeshFilter[] filters = prefab.GetComponentsInChildren<MeshFilter>(true);
+        for (int i = 0; i < filters.Length; i++)
+        {
+            if (filters[i].sharedMesh == null)
+            {
+                continue;
+            }
+
+            Vector3 size = Vector3.Scale(filters[i].sharedMesh.bounds.size, filters[i].transform.lossyScale);
+            extent = Mathf.Max(extent, size.x, size.z);
+        }
+
+        return extent;
+    }
+
     // Swaps every entry's prefab for a same-category nature-kit prefab of this island. Counts, categories and
     // placement limits stay; scale ranges are brought near 1 because the kit meshes already carry real-world size.
+    // Idempotent: entries that already use a Nature_ prefab are left alone, except deadwood, which is re-targeted.
+    // User-directed exception to "entry counts kept": each Deadwood entry count is halved (rounded up), once.
     public static void RebuildBiome(string biomeName, string levelId)
     {
         string path = "Assets/Game/Levels/Biomes/" + biomeName + ".asset";
@@ -200,20 +320,16 @@ public static class NatureKitImporter
             return;
         }
 
-        string[] bushes = { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
-        string[] saplings = { "Sapling_Pine_1", "Sapling_CommonTree_1", "Sapling_Pine_2", "Sapling_CommonTree_2", "Sapling_TwistedTree_1" };
-        string[] trees = { "", "Pine_1", "Pine_3" };
-        string[] rocks = { "Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3" };
-        string[] deadwood = { "Deadwood_DeadTree_4", "Deadwood_DeadTree_5" };
-        string[] flowers = { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
-        string[] mushrooms = { "Mushroom_Common", "Mushroom_Laetiporus" };
-        string[] grasses = { "Grass_Common_Short", "Grass_Common_Tall", "Grass_Wispy_Short", "Grass_Wispy_Tall" };
-
+        Table table = TableFor(biomeName);
         Dictionary<BiomeCategory, int> counters = new Dictionary<BiomeCategory, int>();
-        int shrubIndex = 0;
+        int saplingIndex = 0;
+        int bushIndex = 0;
         int grassIndex = 0;
         int mushroomIndex = 0;
         int flowerIndex = 0;
+        int rockIndex = 0;
+        int lowIndex = 0;
+        int litterIndex = 0;
         StringBuilder log = new StringBuilder();
         BiomeEntry[] entries = biome.entries;
         for (int i = 0; i < entries.Length; i++)
@@ -233,13 +349,19 @@ public static class NatureKitImporter
             int n;
             counters.TryGetValue(entry.category, out n);
             counters[entry.category] = n + 1;
+            bool converted = oldName.StartsWith("Nature_");
+            if (converted && entry.category != BiomeCategory.Deadwood)
+            {
+                continue;
+            }
+
             string lower = oldName.ToLowerInvariant();
             string model = null;
             Vector2 scale = entry.scaleRange;
             switch (entry.category)
             {
                 case BiomeCategory.Tree:
-                    model = n < trees.Length ? trees[n] : "Pine_2";
+                    model = table.trees[n % table.trees.Length];
                     if (model == "")
                     {
                         model = LargestTree(levelId);
@@ -247,41 +369,53 @@ public static class NatureKitImporter
 
                     break;
                 case BiomeCategory.Sapling:
-                    model = saplings[shrubIndex++ % saplings.Length];
+                    model = table.saplings[saplingIndex++ % table.saplings.Length];
                     break;
                 case BiomeCategory.Deadwood:
-                    model = deadwood[n % deadwood.Length];
+                    model = table.deadwood[n % table.deadwood.Length];
                     break;
                 case BiomeCategory.Rock:
-                    model = rocks[n % rocks.Length];
-                    if (scale.x > 3f)
+                {
+                    // Keep the rock's real size: old mesh extent times old scale, in units of the 1.2 m Rock_Medium.
+                    float extent = MaxExtent(entry.prefab);
+                    float low = extent * scale.x / 1.2f;
+                    float high = extent * scale.y / 1.2f;
+                    if (extent < 0.5f)
                     {
-                        scale = new Vector2(2.7f, 3.3f);
+                        model = (rockIndex % 2 == 0 ? "Pebble_Round_" : "Pebble_Square_") + (rockIndex / 2 % 3 + 1);
+                        scale = new Vector2(0.4f, 0.6f);
                     }
-                    else if (scale.x > 1.5f)
+                    else
                     {
-                        scale = new Vector2(1.8f, 2.3f);
+                        model = "Rock_Medium_" + (rockIndex % 3 + 1);
+                        scale = new Vector2(Mathf.Clamp(low, 0.7f, 3.3f), Mathf.Clamp(high, 0.8f, 3.4f));
                     }
 
+                    rockIndex++;
                     break;
+                }
                 case BiomeCategory.Undergrowth:
-                    model = lower.Contains("fern") ? "Fern_1" : bushes[shrubIndex++ % bushes.Length];
+                    model = lower.Contains("fern") ? "Fern_1" : table.bushes[bushIndex++ % table.bushes.Length];
                     break;
                 case BiomeCategory.Flower:
-                    model = flowers[flowerIndex++ % flowers.Length];
+                    model = table.flowers[flowerIndex++ % table.flowers.Length];
                     break;
                 case BiomeCategory.GroundCover:
                     if (lower.Contains("moss"))
                     {
-                        model = mushrooms[mushroomIndex++ % mushrooms.Length];
+                        model = table.mushrooms[mushroomIndex++ % table.mushrooms.Length];
                     }
-                    else if (lower.Contains("periwinkle"))
+                    else if (lower.Contains("periwinkle") || lower.Contains("succulent") || lower.Contains("iceplant") || lower.Contains("leipoldtia"))
                     {
-                        model = "Clover_1";
+                        model = table.lowPlants[lowIndex++ % table.lowPlants.Length];
+                    }
+                    else if (lower.Contains("bark_debris") || lower.Contains("dry_quiver_leaf"))
+                    {
+                        model = table.litter[litterIndex++ % table.litter.Length];
                     }
                     else
                     {
-                        model = grasses[grassIndex++ % grasses.Length];
+                        model = table.grasses[grassIndex++ % table.grasses.Length];
                     }
 
                     break;
@@ -300,7 +434,17 @@ public static class NatureKitImporter
                 continue;
             }
 
-            if (entry.category != BiomeCategory.Rock && scale.x > 1.1f)
+            if (entry.category == BiomeCategory.Deadwood)
+            {
+                // Halve once: an entry already on a deadwood prefab was halved before.
+                if (!converted || !oldName.Contains(DeadwoodTag))
+                {
+                    entry.count = (entry.count + 1) / 2;
+                }
+
+                scale = new Vector2(0.85f, 1.15f);
+            }
+            else if (entry.category != BiomeCategory.Rock && scale.x > 1.1f)
             {
                 scale = new Vector2(0.9f, 1.15f);
             }
@@ -497,14 +641,17 @@ public static class NatureKitImporter
     {
         Dictionary<string, Material> map = new Dictionary<string, Material>();
         Color leaf = Opaque(profile.foliage);
-        Color pine = Scale(leaf, 0.82f);
-        Color twisted = Scale(leaf, 0.95f);
+        Color treeLeaf = Opaque(LookMapping.OrDerived(profile.treeFoliage, profile.foliage));
+        Color pine = Scale(treeLeaf, 0.82f);
+        Color twisted = Scale(treeLeaf, 0.95f);
         Color plant = Scale(leaf, 1.08f);
         Color grass = Color.Lerp(Scale(leaf, 1.12f), Color.white, 0.12f);
 
-        map["Leaves_NormalTree"] = Foliage(id, "LeavesNormal", foliage, "Leaves_NormalTree", leaf, 0f, 4f, 0.12f);
+        map["Leaves_NormalTree"] = Foliage(id, "LeavesNormal", foliage, "Leaves_NormalTree", treeLeaf, 0f, 4f, 0.12f);
         map["Leaves_Pine"] = Foliage(id, "LeavesPine", foliage, "Leaf_Pine", pine, 0f, 4f, 0.09f);
         map["Leaves_TwistedTree"] = Foliage(id, "LeavesTwisted", foliage, "Leaves_TwistedTree", twisted, 0f, 4f, 0.1f);
+        // Bush_Common models use the TwistedTree leaf texture, but a bush takes the island foliage tint, not the tree tint.
+        map[BushLeafKey] = Foliage(id, "LeavesBush", foliage, "Leaves_TwistedTree", Scale(leaf, 0.95f), 0f, 4f, 0.1f);
         map["Leaves"] = Foliage(id, "LeavesPlant", foliage, "Leaves", plant, 1f, 1f, 0.05f);
         map["Grass"] = Foliage(id, "Grass", foliage, "Grass", grass, 0f, 0.6f, 0.04f);
         map["Flowers"] = Foliage(id, "Flowers", foliage, "Flowers", Color.white, 0f, 0.8f, 0.04f);
@@ -591,6 +738,11 @@ public static class NatureKitImporter
         for (int i = 0; i < source.Length; i++)
         {
             string key = source[i] != null ? source[i].name : "";
+            if (key == "Leaves_TwistedTree" && spec.model.StartsWith("Bush_"))
+            {
+                key = BushLeafKey;
+            }
+
             if (!materials.TryGetValue(key, out assigned[i]))
             {
                 Debug.LogWarning("NatureKitImporter: no material mapping for '" + key + "' on " + spec.model);

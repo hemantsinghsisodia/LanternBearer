@@ -44,6 +44,8 @@ public class LookProfile : ScriptableObject
     public Color foliage = Color.white;
     public Color bark = Color.white;
     public Color rockTint = Color.white;
+    // Leaf tint for trees and saplings only. Alpha 0 means "use foliage" (LookMapping.OrDerived).
+    public Color treeFoliage = Color.clear;
 
     public bool Validate(out string problem)
     {

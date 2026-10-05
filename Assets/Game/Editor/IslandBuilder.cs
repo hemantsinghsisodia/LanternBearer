@@ -181,6 +181,7 @@ public static partial class IslandBuilder
             EditorUtility.DisplayProgressBar("Lantern Keeper", "Building " + config.sceneName, 0.15f);
             // The build unloads unused assets, so keep the profile's path and reload it when the atmosphere needs it.
             lookProfilePath = AssetDatabase.GetAssetPath(config.lookProfile);
+            string biomePath = config.biome != null ? AssetDatabase.GetAssetPath(config.biome) : "";
             EnsureFolder("Assets/Game/Scenes");
             EditorSceneManager.SaveOpenScenes();
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -191,6 +192,12 @@ public static partial class IslandBuilder
             }
 
             ArtKit art = EnsureArt();
+            // The scene reset can drop the biome reference; reload it so Islands 2-4 keep their own biome instead of falling back to PineForest.
+            if (config.biome == null && !string.IsNullOrEmpty(biomePath))
+            {
+                config.biome = AssetDatabase.LoadAssetAtPath<Biome>(biomePath);
+            }
+
             Biome resolvedBiome = ResolveBiome(config);
             if (resolvedBiome != null)
             {
@@ -2234,6 +2241,12 @@ public static partial class IslandBuilder
             AssetDatabase.CreateAsset(biome, HeathBiomePath);
         }
 
+        // Already converted to the nature kit (NatureKitImporter.RebuildBiome): keep it instead of regenerating the Poly Haven entries.
+        if (NatureKitImporter.IsConverted(biome))
+        {
+            return biome;
+        }
+
         List<BiomeEntry> entries = new List<BiomeEntry>();
         AddHeath(entries, "Rock", "boulder_01", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
         AddHeath(entries, "Rock", "rock_07", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
@@ -2293,6 +2306,12 @@ public static partial class IslandBuilder
         {
             biome = ScriptableObject.CreateInstance<Biome>();
             AssetDatabase.CreateAsset(biome, MarshBiomePath);
+        }
+
+        // Already converted to the nature kit (NatureKitImporter.RebuildBiome): keep it instead of regenerating the Poly Haven entries.
+        if (NatureKitImporter.IsConverted(biome))
+        {
+            return biome;
         }
 
         List<BiomeEntry> entries = new List<BiomeEntry>();

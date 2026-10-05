@@ -37,6 +37,6 @@ Material:
     - _SwayHeight: 4
     - _Wrap: 0.5
     m_Colors:
-    - _BaseColor: {r: 0.45450848, g: 0.27569, b: 0.40980148, a: 1}
+    - _BaseColor: {r: 0.290586, g: 0.3054915, b: 0.201172, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
