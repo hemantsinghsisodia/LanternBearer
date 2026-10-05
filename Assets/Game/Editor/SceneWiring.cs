@@ -783,6 +783,7 @@ public static class SceneWiring
         nulls += ReportLookProfiles(quiet);
         nulls += ReportLookApplier(quiet);
         nulls += ReportWaterMaterials(quiet);
+        nulls += ReportRidgeMaterials(quiet);
         nulls += ReportVolumes(quiet);
         nulls += ReportMoonRim(quiet);
         nulls += ReportTerrainLayers(quiet);
@@ -911,6 +912,38 @@ public static class SceneWiring
                     if (!quiet)
                     {
                         Debug.LogWarning("Water material " + material.name + " still references texture " + textures[t]);
+                    }
+
+                    problems++;
+                }
+            }
+        }
+
+        return problems;
+    }
+
+    // Ridge materials are flat colour: the photographic rock, ground and sky textures must be gone.
+    static int ReportRidgeMaterials(bool quiet)
+    {
+        int problems = 0;
+        Renderer[] all = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include);
+        System.Collections.Generic.HashSet<Material> seen = new System.Collections.Generic.HashSet<Material>();
+        for (int i = 0; i < all.Length; i++)
+        {
+            Material material = all[i].sharedMaterial;
+            if (material == null || material.shader == null || material.shader.name != "LanternKeeper/DistantRange" || !seen.Add(material))
+            {
+                continue;
+            }
+
+            string[] textures = material.GetTexturePropertyNames();
+            for (int t = 0; t < textures.Length; t++)
+            {
+                if (material.GetTexture(textures[t]) != null)
+                {
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("Ridge material " + material.name + " still references texture " + textures[t]);
                     }
 
                     problems++;

@@ -132,6 +132,60 @@ public class LookApplier : MonoBehaviour
         }
     }
 
+    // Flat silhouette layers from the island palette: Range0..2 nearest to farthest, Ridge* (Ultra only) at the far colour,
+    // islets and their pines slightly darker than the nearest range. The haze takes the fog colour. Runtime instances only.
+    void ApplyRidges(LookProfile p)
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        GameObject horizon = GameObject.Find("Horizon");
+        if (horizon == null)
+        {
+            return;
+        }
+
+        Color baseLand = p.ridgeColour.a > 0f ? p.ridgeColour : p.land;
+        Color[] layers = LookMapping.RidgeLayers(baseLand, p.skyHorizon, 3);
+        Renderer[] renderers = horizon.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Material shared = renderers[i].sharedMaterial;
+            if (shared == null || shared.shader == null)
+            {
+                continue;
+            }
+
+            string shaderName = shared.shader.name;
+            string objectName = renderers[i].name;
+            if (shaderName == "LanternKeeper/DistantRange")
+            {
+                Color c;
+                if (objectName.StartsWith("Range") || objectName.StartsWith("Ridge"))
+                {
+                    int layer = objectName.StartsWith("Range") && objectName.Length > 5 ? Mathf.Clamp(objectName[5] - '0', 0, layers.Length - 1) : layers.Length - 1;
+                    c = layers[layer];
+                }
+                else
+                {
+                    // Islet, Pine, PineTip.
+                    c = layers[0] * 0.85f;
+                }
+
+                c.a = 1f;
+                shared.SetColor("_LayerColor", c);
+            }
+            else if (shaderName == "LanternKeeper/HorizonHaze")
+            {
+                Color haze = p.fogColour;
+                haze.a = shared.GetColor("_BaseColor").a;
+                shared.SetColor("_BaseColor", haze);
+            }
+        }
+    }
+
     // Sets the island's water colours on the live water materials. Runtime instances only, so the saved asset never changes.
     void ApplyWater(LookProfile p, Vector3 towardMoon)
     {

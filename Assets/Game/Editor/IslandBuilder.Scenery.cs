@@ -167,7 +167,7 @@ public static partial class IslandBuilder
         GameObject root = new GameObject("Horizon");
         root.transform.position = new Vector3(0f, stage.waterY, 0f);
 
-        Color tint = mesa ? new Color(1.32f, 0.74f, 0.48f, 1f) : new Color(0.78f, 0.84f, 0.8f, 1f);
+        // Cool default layer colours; LookApplier replaces them from the island palette at runtime (the menu keeps these).
         float[] radii = { 220f, 320f, 450f };
         float[] aerialStart = { 480f, 210f, 140f };
         float[] aerialEnd = { 1200f, 520f, 360f };
@@ -175,11 +175,7 @@ public static partial class IslandBuilder
         for (int band = 0; band < radii.Length; band++)
         {
             Mesh range = BuildRangeMesh(radii[band], config.seed, band, mesa);
-            Material mat = DistantMat(rangeShader, art, tint, aerialStart[band], aerialEnd[band]);
-            if (band == 0)
-            {
-                isletMat = mat;
-            }
+            Material mat = DistantMat(rangeShader, LayerDefault(band), aerialStart[band], aerialEnd[band], band);
 
             GameObject go = new GameObject("Range" + band);
             go.transform.SetParent(root.transform, false);
@@ -191,10 +187,9 @@ public static partial class IslandBuilder
             renderer.receiveShadows = false;
         }
 
-        if (isletMat == null)
-        {
-            isletMat = DistantMat(rangeShader, art, tint, 300f, 700f);
-        }
+        // Islets and their pines are the nearest silhouette; LookApplier draws them slightly darker than layer 0.
+        isletMat = DistantMat(rangeShader, LayerDefault(0) * 0.85f, 480f, 1200f, 0);
+        isletMat.name = "RidgeIslet";
 
         System.Random random = new System.Random(config.seed + 41);
         int isletCount = 3 + (config.seed % 2);
@@ -251,7 +246,7 @@ public static partial class IslandBuilder
             filter.sharedMesh = BuildHazeMesh(520f);
             MeshRenderer renderer = haze.AddComponent<MeshRenderer>();
             Material mat = new Material(hazeShader);
-            Color hazeColor = mesa ? new Color(0.72f, 0.48f, 0.32f, 0.03f) : new Color(0.62f, 0.74f, 0.82f, 0.035f);
+            Color hazeColor = new Color(0.62f, 0.74f, 0.82f, 0.035f);
             mat.SetColor("_BaseColor", hazeColor);
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
@@ -310,9 +305,6 @@ public static partial class IslandBuilder
     {
         Shader rangeShader = Shader.Find("LanternKeeper/DistantRange");
         Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
-        Color[] tints = mesa
-            ? new[] { new Color(1.08f, 0.66f, 0.5f, 1f), new Color(0.86f, 0.52f, 0.44f, 1f) }
-            : new[] { new Color(0.62f, 0.7f, 0.78f, 1f), new Color(0.48f, 0.58f, 0.7f, 1f) };
         float[] radii = { 580f, 720f };
         float[] aerialStart = { 100f, 40f };
         float[] aerialEnd = { 340f, 200f };
@@ -323,7 +315,7 @@ public static partial class IslandBuilder
             MeshFilter filter = go.AddComponent<MeshFilter>();
             filter.sharedMesh = BuildRidgeMesh(radii[band], config.seed, band + 3, mesa);
             MeshRenderer renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = DistantMat(rangeShader, art, tints[band], aerialStart[band], aerialEnd[band]);
+            renderer.sharedMaterial = DistantMat(rangeShader, LayerDefault(2), aerialStart[band], aerialEnd[band], 2);
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             go.SetActive(false);
@@ -340,7 +332,7 @@ public static partial class IslandBuilder
         hazeFilter.sharedMesh = BuildHazeMesh(660f, 128, -2f, 22f, "HorizonHazeFine");
         MeshRenderer hazeRenderer = haze.AddComponent<MeshRenderer>();
         Material mat = new Material(hazeShader);
-        Color hazeColor = mesa ? new Color(0.78f, 0.55f, 0.4f, 0.02f) : new Color(0.5f, 0.66f, 0.78f, 0.02f);
+        Color hazeColor = new Color(0.5f, 0.66f, 0.78f, 0.02f);
         mat.SetColor("_BaseColor", hazeColor);
         mat.SetFloat("_BandScale", 2f);
         hazeRenderer.sharedMaterial = mat;
@@ -349,7 +341,19 @@ public static partial class IslandBuilder
         haze.SetActive(false);
     }
 
-    static Material DistantMat(Shader shader, ArtKit art, Color tint, float aerialStart, float aerialEnd)
+    static Color LayerDefault(int band)
+    {
+        Color[] defaults =
+        {
+            new Color(0.05f, 0.07f, 0.1f, 1f),
+            new Color(0.09f, 0.12f, 0.16f, 1f),
+            new Color(0.14f, 0.19f, 0.24f, 1f)
+        };
+        return defaults[Mathf.Clamp(band, 0, 2)];
+    }
+
+    // Flat colour only: no textures, no cubemaps. The nearest layers keep more of their colour at dawn, the far ones melt into the horizon.
+    static Material DistantMat(Shader shader, Color layerColor, float aerialStart, float aerialEnd, int layer)
     {
         if (shader == null)
         {
@@ -357,32 +361,14 @@ public static partial class IslandBuilder
         }
 
         Material mat = new Material(shader);
-        mat.SetTexture("_RockMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Textures/PolyHaven/rock_face_03_Diffuse.jpg"));
-        mat.SetTexture("_RockNormal", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Textures/PolyHaven/rock_face_03_nor_gl.jpg"));
-        mat.SetTexture("_GroundMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Textures/PolyHaven/forrest_ground_01_Diffuse.jpg"));
-        mat.SetTexture("_GroundNormal", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Textures/PolyHaven/forrest_ground_01_nor_gl.jpg"));
-        Cubemap night = art.sky != null ? art.sky.GetTexture("_NightCube") as Cubemap : null;
-        Cubemap dawn = art.sky != null ? art.sky.GetTexture("_DawnCube") as Cubemap : null;
-        if (night == null)
-        {
-            night = AssetDatabase.LoadAssetAtPath<Cubemap>("Assets/Game/Textures/Sky/qwantani_moonrise_puresky_2k.hdr");
-        }
-
-        if (dawn == null)
-        {
-            dawn = AssetDatabase.LoadAssetAtPath<Cubemap>("Assets/Game/Textures/Sky/qwantani_dawn_puresky_2k.hdr");
-        }
-
-        float exposure = art.sky != null && art.sky.HasProperty("_Exposure") ? art.sky.GetFloat("_Exposure") : 1.5f;
-        float dawnExposure = art.sky != null && art.sky.HasProperty("_DawnExposure") ? art.sky.GetFloat("_DawnExposure") : exposure;
-        mat.SetTexture("_SkyCube", night);
-        mat.SetTexture("_DawnCube", dawn);
-        mat.SetColor("_Tint", tint);
-        mat.SetFloat("_SkyExposure", exposure);
-        mat.SetFloat("_DawnExposure", dawnExposure);
+        mat.name = "Ridge" + layer;
+        float[] dawnMix = { 0.45f, 0.65f, 0.85f };
+        layerColor.a = 1f;
+        mat.SetColor("_LayerColor", layerColor);
+        mat.SetFloat("_RimStrength", 0.25f);
         mat.SetFloat("_AerialStart", aerialStart);
         mat.SetFloat("_AerialEnd", aerialEnd);
-        mat.SetFloat("_MapScale", 0.016f);
+        mat.SetFloat("_DawnMix", dawnMix[Mathf.Clamp(layer, 0, 2)]);
         return mat;
     }
 

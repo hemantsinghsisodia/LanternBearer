@@ -25,7 +25,7 @@ Shader "LanternKeeper/HorizonHaze"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             float4 _BaseColor;
-            float4 _HazeTint;
+            float _LanternSkyBlend;
             float _BandScale;
 
             struct Attributes
@@ -39,12 +39,6 @@ Shader "LanternKeeper/HorizonHaze"
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
             };
-
-            float3 TintOrWhite(float3 tint)
-            {
-                float peak = max(tint.r, max(tint.g, tint.b));
-                return lerp(float3(1, 1, 1), tint, saturate(peak * 8));
-            }
 
             Varyings vert(Attributes input)
             {
@@ -64,8 +58,8 @@ Shader "LanternKeeper/HorizonHaze"
                 {
                     band = abs(sin(y * 3.14159265 * _BandScale));
                 }
-                float3 tint = TintOrWhite(_HazeTint.rgb);
-                float3 color = _BaseColor.rgb * tint;
+                // _BaseColor is the island fog colour; at dawn it follows the fog colour DawnSequence blends to the dawn horizon.
+                float3 color = lerp(_BaseColor.rgb, unity_FogColor.rgb, saturate(_LanternSkyBlend));
                 float alpha = _BaseColor.a * band;
                 return half4(color, alpha);
             }
