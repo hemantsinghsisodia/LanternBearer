@@ -911,9 +911,9 @@ public static partial class IslandBuilder
         int ferns = PlaceNamedNear(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), trees, scale, 1.1f, 3.2f, "fern");
         int undergrowth = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), scale, "fern");
         int rocks = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Rock), scale, null);
-        int pieces = PlaceCliff(config, stage, parent, random);
+        int cladding = PlaceCladding(config, stage, parent);
         PlaceMushrooms(config, art, stage, parent, random);
-        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " setpieces=" + pieces);
+        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " cladding=" + cladding);
     }
 
     static List<BiomeEntry> Entries(LevelConfig config, BiomeCategory category)
@@ -1080,67 +1080,6 @@ public static partial class IslandBuilder
         }
 
         return placed;
-    }
-
-    static int PlaceCliff(LevelConfig config, Stage stage, Transform parent, System.Random random)
-    {
-        if (!config.hasCliff)
-        {
-            return 0;
-        }
-
-        BiomeEntry piece = null;
-        BiomeEntry[] entries = config.biome.entries;
-        for (int i = 0; i < entries.Length; i++)
-        {
-            if (entries[i] != null && entries[i].prefab != null && entries[i].category == BiomeCategory.SetPiece && entries[i].count > 0)
-            {
-                piece = entries[i];
-                break;
-            }
-        }
-
-        if (piece == null)
-        {
-            return 0;
-        }
-
-        float cliffAngle = (config.seed % 360) * Mathf.Deg2Rad;
-        Vector3 pos = Vector3.zero;
-        bool found = false;
-        for (float dist = 0.66f; dist >= 0.48f && !found; dist -= 0.04f)
-        {
-            for (int nudge = 0; nudge < 7 && !found; nudge++)
-            {
-                float angle = cliffAngle + (nudge - 3) * 0.08f;
-                float reach = config.islandRadius * dist;
-                float x = Mathf.Cos(angle) * reach;
-                float z = Mathf.Sin(angle) * reach;
-                float y = GroundY(stage.terrain, x, z);
-                if (y < stage.highWaterY + 0.5f)
-                {
-                    continue;
-                }
-
-                if (NearSpot(stage.beaconSpots, x, z, 4f))
-                {
-                    continue;
-                }
-
-                pos = new Vector3(x, y - 0.35f, z);
-                found = true;
-                cliffAngle = angle;
-            }
-        }
-
-        if (!found)
-        {
-            return 0;
-        }
-
-        Vector3 outward = new Vector3(Mathf.Cos(cliffAngle), 0f, Mathf.Sin(cliffAngle));
-        PlacePrefab(piece.prefab, parent, pos, Quaternion.LookRotation(outward, Vector3.up));
-        return 1;
     }
 
     static void PlaceMushrooms(LevelConfig config, ArtKit art, Stage stage, Transform parent, System.Random random)

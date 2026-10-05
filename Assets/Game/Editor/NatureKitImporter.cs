@@ -192,8 +192,7 @@ public static class NatureKitImporter
     // Poly Haven prefabs deliberately kept after a biome rebuild (prefab name -> reason).
     public static readonly Dictionary<string, string> AllowList = new Dictionary<string, string>
     {
-        // Island 2 set piece: no kit equivalent. Task 5 replaces it with rock cladding; drop this entry then.
-        { "namaqualand_cliff_01", "SetPiece cliff, replaced by cladding in Task 5" }
+        // Empty: the Island 2 cliff set piece was replaced by rock cladding (CliffCladding in IslandBuilder).
     };
 
     [MenuItem("Lantern Keeper/Nature/Rebuild Island 1 Biome")]
@@ -331,6 +330,22 @@ public static class NatureKitImporter
         int lowIndex = 0;
         int litterIndex = 0;
         StringBuilder log = new StringBuilder();
+        // Photo set pieces are replaced by rock cladding, so they leave the biome.
+        List<BiomeEntry> kept = new List<BiomeEntry>();
+        for (int i = 0; i < biome.entries.Length; i++)
+        {
+            if (biome.entries[i] != null && biome.entries[i].category != BiomeCategory.SetPiece)
+            {
+                kept.Add(biome.entries[i]);
+            }
+        }
+
+        if (kept.Count != biome.entries.Length)
+        {
+            biome.entries = kept.ToArray();
+            EditorUtility.SetDirty(biome);
+        }
+
         BiomeEntry[] entries = biome.entries;
         for (int i = 0; i < entries.Length; i++)
         {

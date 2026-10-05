@@ -211,17 +211,6 @@ MonoBehaviour:
     limitSlope: 0
     minSlope: 0
     maxSlope: 1
-  - prefab: {fileID: 3491633340987029951, guid: 158fb8d867aa67349830af700cd22fce, type: 3}
-    category: 7
-    count: 1
-    scaleRange: {x: 1, y: 1}
-    alignToSlope: 0
-    limitHeight: 0
-    minHeight: 0
-    maxHeight: 1
-    limitSlope: 0
-    minSlope: 0
-    maxSlope: 1
   - prefab: {fileID: 658689800778005190, guid: 8b0859def0a4bed4bbdd70886300ffa5, type: 3}
     category: 4
     count: 3
