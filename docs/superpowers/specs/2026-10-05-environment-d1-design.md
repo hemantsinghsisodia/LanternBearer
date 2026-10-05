@@ -120,3 +120,27 @@ A rewritten `LanternKeeper/Water`, keeping the same shader name and materials:
 - **D2:** cliff walls, rocks, trees, undergrowth, set pieces.
 - UI (Phases E and F).
 - Moths, Shades and beacons (Phase F).
+
+## Amendment (2026-10-05, after playtest): restore material colour
+
+**Feedback:** the D1 build looked monochrome. Every surface collapsed into one blue-grey, because surface colours were derived from the cool palette and forced "cool".
+
+**Decision (user chose option A):** the warm/cold rule applies to **lights**, not to material albedo. Materials keep natural hue families; the night comes from the cool, dim moonlight, fog and grading.
+
+**Material colours by surface:**
+
+| Surface | Colour |
+|---|---|
+| Grass, Island 1 | living green |
+| Grass, Island 2 | golden straw |
+| Grass, Island 3 | olive / reed green |
+| Grass, Island 4 | heath purple-brown |
+| Dirt paths | warm earthy brown |
+| Sand | pale tan |
+| Rock | neutral grey |
+| Moss | green |
+
+- **Saturation and value** are noticeably higher than the first D1 pass. Target the colourfulness of the pre-D1 look (`docs/look/baseline/2026-10-05-d1-before`), but painted, not photographic.
+- **Grass tips** keep a moonlit highlight. The root-to-tip gradient now runs within each island's grass hue, not toward blue.
+- **Water and ridges** stay as built. Water may gain slightly more saturation and swell contrast.
+- **Tests:** the "every surface colour is cool" assertions on ground and grass are removed. `IsCool` checks remain only for light, fog and rim colours.
