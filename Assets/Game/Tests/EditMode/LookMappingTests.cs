@@ -25,15 +25,29 @@ public class LookMappingTests
     }
 
     [Test]
-    public void AmbientStaysCoolForEveryIsland()
+    public void AmbientSkyIsCoolAndEquatorGroundAreNotWarm()
     {
         for (int i = 1; i <= 4; i++)
         {
             LookProfile p = Load(i);
             LookMapping.AmbientValues a = LookMapping.Ambient(p.sky, p.sea, p.land, p.ambientIntensity);
             Assert.IsTrue(LookMapping.IsCool(a.sky), "island" + i + " sky");
-            Assert.IsTrue(LookMapping.IsCool(a.equator), "island" + i + " equator");
-            Assert.IsTrue(LookMapping.IsCool(a.ground), "island" + i + " ground");
+            Assert.IsTrue(LookMapping.IsCool(a.equator), "island" + i + " equator not warm");
+            Assert.IsTrue(LookMapping.IsCool(a.ground), "island" + i + " ground not warm");
+        }
+    }
+
+    [Test]
+    public void EquatorAndGroundAmbientAreNearNeutral()
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            LookProfile p = Load(i);
+            LookMapping.AmbientValues a = LookMapping.Ambient(p.sky, p.sea, p.land, p.ambientIntensity);
+            Color.RGBToHSV(a.equator, out _, out float se, out _);
+            Color.RGBToHSV(a.ground, out _, out float sg, out _);
+            Assert.LessOrEqual(se, 0.35f, "island" + i + " equator saturation");
+            Assert.LessOrEqual(sg, 0.35f, "island" + i + " ground saturation");
         }
     }
 

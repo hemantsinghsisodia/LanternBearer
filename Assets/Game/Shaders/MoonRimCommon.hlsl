@@ -119,13 +119,14 @@ float RimAmount(float2 uv)
     float curvature = max(abs(dR + dL - 2.0 * d), abs(dU + dD - 2.0 * d)) / d;
     float confidence = 1.0 - smoothstep(0.02, 0.08, curvature);
 
+    // The slope (facing) term is kept low so terrain is not washed with the moon colour; the depth-edge term keeps cliffs and shores readable.
     // Moonlight leads: slopes that face the moon get the rim, and edges mostly appear on the moon side.
     float moonDot = dot(n, normalize(_LKMoonDir.xyz));
     float facing = smoothstep(0.55, 0.95, moonDot) * confidence;
     facing *= 1.0 - smoothstep(0.85, 1.0, n.y);
     edge *= lerp(0.15, 1.0, saturate(moonDot + 0.25));
 
-    return (facing * 0.3 + edge * _RimEdgeWeight) * fade * _RimGain;
+    return (facing * 0.1 + edge * _RimEdgeWeight) * fade * _RimGain;
 }
 
 float3 RimColour(float amount)

@@ -11,6 +11,7 @@ public class LookApplier : MonoBehaviour
 {
     [SerializeField] LookProfile profile;
     [SerializeField] Light moon;
+    Light skyFill;
     [SerializeField] Material skyMaterial;
 
     Material runtimeSky;
@@ -99,6 +100,23 @@ public class LookApplier : MonoBehaviour
             moon.intensity = LookMapping.MoonIntensity(profile.moonOn, profile.moonIntensity);
             moon.shadows = LightShadows.Soft;
             RenderSettings.sun = moon;
+        }
+
+        if (skyFill == null && Application.isPlaying)
+        {
+            foreach (Light l in FindObjectsByType<Light>(FindObjectsInactive.Include))
+            {
+                if (l.name == "SkyFill")
+                {
+                    skyFill = l;
+                    break;
+                }
+            }
+        }
+
+        if (skyFill != null)
+        {
+            skyFill.color = LookMapping.SkyFill();
         }
 
         LookMapping.AmbientValues ambient = LookMapping.Ambient(profile.sky, profile.sea, profile.land, profile.ambientIntensity);

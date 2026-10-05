@@ -8,6 +8,11 @@ public static class LookMapping
     public const float SkyAmbientScale = 1.6f;
     public const float EquatorAmbientScale = 1.4f;
     public const float GroundAmbientScale = 0.6f;
+    // Equator and ground ambient are pulled this far toward a neutral grey of the same luminance, so material colour reads at night.
+    public const float AmbientNeutralise = 0.65f;
+    public const float AmbientIntensityGain = 1.15f;
+    // The scene's directional sky fill was authored teal (0.35, 0.6, 0.62); it is pulled to a near-neutral cool so it does not tint the ground.
+    public static readonly Color SkyFillAuthored = new Color(0.35f, 0.6f, 0.62f);
     public const float HorizonBlend = 0.35f;
     public const float MoonOffIntensityCap = 0.12f;
     public const float CoolBlackThreshold = 0.04f;
@@ -46,10 +51,15 @@ public static class LookMapping
     {
         AmbientValues values;
         values.sky = Scale(sky, SkyAmbientScale);
-        values.equator = Scale(sea, EquatorAmbientScale);
-        values.ground = Scale(land, GroundAmbientScale);
-        values.intensity = ambientIntensity;
+        values.equator = Neutralise(Scale(sea, EquatorAmbientScale), AmbientNeutralise);
+        values.ground = Neutralise(Scale(land, GroundAmbientScale), AmbientNeutralise);
+        values.intensity = ambientIntensity * AmbientIntensityGain;
         return values;
+    }
+
+    public static Color SkyFill()
+    {
+        return Neutralise(SkyFillAuthored, AmbientNeutralise);
     }
 
     public static Color Horizon(Color sky, Color toward, float t = HorizonBlend)
@@ -172,6 +182,13 @@ public static class LookMapping
     public static Color OrDerived(Color authored, Color derived)
     {
         return authored.a == 0f ? derived : authored;
+    }
+
+    // Pulls a colour toward the grey of equal luminance. Never adds warmth: the result lies between the colour and its grey.
+    public static Color Neutralise(Color c, float amount)
+    {
+        float grey = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+        return new Color(Mathf.Lerp(c.r, grey, amount), Mathf.Lerp(c.g, grey, amount), Mathf.Lerp(c.b, grey, amount), 1f);
     }
 
     static Color Scale(Color c, float k)

@@ -20,7 +20,7 @@ public static class LookVolumeBuilder
     const float VignetteIntensity = LookMapping.LookVignette;
     const float VignetteSmoothness = 0.42f;
     const float GrainIntensity = 0.12f;
-    const float ShadowTint = 0.35f;
+    const float ShadowTint = 0.10f;
     const float Lift = 0.02f;
 
     public static string LookPath(string levelId)
@@ -114,7 +114,7 @@ public static class LookVolumeBuilder
         smh.highlights.Override(new Vector4(highlights.r, highlights.g, highlights.b, 0f));
 
         LiftGammaGain lgg = Component<LiftGammaGain>(profile);
-        lgg.lift.Override(new Vector4(0.94f, 0.97f, 1f, Lift));
+        lgg.lift.Override(new Vector4(0.98f, 0.99f, 1f, Lift));
         lgg.gamma.Override(new Vector4(1f, 1f, 1f, 0f));
         lgg.gain.Override(new Vector4(1f, 1f, 1f, 0f));
 
