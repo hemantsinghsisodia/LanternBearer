@@ -179,6 +179,161 @@ public static class NatureKitImporter
         Debug.Log("Nature kit import done: " + prefabCount + " prefabs (" + specs.Count + " per island).\n" + log);
     }
 
+    // Poly Haven prefabs deliberately kept after a biome rebuild (prefab name -> reason). Island 1 keeps none.
+    public static readonly Dictionary<string, string> AllowList = new Dictionary<string, string>();
+
+    [MenuItem("Lantern Keeper/Nature/Rebuild Island 1 Biome")]
+    public static void RebuildIsland1()
+    {
+        RebuildBiome("PineForest", "island1");
+    }
+
+    // Swaps every entry's prefab for a same-category nature-kit prefab of this island. Counts, categories and
+    // placement limits stay; scale ranges are brought near 1 because the kit meshes already carry real-world size.
+    public static void RebuildBiome(string biomeName, string levelId)
+    {
+        string path = "Assets/Game/Levels/Biomes/" + biomeName + ".asset";
+        Biome biome = AssetDatabase.LoadAssetAtPath<Biome>(path);
+        if (biome == null)
+        {
+            Debug.LogError("NatureKitImporter: missing biome " + path);
+            return;
+        }
+
+        string[] bushes = { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
+        string[] saplings = { "Sapling_Pine_1", "Sapling_CommonTree_1", "Sapling_Pine_2", "Sapling_CommonTree_2", "Sapling_TwistedTree_1" };
+        string[] trees = { "", "Pine_1", "Pine_3" };
+        string[] rocks = { "Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3" };
+        string[] deadwood = { "Deadwood_DeadTree_4", "Deadwood_DeadTree_5" };
+        string[] flowers = { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
+        string[] mushrooms = { "Mushroom_Common", "Mushroom_Laetiporus" };
+        string[] grasses = { "Grass_Common_Short", "Grass_Common_Tall", "Grass_Wispy_Short", "Grass_Wispy_Tall" };
+
+        Dictionary<BiomeCategory, int> counters = new Dictionary<BiomeCategory, int>();
+        int shrubIndex = 0;
+        int grassIndex = 0;
+        int mushroomIndex = 0;
+        int flowerIndex = 0;
+        StringBuilder log = new StringBuilder();
+        BiomeEntry[] entries = biome.entries;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            BiomeEntry entry = entries[i];
+            if (entry == null || entry.prefab == null)
+            {
+                continue;
+            }
+
+            string oldName = entry.prefab.name;
+            if (AllowList.ContainsKey(oldName))
+            {
+                continue;
+            }
+
+            int n;
+            counters.TryGetValue(entry.category, out n);
+            counters[entry.category] = n + 1;
+            string lower = oldName.ToLowerInvariant();
+            string model = null;
+            Vector2 scale = entry.scaleRange;
+            switch (entry.category)
+            {
+                case BiomeCategory.Tree:
+                    model = n < trees.Length ? trees[n] : "Pine_2";
+                    if (model == "")
+                    {
+                        model = LargestTree(levelId);
+                    }
+
+                    break;
+                case BiomeCategory.Sapling:
+                    model = saplings[shrubIndex++ % saplings.Length];
+                    break;
+                case BiomeCategory.Deadwood:
+                    model = deadwood[n % deadwood.Length];
+                    break;
+                case BiomeCategory.Rock:
+                    model = rocks[n % rocks.Length];
+                    if (scale.x > 3f)
+                    {
+                        scale = new Vector2(2.7f, 3.3f);
+                    }
+                    else if (scale.x > 1.5f)
+                    {
+                        scale = new Vector2(1.8f, 2.3f);
+                    }
+
+                    break;
+                case BiomeCategory.Undergrowth:
+                    model = lower.Contains("fern") ? "Fern_1" : bushes[shrubIndex++ % bushes.Length];
+                    break;
+                case BiomeCategory.Flower:
+                    model = flowers[flowerIndex++ % flowers.Length];
+                    break;
+                case BiomeCategory.GroundCover:
+                    if (lower.Contains("moss"))
+                    {
+                        model = mushrooms[mushroomIndex++ % mushrooms.Length];
+                    }
+                    else if (lower.Contains("periwinkle"))
+                    {
+                        model = "Clover_1";
+                    }
+                    else
+                    {
+                        model = grasses[grassIndex++ % grasses.Length];
+                    }
+
+                    break;
+            }
+
+            if (model == null)
+            {
+                continue;
+            }
+
+            string prefabPath = PrefabRoot + "/" + entry.category + "/Nature_" + model + "_" + levelId + ".prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogWarning("NatureKitImporter: no prefab " + prefabPath + " for " + oldName);
+                continue;
+            }
+
+            if (entry.category != BiomeCategory.Rock && scale.x > 1.1f)
+            {
+                scale = new Vector2(0.9f, 1.15f);
+            }
+
+            entry.prefab = prefab;
+            entry.scaleRange = scale;
+            log.AppendLine(entry.category + ": " + oldName + " -> " + prefab.name + " x" + entry.count + " scale " + scale.x.ToString("0.00") + "-" + scale.y.ToString("0.00"));
+        }
+
+        EditorUtility.SetDirty(biome);
+        AssetDatabase.SaveAssets();
+        Debug.Log("NatureKitImporter: rebuilt " + biomeName + "\n" + log);
+    }
+
+    static string LargestTree(string levelId)
+    {
+        string[] candidates = { "Pine_1", "Pine_2", "Pine_3", "Pine_4", "CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "TwistedTree_1", "TwistedTree_2", "TwistedTree_3" };
+        string best = "Pine_2";
+        float height = 0f;
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabRoot + "/Tree/Nature_" + candidates[i] + "_" + levelId + ".prefab");
+            MeshFilter filter = prefab != null ? prefab.GetComponentInChildren<MeshFilter>() : null;
+            if (filter != null && filter.sharedMesh != null && filter.sharedMesh.bounds.size.y > height)
+            {
+                height = filter.sharedMesh.bounds.size.y;
+                best = candidates[i];
+            }
+        }
+
+        return best;
+    }
+
     static void CopySources(List<Spec> specs)
     {
         EnsureFolder(ModelRoot);

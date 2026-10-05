@@ -851,7 +851,7 @@ public static partial class IslandBuilder
                 continue;
             }
 
-            bool moss = prefabName.Contains("moss");
+            bool moss = prefabName.Contains("moss") || prefabName.Contains("mushroom");
             bool flower = entry.category == BiomeCategory.Flower;
             prototypes.Add(MeshDetail(entry.prefab, entry.scaleRange.x, entry.scaleRange.y, namaqualand));
             int[,] map = new int[detailRes, detailRes];
@@ -948,12 +948,12 @@ public static partial class IslandBuilder
 
     static bool HiddenUnderCarpet(string prefabName)
     {
-        if (prefabName.Contains("moss"))
+        if (prefabName.Contains("moss") || prefabName.Contains("mushroom"))
         {
             return false;
         }
 
-        if (prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel") || prefabName.Contains("weed_plant") || prefabName.Contains("grasstuft"))
+        if (prefabName.Contains("nature_grass") || prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel") || prefabName.Contains("weed_plant") || prefabName.Contains("grasstuft"))
         {
             return true;
         }
