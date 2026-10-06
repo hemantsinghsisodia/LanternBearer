@@ -116,3 +116,15 @@ Replace the photo-scanned Poly Haven props and the stretched terrain cliff faces
 - UI (Phase E).
 - New animations.
 - Terrain shape changes.
+
+## Amendment (2026-10-06, after the cladding fix round): rock-wall shading
+**Finding:** rock meshes cannot cover cliff walls that border trails, beacon rings or rim walkways without intruding on walkable ground. The stretched terrain texture still shows there.
+
+**Decision (user chose "rocks + rock-wall shading"):** keep the cladding rocks, and add **rock-wall shading** to the terrain.
+- A project copy of URP `Terrain/Lit`, named `LanternKeeper/TerrainLit`, used by every island and the menu terrain material.
+- On steep faces (normal.y below about cos 50°, blended over about 10°) the splat result is replaced by the island's rock layer, sampled **triplanar** (world XZ-projected from the side), so it has no vertical stretching.
+- The flat-ground look is unchanged.
+- Holes, the basemap/distance pass, instancing and Low are kept. Low uses a 2-sample (dominant-axis) projection.
+- **Unchanged:** terrain data (heights, alphamaps, holes, details) stays byte-identical. This is shading only.
+- **Validation:** Validate Scene Wiring checks that each island terrain uses `LanternKeeper/TerrainLit`. Cliff screenshots show no vertical stripes beside trails.
+- Performance stays within Ultra ≤ 12.5 ms.
