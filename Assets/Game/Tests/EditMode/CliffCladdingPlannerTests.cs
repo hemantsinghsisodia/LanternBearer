@@ -98,7 +98,10 @@ public class CliffCladdingPlannerTests
         Assert.Greater(rocks.Count, 0);
         for (int i = 0; i < rocks.Count; i++)
         {
-            Assert.LessOrEqual(rocks[i].position.y, Top - 0.3f, "rock " + i);
+            Assert.LessOrEqual(rocks[i].position.y, Top - 0.3f, "rock base " + i);
+            // The top of the rock (base plus scaled height) may overhang the rim by RimOverhang at most, plus a small tolerance.
+            float rockTop = rocks[i].position.y + rocks[i].scale * CliffCladdingPlanner.HeightPerScale;
+            Assert.LessOrEqual(rockTop, Top + CliffCladdingPlanner.RimOverhang + 0.05f, "rock top " + i);
         }
     }
 

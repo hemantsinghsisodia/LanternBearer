@@ -93,5 +93,42 @@ public class NaturePaletteTests
             }
         }
     }
+
+    const string MaterialPath = "Assets/Game/Art/Environment/Nature/Materials/Nature_";
+
+    static Material LoadMaterial(string kind, int island)
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath + kind + "_island" + island + ".mat");
+        Assert.IsNotNull(material, "missing material " + kind + " island" + island);
+        return material;
+    }
+
+    [Test]
+    public void GeneratedTreeLeavesDifferFromBushesOnIsland4()
+    {
+        Material tree = LoadMaterial("LeavesNormal", 4);
+        Material bush = LoadMaterial("LeavesBush", 4);
+        Color treeTint = tree.GetColor("_BaseColor");
+        Color bushTint = bush.GetColor("_BaseColor");
+        Assert.GreaterOrEqual(HueDistance(treeTint, bushTint), 0.15f, "island4 tree leaf material must differ in hue from the bush material");
+        Assert.Greater(Hue(treeTint), 0.1f, "island4 tree leaf tint is green-brown");
+        Assert.Less(Hue(treeTint), 0.4f, "island4 tree leaf tint is green-brown");
+        Color.RGBToHSV(treeTint, out float h, out float saturation, out float value);
+        Assert.Less(saturation, 0.45f, "island4 tree leaf tint is muted");
+        Assert.Less(value, 0.35f, "island4 tree leaf tint is dark");
+        // The leaf texture is ochre; trees drop most of it so the muted tint decides the colour, bushes keep the purple look.
+        Assert.GreaterOrEqual(tree.GetFloat("_Desaturate"), 0.5f, "island4 tree leaves desaturate the leaf texture");
+        Assert.AreEqual(0f, bush.GetFloat("_Desaturate"), 0.001f, "island4 bushes keep the leaf texture");
+        string[] other = { "LeavesPine", "LeavesTwisted" };
+        for (int i = 0; i < other.Length; i++)
+        {
+            Assert.GreaterOrEqual(LoadMaterial(other[i], 4).GetFloat("_Desaturate"), 0.5f, other[i] + " island4");
+        }
+
+        for (int island = 1; island <= 3; island++)
+        {
+            Assert.AreEqual(0f, LoadMaterial("LeavesNormal", island).GetFloat("_Desaturate"), 0.001f, "island" + island + " tree leaves are untouched");
+        }
+    }
 }
 }

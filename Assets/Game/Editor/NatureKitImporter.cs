@@ -41,6 +41,8 @@ public static class NatureKitImporter
         "Flowers", "Grass", "Leaf_Pine", "Leaves", "Leaves_NormalTree", "Leaves_TwistedTree", "Mushrooms", "PathRocks_Diffuse", "Rocks_Diffuse"
     };
 
+    // Share of the leaf texture's colour replaced by its luminance on tree leaves of an island with its own treeFoliage.
+    public const float TreeDesaturate = 0.8f;
     const string BushLeafKey = "Leaves_TwistedTree_Bush";
 
     static Spec Tree(string model)
@@ -657,14 +659,21 @@ public static class NatureKitImporter
         Dictionary<string, Material> map = new Dictionary<string, Material>();
         Color leaf = Opaque(profile.foliage);
         Color treeLeaf = Opaque(LookMapping.OrDerived(profile.treeFoliage, profile.foliage));
+        if (profile.treeFoliage.a > 0f)
+        {
+            treeLeaf = MutedTreeTint(treeLeaf);
+        }
+
         Color pine = Scale(treeLeaf, 0.82f);
         Color twisted = Scale(treeLeaf, 0.95f);
+        // An island that authors its own tree colour (Island 4) drops the leaf texture's ochre, so the tint alone decides the hue.
+        float treeDesaturate = profile.treeFoliage.a > 0f ? TreeDesaturate : 0f;
         Color plant = Scale(leaf, 1.08f);
         Color grass = Color.Lerp(Scale(leaf, 1.12f), Color.white, 0.12f);
 
-        map["Leaves_NormalTree"] = Foliage(id, "LeavesNormal", foliage, "Leaves_NormalTree", treeLeaf, 0f, 4f, 0.12f);
-        map["Leaves_Pine"] = Foliage(id, "LeavesPine", foliage, "Leaf_Pine", pine, 0f, 4f, 0.09f);
-        map["Leaves_TwistedTree"] = Foliage(id, "LeavesTwisted", foliage, "Leaves_TwistedTree", twisted, 0f, 4f, 0.1f);
+        map["Leaves_NormalTree"] = Foliage(id, "LeavesNormal", foliage, "Leaves_NormalTree", treeLeaf, treeDesaturate, 4f, 0.12f);
+        map["Leaves_Pine"] = Foliage(id, "LeavesPine", foliage, "Leaf_Pine", pine, treeDesaturate, 4f, 0.09f);
+        map["Leaves_TwistedTree"] = Foliage(id, "LeavesTwisted", foliage, "Leaves_TwistedTree", twisted, treeDesaturate, 4f, 0.1f);
         // Bush_Common models use the TwistedTree leaf texture, but a bush takes the island foliage tint, not the tree tint.
         map[BushLeafKey] = Foliage(id, "LeavesBush", foliage, "Leaves_TwistedTree", Scale(leaf, 0.95f), 0f, 4f, 0.1f);
         map["Leaves"] = Foliage(id, "LeavesPlant", foliage, "Leaves", plant, 1f, 1f, 0.05f);
@@ -681,6 +690,14 @@ public static class NatureKitImporter
         map["PathRocks"] = Lit(id, "Pebble", lit, GreyPath("PathRocks_Diffuse"), null, rock, 0.12f);
         map["Mushrooms"] = Lit(id, "Mushroom", lit, TextureRoot + "/Mushrooms.png", null, Color.white, 0.2f);
         return map;
+    }
+
+    // The warm lantern multiplies the red channel up and the green and blue down, so a yellow-green tint reads ochre. A green tint with a
+    // little saturation, darkened, comes out as a dark muted green-brown under the lantern (and stays green-grey in moonlight).
+    public static Color MutedTreeTint(Color tint)
+    {
+        Color.RGBToHSV(tint, out _, out _, out float v);
+        return Color.HSVToRGB(0.33f, 0.4f, v * 0.85f);
     }
 
     static Material Foliage(string id, string kind, Shader shader, string texture, Color tint, float desaturate, float swayHeight, float swayAmount)
