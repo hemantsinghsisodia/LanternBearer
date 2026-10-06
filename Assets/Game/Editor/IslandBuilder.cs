@@ -1650,27 +1650,14 @@ public static partial class IslandBuilder
         }
 
         menuObject.ApplyModifiedPropertiesWithoutUndo();
-        RectTransform panel = MakeRect(canvasObject.transform, "Panel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
-        panel.pivot = new Vector2(0f, 0.5f);
-        Image panelImage = panel.gameObject.AddComponent<Image>();
-        panelImage.sprite = art.uiSprite;
-        panelImage.color = new Color(0.03f, 0.04f, 0.07f, 0.72f);
-        MakeText(panel, "Title", "Lantern Keeper", 58, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 80f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
-        MakeText(panel, "Subtitle", "Light the beacons before the flame dies.", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(460f, 40f), new Color(0.8f, 0.86f, 0.9f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, MenuPlayY));
-        MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, MenuPlayY - 62f));
-        MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, MenuPlayY - 124f));
-        MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, MenuPlayY - 186f));
-        MakeButton(art, panel, "LogButton", "Keeper's Log", new Vector2(0f, MenuPlayY - 248f));
-        for (int i = 0; i < levels.Length; i++)
-        {
-            MakeButton(art, panel, levels[i].sceneName + "Button", levels[i].displayName, new Vector2(MenuLevelButtonX, MenuLevelY(i)), new Vector2(MenuLevelButtonWidth, 44f));
-            MakeText(panel, "Best" + levels[i].sceneName, "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(MenuBestX, MenuLevelY(i)), new Vector2(160f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        }
-
-        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, MenuQuitY));
+        // The actions and island list live in the MainMenuScreen prefab; the legacy log view and graphics panel stay until later tasks.
+        RectTransform legacyMatch = MakeRect(canvasObject.transform, "LegacyMatch", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
+        legacyMatch.pivot = new Vector2(0f, 0.5f);
+        legacyMatch.gameObject.AddComponent<Image>().sprite = art.uiSprite;
         CreateLogPanel(art, canvasObject.transform, font);
-        CreateLegacyGraphics(art, canvasObject.transform, panel);
+        CreateLegacyGraphics(art, canvasObject.transform, legacyMatch);
+        Object.DestroyImmediate(legacyMatch.gameObject);
+        UIBuilder.InstallMainMenuInActiveScene();
         UIBuilder.InstallSettingsInActiveScene();
     }
 
@@ -2365,7 +2352,7 @@ public static partial class IslandBuilder
     static void PatchActiveSceneGraphics()
     {
         MainMenu menu = Object.FindAnyObjectByType<MainMenu>();
-        if (menu != null)
+        if (menu != null && menu.GetComponentInChildren<MainMenuScreen>(true) == null)
         {
             PatchMainMenu(menu);
         }

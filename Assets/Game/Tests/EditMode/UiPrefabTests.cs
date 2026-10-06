@@ -9,6 +9,7 @@ namespace LanternKeeper.Tests
 public class UiPrefabTests
 {
     const string SettingsPath = "Assets/Game/Prefabs/UI/SettingsScreen.prefab";
+    const string MenuPath = "Assets/Game/Prefabs/UI/MainMenuScreen.prefab";
     const string ThemePath = "Assets/Game/Art/UI/UITheme.asset";
 
     [TearDown]
@@ -83,6 +84,79 @@ public class UiPrefabTests
         {
             Assert.Contains(text.font, allowed, "theme font on " + text.name);
         }
+    }
+
+    [Test]
+    public void MainMenuScreenWired()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MenuPath);
+        Assert.IsNotNull(prefab, "MainMenuScreen prefab is missing; run Lantern Keeper > Build UI");
+        Type screenType = Type.GetType("LanternKeeper.MainMenuScreen, Assembly-CSharp");
+        Type listType = Type.GetType("LanternKeeper.IslandList, Assembly-CSharp");
+        Assert.IsNotNull(screenType);
+        Assert.IsNotNull(listType);
+        Component screen = prefab.GetComponent(screenType);
+        Assert.IsNotNull(screen, "MainMenuScreen on the root");
+        Assert.IsNotNull(prefab.GetComponent<TextScaler>());
+
+        SerializedObject so = new SerializedObject(screen);
+        string[] names = { "playButton", "logButton", "settingsButton", "quitButton" };
+        string[] texts = { "Play", "Keeper's Log", "Settings", "Quit" };
+        for (int i = 0; i < names.Length; i++)
+        {
+            ThemedButton button = so.FindProperty(names[i]).objectReferenceValue as ThemedButton;
+            Assert.IsNotNull(button, names[i]);
+            Assert.AreEqual(i == 0, button.Primary, names[i] + " primary");
+            Assert.AreEqual(texts[i], button.Label.Text.text);
+        }
+        Assert.AreSame(so.FindProperty("playButton").objectReferenceValue, so.FindProperty("firstSelected").objectReferenceValue, "firstSelected is Play");
+
+        Component list = prefab.GetComponentInChildren(listType, true);
+        Assert.IsNotNull(list, "IslandList");
+        SerializedObject listObject = new SerializedObject(list);
+        SerializedProperty rows = listObject.FindProperty("rows");
+        Assert.AreEqual(4, rows.arraySize, "4 island rows");
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.IsNotNull(rows.GetArrayElementAtIndex(i).objectReferenceValue, "row " + i);
+        }
+
+        SwitchRow[] switches = prefab.GetComponentsInChildren<SwitchRow>(true);
+        Assert.AreEqual(1, switches.Length, "one switch row");
+        Assert.AreEqual(new[] { "Easy", "Normal", "Hard" }, switches[0].Options);
+        Assert.AreSame(switches[0], so.FindProperty("difficultyRow").objectReferenceValue);
+
+        string all = "";
+        foreach (TMP_Text text in prefab.GetComponentsInChildren<TMP_Text>(true))
+        {
+            all += text.text + "|";
+        }
+        StringAssert.Contains("Lantern Keeper", all);
+        StringAssert.Contains("Light the beacons before the flame dies.", all);
+        StringAssert.Contains("Islands", all);
+
+        UITheme theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
+        TMP_FontAsset[] allowed = { theme.titleFont, theme.flavourFont, theme.uiFont, theme.uiFontStrong };
+        foreach (TMP_Text text in prefab.GetComponentsInChildren<TMP_Text>(true))
+        {
+            Assert.Contains(text.font, allowed, "theme font on " + text.name);
+        }
+    }
+
+    [Test]
+    public void IslandListMaths()
+    {
+        Type listType = Type.GetType("LanternKeeper.IslandList, Assembly-CSharp");
+        Assert.IsNotNull(listType);
+        System.Reflection.MethodInfo amber = listType.GetMethod("AmberRoofs");
+        System.Reflection.MethodInfo latest = listType.GetMethod("LatestUnlocked");
+        Assert.AreEqual(3, amber.Invoke(null, new object[] { 3, 5 }));
+        Assert.AreEqual(5, amber.Invoke(null, new object[] { 9, 5 }), "capped at the beacon count");
+        Assert.AreEqual(0, amber.Invoke(null, new object[] { 4, 0 }), "no beacons, no amber roofs");
+        Assert.AreEqual(0, amber.Invoke(null, new object[] { -1, 5 }));
+        Assert.AreEqual(2, latest.Invoke(null, new object[] { new[] { true, true, true, false } }));
+        Assert.AreEqual(0, latest.Invoke(null, new object[] { new[] { true, false, false, false } }));
+        Assert.AreEqual(0, latest.Invoke(null, new object[] { new[] { false, false } }), "falls back to the first island");
     }
 }
 }

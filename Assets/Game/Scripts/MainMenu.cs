@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -15,24 +14,13 @@ public class MainMenu : MonoBehaviour
 
     [SerializeField] LevelConfig[] levels = new LevelConfig[0];
 
-    Button[] menuTab = new Button[0];
-    Button[] levelButtons = new Button[0];
-    Text[] bestLabels = new Text[0];
-    Button playButton;
-    Button difficultyButton;
-    Button musicButton;
-    Button graphicsButton;
-    Button logButton;
     Button logBackButton;
-    Button quitButton;
-    GameObject column;
     GameObject logPanel;
     Text logBody;
     ScrollRect logScroll;
-    GraphicsMenu graphicsMenu;
-    SettingsScreen settingsScreen;
+    MainMenuScreen screen;
 
-    int LevelCount
+    public int LevelCount
     {
         get { return levels != null && levels.Length > 0 ? levels.Length : FallbackIds.Length; }
     }
@@ -67,100 +55,44 @@ public class MainMenu : MonoBehaviour
         return FallbackNames[index];
     }
 
+    // Beacons on the island, from its LevelConfig. A level with no config shows no roofs.
+    int BeaconCount(int index)
+    {
+        if (levels != null && levels.Length > 0 && levels[index] != null)
+        {
+            return Mathf.Max(0, levels[index].beaconCount);
+        }
+
+        return 0;
+    }
+
+    // Everything one island row shows.
+    public IslandInfo Info(int index)
+    {
+        IslandInfo info = new IslandInfo();
+        info.name = DisplayName(index);
+        info.beacons = BeaconCount(index);
+        info.found = GameSettings.GetLogCount(LevelId(index));
+        info.bestTime = GameSettings.GetBestTime(LevelId(index));
+        info.unlocked = GameSettings.IsLevelUnlocked(LevelId(index));
+        return info;
+    }
+
     void OnEnable()
     {
         Cache();
-        Listen(playButton, Play);
-        Listen(difficultyButton, Cycle);
-        Listen(musicButton, ToggleMusic);
-        Listen(graphicsButton, OpenGraphics);
-        Listen(logButton, OpenLog);
         Listen(logBackButton, CloseLog);
-        Listen(quitButton, QuitGame);
-        for (int i = 0; i < levelButtons.Length; i++)
-        {
-            int index = i;
-            if (levelButtons[i] != null)
-            {
-                levelButtons[i].onClick.RemoveAllListeners();
-                levelButtons[i].onClick.AddListener(() => PlayLevel(index));
-            }
-        }
-
-        Refresh();
-        GraphicsMenu.Select(playButton);
+        RefreshLog();
     }
 
     void Cache()
     {
-        playButton = FindButton("PlayButton");
-        difficultyButton = FindButton("DifficultyButton");
-        musicButton = FindButton("MusicButton");
-        graphicsButton = FindButton("GraphicsButton");
-        logButton = FindButton("LogButton");
         logBackButton = FindButton("LogBackButton");
-        quitButton = FindButton("QuitButton");
-        int count = LevelCount;
-        levelButtons = new Button[count];
-        bestLabels = new Text[count];
-        for (int i = 0; i < count; i++)
-        {
-            string scene = SceneName(i);
-            levelButtons[i] = FindButton(scene + "Button");
-            bestLabels[i] = FindText("Best" + scene);
-        }
-
-        Transform panel = transform.Find("Panel");
-        column = panel != null ? panel.gameObject : null;
         Transform log = transform.Find("LogPanel");
         logPanel = log != null ? log.gameObject : null;
         logBody = FindText("LogBody");
         logScroll = logPanel != null ? logPanel.GetComponentInChildren<ScrollRect>(true) : null;
-        graphicsMenu = GetComponent<GraphicsMenu>();
-        Transform settingsHost = transform.Find("SettingsScreen");
-        settingsScreen = settingsHost != null ? settingsHost.GetComponent<SettingsScreen>() : null;
-        List<Button> order = new List<Button>();
-        order.Add(playButton);
-        order.Add(difficultyButton);
-        order.Add(musicButton);
-        order.Add(graphicsButton);
-        order.Add(logButton);
-        for (int i = 0; i < levelButtons.Length; i++)
-        {
-            order.Add(levelButtons[i]);
-        }
-
-        order.Add(quitButton);
-        menuTab = order.ToArray();
-        LinkColumn();
-    }
-
-    void Refresh()
-    {
-        if (difficultyButton != null)
-        {
-            SetLabel(difficultyButton, "Difficulty: " + GameSettings.Current);
-        }
-
-        RefreshMusicLabel();
-
-        for (int i = 0; i < levelButtons.Length; i++)
-        {
-            if (bestLabels[i] != null)
-            {
-                bestLabels[i].text = "Best " + GameManager.FormatTime(GameSettings.GetBestTime(LevelId(i)));
-            }
-
-            if (levelButtons[i] != null)
-            {
-                bool unlocked = GameSettings.IsLevelUnlocked(LevelId(i));
-                levelButtons[i].interactable = unlocked;
-                SetLabel(levelButtons[i], unlocked ? DisplayName(i) : DisplayName(i) + " (Locked)");
-            }
-        }
-
-        RefreshLog();
-        LinkColumn();
+        screen = GetComponentInChildren<MainMenuScreen>(true);
     }
 
     void RefreshLog()
@@ -205,54 +137,7 @@ public class MainMenu : MonoBehaviour
         logBody.text = builder.ToString();
     }
 
-    void LinkColumn()
-    {
-        Button previous = null;
-        for (int i = 0; i < menuTab.Length; i++)
-        {
-            Button button = menuTab[i];
-            if (button == null || !button.interactable)
-            {
-                continue;
-            }
-
-            ColorBlock colors = button.colors;
-            colors.selectedColor = colors.highlightedColor;
-            button.colors = colors;
-            Navigation navigation = button.navigation;
-            navigation.mode = Navigation.Mode.Explicit;
-            navigation.selectOnUp = previous;
-            navigation.selectOnDown = null;
-            navigation.selectOnLeft = null;
-            navigation.selectOnRight = null;
-            button.navigation = navigation;
-            if (previous != null)
-            {
-                Navigation up = previous.navigation;
-                up.selectOnDown = button;
-                previous.navigation = up;
-            }
-
-            previous = button;
-        }
-
-        if (previous != null && playButton != null && playButton.interactable && previous != playButton)
-        {
-            Navigation bottom = previous.navigation;
-            bottom.selectOnDown = playButton;
-            previous.navigation = bottom;
-            Navigation top = playButton.navigation;
-            top.selectOnUp = previous;
-            playButton.navigation = top;
-        }
-    }
-
-    void Play()
-    {
-        PlayLevel(0);
-    }
-
-    void PlayLevel(int index)
+    public void PlayLevel(int index)
     {
         if (index < 0 || index >= LevelCount)
         {
@@ -275,17 +160,9 @@ public class MainMenu : MonoBehaviour
 
     void Update()
     {
-        RefreshMusicLabel();
         if (logPanel != null && logPanel.activeSelf)
         {
             HandleLogKeys();
-            return;
-        }
-
-        bool settingsOpen = settingsScreen != null && settingsScreen.gameObject.activeSelf;
-        if (column != null && column.activeSelf && !settingsOpen && (graphicsMenu == null || !graphicsMenu.IsOpen))
-        {
-            GraphicsMenu.HandleTab(menuTab);
         }
     }
 
@@ -324,7 +201,8 @@ public class MainMenu : MonoBehaviour
         }
     }
 
-    void OpenLog()
+    // Shows the existing log presentation until the Keeper's Log book arrives.
+    public void OpenLog()
     {
         if (logPanel == null)
         {
@@ -332,9 +210,9 @@ public class MainMenu : MonoBehaviour
         }
 
         RefreshLog();
-        if (column != null)
+        if (screen != null)
         {
-            column.SetActive(false);
+            screen.SetPanelVisible(false);
         }
 
         logPanel.SetActive(true);
@@ -353,78 +231,14 @@ public class MainMenu : MonoBehaviour
             logPanel.SetActive(false);
         }
 
-        if (column != null)
+        if (screen != null)
         {
-            column.SetActive(true);
-        }
-
-        GraphicsMenu.Select(logButton);
-    }
-
-    void OpenGraphics()
-    {
-        // Temporary until the menu is rebuilt: the Graphics button opens the new Settings screen when the scene has one.
-        SettingsScreen settings = settingsScreen;
-        if (settings != null)
-        {
-            if (column != null)
-            {
-                column.SetActive(false);
-            }
-
-            settings.Open(graphicsButton, CloseGraphics);
-            return;
-        }
-
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = GetComponent<GraphicsMenu>();
-        }
-
-        if (graphicsMenu == null)
-        {
-            return;
-        }
-
-        if (column != null)
-        {
-            column.SetActive(false);
-        }
-
-        graphicsMenu.Open(CloseGraphics);
-    }
-
-    void CloseGraphics()
-    {
-        if (column != null)
-        {
-            column.SetActive(true);
-        }
-
-        GraphicsMenu.Select(graphicsButton);
-    }
-
-    void ToggleMusic()
-    {
-        MusicPlayer.ToggleMute();
-        RefreshMusicLabel();
-    }
-
-    void RefreshMusicLabel()
-    {
-        if (musicButton != null)
-        {
-            SetLabel(musicButton, MusicPlayer.IsMuted ? "Music: Off" : "Music: On");
+            screen.SetPanelVisible(true);
+            screen.FocusLog();
         }
     }
 
-    void Cycle()
-    {
-        GameSettings.CycleDifficulty();
-        Refresh();
-    }
-
-    void QuitGame()
+    public void QuitGame()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -442,15 +256,6 @@ public class MainMenu : MonoBehaviour
 
         button.onClick.RemoveListener(action);
         button.onClick.AddListener(action);
-    }
-
-    static void SetLabel(Button button, string value)
-    {
-        Text label = button.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = value;
-        }
     }
 
     Button FindButton(string objectName)

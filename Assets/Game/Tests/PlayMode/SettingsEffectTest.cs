@@ -317,7 +317,7 @@ public class SettingsEffectTest
         System.Type st = Game("SettingsScreen");
         Component screen = (Component)Object.FindAnyObjectByType(st, FindObjectsInactive.Include);
         Assert.IsNotNull(screen, "SettingsScreen in MainMenu");
-        Button opener = Named(Object.FindAnyObjectByType<Canvas>().transform, "GraphicsButton").GetComponent<Button>();
+        Button opener = Named(Object.FindAnyObjectByType<Canvas>().transform, "SettingsButton").GetComponent<Button>();
         bool closedCalled = false;
         st.GetMethod("Open").Invoke(screen, new object[] { opener, (System.Action)(() => closedCalled = true) });
         Assert.IsTrue((bool)st.GetProperty("IsOpen").GetValue(screen));

@@ -17,6 +17,7 @@ public static partial class UIBuilder
     public static void BuildAll()
     {
         BuildSettingsScreen();
+        BuildMainMenuScreen();
     }
 
     public static UITheme LoadTheme()
