@@ -67,8 +67,8 @@ public class KeepersLogScreen : MonoBehaviour
         MainMenu menu = GetComponentInParent<MainMenu>();
         gameObject.SetActive(true);
         transform.SetAsLastSibling();
-        Populate(menu != null ? menu.LogIslands() : new IslandLog[0]);
-        LinkNavigation();
+        ResetFade();
+        Populate(menu != null ? menu.LogIslands() : islands);
         Select(firstSelected != null && firstSelected.interactable ? firstSelected : closeButton);
     }
 
@@ -76,8 +76,22 @@ public class KeepersLogScreen : MonoBehaviour
     public void Populate(IslandLog[] source)
     {
         islands = source ?? new IslandLog[0];
-        Repaginate(0);
+        Repaginate(0, null);
         Show(false);
+    }
+
+    // Stops any page-turn fade and leaves the pages fully visible.
+    private void ResetFade()
+    {
+        if (turning != null)
+        {
+            StopCoroutine(turning);
+            turning = null;
+        }
+        if (spread != null && spread.Pages != null)
+        {
+            spread.Pages.alpha = 1f;
+        }
     }
 
     public void Close()
@@ -86,6 +100,7 @@ public class KeepersLogScreen : MonoBehaviour
         {
             return;
         }
+        ResetFade();
         gameObject.SetActive(false);
         Selectable back = opener;
         Action callback = onClosed;
@@ -154,7 +169,7 @@ public class KeepersLogScreen : MonoBehaviour
             closeButton.onClick.RemoveListener(Close);
         }
         UserSettings.Changed -= OnSettingsChanged;
-        turning = null;
+        ResetFade();
     }
 
     private void Update()
@@ -198,11 +213,24 @@ public class KeepersLogScreen : MonoBehaviour
         {
             scaler.Reapply();
         }
-        Repaginate(views[Mathf.Clamp(spreadIndex, 0, views.Count - 1)].island);
+        View current = views[Mathf.Clamp(spreadIndex, 0, views.Count - 1)];
+        Repaginate(current.island, Anchor(current.text.left));
         Show(false);
     }
 
-    private void Repaginate(int keepIsland)
+    // The start of the page's first line: enough to find the same text again after the pages are re-cut.
+    private static string Anchor(string leftPage)
+    {
+        if (string.IsNullOrEmpty(leftPage))
+        {
+            return null;
+        }
+        int end = leftPage.IndexOf((char)10);
+        string line = end >= 0 ? leftPage.Substring(0, end) : leftPage;
+        return line.Length > 24 ? line.Substring(0, 24) : line;
+    }
+
+    private void Repaginate(int keepIsland, string anchor)
     {
         float width;
         float height;
@@ -235,10 +263,22 @@ public class KeepersLogScreen : MonoBehaviour
             }
             capacity = Mathf.Max(16, Mathf.FloorToInt(capacity * 0.9f));
         }
+        // Stay on the island, on the first spread that holds the text that was at the top of the page.
         spreadIndex = 0;
+        bool islandFound = false;
         for (int i = 0; i < views.Count; i++)
         {
-            if (views[i].island == keepIsland)
+            if (views[i].island != keepIsland)
+            {
+                continue;
+            }
+            if (!islandFound)
+            {
+                spreadIndex = i;
+                islandFound = true;
+            }
+            if (!string.IsNullOrEmpty(anchor)
+                && (views[i].text.left.Contains(anchor) || views[i].text.right.Contains(anchor)))
             {
                 spreadIndex = i;
                 break;
@@ -290,6 +330,9 @@ public class KeepersLogScreen : MonoBehaviour
         if (views.Count == 0)
         {
             spread.SetSpread("", "", "", "");
+            SetInteractable(spread.PrevButton, false);
+            SetInteractable(spread.NextButton, false);
+            LinkNavigation();
             return;
         }
         View view = views[spreadIndex];
@@ -299,14 +342,9 @@ public class KeepersLogScreen : MonoBehaviour
             left = "No pages are kept for this island.";
         }
         spread.SetSpread(view.header, view.sub, left, view.text.right);
-        if (spread.PrevButton != null)
-        {
-            spread.PrevButton.interactable = spreadIndex > 0;
-        }
-        if (spread.NextButton != null)
-        {
-            spread.NextButton.interactable = spreadIndex < views.Count - 1;
-        }
+        SetInteractable(spread.PrevButton, spreadIndex > 0);
+        SetInteractable(spread.NextButton, spreadIndex < views.Count - 1);
+        LinkNavigation();
         EventSystem system = EventSystem.current;
         if (system != null && system.currentSelectedGameObject != null)
         {
@@ -326,22 +364,47 @@ public class KeepersLogScreen : MonoBehaviour
         }
     }
 
-    // Left and Right belong to page turning, so the three buttons chain up and down only.
+    private static void SetInteractable(Selectable button, bool on)
+    {
+        if (button != null)
+        {
+            button.interactable = on;
+        }
+    }
+
+    // Left and Right belong to page turning, so the buttons chain up and down only. The chain skips disabled
+    // buttons (Selectable.Navigate does not check interactable), so focus never lands on one.
     private void LinkNavigation()
     {
-        Button prev = spread.PrevButton;
-        Button next = spread.NextButton;
-        Link(prev, null, next);
-        Link(next, prev, closeButton);
-        Link(closeButton, next, null);
+        Selectable[] order = { spread.PrevButton, spread.NextButton, closeButton };
+        List<Selectable> live = new List<Selectable>();
+        for (int i = 0; i < order.Length; i++)
+        {
+            if (order[i] != null && order[i].interactable)
+            {
+                live.Add(order[i]);
+            }
+        }
+        for (int i = 0; i < order.Length; i++)
+        {
+            if (order[i] == null)
+            {
+                continue;
+            }
+            int at = live.IndexOf(order[i]);
+            Selectable up = null;
+            Selectable down = null;
+            if (at >= 0)
+            {
+                up = at > 0 ? live[at - 1] : null;
+                down = at < live.Count - 1 ? live[at + 1] : null;
+            }
+            Link(order[i], up, down);
+        }
     }
 
     private static void Link(Selectable button, Selectable up, Selectable down)
     {
-        if (button == null)
-        {
-            return;
-        }
         Navigation nav = button.navigation;
         nav.mode = Navigation.Mode.Explicit;
         nav.selectOnUp = up;

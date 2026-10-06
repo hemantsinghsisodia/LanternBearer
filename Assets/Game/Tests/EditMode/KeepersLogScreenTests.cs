@@ -137,5 +137,99 @@ public class KeepersLogScreenTests
         Assert.AreEqual(3, (int)screenType.GetProperty("SpreadIndex").GetValue(screen), "clamped to the last spread");
         UnityEngine.Object.DestroyImmediate(instance);
     }
+
+    static string UniqueEntry(int words, int salt)
+    {
+        System.Text.StringBuilder b = new System.Text.StringBuilder();
+        for (int i = 0; i < words; i++)
+        {
+            b.Append('w').Append(salt).Append('x').Append(i).Append(' ');
+        }
+        return b.ToString().Trim();
+    }
+
+    static GameObject Spawn(Transform canvas, out Component screen, out Type screenType, int islandCount, string[] entries, int found)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(LogPath);
+        GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, canvas);
+        screenType = Type.GetType("LanternKeeper.KeepersLogScreen, Assembly-CSharp");
+        Type logType = Type.GetType("LanternKeeper.IslandLog, Assembly-CSharp");
+        screen = instance.GetComponent(screenType);
+        screenType.GetMethod("Populate").Invoke(screen, new[] { Islands(logType, islandCount, found, entries) });
+        return instance;
+    }
+
+    [Test]
+    public void ClosingMidFadeLeavesPagesVisibleOnReopen()
+    {
+        Component screen;
+        Type screenType;
+        GameObject instance = Spawn(canvasGo.transform, out screen, out screenType, 2, new[] { "a", "b" }, 2);
+        ParchmentSpread spread = instance.GetComponentInChildren<ParchmentSpread>(true);
+        screenType.GetMethod("TurnTo").Invoke(screen, new object[] { 1 });
+        spread.Pages.alpha = 0.3f; // as left by a turn that was cut short
+        screenType.GetMethod("Close").Invoke(screen, null);
+        spread.Pages.alpha = 0.3f;
+        screenType.GetMethod("Open").Invoke(screen, new object[] { null, null });
+        Assert.AreEqual(1f, spread.Pages.alpha, "reopened book is fully visible");
+        UnityEngine.Object.DestroyImmediate(instance);
+    }
+
+    [Test]
+    public void NavigationNeverLandsOnDisabledButton()
+    {
+        string[] one = { "short" };
+        string[] many = { UniqueEntry(400, 1), UniqueEntry(400, 2) };
+        foreach (int islands in new[] { 1, 2 })
+        {
+            string[] entries = islands == 1 ? one : many;
+            Component screen;
+            Type screenType;
+            GameObject instance = Spawn(canvasGo.transform, out screen, out screenType, islands, entries, entries.Length);
+            int count = (int)screenType.GetProperty("SpreadCount").GetValue(screen);
+            ParchmentSpread spread = instance.GetComponentInChildren<ParchmentSpread>(true);
+            UnityEngine.UI.Button close = (UnityEngine.UI.Button)screenType.GetProperty("CloseButton").GetValue(screen);
+            foreach (int at in new[] { 0, count - 1, count / 2 })
+            {
+                screenType.GetMethod("TurnTo").Invoke(screen, new object[] { at });
+                foreach (UnityEngine.UI.Selectable b in new UnityEngine.UI.Selectable[] { spread.PrevButton, spread.NextButton, close })
+                {
+                    foreach (UnityEngine.UI.Selectable target in new[] { b.FindSelectableOnUp(), b.FindSelectableOnDown(), b.FindSelectableOnLeft(), b.FindSelectableOnRight() })
+                    {
+                        Assert.IsTrue(target == null || target.interactable, b.name + " links to a disabled button at spread " + at + " of " + count);
+                    }
+                }
+            }
+            if (count == 1)
+            {
+                Assert.IsFalse(spread.PrevButton.interactable);
+                Assert.IsFalse(spread.NextButton.interactable);
+                Assert.IsNull(close.FindSelectableOnUp(), "only Close is live on a single spread");
+            }
+            UnityEngine.Object.DestroyImmediate(instance);
+        }
+    }
+
+    [Test]
+    public void RepaginatingKeepsTheReadersPlace()
+    {
+        UserSettings.TextScale = 1.0f;
+        string[] entries = { UniqueEntry(150, 1), UniqueEntry(150, 2), UniqueEntry(150, 3) };
+        Component screen;
+        Type screenType;
+        GameObject instance = Spawn(canvasGo.transform, out screen, out screenType, 2, entries, 3);
+        ParchmentSpread spread = instance.GetComponentInChildren<ParchmentSpread>(true);
+        int count = (int)screenType.GetProperty("SpreadCount").GetValue(screen);
+        Assert.GreaterOrEqual(count, 4);
+        screenType.GetMethod("TurnTo").Invoke(screen, new object[] { 1 });
+        string line = spread.LeftBody.text.Split((char)10)[0];
+        string anchor = line.Length > 24 ? line.Substring(0, 24) : line;
+        string title = spread.LeftTitle.text;
+        UserSettings.TextScale = 1.3f; // raises Changed: the open book repaginates
+        string now = spread.LeftBody.text + "|" + spread.RightBody.text;
+        Assert.AreEqual(title, spread.LeftTitle.text, "same island");
+        StringAssert.Contains(anchor, now, "still on the text that was at the top of the page");
+        UnityEngine.Object.DestroyImmediate(instance);
+    }
 }
 }
