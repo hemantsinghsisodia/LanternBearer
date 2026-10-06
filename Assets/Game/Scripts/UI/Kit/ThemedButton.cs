@@ -13,12 +13,19 @@ public class ThemedButton : Button
     [SerializeField] private GameObject focusFrame;
     [SerializeField] private UIVerticalGradient gradient;
     [SerializeField] private bool marked;
+    private bool focused;
+    [SerializeField] private bool tab;
+    [SerializeField] private GameObject markEdge;
+    [SerializeField] private GameObject markTint;
 
     public bool Primary { get { return primary; } }
     public ThemedLabel Label { get { return label; } }
     public UIVerticalGradient Gradient { get { return gradient; } }
     public GameObject FocusFrame { get { return focusFrame; } }
     public bool Marked { get { return marked; } }
+    public bool Tab { get { return tab; } }
+    public GameObject MarkEdge { get { return markEdge; } }
+    public GameObject MarkTint { get { return markTint; } }
 
     public void Configure(UITheme newTheme, bool isPrimary, ThemedLabel themedLabel, GameObject focus, UIVerticalGradient grad)
     {
@@ -31,14 +38,35 @@ public class ThemedButton : Button
         ShowFocus(false);
     }
 
+    // Turns the button into a left-edge tab: no box, plain text. Marked adds an amber text colour, an amber left edge
+    // and a faint amber tint (both start hidden). Focus still shows the kit's outline.
+    public void ConfigureTab(GameObject edge, GameObject tint)
+    {
+        tab = true;
+        markEdge = edge;
+        markTint = tint;
+        ApplyColours();
+        ShowMark(marked);
+    }
+
+    private void ShowMark(bool on)
+    {
+        if (markEdge != null)
+        {
+            markEdge.SetActive(on);
+        }
+        if (markTint != null)
+        {
+            markTint.SetActive(on);
+        }
+    }
+
     // Marks the button as the current choice (used by SectionList): its text turns amber.
     public void SetMarked(bool on)
     {
         marked = on;
-        if (label != null && theme != null)
-        {
-            label.SetColourOverride(on, theme.amber);
-        }
+        ShowMark(on);
+        RefreshLabelColour();
     }
 
     public void ApplyColours()
@@ -61,6 +89,15 @@ public class ThemedButton : Button
             {
                 gradient.SetColours(theme.amber, theme.amberDeep);
             }
+        }
+        else if (tab)
+        {
+            Color clear = new Color(1f, 1f, 1f, 0f);
+            block.normalColor = clear;
+            block.highlightedColor = new Color(1f, 1f, 1f, 0.05f);
+            block.selectedColor = clear;
+            block.pressedColor = new Color(1f, 1f, 1f, 0.1f);
+            block.disabledColor = clear;
         }
         else
         {
@@ -88,8 +125,21 @@ public class ThemedButton : Button
         ShowFocus(state == SelectionState.Selected || state == SelectionState.Pressed);
     }
 
+    // Amber text marks the current choice; a focused tab keeps plain text, since the focus glow is amber too.
+    private void RefreshLabelColour()
+    {
+        if (label == null || theme == null)
+        {
+            return;
+        }
+        bool amberText = marked && !(tab && focused);
+        label.SetColourOverride(amberText, theme.amber);
+    }
+
     private void ShowFocus(bool on)
     {
+        focused = on;
+        RefreshLabelColour();
         if (focusFrame != null && focusFrame.activeSelf != on)
         {
             focusFrame.SetActive(on);

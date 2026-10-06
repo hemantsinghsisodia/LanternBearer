@@ -166,6 +166,28 @@ public static partial class UIBuilder
         return go;
     }
 
+    // A left-edge tab: plain text on no box. See ThemedButton.ConfigureTab.
+    static GameObject MakeTab(Transform parent, string text, UITheme theme)
+    {
+        GameObject go = NewUI("Tab", parent);
+        ((RectTransform)go.transform).sizeDelta = new Vector2(260f, RowHeight);
+        Image image = go.AddComponent<Image>();
+        Color tintColour = theme.amber;
+        tintColour.a = 0.07f;
+        Image tint = NewImage("MarkTint", go.transform, tintColour, false);
+        Stretch(tint.gameObject);
+        Image edge = NewImage("MarkEdge", go.transform, theme.amber, false);
+        Anchor(edge.gameObject, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(2, 0));
+        GameObject focus = MakeFocusFrame(go.transform, theme);
+        ThemedLabel label = AddLabel(go.transform, "Text", text, ThemedLabel.Role.Label, theme.labelPx, theme);
+        Anchor(label.gameObject, Vector2.zero, Vector2.one, new Vector2(20, 0), Vector2.zero);
+        ThemedButton button = go.AddComponent<ThemedButton>();
+        button.targetGraphic = image;
+        button.Configure(theme, false, label, focus, null);
+        button.ConfigureTab(edge.gameObject, tint.gameObject);
+        return go;
+    }
+
     public static GameObject MakeSliderRow(Transform parent, string labelText)
     {
         UITheme theme = LoadTheme();
@@ -375,6 +397,7 @@ public static partial class UIBuilder
         UITheme theme = LoadTheme();
         GameObject root = NewUI("SectionList", parent);
         ((RectTransform)root.transform).sizeDelta = new Vector2(1100f, 560f);
+        System.Collections.Generic.List<SectionSelectRelay> relayList = new System.Collections.Generic.List<SectionSelectRelay>();
         Button[] buttons = new Button[sectionNames.Length];
         GameObject[] panels = new GameObject[sectionNames.Length];
 
@@ -383,7 +406,9 @@ public static partial class UIBuilder
 
         for (int i = 0; i < sectionNames.Length; i++)
         {
-            GameObject b = MakeButton(root.transform, sectionNames[i], false);
+            GameObject b = MakeTab(root.transform, sectionNames[i], theme);
+            SectionSelectRelay relay = b.AddComponent<SectionSelectRelay>();
+            relayList.Add(relay);
             b.name = "Section_" + sectionNames[i];
             Anchor(b, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -(i + 1) * RowHeight - i * 8f),
                 new Vector2(260, -i * (RowHeight + 8f)));
@@ -404,6 +429,10 @@ public static partial class UIBuilder
 
         SectionList list = root.AddComponent<SectionList>();
         list.Configure(theme, buttons, panels);
+        for (int i = 0; i < relayList.Count; i++)
+        {
+            relayList[i].Configure(list, i);
+        }
         return root;
     }
 

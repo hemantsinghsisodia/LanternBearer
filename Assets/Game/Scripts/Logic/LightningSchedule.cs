@@ -55,7 +55,8 @@ public class LightningSchedule
         untilThunder = Mathf.Max(0f, DrawInterval() - ThunderLead);
     }
 
-    // Test hook: jumps straight to the start of a flash.
+    // Test hook: jumps straight to the start of a flash. FlashedThisTick is cleared by the next Tick, so a caller that
+    // needs the Flashed event raises it itself (Lightning.DebugFlash does).
     public void ForceFlash()
     {
         Phase = LightningPhase.Flash;

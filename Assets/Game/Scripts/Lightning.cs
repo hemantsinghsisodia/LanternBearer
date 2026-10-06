@@ -90,6 +90,11 @@ public class Lightning : MonoBehaviour
         if (schedule != null)
         {
             schedule.ForceFlash();
+            Action handler = Flashed;
+            if (handler != null)
+            {
+                handler();
+            }
         }
     }
 

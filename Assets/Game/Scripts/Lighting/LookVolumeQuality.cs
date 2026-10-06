@@ -18,6 +18,15 @@ public class LookVolumeQuality : MonoBehaviour
     ColorAdjustments exposure;
     float baseExposure;
     bool bound;
+    bool counted;
+    static int activeCount;
+
+    // True while at least one look volume is switched on, so exposure (and with it the player's brightness) is applied.
+    // Where it is false (the Low preset, or a scene with no look volume) UserSettingsApplier scales the lights instead.
+    public static bool ExposureActive
+    {
+        get { return activeCount > 0; }
+    }
 
     public bool VolumeOn
     {
@@ -40,6 +49,16 @@ public class LookVolumeQuality : MonoBehaviour
     {
         GraphicsQuality.QualityChanged -= HandleQualityChanged;
         UserSettings.Changed -= ApplyUserExposure;
+        SetCounted(false);
+    }
+
+    void SetCounted(bool on)
+    {
+        if (on != counted)
+        {
+            counted = on;
+            activeCount = Mathf.Max(0, activeCount + (on ? 1 : -1));
+        }
     }
 
     // The look's authored exposure plus the player's brightness setting. Only the runtime clone is written.
@@ -115,6 +134,7 @@ public class LookVolumeQuality : MonoBehaviour
         }
 
         volume.enabled = post;
+        SetCounted(post && bound && exposure != null);
     }
 }
 }

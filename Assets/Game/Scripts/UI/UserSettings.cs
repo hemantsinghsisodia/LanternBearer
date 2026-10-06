@@ -92,6 +92,12 @@ public static class UserSettings
         set { SetInt(RefreshKey, value); }
     }
 
+    // True once the player has chosen a resolution or window mode. Until then the game leaves the screen alone.
+    public static bool HasSavedDisplay
+    {
+        get { return PlayerPrefs.HasKey(ResWidthKey) || PlayerPrefs.HasKey(WindowModeKey); }
+    }
+
     // Stores the size and refresh rate together so listeners see one change, not three.
     public static void SetResolution(int width, int height, int refreshHz)
     {

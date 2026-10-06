@@ -25,6 +25,7 @@ public class SettingsScreen : MonoBehaviour
 
     private Selectable opener;
     private Action onClosed;
+    private bool dropdownWasExpanded;
 
     public bool IsOpen { get { return gameObject.activeInHierarchy; } }
     public SectionList SectionList { get { return sectionList; } }
@@ -117,20 +118,60 @@ public class SettingsScreen : MonoBehaviour
 
     private void Update()
     {
-        if (!BackPressed())
+        // The dropdown may already have closed itself on this same Escape; trust last frame's state.
+        if (BackPressed() && !dropdownWasExpanded)
         {
-            return;
+            ConsumeBack();
         }
-        // An open dropdown list uses Escape to close itself.
+        dropdownWasExpanded = AnyDropdownExpanded();
+    }
+
+    private bool AnyDropdownExpanded()
+    {
         TMP_Dropdown[] dropdowns = GetComponentsInChildren<TMP_Dropdown>(false);
         for (int i = 0; i < dropdowns.Length; i++)
         {
             if (dropdowns[i].IsExpanded)
             {
-                return;
+                return true;
             }
         }
+        return false;
+    }
+
+    // Back (Esc or gamepad B), one level at a time. An open dropdown closes itself first (returns false, nothing for us to do).
+    // Focus inside a section returns to that section's tab; focus on the tab list or Back closes Settings.
+    // Returns true if it moved focus or closed the screen.
+    public bool ConsumeBack()
+    {
+        if (!IsOpen)
+        {
+            return false;
+        }
+        if (AnyDropdownExpanded())
+        {
+            return false;
+        }
+        if (FocusIsInsideSection())
+        {
+            Select(sectionList.SectionButtons[sectionList.Current]);
+            return true;
+        }
         Close();
+        return true;
+    }
+
+    private bool FocusIsInsideSection()
+    {
+        EventSystem system = EventSystem.current;
+        if (system == null || system.currentSelectedGameObject == null || sectionList == null)
+        {
+            return false;
+        }
+        GameObject[] panels = sectionList.SectionPanels;
+        int current = sectionList.Current;
+        return current >= 0 && current < panels.Length && panels[current] != null
+            && system.currentSelectedGameObject.transform.IsChildOf(panels[current].transform);
     }
 
     private static bool BackPressed()

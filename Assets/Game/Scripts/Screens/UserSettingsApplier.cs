@@ -23,6 +23,19 @@ public class UserSettingsApplier : MonoBehaviour
 
     private bool ducked;
     private float duckOffset;
+    // Brightness without post-processing: scale the ambient light and the moon by 2^EV from cached authored values.
+    // Whenever another script rewrites a value (LookApplier on a preset change, a scene load) the cache is retaken from it.
+    private Light moon;
+    private bool haveMoon;
+    private bool searchedDirectional;
+    private float moonAuthored;
+    private float moonWritten;
+    private bool haveAmbient;
+    private float ambientIntensityAuthored;
+    private float ambientIntensityWritten;
+    private Color[] ambientAuthored = new Color[3];
+    private Color[] ambientWritten = new Color[3];
+
     private bool haveAppliedScreen;
     private int appliedWidth;
     private int appliedHeight;
@@ -96,6 +109,81 @@ public class UserSettingsApplier : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        ApplyLightBrightness();
+    }
+
+    private static bool Same(Color a, Color b)
+    {
+        return Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.0001f;
+    }
+
+    private void ApplyLightBrightness()
+    {
+        float factor = LookVolumeQuality.ExposureActive ? 1f : Mathf.Pow(2f, UserEv);
+
+        Light sun = RenderSettings.sun;
+        if (sun == null && moon == null && !searchedDirectional)
+        {
+            searchedDirectional = true;
+            sun = FindDirectional();
+        }
+        if (sun != null && sun != moon)
+        {
+            moon = sun;
+            haveMoon = false;
+        }
+        if (moon != null)
+        {
+            if (!haveMoon || !Mathf.Approximately(moon.intensity, moonWritten))
+            {
+                moonAuthored = moon.intensity;
+                haveMoon = true;
+            }
+            moonWritten = moonAuthored * factor;
+            moon.intensity = moonWritten;
+        }
+
+        Color[] now = { RenderSettings.ambientSkyColor, RenderSettings.ambientEquatorColor, RenderSettings.ambientGroundColor };
+        bool changed = !haveAmbient || !Mathf.Approximately(RenderSettings.ambientIntensity, ambientIntensityWritten);
+        for (int i = 0; i < 3 && !changed; i++)
+        {
+            changed = !Same(now[i], ambientWritten[i]);
+        }
+        if (changed)
+        {
+            ambientIntensityAuthored = RenderSettings.ambientIntensity;
+            for (int i = 0; i < 3; i++)
+            {
+                ambientAuthored[i] = now[i];
+            }
+            haveAmbient = true;
+        }
+        // Trilight and flat ambient read the colours, skybox ambient reads the intensity: scale both.
+        ambientIntensityWritten = ambientIntensityAuthored * factor;
+        RenderSettings.ambientIntensity = ambientIntensityWritten;
+        ambientWritten[0] = ambientAuthored[0] * factor;
+        ambientWritten[1] = ambientAuthored[1] * factor;
+        ambientWritten[2] = ambientAuthored[2] * factor;
+        RenderSettings.ambientSkyColor = ambientWritten[0];
+        RenderSettings.ambientEquatorColor = ambientWritten[1];
+        RenderSettings.ambientGroundColor = ambientWritten[2];
+    }
+
+    private static Light FindDirectional()
+    {
+        Light[] lights = FindObjectsByType<Light>();
+        for (int i = 0; i < lights.Length; i++)
+        {
+            if (lights[i].type == LightType.Directional && lights[i].enabled)
+            {
+                return lights[i];
+            }
+        }
+        return null;
+    }
+
     private void OnDisable()
     {
         UserSettings.Changed -= Apply;
@@ -112,6 +200,13 @@ public class UserSettingsApplier : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // A duck belongs to the scene it started in (win, loss, retry, back to the menu).
+        ducked = false;
+        duckOffset = 0f;
+        haveMoon = false;
+        haveAmbient = false;
+        searchedDirectional = false;
+        moon = null;
         ApplyAudio();
     }
 
@@ -143,12 +238,29 @@ public class UserSettingsApplier : MonoBehaviour
         target.SetFloat(AmbienceParam, SettingsMath.VolumeToDb(UserSettings.AmbienceVolume));
     }
 
+    // Exclusive fullscreen exists on Windows and macOS only.
+    private static bool ExclusiveSupported()
+    {
+        RuntimePlatform p = Application.platform;
+        return p == RuntimePlatform.WindowsPlayer || p == RuntimePlatform.WindowsEditor
+            || p == RuntimePlatform.OSXPlayer || p == RuntimePlatform.OSXEditor;
+    }
+
     // Calls Screen.SetResolution only when the wanted size, refresh rate or window mode differs from the last request.
     private void ApplyScreen()
     {
+        // Until the player has chosen a size or window mode the game leaves the screen alone.
+        if (!UserSettings.HasSavedDisplay)
+        {
+            return;
+        }
         Resolution desktop = Screen.currentResolution;
         Resolution wanted = UserSettings.ResolveResolution(Screen.resolutions, desktop);
         FullScreenMode mode = UserSettings.WindowMode;
+        if (mode == FullScreenMode.ExclusiveFullScreen && !ExclusiveSupported())
+        {
+            mode = FullScreenMode.FullScreenWindow;
+        }
         int hz = Mathf.RoundToInt((float)wanted.refreshRateRatio.value);
         if (haveAppliedScreen && appliedWidth == wanted.width && appliedHeight == wanted.height && appliedHz == hz && appliedMode == mode)
         {

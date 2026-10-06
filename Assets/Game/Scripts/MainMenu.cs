@@ -30,6 +30,7 @@ public class MainMenu : MonoBehaviour
     Text logBody;
     ScrollRect logScroll;
     GraphicsMenu graphicsMenu;
+    SettingsScreen settingsScreen;
 
     int LevelCount
     {
@@ -116,6 +117,8 @@ public class MainMenu : MonoBehaviour
         logBody = FindText("LogBody");
         logScroll = logPanel != null ? logPanel.GetComponentInChildren<ScrollRect>(true) : null;
         graphicsMenu = GetComponent<GraphicsMenu>();
+        Transform settingsHost = transform.Find("SettingsScreen");
+        settingsScreen = settingsHost != null ? settingsHost.GetComponent<SettingsScreen>() : null;
         List<Button> order = new List<Button>();
         order.Add(playButton);
         order.Add(difficultyButton);
@@ -279,8 +282,7 @@ public class MainMenu : MonoBehaviour
             return;
         }
 
-        Transform settingsHost = transform.Find("SettingsScreen");
-        bool settingsOpen = settingsHost != null && settingsHost.gameObject.activeSelf;
+        bool settingsOpen = settingsScreen != null && settingsScreen.gameObject.activeSelf;
         if (column != null && column.activeSelf && !settingsOpen && (graphicsMenu == null || !graphicsMenu.IsOpen))
         {
             GraphicsMenu.HandleTab(menuTab);
@@ -362,8 +364,7 @@ public class MainMenu : MonoBehaviour
     void OpenGraphics()
     {
         // Temporary until the menu is rebuilt: the Graphics button opens the new Settings screen when the scene has one.
-        Transform settingsTransform = transform.Find("SettingsScreen");
-        SettingsScreen settings = settingsTransform != null ? settingsTransform.GetComponent<SettingsScreen>() : null;
+        SettingsScreen settings = settingsScreen;
         if (settings != null)
         {
             if (column != null)
