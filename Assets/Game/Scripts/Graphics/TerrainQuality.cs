@@ -13,6 +13,7 @@ public class TerrainQuality : MonoBehaviour
 {
     const string GrassNoBendKeyword = "_LK_GRASS_NO_BEND";
     const string FoliageLowKeyword = "_LK_FOLIAGE_LOW";
+    const string TerrainLowKeyword = "_LK_TERRAIN_LOW";
 
     [SerializeField] Terrain terrain;
 
@@ -163,6 +164,16 @@ public class TerrainQuality : MonoBehaviour
         else
         {
             Shader.DisableKeyword(FoliageLowKeyword);
+        }
+
+        // Low uses the cheaper dominant-axis projection for the terrain rock-wall shading.
+        if (profile.level == GraphicsLevel.Low)
+        {
+            Shader.EnableKeyword(TerrainLowKeyword);
+        }
+        else
+        {
+            Shader.DisableKeyword(TerrainLowKeyword);
         }
 
         if (terrain == null || !baselineCached)

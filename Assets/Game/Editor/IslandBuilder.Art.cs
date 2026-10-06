@@ -174,7 +174,12 @@ public static partial class IslandBuilder
         Shader unlitShader = Shader.Find("LanternKeeper/SkyUnlitNoFog");
         Shader addShader = Shader.Find("LanternKeeper/AdditiveUnlit");
         Shader flameShader = Shader.Find("LanternKeeper/Flame");
-        Shader terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
+        Shader terrainShader = Shader.Find(TerrainShaderName);
+        if (terrainShader == null)
+        {
+            Debug.LogError("Shader " + TerrainShaderName + " is missing; falling back to URP Terrain/Lit (no rock-wall shading).");
+            terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
+        }
         Shader waterShader = Shader.Find("LanternKeeper/Water");
         Shader silhouetteShader = Shader.Find("LanternKeeper/Silhouette");
         Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
@@ -333,6 +338,56 @@ public static partial class IslandBuilder
         mat.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
         mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
         EditorUtility.SetDirty(mat);
+    }
+
+    public const string TerrainShaderName = "LanternKeeper/TerrainLit";
+
+    // One terrain material per level: the rock layer (and so the cliff textures) differs by island.
+    static Material TerrainMaterialFor(LevelConfig config, ArtKit art, TerrainLayer[] layers)
+    {
+        if (art.terrain == null || art.terrain.shader == null || art.terrain.shader.name != TerrainShaderName)
+        {
+            return art.terrain;
+        }
+
+        int index = -1;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i] != null && layers[i].name == "rock")
+            {
+                index = i;
+            }
+        }
+
+        if (index < 0)
+        {
+            Debug.LogError("Terrain material " + config.levelId + ": no layer named rock; rock-wall shading is off.");
+            return art.terrain;
+        }
+
+        string path = "Assets/Game/Materials/Generated/TerrainLit_" + config.levelId + ".mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
+        {
+            mat = new Material(art.terrain.shader);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = art.terrain.shader;
+        mat.CopyPropertiesFromMaterial(art.terrain);
+        TerrainLayer rock = layers[index];
+        mat.SetFloat("_CliffLayerIndex", index);
+        mat.SetTexture("_CliffAlbedo", rock.diffuseTexture);
+        mat.SetTexture("_CliffNormal", rock.normalMapTexture);
+        mat.SetVector("_CliffTiling", new Vector4(1f / Mathf.Max(0.01f, rock.tileSize.x), 1f / Mathf.Max(0.01f, rock.tileSize.y), 0f, 0f));
+        Vector4 remap = rock.diffuseRemapMax;
+        mat.SetColor("_CliffTint", new Color(remap.x, remap.y, remap.z, 1f));
+        mat.SetFloat("_CliffSmoothness", rock.smoothness);
+        mat.SetFloat("_CliffMetallic", rock.metallic);
+        mat.SetFloat("_CliffNormalScale", rock.normalScale);
+        mat.SetFloat("_CliffSmoothnessSource", (float)(int)rock.smoothnessSource);
+        EditorUtility.SetDirty(mat);
+        return mat;
     }
 
     static Material LitMat(string path, Shader shader, Color color, float smoothness, float metallic, Color emission)

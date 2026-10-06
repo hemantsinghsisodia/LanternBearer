@@ -590,6 +590,7 @@ public static class SceneWiring
 
         nulls += RequireKeeperScale(quiet);
         nulls += RequireKeeperLod(quiet);
+        nulls += RequireTerrainShading(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)
@@ -1665,6 +1666,37 @@ public static class SceneWiring
 
     const int KeeperLod0TriangleCap = 40000;
     const int KeeperLod1TriangleCap = 8000;
+
+    // Every terrain must use the project terrain material with the rock-wall (cliff) textures assigned.
+    static int RequireTerrainShading(bool quiet)
+    {
+        int problems = 0;
+        Terrain[] terrains = Object.FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < terrains.Length; i++)
+        {
+            Material template = terrains[i].materialTemplate;
+            string problem = null;
+            if (template == null || template.shader == null || template.shader.name != IslandBuilder.TerrainShaderName)
+            {
+                problem = "terrain materialTemplate must use " + IslandBuilder.TerrainShaderName;
+            }
+            else if (template.GetTexture("_CliffAlbedo") == null || template.GetFloat("_CliffLayerIndex") < -0.5f)
+            {
+                problem = "terrain material has no _CliffAlbedo / _CliffLayerIndex (rock layer)";
+            }
+
+            if (problem != null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(terrains[i].name + ": " + problem, terrains[i]);
+                }
+            }
+        }
+
+        return problems;
+    }
 
     // The keeper needs a two-level LODGroup (LOD0 / LOD1 renderers), every renderer skinned to CharacterArmature, and triangle caps per level.
     static int RequireKeeperLod(bool quiet)

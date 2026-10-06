@@ -45,7 +45,7 @@ public static partial class IslandBuilder
         stage.terrain = terrainObject.GetComponent<Terrain>();
         if (art.terrain != null)
         {
-            stage.terrain.materialTemplate = art.terrain;
+            stage.terrain.materialTemplate = TerrainMaterialFor(config, art, paintedLayers);
         }
 
         stage.terrain.drawInstanced = true;
