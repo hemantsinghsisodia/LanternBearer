@@ -2,6 +2,8 @@
     "name": "LanternKeeper.Tests.PlayMode",
     "rootNamespace": "LanternKeeper.Tests",
     "references": [
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

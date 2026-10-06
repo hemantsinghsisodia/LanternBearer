@@ -92,6 +92,15 @@ public static class UserSettings
         set { SetInt(RefreshKey, value); }
     }
 
+    // Stores the size and refresh rate together so listeners see one change, not three.
+    public static void SetResolution(int width, int height, int refreshHz)
+    {
+        PlayerPrefs.SetInt(ResWidthKey, width);
+        PlayerPrefs.SetInt(ResHeightKey, height);
+        PlayerPrefs.SetInt(RefreshKey, refreshHz);
+        Raise();
+    }
+
     // Returns the saved resolution if the display supports it, otherwise the desktop resolution.
     // With a saved size but no exact refresh match, prefers the desktop's Hz if that size has it,
     // otherwise the highest Hz offered for that size.

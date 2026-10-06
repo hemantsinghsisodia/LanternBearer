@@ -15,6 +15,8 @@ public class LookVolumeQuality : MonoBehaviour
     Bloom bloom;
     FilmGrain grain;
     float baseBloomIntensity;
+    ColorAdjustments exposure;
+    float baseExposure;
     bool bound;
 
     public bool VolumeOn
@@ -30,12 +32,24 @@ public class LookVolumeQuality : MonoBehaviour
     void OnEnable()
     {
         GraphicsQuality.QualityChanged += HandleQualityChanged;
+        UserSettings.Changed += ApplyUserExposure;
         Apply(GraphicsQuality.Profile);
     }
 
     void OnDisable()
     {
         GraphicsQuality.QualityChanged -= HandleQualityChanged;
+        UserSettings.Changed -= ApplyUserExposure;
+    }
+
+    // The look's authored exposure plus the player's brightness setting. Only the runtime clone is written.
+    void ApplyUserExposure()
+    {
+        Bind();
+        if (bound && exposure != null)
+        {
+            exposure.postExposure.value = baseExposure + UserSettingsApplier.UserEv;
+        }
     }
 
     void HandleQualityChanged(GraphicsProfile profile)
@@ -63,9 +77,16 @@ public class LookVolumeQuality : MonoBehaviour
             baseBloomIntensity = sharedBloom.intensity.value;
         }
 
+        ColorAdjustments sharedColor;
+        if (shared.TryGet(out sharedColor))
+        {
+            baseExposure = sharedColor.postExposure.value;
+        }
+
         VolumeProfile runtime = volume.profile;
         runtime.TryGet(out bloom);
         runtime.TryGet(out grain);
+        runtime.TryGet(out exposure);
         bound = true;
     }
 
@@ -77,6 +98,7 @@ public class LookVolumeQuality : MonoBehaviour
             return;
         }
 
+        ApplyUserExposure();
         bool post = profile == null || profile.postProcessing != GraphicsPostProcessing.Off;
         bool reduced = profile != null && profile.postProcessing == GraphicsPostProcessing.Lighter;
         if (bound)

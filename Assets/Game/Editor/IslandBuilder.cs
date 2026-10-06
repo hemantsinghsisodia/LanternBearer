@@ -1439,6 +1439,7 @@ public static partial class IslandBuilder
     static void CreateGameplay(LevelConfig config, ArtKit art, Stage stage)
     {
         GameObject systems = new GameObject("Systems");
+        UIBuilder.AddUserSettingsApplier(systems.transform);
         GameManager manager = systems.AddComponent<GameManager>();
         AudioManager audio = systems.AddComponent<AudioManager>();
         AssignMixer(audio);
@@ -1670,6 +1671,7 @@ public static partial class IslandBuilder
         MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, MenuQuitY));
         CreateLogPanel(art, canvasObject.transform, font);
         CreateLegacyGraphics(art, canvasObject.transform, panel);
+        UIBuilder.InstallSettingsInActiveScene();
     }
 
     const float MenuPlayY = 170f;

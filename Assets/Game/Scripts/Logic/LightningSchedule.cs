@@ -55,6 +55,14 @@ public class LightningSchedule
         untilThunder = Mathf.Max(0f, DrawInterval() - ThunderLead);
     }
 
+    // Test hook: jumps straight to the start of a flash.
+    public void ForceFlash()
+    {
+        Phase = LightningPhase.Flash;
+        phaseRemaining = FlashSeconds;
+        FlashedThisTick = true;
+    }
+
     public void Tick(float dt, bool roundOver, float windWarningStartsIn, float windWarningEndsIn)
     {
         FlashedThisTick = false;

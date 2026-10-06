@@ -103,6 +103,12 @@ public class GraphicsMenu : MonoBehaviour
         }
     }
 
+    // Lets the Settings screen apply the FPS counter toggle to this menu's readout.
+    public void SyncFpsReadout()
+    {
+        ApplyFpsVisibility();
+    }
+
     public void DismissQuiet()
     {
         closed = null;

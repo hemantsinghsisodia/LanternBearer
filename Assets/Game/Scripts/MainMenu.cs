@@ -279,7 +279,9 @@ public class MainMenu : MonoBehaviour
             return;
         }
 
-        if (column != null && column.activeSelf && (graphicsMenu == null || !graphicsMenu.IsOpen))
+        Transform settingsHost = transform.Find("SettingsScreen");
+        bool settingsOpen = settingsHost != null && settingsHost.gameObject.activeSelf;
+        if (column != null && column.activeSelf && !settingsOpen && (graphicsMenu == null || !graphicsMenu.IsOpen))
         {
             GraphicsMenu.HandleTab(menuTab);
         }
@@ -359,6 +361,20 @@ public class MainMenu : MonoBehaviour
 
     void OpenGraphics()
     {
+        // Temporary until the menu is rebuilt: the Graphics button opens the new Settings screen when the scene has one.
+        Transform settingsTransform = transform.Find("SettingsScreen");
+        SettingsScreen settings = settingsTransform != null ? settingsTransform.GetComponent<SettingsScreen>() : null;
+        if (settings != null)
+        {
+            if (column != null)
+            {
+                column.SetActive(false);
+            }
+
+            settings.Open(graphicsButton, CloseGraphics);
+            return;
+        }
+
         if (graphicsMenu == null)
         {
             graphicsMenu = GetComponent<GraphicsMenu>();

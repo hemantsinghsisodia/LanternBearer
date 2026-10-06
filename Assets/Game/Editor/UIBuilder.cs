@@ -7,7 +7,7 @@ namespace LanternKeeper
 {
 // Builds the themed uGUI kit (and, in later tasks, the menu screens). Every factory returns the new GameObject,
 // parented under `parent`, with `theme` and the theme fonts already assigned.
-public static class UIBuilder
+public static partial class UIBuilder
 {
     public const string ThemePath = "Assets/Game/Art/UI/UITheme.asset";
     const float RowHeight = 56f;
@@ -16,7 +16,7 @@ public static class UIBuilder
     [MenuItem("Lantern Keeper/Build UI")]
     public static void BuildAll()
     {
-        Debug.Log("Lantern Keeper: Build UI - no screens yet.");
+        BuildSettingsScreen();
     }
 
     public static UITheme LoadTheme()
