@@ -2,8 +2,30 @@
 *.fbx filter=lfs diff=lfs merge=lfs -text
 *.blend filter=lfs diff=lfs merge=lfs -text
 
-# Large PolyHaven prefabs
-Assets/Game/Prefabs/PolyHaven/**/*.prefab filter=lfs diff=lfs merge=lfs -text
 docs/look/baseline/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 docs/look/keeper/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 docs/look/keeper/**/*.png filter=lfs diff=lfs merge=lfs -text
+
+# Unity-serialised assets: Unity always writes LF, so keep them LF in the
+# working tree too (otherwise core.autocrlf makes every re-save look modified).
+# text=auto leaves binary-serialised assets (e.g. terrain data) untouched.
+*.unity              text=auto eol=lf
+*.prefab             text=auto eol=lf
+*.asset              text=auto eol=lf
+*.mat                text=auto eol=lf
+*.meta               text=auto eol=lf
+*.controller         text=auto eol=lf
+*.overrideController text=auto eol=lf
+*.anim               text=auto eol=lf
+*.mask               text=auto eol=lf
+*.terrainlayer       text=auto eol=lf
+*.physicMaterial     text=auto eol=lf
+*.lighting           text=auto eol=lf
+*.playable           text=auto eol=lf
+*.signal             text=auto eol=lf
+*.spriteatlas        text=auto eol=lf
+*.inputactions       text=auto eol=lf
+*.shadergraph        text=auto eol=lf
+*.shadersubgraph     text=auto eol=lf
+*.asmdef             text=auto eol=lf
+*.json               text=auto eol=lf
