@@ -19,6 +19,7 @@ public static partial class UIBuilder
         BuildSettingsScreen();
         BuildMainMenuScreen();
         BuildLogScreen();
+        BuildPauseScreen();
     }
 
     public static UITheme LoadTheme()

@@ -1814,14 +1814,6 @@ public static partial class IslandBuilder
         MakeHudButton(art, lose.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
         lose.SetActive(false);
 
-        GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused");
-        RectTransform pauseRect = pause.GetComponent<RectTransform>();
-        pauseRect.sizeDelta = new Vector2(560f, 540f);
-        MakeHudButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -108f), new Vector2(300f, 52f));
-        pause.SetActive(false);
         CreateTmpGraphics(art, canvasObject.transform);
 
         BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
@@ -1841,14 +1833,13 @@ public static partial class IslandBuilder
         hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
-        hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
         hudObject.FindProperty("graphicsMenu").objectReferenceValue = canvasObject.GetComponent<GraphicsMenu>();
-        hudObject.FindProperty("graphicsButton").objectReferenceValue = pause.transform.Find("GraphicsButton").GetComponent<Button>();
         hudObject.FindProperty("statusText").objectReferenceValue = status;
         hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
         hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
         hudObject.FindProperty("penaltyText").objectReferenceValue = penalty;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
+        UIBuilder.InstallPause(hud);
     }
 
     static GameObject MakePanel(ArtKit art, Transform parent, string name, string title)
@@ -2400,51 +2391,12 @@ public static partial class IslandBuilder
 
     static void PatchHud(HUD hud)
     {
-        Transform pause = hud.transform.Find("PausePanel");
-        if (pause == null)
-        {
-            Transform[] children = hud.GetComponentsInChildren<Transform>(true);
-            for (int i = 0; i < children.Length; i++)
-            {
-                if (children[i].name == "PausePanel")
-                {
-                    pause = children[i];
-                    break;
-                }
-            }
-        }
-
-        if (pause == null)
-        {
-            Debug.LogError("PausePanel is missing.");
-            return;
-        }
-
-        RectTransform pauseRect = pause as RectTransform;
-        if (pauseRect != null)
-        {
-            pauseRect.sizeDelta = new Vector2(560f, 540f);
-        }
-
-        MoveRect(pause, "ResumeButton", new Vector2(0f, 108f));
-        MoveRect(pause, "RestartButton", new Vector2(0f, 36f));
-        MoveRect(pause, "MenuButton", new Vector2(0f, -108f));
-        ArtKit art = KitFrom(pause.Find("ResumeButton"));
-        if (pause.Find("GraphicsButton") == null)
-        {
-            MakeHudButton(art, pause, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-        }
-        else
-        {
-            MoveRect(pause, "GraphicsButton", new Vector2(0f, -36f));
-        }
-
+        ArtKit art = KitFrom(hud.transform.Find("WinPanel") != null ? hud.transform.Find("WinPanel").Find("RetryButton") : null);
         CreateTmpGraphics(art, hud.transform);
         SerializedObject hudObject = new SerializedObject(hud);
         hudObject.FindProperty("graphicsMenu").objectReferenceValue = hud.GetComponent<GraphicsMenu>();
-        Transform graphicsButton = pause.Find("GraphicsButton");
-        hudObject.FindProperty("graphicsButton").objectReferenceValue = graphicsButton != null ? graphicsButton.GetComponent<Button>() : null;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
+        UIBuilder.InstallPause(hud);
     }
 
     static void CreateLegacyGraphics(ArtKit art, Transform canvas, RectTransform match)

@@ -574,9 +574,8 @@ public static class SceneWiring
             nulls += Require(huds[i], "promptText", quiet);
             nulls += Require(huds[i], "timerText", quiet);
             nulls += Require(huds[i], "statusText", quiet);
-            nulls += Require(huds[i], "pausePanel", quiet);
+            nulls += Require(huds[i], "pauseScreen", quiet);
             nulls += Require(huds[i], "graphicsMenu", quiet);
-            nulls += Require(huds[i], "graphicsButton", quiet);
             nulls += Require(huds[i], "fadeOverlay", quiet);
             nulls += Require(huds[i], "fuelMeter", quiet);
         }
@@ -1313,9 +1312,6 @@ public static class SceneWiring
         {
             GraphicsMenu menu = huds[i].GetComponent<GraphicsMenu>();
             assigned += Set(huds[i], "graphicsMenu", menu);
-            Transform pause = FindNamed(huds[i].transform, "PausePanel");
-            Transform button = pause != null ? FindNamed(pause, "GraphicsButton") : null;
-            assigned += Set(huds[i], "graphicsButton", button != null ? button.GetComponent<Button>() : null);
         }
 
         return assigned;

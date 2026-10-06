@@ -179,6 +179,58 @@ public class UiPrefabTests
     }
 
     [Test]
+    public void PauseScreenWired()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/UI/PauseScreen.prefab");
+        Assert.IsNotNull(prefab, "PauseScreen prefab is missing; run Lantern Keeper > Build UI");
+        Type screenType = Type.GetType("LanternKeeper.PauseScreen, Assembly-CSharp");
+        Assert.IsNotNull(screenType);
+        Component screen = prefab.GetComponent(screenType);
+        Assert.IsNotNull(screen, "PauseScreen on the root");
+        Assert.IsNotNull(prefab.GetComponent<TextScaler>());
+
+        SerializedObject so = new SerializedObject(screen);
+        string[] names = { "resumeButton", "restartButton", "howToButton", "settingsButton", "menuButton" };
+        string[] texts = { "Resume", "Restart", "How to Play", "Settings", "Main Menu" };
+        float lastY = float.MaxValue;
+        for (int i = 0; i < names.Length; i++)
+        {
+            ThemedButton button = so.FindProperty(names[i]).objectReferenceValue as ThemedButton;
+            Assert.IsNotNull(button, names[i]);
+            Assert.AreEqual(i == 0, button.Primary, names[i] + " primary");
+            Assert.AreEqual(texts[i], button.Label.Text.text);
+            float y = ((RectTransform)button.transform).anchorMax.y * 10000f + ((RectTransform)button.transform).offsetMax.y;
+            Assert.Less(y, lastY, names[i] + " sits below the previous button");
+            lastY = y;
+        }
+        Assert.AreSame(so.FindProperty("resumeButton").objectReferenceValue, so.FindProperty("firstSelected").objectReferenceValue, "firstSelected is Resume");
+        Assert.IsNotNull(so.FindProperty("panel").objectReferenceValue, "panel");
+
+        ThemedLabel title = so.FindProperty("title").objectReferenceValue as ThemedLabel;
+        Assert.IsNotNull(title);
+        Assert.AreEqual("Paused", title.Text.text);
+        Assert.IsNotNull(so.FindProperty("subtitle").objectReferenceValue, "island subtitle");
+        Assert.AreEqual(5, prefab.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length, "five buttons");
+
+        UITheme theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
+        TMP_FontAsset[] allowed = { theme.titleFont, theme.flavourFont, theme.uiFont, theme.uiFontStrong };
+        foreach (TMP_Text text in prefab.GetComponentsInChildren<TMP_Text>(true))
+        {
+            Assert.Contains(text.font, allowed, "theme font on " + text.name);
+        }
+    }
+
+    [Test]
+    public void IslandHudsCarryPauseAndSettings()
+    {
+        // The scene HUDs are wired by Lantern Keeper > Install Pause; Scene Wiring validates the same references.
+        Type hudType = Type.GetType("LanternKeeper.HUD, Assembly-CSharp");
+        Assert.IsNotNull(hudType);
+        Assert.IsNull(hudType.GetField("pausePanel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic), "old pause panel field is gone");
+        Assert.IsNotNull(hudType.GetField("pauseScreen", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic), "HUD keeps a PauseScreen reference");
+    }
+
+    [Test]
     public void MainMenuRowsShowBeaconCount()
     {
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MenuPath);
