@@ -87,12 +87,20 @@ public static class ReedTuftBuilder
         TextureImporter importer = AssetImporter.GetAtPath(RampPath) as TextureImporter;
         if (importer != null)
         {
-            importer.sRGBTexture = true;
-            importer.mipmapEnabled = false;
-            importer.wrapMode = TextureWrapMode.Clamp;
-            importer.filterMode = FilterMode.Bilinear;
-            importer.alphaSource = TextureImporterAlphaSource.None;
-            importer.SaveAndReimport();
+            bool differs = !importer.sRGBTexture
+                || importer.mipmapEnabled
+                || importer.wrapMode != TextureWrapMode.Clamp
+                || importer.filterMode != FilterMode.Bilinear
+                || importer.alphaSource != TextureImporterAlphaSource.None;
+            if (differs)
+            {
+                importer.sRGBTexture = true;
+                importer.mipmapEnabled = false;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.filterMode = FilterMode.Bilinear;
+                importer.alphaSource = TextureImporterAlphaSource.None;
+                importer.SaveAndReimport();
+            }
         }
 
         return AssetDatabase.LoadAssetAtPath<Texture2D>(RampPath);

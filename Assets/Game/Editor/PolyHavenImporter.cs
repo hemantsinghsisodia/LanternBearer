@@ -612,8 +612,15 @@ public static class PolyHavenImporter
         EnsureFolder("Assets/Game/Levels/Biomes");
         Biome pine = WriteBiome("Assets/Game/Levels/Biomes/PineForest.asset", PineRules());
         Biome nama = WriteBiome("Assets/Game/Levels/Biomes/Namaqualand.asset", NamaRules());
-        Assign("Assets/Game/Levels/Island1.asset", pine);
-        Assign("Assets/Game/Levels/Island2.asset", nama);
+        if (!NatureKitImporter.IsConverted(pine))
+        {
+            Assign("Assets/Game/Levels/Island1.asset", pine);
+        }
+
+        if (!NatureKitImporter.IsConverted(nama))
+        {
+            Assign("Assets/Game/Levels/Island2.asset", nama);
+        }
     }
 
     static void Assign(string path, Biome biome)
@@ -635,6 +642,11 @@ public static class PolyHavenImporter
         {
             biome = ScriptableObject.CreateInstance<Biome>();
             AssetDatabase.CreateAsset(biome, path);
+        }
+        else if (NatureKitImporter.IsConverted(biome))
+        {
+            Debug.Log("Poly Haven import: skipped " + path + " because it is already converted to the nature kit.");
+            return biome;
         }
 
         List<BiomeEntry> entries = new List<BiomeEntry>();

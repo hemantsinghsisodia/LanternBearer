@@ -21,7 +21,6 @@ public class LevelConfig : ScriptableObject
     public int grassDetailDensity = 8;
     public string nextLevelScene = "";
     public Biome biome;
-    public bool hasCliff;
     public float tideAmplitude;
     public float tidePeriod = 90f;
     public float tidePhase;

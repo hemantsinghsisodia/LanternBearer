@@ -1,6 +1,14 @@
+// Forked from the URP Terrain/Lit shader of com.unity.render-pipelines.universal 17.6.0.
+// LanternKeeper-specific changes:
+//  - Cliff triplanar: steep faces sample the rock layers from the X and Z axes (Y never contributes).
+//  - Smoothed steep normal: wall normal is taken from a wide heightmap kernel instead of per-fragment facets.
+//  - _LKTerrainLow branch: global switch set by TerrainQuality; Low samples the dominant triplanar axis only.
 
 #ifndef LK_TERRAIN_LIT_PASSES_INCLUDED
 #define LK_TERRAIN_LIT_PASSES_INCLUDED
+
+// Half-width in heightmap texels of the wall-normal gradient kernel.
+#define LK_NORMAL_KERNEL 6
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/GBufferOutput.hlsl"
@@ -334,17 +342,16 @@ void LKSampleCliff(float2 uvX, float2 uvZ, float2 dxX, float2 dyX, float2 dxZ, f
 
 // Smoothed wall normal (world space). The plateau walls are sawtooth facets in the heightmap, so any per-fragment normal
 // alternates light/dark facet by facet (and the moon grazes the walls, which amplifies tiny normal changes). On the instanced
-// path the gradient is taken straight from the heightmap over a wide kernel (+-K texels) at the four surrounding texels and
+// path the gradient is taken straight from the heightmap over a wide kernel (+-LK_NORMAL_KERNEL texels) at the four surrounding texels and
 // bilinearly interpolated, so it is smooth within and across texels. Without instancing (no heightmap texture) the
 // interpolated vertex normal is used instead.
 #if defined(UNITY_INSTANCING_ENABLED)
 float2 LKHeightmapGradient(int2 c, int2 maxC)
 {
-    const int K = 6;
-    float hxp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2( K, 0), 0, maxC), 0)));
-    float hxm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(-K, 0), 0, maxC), 0)));
-    float hzp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0,  K), 0, maxC), 0)));
-    float hzm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0, -K), 0, maxC), 0)));
+    float hxp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2( LK_NORMAL_KERNEL, 0), 0, maxC), 0)));
+    float hxm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(-LK_NORMAL_KERNEL, 0), 0, maxC), 0)));
+    float hzp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0,  LK_NORMAL_KERNEL), 0, maxC), 0)));
+    float hzm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0, -LK_NORMAL_KERNEL), 0, maxC), 0)));
     return float2(hxp - hxm, hzp - hzm);
 }
 #endif
@@ -352,7 +359,6 @@ float2 LKHeightmapGradient(int2 c, int2 maxC)
 half3 LKSmoothTerrainNormalWS(Varyings IN)
 {
 #if defined(UNITY_INSTANCING_ENABLED)
-    const int K = 6;
     int2 maxC = int2(1.0 / _TerrainHeightmapRecipSize.zw + 0.5);
     float2 tc = IN.uvMainAndLM.xy / _TerrainHeightmapRecipSize.zw;
     int2 c0 = int2(floor(tc));
@@ -362,7 +368,7 @@ half3 LKSmoothTerrainNormalWS(Varyings IN)
     float2 g01 = LKHeightmapGradient(c0 + int2(0, 1), maxC);
     float2 g11 = LKHeightmapGradient(c0 + int2(1, 1), maxC);
     float2 g = lerp(lerp(g00, g10, f.x), lerp(g01, g11, f.x), f.y);
-    float inv = _TerrainHeightmapScale.y / (2.0 * K * _TerrainHeightmapScale.x);
+    float inv = _TerrainHeightmapScale.y / (2.0 * LK_NORMAL_KERNEL * _TerrainHeightmapScale.x);
     float3 nOS = normalize(float3(-g.x * inv, 1.0, -g.y * inv));
     return (half3)TransformObjectToWorldNormal(nOS);
 #elif defined(_NORMALMAP)

@@ -99,10 +99,10 @@ public static partial class IslandBuilder
         EnsureFolder("Assets/Game/Levels/Biomes");
         EnsureMarshBiome();
         EnsureHeathBiome();
-        LevelConfig island1 = WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", false, 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
-        LevelConfig island2 = WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", true, 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
-        LevelConfig island3 = WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", false, 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
-        LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "", true, 0f, 90f, 0f, Island4Log(), HeathBiomePath);
+        LevelConfig island1 = WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
+        LevelConfig island2 = WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
+        LevelConfig island3 = WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
+        LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "", 0f, 90f, 0f, Island4Log(), HeathBiomePath);
         island1.islandTitle = "First Light";
         island2.islandTitle = "The Pine Reach";
         island3.islandTitle = "The Drowned Marsh";
@@ -2055,7 +2055,7 @@ public static partial class IslandBuilder
         return go;
     }
 
-    static LevelConfig WriteConfig(string path, string levelId, string displayName, string sceneName, float radius, float hill, int seed, int beacons, int fireflies, int moths, int paths, Color fog, float density, string nextScene, bool hasCliff, float tideAmplitude, float tidePeriod, float tidePhase, string[] logEntries, string biomePath)
+    static LevelConfig WriteConfig(string path, string levelId, string displayName, string sceneName, float radius, float hill, int seed, int beacons, int fireflies, int moths, int paths, Color fog, float density, string nextScene, float tideAmplitude, float tidePeriod, float tidePhase, string[] logEntries, string biomePath)
     {
         LevelConfig config = AssetDatabase.LoadAssetAtPath<LevelConfig>(path);
         if (config == null)
@@ -2078,7 +2078,6 @@ public static partial class IslandBuilder
         config.fogDensity = density;
         config.grassDetailDensity = 8;
         config.nextLevelScene = nextScene;
-        config.hasCliff = hasCliff;
         config.tideAmplitude = tideAmplitude;
         config.tidePeriod = tidePeriod;
         config.tidePhase = tidePhase;
