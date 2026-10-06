@@ -10471,6 +10471,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62396746b3f76ca4f8e09621d54341bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LanternKeeper.UI::LanternKeeper.TextScaler
+  scalePlainText: 0
 --- !u!1 &6043853316231649836
 GameObject:
   m_ObjectHideFlags: 0

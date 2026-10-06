@@ -66,6 +66,11 @@ public class PauseScreen : MonoBehaviour
             Canvas canvas = GetComponentInParent<Canvas>();
             settings = canvas != null ? canvas.GetComponentInChildren<SettingsScreen>(true) : null;
         }
+        if (resumeButton == null || restartButton == null || howToButton == null || settingsButton == null || menuButton == null)
+        {
+            Debug.LogError("PauseScreen: a button is not wired; run Lantern Keeper > Install Pause.", this);
+            return;
+        }
         resumeButton.onClick.AddListener(OnResume);
         restartButton.onClick.AddListener(OnRestart);
         howToButton.onClick.AddListener(OnHowTo);
@@ -80,6 +85,10 @@ public class PauseScreen : MonoBehaviour
 
     private void OnDisable()
     {
+        if (resumeButton == null || restartButton == null || howToButton == null || settingsButton == null || menuButton == null)
+        {
+            return;
+        }
         resumeButton.onClick.RemoveListener(OnResume);
         restartButton.onClick.RemoveListener(OnRestart);
         howToButton.onClick.RemoveListener(OnHowTo);
@@ -90,7 +99,7 @@ public class PauseScreen : MonoBehaviour
     private void Update()
     {
         GameManager manager = GameManager.Instance;
-        if (manager == null || panel == null)
+        if (manager == null || panel == null || tabOrder == null)
         {
             return;
         }

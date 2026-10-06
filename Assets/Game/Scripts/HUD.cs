@@ -111,6 +111,9 @@ public class HUD : MonoBehaviour
     public string StatusLine => statusText != null ? statusText.text : "";
     public string PenaltyLine => penaltyText != null && penaltyText.gameObject.activeInHierarchy ? penaltyText.text : "";
 
+    // Wide enough for "Drain x2.25 · Moths 2/2 • 2 moths on you" at 130% text (about 420 px) with room to spare.
+    public const float StatusBoxWidth = 560f;
+
     void OnEnable()
     {
         Beacon.LightFailed += OnLightFailed;
@@ -119,7 +122,6 @@ public class HUD : MonoBehaviour
         EnsureGraphicsSurface();
         WireButtons();
         EnsureWidgets();
-        WireButtons();
         HidePanels();
     }
 
@@ -529,7 +531,7 @@ public class HUD : MonoBehaviour
 
         if (statusText == null)
         {
-            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(360f, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
+            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
             statusText.rectTransform.pivot = new Vector2(0f, 1f);
         }
 
@@ -1740,6 +1742,7 @@ public class HUD : MonoBehaviour
         TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
         Style(text, size, color, alignment);
         text.text = value;
+        TextScaler.Notify(text);
         return text;
     }
 

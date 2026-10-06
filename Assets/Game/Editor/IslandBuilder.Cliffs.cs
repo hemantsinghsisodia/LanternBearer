@@ -25,7 +25,12 @@ public static partial class IslandBuilder
         GameObject[] variants = CladdingPrefabs(config.levelId);
         if (variants == null)
         {
-            Debug.LogWarning(config.sceneName + ": cladding prefabs missing, skipped");
+            // The main-menu preview (levelId "menu") has no Rock_Medium prefabs of its own and its cliffs use the CliffSkin,
+            // so nothing is lost there. A real island missing them is worth a warning.
+            if (config.levelId != "menu")
+            {
+                Debug.LogWarning(config.sceneName + ": cladding prefabs missing, skipped");
+            }
             return 0;
         }
 

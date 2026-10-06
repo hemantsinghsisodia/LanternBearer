@@ -138,10 +138,16 @@ public static partial class IslandBuilder
 
     public static void BuildMainMenu()
     {
+        BuildMainMenu("MainMenu");
+    }
+
+    // sceneName lets a rebuild go to a scratch scene (Assets/Game/Scenes/<sceneName>.unity) for comparison instead of over MainMenu.
+    public static void BuildMainMenu(string sceneName)
+    {
         LevelConfig preview = ScriptableObject.CreateInstance<LevelConfig>();
         preview.levelId = "menu";
         preview.displayName = "Menu";
-        preview.sceneName = "MainMenu";
+        preview.sceneName = sceneName;
         preview.islandRadius = 20f;
         preview.hillHeight = 7.5f;
         preview.seed = 1101;
@@ -1772,7 +1778,7 @@ public static partial class IslandBuilder
         TMP_Text prompt = MakeTmp(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(680f, 56f), new Color(1f, 0.9f, 0.7f, 1f), TextAlignmentOptions.Center);
         prompt.gameObject.SetActive(false);
 
-        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(380f, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
+        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(HUD.StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
         status.rectTransform.pivot = new Vector2(0f, 1f);
 
         RectTransform fade = MakeRect(canvasObject.transform, "FadeOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);

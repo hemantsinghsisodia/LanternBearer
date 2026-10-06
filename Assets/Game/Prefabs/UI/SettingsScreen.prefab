@@ -336,7 +336,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9101870967600884490
 CanvasRenderer:
@@ -3895,7 +3895,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4373762373181743260
 CanvasRenderer:
@@ -4586,7 +4586,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &1634018174711383686
 GameObject:
   m_ObjectHideFlags: 0
@@ -5089,7 +5089,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &1778966262540368625
 GameObject:
   m_ObjectHideFlags: 0
@@ -6089,7 +6089,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4571864180036562398
 CanvasRenderer:
@@ -7006,7 +7006,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &2337589276765511015
 GameObject:
   m_ObjectHideFlags: 0
@@ -8719,7 +8719,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &2777715020872606087
 GameObject:
   m_ObjectHideFlags: 0
@@ -9408,8 +9408,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 360, y: -70}
-  m_SizeDelta: {x: 600, y: 80}
+  m_AnchoredPosition: {x: 360, y: -78}
+  m_SizeDelta: {x: 600, y: 96}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6569930319726327553
 CanvasRenderer:
@@ -9686,7 +9686,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &2881961673791183302
 GameObject:
   m_ObjectHideFlags: 0
@@ -11390,7 +11390,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &3403637276581471344
 GameObject:
   m_ObjectHideFlags: 0
@@ -11953,7 +11953,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &3571114748452118824
 GameObject:
   m_ObjectHideFlags: 0
@@ -13509,8 +13509,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 144, y: -147}
-  m_SizeDelta: {x: -408, y: 42}
+  m_AnchoredPosition: {x: 144, y: -152}
+  m_SizeDelta: {x: -408, y: 52}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5266976045410892332
 CanvasRenderer:
@@ -14079,7 +14079,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2000332894788057426
 CanvasRenderer:
@@ -14768,7 +14768,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &4168118787867110999
 GameObject:
   m_ObjectHideFlags: 0
@@ -16282,7 +16282,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &4624603847162280324
 GameObject:
   m_ObjectHideFlags: 0
@@ -18201,7 +18201,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &5035157806303674592
 GameObject:
   m_ObjectHideFlags: 0
@@ -19295,7 +19295,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5460977280549059809
 CanvasRenderer:
@@ -19452,7 +19452,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5949876223836699865
 CanvasRenderer:
@@ -19609,7 +19609,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 32}
+  m_SizeDelta: {x: 900, y: 44}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3377630193925001545
 CanvasRenderer:
@@ -22852,7 +22852,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &6084624018180313533
 GameObject:
   m_ObjectHideFlags: 0
@@ -24580,7 +24580,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8933477420329713925
 CanvasRenderer:
@@ -25559,7 +25559,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &6679218485534285102
 GameObject:
   m_ObjectHideFlags: 0
@@ -26010,7 +26010,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3912070308507843187
 CanvasRenderer:
@@ -27421,7 +27421,7 @@ MonoBehaviour:
   tint: 0
   basePx: 20
   hasColourOverride: 0
-  colourOverride: {r: 1, g: 1, b: 1, a: 1}
+  colourOverride: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
 --- !u!1 &7157292514842667420
 GameObject:
   m_ObjectHideFlags: 0
@@ -28885,7 +28885,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 760, y: 34}
+  m_SizeDelta: {x: 760, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8497452483899243378
 CanvasRenderer:
@@ -31763,6 +31763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62396746b3f76ca4f8e09621d54341bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LanternKeeper.UI::LanternKeeper.TextScaler
+  scalePlainText: 0
 --- !u!1 &8619933825842428072
 GameObject:
   m_ObjectHideFlags: 0

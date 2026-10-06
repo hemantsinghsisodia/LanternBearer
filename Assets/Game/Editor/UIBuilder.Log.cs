@@ -40,7 +40,7 @@ public static partial class UIBuilder
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, LogPrefabPath);
+        GameObject saved = SavePrefab(root, LogPrefabPath);
         Object.DestroyImmediate(root);
         Undo.ClearAll();
         AssetDatabase.SaveAssets();

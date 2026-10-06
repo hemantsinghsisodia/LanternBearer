@@ -22,6 +22,23 @@ public static partial class UIBuilder
         BuildPauseScreen();
     }
 
+    // Saves a built screen over its asset path (the GUID stays) with fileIDs kept from the previous build, so rebuilding
+    // an unchanged screen leaves the file byte-identical. See PrefabIdStabilizer.
+    static GameObject SavePrefab(GameObject root, string path)
+    {
+        string previous = System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : null;
+        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+        string fresh = System.IO.File.ReadAllText(path);
+        string stable = PrefabIdStabilizer.Normalize(fresh, previous);
+        if (stable != fresh)
+        {
+            System.IO.File.WriteAllText(path, stable, new System.Text.UTF8Encoding(false));
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            saved = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+        return saved;
+    }
+
     public static UITheme LoadTheme()
     {
         UITheme theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
@@ -459,9 +476,9 @@ public static partial class UIBuilder
 
         ThemedLabel.Tint onPaper = ThemedLabel.Tint.OnParchment;
         ThemedLabel title = AddLabel(pagesGo.transform, "LeftTitle", "Title", ThemedLabel.Role.Title, 40f, theme, onPaper);
-        Anchor(title.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(60, -110), new Vector2(-40, -40));
+        Anchor(title.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(48, -110), new Vector2(-40, -40));
         ThemedLabel sub = AddLabel(pagesGo.transform, "LeftSub", "Subtitle", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
-        Anchor(sub.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(60, -150), new Vector2(-40, -112));
+        Anchor(sub.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(60, -160), new Vector2(-40, -112));
         ThemedLabel leftBody = AddLabel(pagesGo.transform, "LeftBody", "", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
         Anchor(leftBody.gameObject, new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(60, 90), new Vector2(-40, -170));
         ThemedLabel rightBody = AddLabel(pagesGo.transform, "RightBody", "", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
@@ -473,9 +490,12 @@ public static partial class UIBuilder
             body.Text.alignment = TextAlignmentOptions.TopLeft;
         }
         sub.Text.textWrappingMode = TextWrappingModes.Normal;
-        title.Text.textWrappingMode = TextWrappingModes.Normal;
         title.Text.overflowMode = TextOverflowModes.Overflow;
         title.Text.alignment = TextAlignmentOptions.BottomLeft;
+        // A long island title may give up to ThemedLabel.MaxShrinkPx to stay on one line at 130% text.
+        title.Text.textWrappingMode = TextWrappingModes.NoWrap;
+        title.Text.enableAutoSizing = true;
+        title.Apply(1f);
         sub.Text.overflowMode = TextOverflowModes.Overflow;
 
         Image ribbon = NewImage("Ribbon", root.transform, theme.ribbon, false);

@@ -6,6 +6,8 @@ namespace LanternKeeper
 // Wraps a TMP_Text. Role picks font and colour from the theme; basePx is multiplied by TextScaler.Current.
 public class ThemedLabel : MonoBehaviour
 {
+    public const float MaxShrinkPx = 2f;
+
     public enum Role { Title, Flavour, Body, Label, Number }
     public enum Tint { Auto, OnParchment, OnAmber }
 
@@ -84,7 +86,14 @@ public class ThemedLabel : MonoBehaviour
         }
         text.font = FontFor(theme, role);
         text.color = hasColourOverride ? colourOverride : ColourFor(theme, role, tint);
-        text.fontSize = basePx * scale;
+        float size = basePx * scale;
+        text.fontSize = size;
+        if (text.enableAutoSizing)
+        {
+            // Auto-sizing labels may give up to MaxShrinkPx to fit their box; never more.
+            text.fontSizeMax = size;
+            text.fontSizeMin = Mathf.Max(1f, size - MaxShrinkPx);
+        }
     }
 
     private void OnEnable()

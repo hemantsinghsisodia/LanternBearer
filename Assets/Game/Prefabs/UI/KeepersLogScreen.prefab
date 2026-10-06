@@ -738,8 +738,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 10, y: -75}
-  m_SizeDelta: {x: -100, y: 70}
+  m_AnchoredPosition: {x: 4, y: -75}
+  m_SizeDelta: {x: -88, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1698193021237384792
 CanvasRenderer:
@@ -799,9 +799,9 @@ MonoBehaviour:
   m_fontSize: 40
   m_fontSizeBase: 40
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 38
+  m_fontSizeMax: 40
   m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 1024
@@ -813,7 +813,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -1226,6 +1226,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62396746b3f76ca4f8e09621d54341bd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: LanternKeeper.UI::LanternKeeper.TextScaler
+  scalePlainText: 0
 --- !u!1 &2013327466862536099
 GameObject:
   m_ObjectHideFlags: 0
@@ -3455,8 +3456,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 10, y: -131}
-  m_SizeDelta: {x: -100, y: 38}
+  m_AnchoredPosition: {x: 10, y: -136}
+  m_SizeDelta: {x: -100, y: 48}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4282902089693616224
 CanvasRenderer:

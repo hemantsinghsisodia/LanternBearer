@@ -311,6 +311,7 @@ public class BeaconCompass : MonoBehaviour
         label.raycastTarget = false;
         label.richText = false;
         label.text = Label(0);
+        TextScaler.Notify(label);
 
         Marker marker = new Marker();
         marker.Root = rect;

@@ -38,7 +38,7 @@ public static partial class UIBuilder
         Anchor(title.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(30f, -120f), new Vector2(-30f, -30f));
         ThemedLabel subtitle = AddLabel(ink.transform, "IslandSubtitle", "Island 1 · The Last Light", ThemedLabel.Role.Flavour, theme.bodyPx, theme);
         subtitle.Text.alignment = TextAlignmentOptions.Center;
-        Anchor(subtitle.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(30f, -166f), new Vector2(-30f, -124f));
+        Anchor(subtitle.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(30f, -178f), new Vector2(-30f, -124f));
 
         string[] names = { "ResumeButton", "RestartButton", "HowToButton", "SettingsButton", "MenuButton" };
         string[] texts = { "Resume", "Restart", "How to Play", "Settings", "Main Menu" };
@@ -57,7 +57,7 @@ public static partial class UIBuilder
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PausePrefabPath);
+        GameObject saved = SavePrefab(root, PausePrefabPath);
         Object.DestroyImmediate(root);
         Undo.ClearAll();
         AssetDatabase.SaveAssets();
@@ -126,6 +126,18 @@ public static partial class UIBuilder
         }
         scaler.ScalePlainText = true;
         EditorUtility.SetDirty(scaler);
+
+        // The status line ("Drain x2.25 · Moths 2/2 • 2 moths on you") is about 420 px at 130% text; keep its box wide enough.
+        Transform status = canvas.Find("StatusText");
+        if (status != null)
+        {
+            RectTransform statusRect = (RectTransform)status;
+            if (!Mathf.Approximately(statusRect.sizeDelta.x, HUD.StatusBoxWidth))
+            {
+                statusRect.sizeDelta = new Vector2(HUD.StatusBoxWidth, statusRect.sizeDelta.y);
+                EditorUtility.SetDirty(statusRect);
+            }
+        }
 
         SerializedObject so = new SerializedObject(hud);
         so.FindProperty("pauseScreen").objectReferenceValue = pause;

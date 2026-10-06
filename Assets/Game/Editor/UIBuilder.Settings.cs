@@ -52,10 +52,10 @@ public static partial class UIBuilder
         panel.name = "Panel";
 
         ThemedLabel title = AddLabel(panel.transform, "Title", "Settings", ThemedLabel.Role.Title, theme.titlePx, theme);
-        Anchor(title.gameObject, new Vector2(0, 1), new Vector2(0, 1), new Vector2(60, -110), new Vector2(660, -30));
+        Anchor(title.gameObject, new Vector2(0, 1), new Vector2(0, 1), new Vector2(60, -126), new Vector2(660, -30));
 
         ThemedLabel flavour = AddLabel(panel.transform, "Flavour", SettingsFlavours[0], ThemedLabel.Role.Flavour, theme.bodyPx, theme);
-        Anchor(flavour.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(348, -168), new Vector2(-60, -126));
+        Anchor(flavour.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(348, -178), new Vector2(-60, -126));
 
         GameObject listGo = MakeSectionList(panel.transform, SettingsSections);
         RectTransform listRect = (RectTransform)listGo.transform;
@@ -79,7 +79,7 @@ public static partial class UIBuilder
         ThemedLabel caption = AddLabel(panels[0].transform, "CardCaption",
             "Raise brightness until the sea is just visible against the cliff.", ThemedLabel.Role.Body, theme.bodyPx, theme);
         caption.Text.color = theme.textMuted;
-        ((RectTransform)caption.transform).sizeDelta = new Vector2(760f, 32f);
+        ((RectTransform)caption.transform).sizeDelta = new Vector2(900f, 44f);
         DropdownRow resolution = MakeDropdownRow(panels[0].transform, "Resolution").GetComponent<DropdownRow>();
         SwitchRow window = MakeSwitchRow(panels[0].transform, "Window mode", new[] { "Fullscreen", "Borderless", "Windowed" }, 1).GetComponent<SwitchRow>();
         displaySection.Configure(brightness, card, resolution, window);
@@ -111,7 +111,7 @@ public static partial class UIBuilder
         for (int i = 0; i < rows.Length; i++)
         {
             ThemedLabel row = AddLabel(panels[4].transform, "Binding" + i, ControlsSection.Bindings[i], ThemedLabel.Role.Body, theme.bodyPx, theme);
-            ((RectTransform)row.transform).sizeDelta = new Vector2(760f, 34f);
+            ((RectTransform)row.transform).sizeDelta = new Vector2(760f, 40f);
             rows[i] = row;
         }
         controlsSection.Configure(rows);
@@ -126,7 +126,7 @@ public static partial class UIBuilder
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, SettingsPrefabPath);
+        GameObject saved = SavePrefab(root, SettingsPrefabPath);
         Object.DestroyImmediate(root);
         Undo.ClearAll();
         AssetDatabase.SaveAssets();

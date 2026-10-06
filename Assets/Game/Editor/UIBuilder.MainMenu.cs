@@ -207,7 +207,7 @@ public static partial class UIBuilder
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
-        GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, MainMenuPrefabPath);
+        GameObject saved = SavePrefab(root, MainMenuPrefabPath);
         Object.DestroyImmediate(root);
         Undo.ClearAll();
         AssetDatabase.SaveAssets();
