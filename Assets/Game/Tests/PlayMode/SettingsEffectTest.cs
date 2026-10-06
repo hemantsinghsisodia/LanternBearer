@@ -237,6 +237,55 @@ public class SettingsEffectTest
         Assert.AreEqual(ambient0, RenderSettings.ambientIntensity, 0.00001f);
     }
 
+    static void AssertColour(Color expected, Color actual, string what)
+    {
+        Assert.AreEqual(expected.r, actual.r, 0.02f, what + " r");
+        Assert.AreEqual(expected.g, actual.g, 0.02f, what + " g");
+        Assert.AreEqual(expected.b, actual.b, 0.02f, what + " b");
+    }
+
+    [UnityTest]
+    public IEnumerator DawnDoesNotCompoundLowBrightness()
+    {
+        SetGraphics(0);
+        yield return Load("Island1");
+        SetSetting("Brightness", 0f);
+        yield return null;
+        yield return null;
+        Color sky0 = RenderSettings.ambientSkyColor;
+        Color equator0 = RenderSettings.ambientEquatorColor;
+        Color ground0 = RenderSettings.ambientGroundColor;
+        float intensity0 = RenderSettings.ambientIntensity;
+        Light moon = RenderSettings.sun;
+        float moon0 = moon.intensity;
+
+        SetSetting("Brightness", 1f);
+        yield return null;
+        yield return null;
+        Color prePre = RenderSettings.ambientEquatorColor;
+        AssertColour(equator0 * 2f, prePre, "pre-dawn equator is authored x2");
+
+        System.Type dt = Game("DawnSequence");
+        Object dawn = Object.FindAnyObjectByType(dt);
+        Assert.IsNotNull(dawn, "DawnSequence in Island1");
+        dt.GetMethod("Play").Invoke(dawn, new object[] { null });
+        for (int frame = 0; frame < 8; frame++)
+        {
+            yield return null;
+            // LateUpdate (where the brightness scaling runs) has finished by the end of the frame; this is what is rendered.
+            yield return new WaitForEndOfFrame();
+            AssertColour(equator0 * 2f, RenderSettings.ambientEquatorColor, "equator frame " + frame);
+            AssertColour(ground0 * 2f, RenderSettings.ambientGroundColor, "ground frame " + frame);
+            AssertColour(sky0 * 2f, RenderSettings.ambientSkyColor, "sky frame " + frame);
+            Assert.LessOrEqual(RenderSettings.ambientIntensity, intensity0 * 2f * 1.02f, "ambient intensity frame " + frame);
+            Assert.LessOrEqual(moon.intensity, moon0 * 2f * 1.02f, "moon frame " + frame);
+            if (frame == 0)
+            {
+                AssertColour(prePre, RenderSettings.ambientEquatorColor, "no step on the first dawn frame");
+            }
+        }
+    }
+
     // Peak exposure written by the effects volume over a flash, sampled every frame.
     static IEnumerator PeakOver(ColorAdjustments effects, float seconds, float[] result)
     {

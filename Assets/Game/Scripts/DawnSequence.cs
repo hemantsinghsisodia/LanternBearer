@@ -254,16 +254,17 @@ public class DawnSequence : MonoBehaviour
         if (sun != null)
         {
             nightLightColor = sun.color;
-            nightIntensity = sun.intensity;
+            // The authored night values, not the brightness-scaled ones: UserSettingsApplier keeps scaling what dawn writes.
+            nightIntensity = UserSettingsApplier.AuthoredMoon(sun);
             nightRotation = sun.transform.rotation;
         }
 
         nightFog = RenderSettings.fogColor;
         nightFogDensity = RenderSettings.fogDensity;
-        nightSky = RenderSettings.ambientSkyColor;
-        nightEquator = RenderSettings.ambientEquatorColor;
-        nightGround = RenderSettings.ambientGroundColor;
-        nightAmbient = RenderSettings.ambientIntensity;
+        nightSky = UserSettingsApplier.AuthoredSky;
+        nightEquator = UserSettingsApplier.AuthoredEquator;
+        nightGround = UserSettingsApplier.AuthoredGround;
+        nightAmbient = UserSettingsApplier.AuthoredAmbientIntensity;
         nightRimStrength = Shader.GetGlobalFloat("_LKMoonRimStrength");
         if (lookVolume != null)
         {

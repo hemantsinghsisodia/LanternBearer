@@ -86,6 +86,11 @@ public class SettingsScreen : MonoBehaviour
         {
             Select(back);
         }
+        else if (EventSystem.current != null)
+        {
+            // Nothing to hand focus to: do not leave it on the screen we just hid.
+            EventSystem.current.SetSelectedGameObject(null);
+        }
         if (callback != null)
         {
             callback();

@@ -24,17 +24,25 @@ public class UserSettingsApplier : MonoBehaviour
     private bool ducked;
     private float duckOffset;
     // Brightness without post-processing: scale the ambient light and the moon by 2^EV from cached authored values.
-    // Whenever another script rewrites a value (LookApplier on a preset change, a scene load) the cache is retaken from it.
+    // Each value is tracked on its own: it is re-cached as "authored" only when its own current value differs from what
+    // this class last wrote (LookApplier on a preset change, DawnSequence every frame, a scene load). Fields nobody else
+    // touches keep their authored value, so nothing is ever scaled twice.
+    // DawnSequence reads its night baseline from the Authored* getters, so dawn fades authored night to authored dawn and
+    // this class keeps scaling the result: brightness applies through dawn with no step at either end.
+    private sealed class Tracked<T>
+    {
+        public bool Have;
+        public T Authored;
+        public T Written;
+    }
+
     private Light moon;
-    private bool haveMoon;
     private bool searchedDirectional;
-    private float moonAuthored;
-    private float moonWritten;
-    private bool haveAmbient;
-    private float ambientIntensityAuthored;
-    private float ambientIntensityWritten;
-    private Color[] ambientAuthored = new Color[3];
-    private Color[] ambientWritten = new Color[3];
+    private readonly Tracked<float> moonField = new Tracked<float>();
+    private readonly Tracked<float> ambientIntensityField = new Tracked<float>();
+    private readonly Tracked<Color> skyField = new Tracked<Color>();
+    private readonly Tracked<Color> equatorField = new Tracked<Color>();
+    private readonly Tracked<Color> groundField = new Tracked<Color>();
 
     private bool haveAppliedScreen;
     private int appliedWidth;
@@ -114,9 +122,70 @@ public class UserSettingsApplier : MonoBehaviour
         ApplyLightBrightness();
     }
 
+    private const float Tolerance = 0.0001f;
+
     private static bool Same(Color a, Color b)
     {
-        return Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.0001f;
+        return Mathf.Abs(a.r - b.r) <= Tolerance && Mathf.Abs(a.g - b.g) <= Tolerance && Mathf.Abs(a.b - b.b) <= Tolerance;
+    }
+
+    private static Color Scale(Color c, float f)
+    {
+        return new Color(c.r * f, c.g * f, c.b * f, c.a);
+    }
+
+    // Returns the value to write: authored x factor, re-caching authored first if someone else changed the value.
+    private static float Track(Tracked<float> field, float current, float factor)
+    {
+        if (!field.Have || Mathf.Abs(current - field.Written) > Tolerance)
+        {
+            field.Authored = current;
+            field.Have = true;
+        }
+        field.Written = field.Authored * factor;
+        return field.Written;
+    }
+
+    private static Color Track(Tracked<Color> field, Color current, float factor)
+    {
+        if (!field.Have || !Same(current, field.Written))
+        {
+            field.Authored = current;
+            field.Have = true;
+        }
+        field.Written = Scale(field.Authored, factor);
+        return field.Written;
+    }
+
+    // The unscaled values, for scripts that fade lighting themselves (DawnSequence). Without a cached value they
+    // return the live one.
+    public static float AuthoredAmbientIntensity
+    {
+        get { return Instance != null && Instance.ambientIntensityField.Have ? Instance.ambientIntensityField.Authored : RenderSettings.ambientIntensity; }
+    }
+
+    public static Color AuthoredSky
+    {
+        get { return Instance != null && Instance.skyField.Have ? Instance.skyField.Authored : RenderSettings.ambientSkyColor; }
+    }
+
+    public static Color AuthoredEquator
+    {
+        get { return Instance != null && Instance.equatorField.Have ? Instance.equatorField.Authored : RenderSettings.ambientEquatorColor; }
+    }
+
+    public static Color AuthoredGround
+    {
+        get { return Instance != null && Instance.groundField.Have ? Instance.groundField.Authored : RenderSettings.ambientGroundColor; }
+    }
+
+    public static float AuthoredMoon(Light light)
+    {
+        if (light == null)
+        {
+            return 0f;
+        }
+        return Instance != null && Instance.moon == light && Instance.moonField.Have ? Instance.moonField.Authored : light.intensity;
     }
 
     private void ApplyLightBrightness()
@@ -132,43 +201,17 @@ public class UserSettingsApplier : MonoBehaviour
         if (sun != null && sun != moon)
         {
             moon = sun;
-            haveMoon = false;
+            moonField.Have = false;
         }
         if (moon != null)
         {
-            if (!haveMoon || !Mathf.Approximately(moon.intensity, moonWritten))
-            {
-                moonAuthored = moon.intensity;
-                haveMoon = true;
-            }
-            moonWritten = moonAuthored * factor;
-            moon.intensity = moonWritten;
+            moon.intensity = Track(moonField, moon.intensity, factor);
         }
 
-        Color[] now = { RenderSettings.ambientSkyColor, RenderSettings.ambientEquatorColor, RenderSettings.ambientGroundColor };
-        bool changed = !haveAmbient || !Mathf.Approximately(RenderSettings.ambientIntensity, ambientIntensityWritten);
-        for (int i = 0; i < 3 && !changed; i++)
-        {
-            changed = !Same(now[i], ambientWritten[i]);
-        }
-        if (changed)
-        {
-            ambientIntensityAuthored = RenderSettings.ambientIntensity;
-            for (int i = 0; i < 3; i++)
-            {
-                ambientAuthored[i] = now[i];
-            }
-            haveAmbient = true;
-        }
-        // Trilight and flat ambient read the colours, skybox ambient reads the intensity: scale both.
-        ambientIntensityWritten = ambientIntensityAuthored * factor;
-        RenderSettings.ambientIntensity = ambientIntensityWritten;
-        ambientWritten[0] = ambientAuthored[0] * factor;
-        ambientWritten[1] = ambientAuthored[1] * factor;
-        ambientWritten[2] = ambientAuthored[2] * factor;
-        RenderSettings.ambientSkyColor = ambientWritten[0];
-        RenderSettings.ambientEquatorColor = ambientWritten[1];
-        RenderSettings.ambientGroundColor = ambientWritten[2];
+        RenderSettings.ambientIntensity = Track(ambientIntensityField, RenderSettings.ambientIntensity, factor);
+        RenderSettings.ambientSkyColor = Track(skyField, RenderSettings.ambientSkyColor, factor);
+        RenderSettings.ambientEquatorColor = Track(equatorField, RenderSettings.ambientEquatorColor, factor);
+        RenderSettings.ambientGroundColor = Track(groundField, RenderSettings.ambientGroundColor, factor);
     }
 
     private static Light FindDirectional()
@@ -203,8 +246,11 @@ public class UserSettingsApplier : MonoBehaviour
         // A duck belongs to the scene it started in (win, loss, retry, back to the menu).
         ducked = false;
         duckOffset = 0f;
-        haveMoon = false;
-        haveAmbient = false;
+        moonField.Have = false;
+        ambientIntensityField.Have = false;
+        skyField.Have = false;
+        equatorField.Have = false;
+        groundField.Have = false;
         searchedDirectional = false;
         moon = null;
         ApplyAudio();
