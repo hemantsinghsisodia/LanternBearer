@@ -128,3 +128,16 @@ Replace the photo-scanned Poly Haven props and the stretched terrain cliff faces
 - **Unchanged:** terrain data (heights, alphamaps, holes, details) stays byte-identical. This is shading only.
 - **Validation:** Validate Scene Wiring checks that each island terrain uses `LanternKeeper/TerrainLit`. Cliff screenshots show no vertical stripes beside trails.
 - Performance stays within Ultra ≤ 12.5 ms.
+
+## Amendment 2 (2026-10-06): smooth the cliff walls
+**Finding:** in play mode the cliff faces still show vertical bands after triplanar shading. The cause is geometry: the heightmap's plateau and ridge walls are sawtooth facets (aliased rims), which light differently facet by facet.
+
+**Decision (user chose "smooth walls only"):** the builder applies a final pass to the heights that smooths **wall cells only**.
+- **Wall cells:** slope above about 50°.
+- **Locked cells** keep their height bit for bit. These are every cell with slope ≤ 45° before smoothing, plus trail, beacon-ring, hidden-path, spawn and shore cells and their 1-cell neighbours.
+- **Method:** constrained iterative averaging in plan (XZ) and height, so a wall becomes one continuous surface. Each wall cell moves at most 0.5 m in height.
+- It runs after splat, detail and hole generation. Alphamaps, holes and detail layers stay byte-identical to the pre-change terrain. Heights stay identical on all locked cells.
+- Cladding is re-planned on the smoothed heights.
+- **Logic:** `CliffWallSmoother` is pure and tested. Locked cells are unchanged, the change is bounded, a synthetic sawtooth rim is measurably smoother, and the result is deterministic.
+- **Validation:** every beacon is still reachable on each island (trail capsule check plus a play-mode walk in Task 6). Validate Scene Wiring reports 0 problems.
+- This replaces "terrain heights byte-identical" for wall cells only.
