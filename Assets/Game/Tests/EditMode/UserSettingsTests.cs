@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -14,6 +15,15 @@ public class UserSettingsTests
         "LanternKeeperResHeight", "LanternKeeperRefreshHz", "LanternKeeperMusicMuted"
     };
 
+    static readonly string[] FloatKeys =
+    {
+        "LanternKeeperMasterVolume", "LanternKeeperMusicVolume", "LanternKeeperEffectsVolume",
+        "LanternKeeperAmbienceVolume", "LanternKeeperBrightness", "LanternKeeperTextScale"
+    };
+
+    // The developer's real values, saved in SetUp and restored in TearDown.
+    readonly Dictionary<string, object> saved = new Dictionary<string, object>();
+
     static void Clear()
     {
         foreach (string k in Keys)
@@ -25,13 +35,44 @@ public class UserSettingsTests
     [SetUp]
     public void SetUp()
     {
+        saved.Clear();
+        foreach (string k in Keys)
+        {
+            if (!PlayerPrefs.HasKey(k))
+            {
+                continue;
+            }
+            if (Array.IndexOf(FloatKeys, k) >= 0)
+            {
+                saved[k] = PlayerPrefs.GetFloat(k);
+            }
+            else
+            {
+                saved[k] = PlayerPrefs.GetInt(k);
+            }
+        }
+        UserSettings.DeferSave = false;
         Clear();
     }
 
     [TearDown]
     public void TearDown()
     {
+        UserSettings.DeferSave = false;
+        UserSettings.Flush();
         Clear();
+        foreach (KeyValuePair<string, object> pair in saved)
+        {
+            if (pair.Value is float)
+            {
+                PlayerPrefs.SetFloat(pair.Key, (float)pair.Value);
+            }
+            else
+            {
+                PlayerPrefs.SetInt(pair.Key, (int)pair.Value);
+            }
+        }
+        PlayerPrefs.Save();
     }
 
     [Test]
@@ -97,13 +138,49 @@ public class UserSettingsTests
         Assert.AreEqual(0.6f, UserSettings.MusicVolume, 0.0001f);
     }
 
-    static Resolution Res(int w, int h)
+    static Resolution Res(int w, int h, uint hz = 60)
     {
         Resolution r = new Resolution();
         r.width = w;
         r.height = h;
-        r.refreshRateRatio = new RefreshRate { numerator = 60, denominator = 1 };
+        r.refreshRateRatio = new RefreshRate { numerator = hz, denominator = 1 };
         return r;
+    }
+
+    [Test]
+    public void NoExactHzPrefersDesktopHzThenHighest()
+    {
+        UserSettings.ResolutionWidth = 1280;
+        UserSettings.ResolutionHeight = 720;
+        UserSettings.RefreshRateHz = 75;
+        Resolution[] supported = { Res(1280, 720, 60), Res(1280, 720, 144), Res(1920, 1080, 60) };
+        Assert.AreEqual(144, Mathf.RoundToInt((float)UserSettings.ResolveResolution(supported, Res(1920, 1080, 144)).refreshRateRatio.value), "desktop Hz present");
+        Assert.AreEqual(60, Mathf.RoundToInt((float)UserSettings.ResolveResolution(supported, Res(1920, 1080, 60)).refreshRateRatio.value), "desktop Hz 60 present");
+        Resolution highest = UserSettings.ResolveResolution(supported, Res(1920, 1080, 100));
+        Assert.AreEqual(1280, highest.width);
+        Assert.AreEqual(144, Mathf.RoundToInt((float)highest.refreshRateRatio.value), "highest when desktop Hz absent");
+    }
+
+    [Test]
+    public void DeferredSaveFiresChangedAndFlushes()
+    {
+        int count = 0;
+        Action handler = () => count++;
+        UserSettings.Changed += handler;
+        try
+        {
+            UserSettings.DeferSave = true;
+            UserSettings.MasterVolume = 0.5f;
+            UserSettings.DeferSave = false;
+            Assert.AreEqual(1, count, "Changed still fires while deferred");
+            Assert.IsTrue(UserSettings.PendingSave);
+            UserSettings.Flush();
+            Assert.IsFalse(UserSettings.PendingSave);
+        }
+        finally
+        {
+            UserSettings.Changed -= handler;
+        }
     }
 
     [Test]

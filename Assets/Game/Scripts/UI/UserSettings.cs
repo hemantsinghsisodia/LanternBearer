@@ -93,13 +93,18 @@ public static class UserSettings
     }
 
     // Returns the saved resolution if the display supports it, otherwise the desktop resolution.
+    // With a saved size but no exact refresh match, prefers the desktop's Hz if that size has it,
+    // otherwise the highest Hz offered for that size.
     public static Resolution ResolveResolution(Resolution[] supported, Resolution desktop)
     {
         int w = ResolutionWidth;
         int h = ResolutionHeight;
         int hz = RefreshRateHz;
-        Resolution sizeMatch = desktop;
+        int desktopHz = Mathf.RoundToInt((float)desktop.refreshRateRatio.value);
+        Resolution best = desktop;
         bool haveSize = false;
+        bool bestIsDesktopHz = false;
+        double bestHz = -1.0;
         if (supported != null)
         {
             for (int i = 0; i < supported.Length; i++)
@@ -108,18 +113,26 @@ public static class UserSettings
                 {
                     continue;
                 }
-                if (hz > 0 && Mathf.RoundToInt((float)supported[i].refreshRateRatio.value) == hz)
+                int candidateHz = Mathf.RoundToInt((float)supported[i].refreshRateRatio.value);
+                if (hz > 0 && candidateHz == hz)
                 {
                     return supported[i];
                 }
-                if (!haveSize)
+                bool isDesktopHz = candidateHz == desktopHz;
+                double value = supported[i].refreshRateRatio.value;
+                bool better = !haveSize
+                    || (isDesktopHz && !bestIsDesktopHz)
+                    || (isDesktopHz == bestIsDesktopHz && value > bestHz);
+                if (better)
                 {
-                    sizeMatch = supported[i];
+                    best = supported[i];
+                    bestIsDesktopHz = isDesktopHz;
+                    bestHz = value;
                     haveSize = true;
                 }
             }
         }
-        return haveSize ? sizeMatch : desktop;
+        return haveSize ? best : desktop;
     }
 
     // Older builds stored a music mute flag. Carry it over once, if no volume was ever saved.
@@ -157,9 +170,34 @@ public static class UserSettings
         Raise();
     }
 
+    // Deferred saving, used by SliderRow while a slider is being dragged. While DeferSave is true the setters
+    // still write PlayerPrefs and raise Changed (so effects apply live) but skip PlayerPrefs.Save().
+    // Whoever turns it on is responsible for calling Flush() afterwards.
+    public static bool DeferSave;
+
+    public static bool PendingSave { get; private set; }
+
+    // Writes any deferred changes to disk. Does nothing if nothing is pending.
+    public static void Flush()
+    {
+        if (PendingSave)
+        {
+            PendingSave = false;
+            PlayerPrefs.Save();
+        }
+    }
+
     static void Raise()
     {
-        PlayerPrefs.Save();
+        if (DeferSave)
+        {
+            PendingSave = true;
+        }
+        else
+        {
+            PendingSave = false;
+            PlayerPrefs.Save();
+        }
         Action handler = Changed;
         if (handler != null)
         {
