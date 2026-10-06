@@ -12,6 +12,7 @@ public static partial class IslandBuilder
     const float RockUnitWidth = 1.5f;
     // Single-LOD cull height. QualitySettings.lodBias (1 / 2 / 3 / 4 on Low..Ultra) scales the distance per preset.
     const float CladdingCullHeight = 0.04f;
+    const int SpareLayer = 31;
 
     // Rock meshes along every steep face. Collider-free copies of the island-tinted Rock_Medium prefabs.
     static int PlaceCladding(LevelConfig config, Stage stage, Transform parent)
@@ -63,7 +64,54 @@ public static partial class IslandBuilder
         return rocks.Count - TrailClearanceCheck(config, stage, folder, origin, data, heights);
     }
 
-    // Height of the trail or beacon ring ground within reach of p (trail 1.3 m, beacon 4 m), NaN when p is free.
+    // Props (trees, saplings, rocks, deadwood) placed beside a trail can still reach across it: a 3 m boulder has a 1.5 m radius, more than the placement clearance.
+    // Every prop whose collider touches a keeper-sized capsule (0.6 m radius) along a trail centreline is removed. Returns the number removed.
+    static int PropTrailClearance(LevelConfig config, Stage stage, Transform props)
+    {
+        Physics.SyncTransforms();
+        HashSet<Transform> doomed = new HashSet<Transform>();
+        int samples = 0;
+        for (int t = 0; t < stage.trails.Count; t++)
+        {
+            List<Vector2> path = stage.trails[t];
+            for (int i = 1; i < path.Count; i++)
+            {
+                float length = Vector2.Distance(path[i - 1], path[i]);
+                int steps = Mathf.Max(1, Mathf.CeilToInt(length / 0.3f));
+                for (int k = 0; k < steps; k++)
+                {
+                    Vector2 p = Vector2.Lerp(path[i - 1], path[i], k / (float)steps);
+                    float g = GroundY(stage.terrain, p.x, p.y);
+                    samples++;
+                    Collider[] near = Physics.OverlapCapsule(new Vector3(p.x, g + 0.6f, p.y), new Vector3(p.x, g + 1.16f, p.y), 0.6f, ~0, QueryTriggerInteraction.Ignore);
+                    for (int n = 0; n < near.Length; n++)
+                    {
+                        Transform root = near[n].transform;
+                        while (root != null && root.parent != props)
+                        {
+                            root = root.parent;
+                        }
+
+                        if (root != null && root.name != "CliffCladding" && root.name != CliffSkinName)
+                        {
+                            doomed.Add(root);
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (Transform prop in doomed)
+        {
+            Debug.Log(config.sceneName + " prop on a trail removed: " + prop.name + " at " + prop.position.ToString("F1"));
+            Object.DestroyImmediate(prop.gameObject);
+        }
+
+        Debug.Log(config.sceneName + " prop trail clearance: " + doomed.Count + " props removed (" + samples + " capsule samples)");
+        return doomed.Count;
+    }
+
+    // Height of the trail, hidden-path stone or beacon ring ground within reach of p (trail and stone 1.3 m, beacon 4 m), NaN when p is free.
     static float WalkwayHeight(Stage stage, Vector2 p)
     {
         float best = float.NaN;
@@ -81,6 +129,18 @@ public static partial class IslandBuilder
                     Vector2 q = Vector2.Lerp(path[s - 1], path[s], t);
                     best = GroundY(stage.terrain, q.x, q.y);
                 }
+            }
+        }
+
+        // Hidden-path stones and bank steps: the stone top is the walkway, kept clear like a trail.
+        for (int i = 0; i < stage.pathStones.Count; i++)
+        {
+            Vector3 stone = stage.pathStones[i];
+            float distance = (new Vector2(stone.x, stone.z) - p).magnitude;
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = stone.y;
             }
         }
 
@@ -150,91 +210,108 @@ public static partial class IslandBuilder
     }
 
     // Diagnostics: a 0.6 m radius capsule along every trail centreline must not touch any cladding rock. Temporary mesh colliders
-    // on a spare layer are used for the query and removed again. Also logs where a trail passes within 4 m of a steep cell.
+    // on a spare layer are used for the queries and always removed again. Rocks left floating after the removal are removed too.
     static int TrailClearanceCheck(LevelConfig config, Stage stage, Transform folder, Vector3 origin, TerrainData data, float[,] heights)
     {
-        const int spareLayer = 31;
         List<MeshCollider> temp = new List<MeshCollider>();
         List<int> layers = new List<int>();
-        foreach (Transform rock in folder)
-        {
-            MeshFilter filter = rock.GetComponentInChildren<MeshFilter>();
-            if (filter == null)
-            {
-                continue;
-            }
-
-            layers.Add(filter.gameObject.layer);
-            filter.gameObject.layer = spareLayer;
-            MeshCollider collider = filter.gameObject.AddComponent<MeshCollider>();
-            collider.sharedMesh = filter.sharedMesh;
-            temp.Add(collider);
-        }
-
-        Physics.SyncTransforms();
         int samples = 0;
         int hits = 0;
+        int floating = 0;
         HashSet<GameObject> doomed = new HashSet<GameObject>();
-        int cliffLogged = 0;
-        int cols = heights.GetLength(1);
-        float cell = data.size.x / (cols - 1);
-        for (int t = 0; t < stage.trails.Count; t++)
+        try
         {
-            List<Vector2> path = stage.trails[t];
-            for (int i = 1; i < path.Count; i++)
+            foreach (Transform rock in folder)
             {
-                float length = Vector2.Distance(path[i - 1], path[i]);
-                int steps = Mathf.Max(1, Mathf.CeilToInt(length / 0.3f));
-                for (int k = 0; k < steps; k++)
+                MeshFilter filter = rock.GetComponentInChildren<MeshFilter>();
+                if (filter == null)
                 {
-                    Vector2 p = Vector2.Lerp(path[i - 1], path[i], k / (float)steps);
-                    float g = GroundY(stage.terrain, p.x, p.y);
-                    samples++;
-                    if (Physics.CheckCapsule(new Vector3(p.x, g + 0.6f, p.y), new Vector3(p.x, g + 1.16f, p.y), 0.6f, 1 << spareLayer, QueryTriggerInteraction.Ignore))
-                    {
-                        hits++;
-                        Collider[] near = Physics.OverlapCapsule(new Vector3(p.x, g + 0.6f, p.y), new Vector3(p.x, g + 1.16f, p.y), 0.6f, 1 << spareLayer, QueryTriggerInteraction.Ignore);
-                        for (int n = 0; n < near.Length; n++)
-                        {
-                            doomed.Add(near[n].gameObject);
-                        }
-                    }
+                    continue;
+                }
 
-                    if (cliffLogged < 3 && k == 0 && i % 6 == 0)
+                layers.Add(filter.gameObject.layer);
+                filter.gameObject.layer = SpareLayer;
+                MeshCollider collider = filter.gameObject.AddComponent<MeshCollider>();
+                collider.sharedMesh = filter.sharedMesh;
+                temp.Add(collider);
+            }
+
+            Physics.SyncTransforms();
+            for (int t = 0; t < stage.trails.Count; t++)
+            {
+                List<Vector2> path = stage.trails[t];
+                for (int i = 1; i < path.Count; i++)
+                {
+                    float length = Vector2.Distance(path[i - 1], path[i]);
+                    int steps = Mathf.Max(1, Mathf.CeilToInt(length / 0.3f));
+                    for (int k = 0; k < steps; k++)
                     {
-                        // Nearest steep cell within 5 m (sparse scan).
-                        for (float dx = -5f; dx <= 5f && cliffLogged < 3; dx += 1f)
+                        Vector2 p = Vector2.Lerp(path[i - 1], path[i], k / (float)steps);
+                        float g = GroundY(stage.terrain, p.x, p.y);
+                        samples++;
+                        Vector3 low = new Vector3(p.x, g + 0.6f, p.y);
+                        Vector3 high = new Vector3(p.x, g + 1.16f, p.y);
+                        if (Physics.CheckCapsule(low, high, 0.6f, 1 << SpareLayer, QueryTriggerInteraction.Ignore))
                         {
-                            for (float dz = -5f; dz <= 5f; dz += 1f)
+                            hits++;
+                            Collider[] near = Physics.OverlapCapsule(low, high, 0.6f, 1 << SpareLayer, QueryTriggerInteraction.Ignore);
+                            for (int n = 0; n < near.Length; n++)
                             {
-                                int cx = Mathf.RoundToInt((p.x + dx - origin.x) / cell);
-                                int cz = Mathf.RoundToInt((p.y + dz - origin.z) / cell);
-                                if (cx < 1 || cz < 1 || cx >= cols - 1 || cz >= cols - 1)
-                                {
-                                    continue;
-                                }
-
-                                float gx = (heights[cz, cx + 1] - heights[cz, cx - 1]) * data.size.y / (2f * cell);
-                                float gz = (heights[cz + 1, cx] - heights[cz - 1, cx]) * data.size.y / (2f * cell);
-                                if (Mathf.Sqrt(gx * gx + gz * gz) > 1f)
-                                {
-                                    Debug.Log(config.sceneName + " TRAILCLIFF trail=" + p.x.ToString("F1") + "," + g.ToString("F1") + "," + p.y.ToString("F1")
-                                        + " steep=" + (p.x + dx).ToString("F1") + "," + (p.y + dz).ToString("F1"));
-                                    cliffLogged++;
-                                    break;
-                                }
+                                doomed.Add(near[n].gameObject);
                             }
                         }
                     }
                 }
             }
-        }
 
-        for (int i = 0; i < temp.Count; i++)
+            // Hidden-path stones and bank steps are walkways too.
+            for (int i = 0; i < stage.pathStones.Count; i++)
+            {
+                Vector3 stone = stage.pathStones[i];
+                Vector3 low = new Vector3(stone.x, stone.y + 0.6f, stone.z);
+                Vector3 high = new Vector3(stone.x, stone.y + 1.16f, stone.z);
+                samples++;
+                if (Physics.CheckCapsule(low, high, 0.6f, 1 << SpareLayer, QueryTriggerInteraction.Ignore))
+                {
+                    hits++;
+                    Collider[] near = Physics.OverlapCapsule(low, high, 0.6f, 1 << SpareLayer, QueryTriggerInteraction.Ignore);
+                    for (int n = 0; n < near.Length; n++)
+                    {
+                        doomed.Add(near[n].gameObject);
+                    }
+                }
+            }
+
+            // Removing rocks can leave a neighbour without support, so repeat until nothing floats.
+            for (int pass = 0; pass < 4; pass++)
+            {
+                List<GameObject> loose = FloatingRocks(stage, temp, doomed);
+                if (loose.Count == 0)
+                {
+                    break;
+                }
+
+                for (int i = 0; i < loose.Count; i++)
+                {
+                    doomed.Add(loose[i]);
+                }
+
+                floating += loose.Count;
+            }
+        }
+        finally
         {
-            GameObject owner = temp[i].gameObject;
-            Object.DestroyImmediate(temp[i]);
-            owner.layer = layers[i];
+            for (int i = 0; i < temp.Count; i++)
+            {
+                if (temp[i] == null)
+                {
+                    continue;
+                }
+
+                GameObject owner = temp[i].gameObject;
+                Object.DestroyImmediate(temp[i]);
+                owner.layer = layers[i];
+            }
         }
 
         // Every rock touching the capsule was collected in the same pass, so removing them leaves no sample in contact.
@@ -243,8 +320,53 @@ public static partial class IslandBuilder
             Object.DestroyImmediate(rock);
         }
 
-        Debug.Log(config.sceneName + " cladding trail clearance: " + hits + " of " + samples + " samples (0.6 m capsule) touched a cladding rock; removed " + doomed.Count + " rocks, 0 remain in contact");
+        Debug.Log(config.sceneName + " cladding trail clearance: " + hits + " of " + samples + " samples (0.6 m capsule) touched a cladding rock; removed " + (doomed.Count - floating) + " rocks, 0 remain in contact. Floating rocks removed: " + floating);
         return doomed.Count;
+    }
+
+    // A rock floats when its lowest point is clear of the terrain under its footprint and of every other (surviving) rock.
+    // Support is probed on a 3 x 3 grid across the footprint: terrain within 0.3 m of the bottom, or another rock within 0.3 m below it.
+    static List<GameObject> FloatingRocks(Stage stage, List<MeshCollider> colliders, HashSet<GameObject> removed)
+    {
+        const float reach = 0.3f;
+        List<GameObject> loose = new List<GameObject>();
+        for (int i = 0; i < colliders.Count; i++)
+        {
+            GameObject owner = colliders[i].gameObject;
+            if (removed.Contains(owner))
+            {
+                continue;
+            }
+
+            Bounds b = colliders[i].bounds;
+            bool supported = false;
+            for (int gx = 0; gx < 3 && !supported; gx++)
+            {
+                for (int gz = 0; gz < 3 && !supported; gz++)
+                {
+                    float x = Mathf.Lerp(b.min.x, b.max.x, gx / 2f);
+                    float z = Mathf.Lerp(b.min.z, b.max.z, gz / 2f);
+                    supported = GroundY(stage.terrain, x, z) >= b.min.y - reach;
+                }
+            }
+
+            if (!supported)
+            {
+                Collider[] below = Physics.OverlapBox(new Vector3(b.center.x, b.min.y, b.center.z), new Vector3(b.extents.x * 0.6f, reach, b.extents.z * 0.6f), Quaternion.identity, 1 << SpareLayer, QueryTriggerInteraction.Ignore);
+                for (int n = 0; n < below.Length && !supported; n++)
+                {
+                    GameObject other = below[n].gameObject;
+                    supported = other != owner && !removed.Contains(other);
+                }
+            }
+
+            if (!supported)
+            {
+                loose.Add(owner);
+            }
+        }
+
+        return loose;
     }
 }
 }

@@ -592,6 +592,7 @@ public static class SceneWiring
         nulls += RequireKeeperLod(quiet);
         nulls += RequireTerrainShading(quiet);
         nulls += RequireCliffSkin(quiet);
+        nulls += PropValidation.Report(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)

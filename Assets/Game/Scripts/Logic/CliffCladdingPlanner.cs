@@ -253,6 +253,9 @@ public static class CliffCladdingPlanner
             baseY = Mathf.Max(baseY, hi - rockHeight + 0.15f);
         }
 
+        // A tall rock in the middle of a short face would stand above the rim; sink it so its top overhangs by RimOverhang at most.
+        baseY = Mathf.Min(baseY, hi + RimOverhang - rockHeight);
+
         rock = new CladdingRock();
         for (int attempt = 0; attempt < 3; attempt++)
         {

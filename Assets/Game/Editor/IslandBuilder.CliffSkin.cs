@@ -10,6 +10,8 @@ public static partial class IslandBuilder
     const string CliffSkinRoot = "Assets/Game/Art/Environment/Cliffs";
     public const string CliffSkinName = "CliffSkin";
     const float SkinTrailClearance = 0.6f;
+    // Plan distance within which a skin strip keeps off a hidden-path stone or bank step (stone radius 0.58 m plus a margin).
+    const float SkinStoneClearance = 1.2f;
 
     // Cliff skin: smooth rock walls laid just outside the heightmap's one-cell steps (Spec Amendment 3). Meshes are saved as assets under
     // Art/Environment/Cliffs/<levelId>/, there is no collider (the terrain keeps all collision), and the cull setup matches the cladding rocks.
@@ -25,6 +27,7 @@ public static partial class IslandBuilder
         float[,] heights = data.GetHeights(0, 0, res, res);
         Vector3 origin = stage.terrain.transform.position;
         List<SkinStrip> strips = CliffSkinPlanner.Plan(heights, data.size.x, data.size.y, new Vector2(origin.x, origin.z), CliffSkinPlanner.StepThresholdM);
+        strips = ExcludeStones(strips, stage.pathStones, SkinStoneClearance);
         string folder = CliffSkinRoot + "/" + config.levelId;
         EnsureFolder(folder);
         if (strips.Count == 0)
@@ -70,6 +73,94 @@ public static partial class IslandBuilder
         Debug.Log(config.sceneName + " CLIFFSKIN strips=" + strips.Count + " length=" + length.ToString("F1") + " chunks=" + chunks.Count + " triangles=" + triangles);
         ReportSkinTrailClearance(config, stage, chunks);
         return triangles;
+    }
+
+    // Cuts every strip where it passes within `clearance` (plan) of a hidden-path stone. The pieces keep their points; a piece shorter than the planner's minimum is dropped.
+    static List<SkinStrip> ExcludeStones(List<SkinStrip> strips, List<Vector3> stones, float clearance)
+    {
+        if (stones == null || stones.Count == 0)
+        {
+            return strips;
+        }
+
+        float limit = clearance * clearance;
+        List<SkinStrip> result = new List<SkinStrip>();
+        for (int s = 0; s < strips.Count; s++)
+        {
+            SkinStrip strip = strips[s];
+            bool[] blocked = new bool[strip.points.Count];
+            bool any = false;
+            for (int i = 0; i < blocked.Length; i++)
+            {
+                for (int k = 0; k < stones.Count && !blocked[i]; k++)
+                {
+                    Vector2 d = strip.points[i].position - new Vector2(stones[k].x, stones[k].z);
+                    blocked[i] = d.sqrMagnitude < limit;
+                }
+
+                any |= blocked[i];
+            }
+
+            if (!any)
+            {
+                result.Add(strip);
+                continue;
+            }
+
+            // A closed loop starts its first piece at the first blocked point's successor, so no piece wraps across the seam.
+            int first = 0;
+            if (strip.closed)
+            {
+                while (first < blocked.Length && !blocked[first])
+                {
+                    first++;
+                }
+            }
+
+            SkinStrip piece = null;
+            for (int n = 0; n < blocked.Length; n++)
+            {
+                int i = strip.closed ? (first + n) % blocked.Length : n;
+                if (blocked[i])
+                {
+                    AddPiece(result, piece);
+                    piece = null;
+                    continue;
+                }
+
+                if (piece == null)
+                {
+                    piece = new SkinStrip();
+                }
+
+                piece.points.Add(strip.points[i]);
+            }
+
+            AddPiece(result, piece);
+        }
+
+        return result;
+    }
+
+    static void AddPiece(List<SkinStrip> result, SkinStrip piece)
+    {
+        if (piece == null)
+        {
+            return;
+        }
+
+        float length = 0f;
+        for (int i = 1; i < piece.points.Count; i++)
+        {
+            length += Vector2.Distance(piece.points[i - 1].position, piece.points[i].position);
+        }
+
+        piece.closed = false;
+        piece.length = length;
+        if (length >= CliffSkinPlanner.MinLength)
+        {
+            result.Add(piece);
+        }
     }
 
     static Mesh SaveSkinMesh(string path, SkinChunk chunk)

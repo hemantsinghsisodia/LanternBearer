@@ -269,6 +269,7 @@ public static partial class IslandBuilder
         public readonly List<Vector3> beaconSpots = new List<Vector3>();
         public readonly List<Vector3> islets = new List<Vector3>();
         public readonly List<List<Vector2>> trails = new List<List<Vector2>>();
+        public readonly List<Vector3> pathStones = new List<Vector3>();   // x, top, z of every hidden-path stone and bank step
     }
 
     static void BuildTerrain(LevelConfig config, ArtKit art, string terrainPath, Stage stage)
@@ -761,6 +762,27 @@ public static partial class IslandBuilder
             stage.beaconSpots.Add(spot);
             stage.beacons++;
         }
+
+        PlaceTrailGuide(stage);
+    }
+
+    // The trail centrelines from the spawn to each beacon (same order as the Beacons folder), kept in the scene as empty
+    // transforms so the PlayMode reachability test can walk them. No components; purely data.
+    static void PlaceTrailGuide(Stage stage)
+    {
+        Transform guide = Folder("TrailGuide");
+        for (int t = 0; t < stage.trails.Count; t++)
+        {
+            Transform trail = Folder("Trail_" + t);
+            trail.SetParent(guide, false);
+            List<Vector2> path = stage.trails[t];
+            for (int i = 0; i < path.Count; i++)
+            {
+                Transform point = Folder("P" + i);
+                point.SetParent(trail, false);
+                point.position = new Vector3(path[i].x, GroundY(stage.terrain, path[i].x, path[i].y), path[i].y);
+            }
+        }
     }
 
     static void PlaceShowBeacon(ArtKit art, Stage stage)
@@ -911,10 +933,11 @@ public static partial class IslandBuilder
         int ferns = PlaceNamedNear(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), trees, scale, 1.1f, 3.2f, "fern");
         int undergrowth = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), scale, "fern");
         int rocks = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Rock), scale, null);
+        int offTrail = PropTrailClearance(config, stage, parent);
         int cladding = PlaceCladding(config, stage, parent);
         int skinTriangles = PlaceCliffSkin(config, stage, parent);
         PlaceMushrooms(config, art, stage, parent, random);
-        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " cladding=" + cladding + " skinTriangles=" + skinTriangles);
+        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " offTrail=" + offTrail + " cladding=" + cladding + " skinTriangles=" + skinTriangles);
     }
 
     static List<BiomeEntry> Entries(LevelConfig config, BiomeCategory category)
