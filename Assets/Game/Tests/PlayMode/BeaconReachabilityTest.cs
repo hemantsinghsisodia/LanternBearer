@@ -18,11 +18,30 @@ namespace LanternKeeper.Tests
         const float WaypointRadius = 0.7f;
         const float PlaybackScale = 2f;
         const float MoveSpeed = 6f;
+        const float ArriveHeight = 3f;
+        // A jump is allowed only over terrain (or a hidden-path stone) no higher than this; a prop in the way always fails.
+        const float MaxJumpStep = 2f;
+
+        // Jumps the trails need today, "island:beacon" -> count. They are terrain steps above the 0.4 m step offset that pre-date D2
+        // (and the hidden-path stones on Island 4 beacons 8 and 9). Any other jump, or more jumps than listed, fails the test.
+        // Beacons whose trail ends below a terrain cliff (terrain unchanged since D1, the keeper climbs it in several jumps) may need a taller step than MaxJumpStep.
+        static readonly Dictionary<string, float> StepAllowance = new Dictionary<string, float>
+        {
+            { "Island4:8", 5.5f }, { "Island4:9", 5.5f }
+        };
+
+        static readonly Dictionary<string, int> ExpectedJumps = new Dictionary<string, int>
+        {
+            { "Island1:4", 1 }, { "Island1:5", 1 },
+            { "Island2:6", 2 },
+            { "Island3:6", 1 },
+            { "Island4:8", 3 }, { "Island4:9", 5 }
+        };
 
         static readonly string[] Islands = { "Island1", "Island2", "Island3", "Island4" };
 
         readonly List<string> problems = new List<string>();
-        readonly List<string> blockers = new List<string>();
+        readonly List<string> failures = new List<string>();
         float previousScale;
         float previousMaxDelta;
         bool yawWasExternal;
@@ -46,7 +65,7 @@ namespace LanternKeeper.Tests
         public void SetUp()
         {
             problems.Clear();
-            blockers.Clear();
+            failures.Clear();
             Application.logMessageReceived += OnLog;
             previousScale = Time.timeScale;
             previousMaxDelta = Time.maximumDeltaTime;
@@ -157,15 +176,39 @@ namespace LanternKeeper.Tests
                     }
                     else if (elapsed - stuckSince > 0.6f)
                     {
-                        // A terrain step above the 0.4 m step offset takes a jump, which the player has. A prop in the way is a blocker.
                         if (elapsed - lastJump > 0.8f)
                         {
                             lastJump = elapsed;
-                            jumps++;
-                            string blocker = PropInTheWay(player.transform.position, direction.normalized, beacon);
+                            Vector3 at = player.transform.position;
+                            Vector2 heading = direction.normalized;
+                            bool onStones = NearHiddenStone(at);
+                            string blocker = PropInTheWay(at, heading, beacon);
+                            float step = onStones ? 0f : StepAhead(at, heading);
                             if (blocker != null)
                             {
-                                blockers.Add(island + ": beacon " + (b + 1) + " blocked by " + blocker + " at " + player.transform.position.ToString("F1"));
+                                failures.Add(island + ": beacon " + (b + 1) + " blocked by prop " + blocker + " at " + at.ToString("F1"));
+                                break;
+                            }
+
+                            float maxStep;
+                            if (!StepAllowance.TryGetValue(island + ":" + (b + 1), out maxStep))
+                            {
+                                maxStep = MaxJumpStep;
+                            }
+
+                            if (step > maxStep)
+                            {
+                                failures.Add(island + ": beacon " + (b + 1) + " needs a " + step.ToString("F1") + " m step (more than " + MaxJumpStep + " m) at " + at.ToString("F1"));
+                                break;
+                            }
+
+                            jumps++;
+                            int allowed;
+                            ExpectedJumps.TryGetValue(island + ":" + (b + 1), out allowed);
+                            if (jumps > allowed)
+                            {
+                                failures.Add(island + ": beacon " + (b + 1) + " needed an unexpected jump (" + jumps + " of " + allowed + " allowed) at " + at.ToString("F1"));
+                                break;
                             }
 
                             SetStatic("PlayerController", "ExternalJump", true);
@@ -181,12 +224,13 @@ namespace LanternKeeper.Tests
                 SetStatic("PlayerController", "ExternalMove", Vector2.zero);
                 Vector3 end = player.transform.position;
                 string state = arrived ? "" : ". Game state: " + GameState();
+                Assert.IsEmpty(failures, string.Join(" | ", failures));
                 Assert.IsTrue(arrived, island + ": beacon " + (b + 1) + " (" + beacon.position.ToString("F1") + ") not reached. Keeper stopped at "
                     + end.ToString("F1") + ", closest " + closest.ToString("F1") + " m, waypoint " + waypoint + "/" + (route.Count - 1) + ", " + elapsed.ToString("F1") + " s of " + limit.ToString("F1") + " s" + state);
+                Assert.LessOrEqual(Mathf.Abs(end.y - beacon.position.y), ArriveHeight, island + ": beacon " + (b + 1) + " reached in plan but " + Mathf.Abs(end.y - beacon.position.y).ToString("F1") + " m off in height");
                 Debug.Log("BeaconReachability " + island + " beacon " + (b + 1) + " reached in " + elapsed.ToString("F1") + " s (path " + length.ToString("F1") + " m, " + jumps + " jumps)");
             }
 
-            Assert.IsEmpty(blockers, string.Join(" | ", blockers));
             Assert.IsEmpty(problems, island + ": errors were logged: " + string.Join(" | ", problems));
         }
 
@@ -207,6 +251,39 @@ namespace LanternKeeper.Tests
             }
 
             return null;
+        }
+
+        static bool NearHiddenStone(Vector3 position)
+        {
+            GameObject paths = GameObject.Find("HiddenPaths");
+            if (paths == null)
+            {
+                return false;
+            }
+
+            foreach (Transform stone in paths.transform)
+            {
+                if ((new Vector2(stone.position.x, stone.position.z) - new Vector2(position.x, position.z)).magnitude < 1.5f)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Height of the highest terrain 0.4 to 0.8 m ahead (the step itself, not the slope behind it) above the keeper's feet (0 when it is lower).
+        static float StepAhead(Vector3 position, Vector2 direction)
+        {
+            Terrain terrain = Terrain.activeTerrain;
+            float best = 0f;
+            for (float d = 0.4f; d <= 0.8f; d += 0.2f)
+            {
+                Vector3 p = position + new Vector3(direction.x, 0f, direction.y) * d;
+                best = Mathf.Max(best, terrain.SampleHeight(p) + terrain.transform.position.y - position.y);
+            }
+
+            return best;
         }
 
         // Pause, lock, dying and round-over flags of the GameManager, to tell a blocked path from a stopped game.

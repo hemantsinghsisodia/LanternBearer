@@ -101,6 +101,27 @@ public static partial class IslandBuilder
             }
         }
 
+        // Hidden-path stones and bank steps are walkways too.
+        for (int i = 0; i < stage.pathStones.Count; i++)
+        {
+            Vector3 stone = stage.pathStones[i];
+            samples++;
+            Collider[] near = Physics.OverlapCapsule(new Vector3(stone.x, stone.y + 0.6f, stone.z), new Vector3(stone.x, stone.y + 1.16f, stone.z), 0.6f, ~0, QueryTriggerInteraction.Ignore);
+            for (int n = 0; n < near.Length; n++)
+            {
+                Transform root = near[n].transform;
+                while (root != null && root.parent != props)
+                {
+                    root = root.parent;
+                }
+
+                if (root != null && root.name != "CliffCladding" && root.name != CliffSkinName)
+                {
+                    doomed.Add(root);
+                }
+            }
+        }
+
         foreach (Transform prop in doomed)
         {
             Debug.Log(config.sceneName + " prop on a trail removed: " + prop.name + " at " + prop.position.ToString("F1"));

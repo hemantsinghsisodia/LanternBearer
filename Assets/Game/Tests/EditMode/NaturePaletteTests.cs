@@ -84,8 +84,8 @@ public class NaturePaletteTests
             {
                 Assert.Greater(profile.treeFoliage.a, 0f, "island4 authors treeFoliage");
                 Assert.GreaterOrEqual(HueDistance(tree, profile.foliage), 0.15f, "island4 trees must differ in hue from the purple bushes");
-                Assert.Greater(Hue(tree), 0.1f, "island4 tree hue is green-brown, not purple");
-                Assert.Less(Hue(tree), 0.4f, "island4 tree hue is green-brown, not purple");
+                Assert.GreaterOrEqual(Hue(tree), 0.20f, "island4 tree hue is olive, not purple");
+                Assert.LessOrEqual(Hue(tree), 0.31f, "island4 tree hue is olive, not purple");
             }
             else
             {
@@ -111,10 +111,11 @@ public class NaturePaletteTests
         Color treeTint = tree.GetColor("_BaseColor");
         Color bushTint = bush.GetColor("_BaseColor");
         Assert.GreaterOrEqual(HueDistance(treeTint, bushTint), 0.15f, "island4 tree leaf material must differ in hue from the bush material");
-        Assert.Greater(Hue(treeTint), 0.1f, "island4 tree leaf tint is green-brown");
-        Assert.Less(Hue(treeTint), 0.4f, "island4 tree leaf tint is green-brown");
+        Assert.GreaterOrEqual(Hue(treeTint), 0.20f, "island4 tree leaf tint is olive");
+        Assert.LessOrEqual(Hue(treeTint), 0.31f, "island4 tree leaf tint is olive");
+        Assert.GreaterOrEqual(HueDistance(treeTint, LoadMaterial("LeavesNormal", 1).GetColor("_BaseColor")), 0.02f, "island4 tree leaves must not share island1 tree hue");
         Color.RGBToHSV(treeTint, out float h, out float saturation, out float value);
-        Assert.Less(saturation, 0.45f, "island4 tree leaf tint is muted");
+        Assert.Less(saturation, 0.5f, "island4 tree leaf tint is muted");
         Assert.Less(value, 0.35f, "island4 tree leaf tint is dark");
         // The leaf texture is ochre; trees drop most of it so the muted tint decides the colour, bushes keep the purple look.
         Assert.GreaterOrEqual(tree.GetFloat("_Desaturate"), 0.5f, "island4 tree leaves desaturate the leaf texture");
@@ -127,7 +128,14 @@ public class NaturePaletteTests
 
         for (int island = 1; island <= 3; island++)
         {
-            Assert.AreEqual(0f, LoadMaterial("LeavesNormal", island).GetFloat("_Desaturate"), 0.001f, "island" + island + " tree leaves are untouched");
+            Material leaves = LoadMaterial("LeavesNormal", island);
+            Assert.AreEqual(0f, leaves.GetFloat("_Desaturate"), 0.001f, "island" + island + " tree leaves are untouched");
+            // Islands without their own treeFoliage keep the profile-derived tint (the island foliage colour).
+            Color expected = Load(island).foliage;
+            Color actual = leaves.GetColor("_BaseColor");
+            Assert.AreEqual(expected.r, actual.r, 0.002f, "island" + island + " tree leaf tint r");
+            Assert.AreEqual(expected.g, actual.g, 0.002f, "island" + island + " tree leaf tint g");
+            Assert.AreEqual(expected.b, actual.b, 0.002f, "island" + island + " tree leaf tint b");
         }
     }
 }

@@ -265,7 +265,8 @@ public static class PropValidation
                     if (!quiet)
                     {
                         Vector3 pos = new Vector3(origin.x + (minX + maxX) * 0.5f * cell, origin.y + (lo + hi) * 0.5f, origin.z + (minZ + maxZ) * 0.5f * cell);
-                        Debug.LogWarning("Cliff face at " + pos.ToString("F1") + " has no cladding (" + runLength.ToString("F1") + " m long, " + face.ToString("F1") + " m tall, " + count + " cells)");
+                        Debug.LogWarning("Cliff face at " + pos.ToString("F1") + " has no cladding", terrain);
+                        Debug.Log("Cliff face detail: " + runLength.ToString("F1") + " m long, " + face.ToString("F1") + " m tall, " + count + " cells", terrain);
                     }
                 }
             }

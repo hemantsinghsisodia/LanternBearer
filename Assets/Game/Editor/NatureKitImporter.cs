@@ -42,7 +42,7 @@ public static class NatureKitImporter
     };
 
     // Share of the leaf texture's colour replaced by its luminance on tree leaves of an island with its own treeFoliage.
-    public const float TreeDesaturate = 0.8f;
+    public const float TreeDesaturate = 1f;
     const string BushLeafKey = "Leaves_TwistedTree_Bush";
 
     static Spec Tree(string model)
@@ -659,14 +659,9 @@ public static class NatureKitImporter
         Dictionary<string, Material> map = new Dictionary<string, Material>();
         Color leaf = Opaque(profile.foliage);
         Color treeLeaf = Opaque(LookMapping.OrDerived(profile.treeFoliage, profile.foliage));
-        if (profile.treeFoliage.a > 0f)
-        {
-            treeLeaf = MutedTreeTint(treeLeaf);
-        }
-
         Color pine = Scale(treeLeaf, 0.82f);
         Color twisted = Scale(treeLeaf, 0.95f);
-        // An island that authors its own tree colour (Island 4) drops the leaf texture's ochre, so the tint alone decides the hue.
+        // An island that authors its own tree colour (Island 4, LookProfile.treeFoliage) drops the leaf texture's ochre, so the profile tint alone decides the hue.
         float treeDesaturate = profile.treeFoliage.a > 0f ? TreeDesaturate : 0f;
         Color plant = Scale(leaf, 1.08f);
         Color grass = Color.Lerp(Scale(leaf, 1.12f), Color.white, 0.12f);
@@ -690,14 +685,6 @@ public static class NatureKitImporter
         map["PathRocks"] = Lit(id, "Pebble", lit, GreyPath("PathRocks_Diffuse"), null, rock, 0.12f);
         map["Mushrooms"] = Lit(id, "Mushroom", lit, TextureRoot + "/Mushrooms.png", null, Color.white, 0.2f);
         return map;
-    }
-
-    // The warm lantern multiplies the red channel up and the green and blue down, so a yellow-green tint reads ochre. A green tint with a
-    // little saturation, darkened, comes out as a dark muted green-brown under the lantern (and stays green-grey in moonlight).
-    public static Color MutedTreeTint(Color tint)
-    {
-        Color.RGBToHSV(tint, out _, out _, out float v);
-        return Color.HSVToRGB(0.33f, 0.4f, v * 0.85f);
     }
 
     static Material Foliage(string id, string kind, Shader shader, string texture, Color tint, float desaturate, float swayHeight, float swayAmount)

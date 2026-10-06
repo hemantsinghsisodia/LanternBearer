@@ -31,12 +31,12 @@ Material:
     m_Floats:
     - _Cull: 0
     - _Cutoff: 0.5
-    - _Desaturate: 0.8
+    - _Desaturate: 1
     - _LumaGain: 1.6
     - _SwayAmount: 0.1
     - _SwayHeight: 4
     - _Wrap: 0.5
     m_Colors:
-    - _BaseColor: {r: 0.157878, g: 0.25966778, b: 0.15580067, a: 1}
+    - _BaseColor: {r: 0.1216, g: 0.19, b: 0.104499996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
