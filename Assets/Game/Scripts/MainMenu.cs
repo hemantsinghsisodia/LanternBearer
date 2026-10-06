@@ -1,8 +1,5 @@
-using System.Text;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace LanternKeeper
 {
@@ -13,12 +10,6 @@ public class MainMenu : MonoBehaviour
     static readonly string[] FallbackNames = { "Island 1", "Island 2", "Island 3", "Island 4" };
 
     [SerializeField] LevelConfig[] levels = new LevelConfig[0];
-
-    Button logBackButton;
-    GameObject logPanel;
-    Text logBody;
-    ScrollRect logScroll;
-    MainMenuScreen screen;
 
     public int LevelCount
     {
@@ -78,63 +69,20 @@ public class MainMenu : MonoBehaviour
         return info;
     }
 
-    void OnEnable()
+    // The Keeper's Log data source: one entry per island with its header, its entries and how many are found.
+    public IslandLog[] LogIslands()
     {
-        Cache();
-        Listen(logBackButton, CloseLog);
-        RefreshLog();
-    }
-
-    void Cache()
-    {
-        logBackButton = FindButton("LogBackButton");
-        Transform log = transform.Find("LogPanel");
-        logPanel = log != null ? log.gameObject : null;
-        logBody = FindText("LogBody");
-        logScroll = logPanel != null ? logPanel.GetComponentInChildren<ScrollRect>(true) : null;
-        screen = GetComponentInChildren<MainMenuScreen>(true);
-    }
-
-    void RefreshLog()
-    {
-        if (logBody == null)
+        IslandLog[] islands = new IslandLog[LevelCount];
+        for (int i = 0; i < islands.Length; i++)
         {
-            return;
+            LevelConfig level = levels != null && levels.Length > 0 ? levels[i] : null;
+            islands[i].header = level != null
+                ? IslandLabels.ToHud(IslandLabels.Compose(level.displayName, level.islandTitle))
+                : DisplayName(i);
+            islands[i].entries = level != null && level.logEntries != null ? level.logEntries : new string[0];
+            islands[i].found = Mathf.Min(GameSettings.GetLogCount(LevelId(i)), islands[i].entries.Length);
         }
-
-        StringBuilder builder = new StringBuilder();
-        int found = 0;
-        if (levels != null)
-        {
-            for (int i = 0; i < levels.Length; i++)
-            {
-                if (levels[i] == null || levels[i].logEntries == null || levels[i].logEntries.Length == 0)
-                {
-                    continue;
-                }
-
-                string[] entries = levels[i].logEntries;
-                int read = Mathf.Min(GameSettings.GetLogCount(levels[i].levelId), entries.Length);
-                builder.Append(levels[i].displayName).Append("  (").Append(read).Append("/").Append(entries.Length).Append(")\n");
-                for (int e = 0; e < read; e++)
-                {
-                    builder.Append(entries[e]).Append("\n\n");
-                    found++;
-                }
-
-                if (read == 0)
-                {
-                    builder.Append("No pages found yet.\n\n");
-                }
-            }
-        }
-
-        if (found == 0 && builder.Length == 0)
-        {
-            builder.Append("Light the beacons to find the Keeper's pages.");
-        }
-
-        logBody.text = builder.ToString();
+        return islands;
     }
 
     public void PlayLevel(int index)
@@ -158,86 +106,6 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene(scene);
     }
 
-    void Update()
-    {
-        if (logPanel != null && logPanel.activeSelf)
-        {
-            HandleLogKeys();
-        }
-    }
-
-    void HandleLogKeys()
-    {
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            return;
-        }
-
-        if (keyboard.escapeKey.wasPressedThisFrame)
-        {
-            CloseLog();
-            return;
-        }
-
-        if (logScroll == null)
-        {
-            return;
-        }
-
-        float step = 0f;
-        if (keyboard.downArrowKey.isPressed)
-        {
-            step = -1f;
-        }
-        else if (keyboard.upArrowKey.isPressed)
-        {
-            step = 1f;
-        }
-
-        if (step != 0f)
-        {
-            logScroll.verticalNormalizedPosition = Mathf.Clamp01(logScroll.verticalNormalizedPosition + step * Time.unscaledDeltaTime * 0.6f);
-        }
-    }
-
-    // Shows the existing log presentation until the Keeper's Log book arrives.
-    public void OpenLog()
-    {
-        if (logPanel == null)
-        {
-            return;
-        }
-
-        RefreshLog();
-        if (screen != null)
-        {
-            screen.SetPanelVisible(false);
-        }
-
-        logPanel.SetActive(true);
-        if (logScroll != null)
-        {
-            logScroll.verticalNormalizedPosition = 1f;
-        }
-
-        GraphicsMenu.Select(logBackButton);
-    }
-
-    void CloseLog()
-    {
-        if (logPanel != null)
-        {
-            logPanel.SetActive(false);
-        }
-
-        if (screen != null)
-        {
-            screen.SetPanelVisible(true);
-            screen.FocusLog();
-        }
-    }
-
     public void QuitGame()
     {
 #if UNITY_EDITOR
@@ -245,45 +113,6 @@ public class MainMenu : MonoBehaviour
 #else
         Application.Quit();
 #endif
-    }
-
-    static void Listen(Button button, UnityEngine.Events.UnityAction action)
-    {
-        if (button == null)
-        {
-            return;
-        }
-
-        button.onClick.RemoveListener(action);
-        button.onClick.AddListener(action);
-    }
-
-    Button FindButton(string objectName)
-    {
-        Button[] buttons = GetComponentsInChildren<Button>(true);
-        for (int i = 0; i < buttons.Length; i++)
-        {
-            if (buttons[i].name == objectName)
-            {
-                return buttons[i];
-            }
-        }
-
-        return null;
-    }
-
-    Text FindText(string objectName)
-    {
-        Text[] labels = GetComponentsInChildren<Text>(true);
-        for (int i = 0; i < labels.Length; i++)
-        {
-            if (labels[i].name == objectName)
-            {
-                return labels[i];
-            }
-        }
-
-        return null;
     }
 }
 }

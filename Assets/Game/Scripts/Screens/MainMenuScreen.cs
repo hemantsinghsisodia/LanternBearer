@@ -21,6 +21,7 @@ public class MainMenuScreen : MonoBehaviour
 
     private MainMenu menu;
     private SettingsScreen settings;
+    private KeepersLogScreen log;
     private int selected;
     private bool initialised;
 
@@ -45,6 +46,7 @@ public class MainMenuScreen : MonoBehaviour
     {
         menu = GetComponentInParent<MainMenu>();
         settings = menu != null ? menu.GetComponentInChildren<SettingsScreen>(true) : null;
+        log = menu != null ? menu.GetComponentInChildren<KeepersLogScreen>(true) : null;
         playButton.onClick.AddListener(Play);
         logButton.onClick.AddListener(OpenLog);
         settingsButton.onClick.AddListener(OpenSettings);
@@ -111,10 +113,12 @@ public class MainMenuScreen : MonoBehaviour
 
     public void OpenLog()
     {
-        if (menu != null)
+        if (log == null)
         {
-            menu.OpenLog();
+            return;
         }
+        panel.SetActive(false);
+        log.Open(logButton, OnLogClosed);
     }
 
     public void OpenSettings()
@@ -135,17 +139,6 @@ public class MainMenuScreen : MonoBehaviour
         }
     }
 
-    // Used by MainMenu around the Keeper's Log view.
-    public void SetPanelVisible(bool visible)
-    {
-        panel.SetActive(visible);
-    }
-
-    public void FocusLog()
-    {
-        SelectTarget(logButton);
-    }
-
     public void FocusPlay()
     {
         SelectTarget(playButton);
@@ -156,6 +149,13 @@ public class MainMenuScreen : MonoBehaviour
         panel.SetActive(true);
         Refresh();
         SelectTarget(settingsButton);
+    }
+
+    private void OnLogClosed()
+    {
+        panel.SetActive(true);
+        Refresh();
+        SelectTarget(logButton);
     }
 
     private void OnIslandChosen(int index)

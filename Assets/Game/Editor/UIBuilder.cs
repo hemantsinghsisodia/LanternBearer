@@ -18,6 +18,7 @@ public static partial class UIBuilder
     {
         BuildSettingsScreen();
         BuildMainMenuScreen();
+        BuildLogScreen();
     }
 
     public static UITheme LoadTheme()
@@ -460,10 +461,10 @@ public static partial class UIBuilder
         Anchor(title.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(60, -110), new Vector2(-40, -40));
         ThemedLabel sub = AddLabel(pagesGo.transform, "LeftSub", "Subtitle", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
         Anchor(sub.gameObject, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(60, -150), new Vector2(-40, -112));
-        ThemedLabel leftBody = AddLabel(pagesGo.transform, "LeftBody", "", ThemedLabel.Role.Body, theme.bodyPx, theme, onPaper);
+        ThemedLabel leftBody = AddLabel(pagesGo.transform, "LeftBody", "", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
         Anchor(leftBody.gameObject, new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(60, 90), new Vector2(-40, -170));
-        ThemedLabel rightBody = AddLabel(pagesGo.transform, "RightBody", "", ThemedLabel.Role.Body, theme.bodyPx, theme, onPaper);
-        Anchor(rightBody.gameObject, new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(40, 90), new Vector2(-60, -60));
+        ThemedLabel rightBody = AddLabel(pagesGo.transform, "RightBody", "", ThemedLabel.Role.Flavour, theme.bodyPx, theme, onPaper);
+        Anchor(rightBody.gameObject, new Vector2(0.5f, 0), new Vector2(1, 1), new Vector2(40, 90), new Vector2(-60, -170));
         foreach (ThemedLabel body in new[] { leftBody, rightBody })
         {
             body.Text.textWrappingMode = TextWrappingModes.Normal;

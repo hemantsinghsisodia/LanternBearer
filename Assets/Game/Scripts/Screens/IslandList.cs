@@ -82,7 +82,8 @@ public class IslandList : MonoBehaviour
     private void Redraw()
     {
         Color amber = theme.amber;
-        Color off = Color.Lerp(theme.brassLine, Color.black, 0.45f);
+        Color off = theme.brassLine; // dim brass, clearly visible against the ink
+        off.a = 1f;
         Color dim = theme.textMuted;
         dim.a = 0.55f;
         for (int i = 0; i < rows.Length; i++)

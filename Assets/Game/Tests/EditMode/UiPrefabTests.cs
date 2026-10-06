@@ -144,6 +144,58 @@ public class UiPrefabTests
     }
 
     [Test]
+    public void LogScreenWired()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/UI/KeepersLogScreen.prefab");
+        Assert.IsNotNull(prefab, "KeepersLogScreen prefab is missing; run Lantern Keeper > Build UI");
+        Type screenType = Type.GetType("LanternKeeper.KeepersLogScreen, Assembly-CSharp");
+        Assert.IsNotNull(screenType);
+        Component screen = prefab.GetComponent(screenType);
+        Assert.IsNotNull(screen, "KeepersLogScreen on the root");
+        Assert.IsNotNull(prefab.GetComponent<TextScaler>());
+
+        ParchmentSpread spread = prefab.GetComponentInChildren<ParchmentSpread>(true);
+        Assert.IsNotNull(spread, "ParchmentSpread");
+        Assert.IsNotNull(spread.PrevButton, "Prev");
+        Assert.IsNotNull(spread.NextButton, "Next");
+        Assert.IsNotNull(spread.Ribbon, "ribbon");
+        Assert.IsNotNull(spread.Pages, "pages group");
+
+        SerializedObject so = new SerializedObject(screen);
+        Assert.AreSame(spread, so.FindProperty("spread").objectReferenceValue);
+        UnityEngine.UI.Button close = so.FindProperty("closeButton").objectReferenceValue as UnityEngine.UI.Button;
+        Assert.IsNotNull(close, "Close button");
+        Assert.AreEqual("Close", close.GetComponentInChildren<TMP_Text>(true).text);
+        Assert.IsNotNull(so.FindProperty("firstSelected").objectReferenceValue, "firstSelected is set");
+
+        UITheme theme = AssetDatabase.LoadAssetAtPath<UITheme>(ThemePath);
+        TMP_FontAsset[] allowed = { theme.titleFont, theme.flavourFont, theme.uiFont, theme.uiFontStrong };
+        foreach (TMP_Text text in prefab.GetComponentsInChildren<TMP_Text>(true))
+        {
+            Assert.Contains(text.font, allowed, "theme font on " + text.name);
+        }
+        Assert.AreSame(theme.flavourFont, spread.LeftBody.font, "entries are Spectral italic");
+        Assert.AreSame(theme.flavourFont, spread.RightBody.font, "entries are Spectral italic");
+    }
+
+    [Test]
+    public void MainMenuRowsShowBeaconCount()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MenuPath);
+        Assert.IsNotNull(prefab);
+        Type rowType = Type.GetType("LanternKeeper.IslandRow, Assembly-CSharp");
+        Assert.IsNotNull(rowType);
+        Component[] rows = prefab.GetComponentsInChildren(rowType, true);
+        Assert.AreEqual(4, rows.Length);
+        foreach (Component row in rows)
+        {
+            ThemedLabel count = new SerializedObject(row).FindProperty("countLabel").objectReferenceValue as ThemedLabel;
+            Assert.IsNotNull(count, "count label on " + row.name);
+            Assert.AreEqual(ThemedLabel.Role.Number, count.CurrentRole);
+        }
+    }
+
+    [Test]
     public void IslandListMaths()
     {
         Type listType = Type.GetType("LanternKeeper.IslandList, Assembly-CSharp");

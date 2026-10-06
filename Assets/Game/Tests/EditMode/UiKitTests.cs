@@ -218,6 +218,51 @@ public class UiKitTests
     }
 
     [Test]
+    public void ParchmentSpreadTurnFade()
+    {
+        Func<float> savedDelta = ParchmentSpread.DeltaSource;
+        try
+        {
+            GameObject go = Build("MakeParchmentSpread", root.transform, new Vector2(1400, 800));
+            ParchmentSpread spread = go.GetComponent<ParchmentSpread>();
+
+            ParchmentSpread.DeltaSource = () => 0.05f;
+            IEnumerator turn = spread.TurnFade(0.2f);
+            Assert.IsTrue(turn.MoveNext());
+            Assert.AreEqual(0f, spread.Pages.alpha, "starts fully transparent");
+            Assert.IsTrue(turn.MoveNext());
+            float last = spread.Pages.alpha;
+            Assert.Greater(last, 0f, "alpha rises on the first timed step");
+            Assert.Less(last, 1f);
+            int steps = 1;
+            while (turn.MoveNext())
+            {
+                Assert.Greater(spread.Pages.alpha, last, "alpha rises every step");
+                last = spread.Pages.alpha;
+                steps++;
+                Assert.Less(steps, 100, "the fade ends");
+            }
+            Assert.AreEqual(1f, spread.Pages.alpha, "ends at exactly 1");
+            Assert.GreaterOrEqual(steps, 4, "0.2 s at 0.05 s per frame");
+
+            // A hitch (a huge frame delta) is clamped, so it cannot skip the fade.
+            ParchmentSpread.DeltaSource = () => 5f;
+            turn = spread.TurnFade(0.2f);
+            turn.MoveNext();
+            turn.MoveNext();
+            Assert.Less(spread.Pages.alpha, 1f, "one hitch frame does not finish the fade");
+            while (turn.MoveNext())
+            {
+            }
+            Assert.AreEqual(1f, spread.Pages.alpha);
+        }
+        finally
+        {
+            ParchmentSpread.DeltaSource = savedDelta;
+        }
+    }
+
+    [Test]
     public void SliderRowsShareOneIdleDebounce()
     {
         float now = 100f;

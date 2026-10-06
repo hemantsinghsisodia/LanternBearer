@@ -20,6 +20,10 @@ public class ParchmentSpread : MonoBehaviour
     [SerializeField] private Image ribbon;
     [SerializeField] private CanvasGroup pages;
 
+    // Frame time for TurnFade; tests replace it to step the fade deterministically.
+    public static Func<float> DeltaSource = () => Time.unscaledDeltaTime;
+    public const float MaxFrameSeconds = 0.1f;
+
     public event Action Prev;
     public event Action Next;
 
@@ -72,7 +76,7 @@ public class ParchmentSpread : MonoBehaviour
         yield return null; // one transparent frame, so the first delta (which can be huge in the editor) is not counted
         while (t < seconds)
         {
-            t += Time.unscaledDeltaTime;
+            t += Mathf.Min(DeltaSource(), MaxFrameSeconds); // a hitch (editor, scene load) never skips the fade
             pages.alpha = Mathf.Clamp01(t / seconds);
             yield return null;
         }

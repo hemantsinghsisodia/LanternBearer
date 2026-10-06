@@ -112,13 +112,20 @@ public static partial class UIBuilder
             rt.anchorMin = new Vector2(0, 0.5f);
             rt.anchorMax = new Vector2(0, 0.5f);
             rt.pivot = new Vector2(0, 0.5f);
-            rt.anchoredPosition = new Vector2(20f + i * 24f, 0f);
+            rt.anchoredPosition = new Vector2(IslandRow.RoofStartX + i * IslandRow.RoofPitch, 0f);
             rt.sizeDelta = new Vector2(20f, 16f);
             roofs[i] = img;
         }
 
-        // Name sits after the 9 roof slots; the best time is right-aligned; the lock text takes the name's place.
-        Anchor(button.Label.gameObject, Vector2.zero, Vector2.one, new Vector2(250f, 0), new Vector2(-130f, 0));
+        // The beacon count follows the last visible roof (IslandRow positions it); the name sits after the 9 roof slots
+        // and the count; the best time is right-aligned; the lock text takes the name's place.
+        ThemedLabel count = AddLabel(go.transform, "Count", "0/0", ThemedLabel.Role.Number, theme.labelPx, theme);
+        RectTransform countRect = (RectTransform)count.transform;
+        countRect.anchorMin = new Vector2(0, 0.5f);
+        countRect.anchorMax = new Vector2(0, 0.5f);
+        countRect.pivot = new Vector2(0, 0.5f);
+        countRect.sizeDelta = new Vector2(72f, 40f);
+        Anchor(button.Label.gameObject, Vector2.zero, Vector2.one, new Vector2(320f, 0), new Vector2(-130f, 0));
         ThemedLabel lockLabel = AddLabel(go.transform, "Locked", "Island " + (index + 1) + " · locked", ThemedLabel.Role.Label, theme.labelPx, theme);
         Anchor(lockLabel.gameObject, Vector2.zero, Vector2.one, new Vector2(20f, 0), new Vector2(-20f, 0));
         lockLabel.gameObject.SetActive(false);
@@ -127,7 +134,7 @@ public static partial class UIBuilder
         Anchor(time.gameObject, Vector2.zero, Vector2.one, new Vector2(500f, 0), new Vector2(-18f, 0));
 
         IslandRow row = go.AddComponent<IslandRow>();
-        row.Configure(button, roofs, time, lockLabel);
+        row.Configure(button, roofs, time, lockLabel, count);
         return row;
     }
 
@@ -232,6 +239,7 @@ public static partial class UIBuilder
             instance.name = "MainMenuScreen";
             instance.transform.SetAsFirstSibling();
         }
+        InstallLogInActiveScene();
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
     }
 
