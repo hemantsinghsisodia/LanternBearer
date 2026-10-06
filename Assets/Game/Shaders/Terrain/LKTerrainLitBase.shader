@@ -81,7 +81,6 @@ Shader "Hidden/LanternKeeper/TerrainLit (Base Pass)"
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
-            #pragma multi_compile_fragment _ _LK_TERRAIN_LOW
             #pragma vertex SplatmapVert
             #pragma fragment SplatmapFragment
 
@@ -166,7 +165,6 @@ Shader "Hidden/LanternKeeper/TerrainLit (Base Pass)"
             #pragma multi_compile_instancing
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
-            #pragma multi_compile_fragment _ _LK_TERRAIN_LOW
             #pragma vertex SplatmapVert
             #pragma fragment SplatmapFragment
 

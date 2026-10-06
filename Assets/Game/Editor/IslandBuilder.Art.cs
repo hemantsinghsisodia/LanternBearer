@@ -341,6 +341,7 @@ public static partial class IslandBuilder
     }
 
     public const string TerrainShaderName = "LanternKeeper/TerrainLit";
+    const float CliffTileMetres = 2.5f;
 
     // One terrain material per level: the rock layer (and so the cliff textures) differs by island.
     static Material TerrainMaterialFor(LevelConfig config, ArtKit art, TerrainLayer[] layers)
@@ -375,17 +376,36 @@ public static partial class IslandBuilder
 
         mat.shader = art.terrain.shader;
         mat.CopyPropertiesFromMaterial(art.terrain);
+        // The faces use the same rock as the cladding rocks (kit Rocks_Diffuse greyscale, island rockTint), so both read as one material.
         TerrainLayer rock = layers[index];
+        LookProfile look = LoadLookProfile();
+        if (look == null)
+        {
+            look = config.lookProfile;
+        }
+
+        if (look == null)
+        {
+            look = AssetDatabase.LoadAssetAtPath<LookProfile>("Assets/Game/Art/Look/LookProfile_island1.asset");
+        }
+
+        Texture2D kitRock = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Art/Environment/Nature/Textures/Rocks_Diffuse_Grey.png");
+        if (kitRock == null)
+        {
+            Debug.LogWarning("Kit rock texture missing; terrain faces use the rock ground layer instead.");
+        }
+
+        Color tint = look != null ? look.rockTint : Color.white;
         mat.SetFloat("_CliffLayerIndex", index);
-        mat.SetTexture("_CliffAlbedo", rock.diffuseTexture);
-        mat.SetTexture("_CliffNormal", rock.normalMapTexture);
-        mat.SetVector("_CliffTiling", new Vector4(1f / Mathf.Max(0.01f, rock.tileSize.x), 1f / Mathf.Max(0.01f, rock.tileSize.y), 0f, 0f));
-        Vector4 remap = rock.diffuseRemapMax;
-        mat.SetColor("_CliffTint", new Color(remap.x, remap.y, remap.z, 1f));
-        mat.SetFloat("_CliffSmoothness", rock.smoothness);
-        mat.SetFloat("_CliffMetallic", rock.metallic);
-        mat.SetFloat("_CliffNormalScale", rock.normalScale);
-        mat.SetFloat("_CliffSmoothnessSource", (float)(int)rock.smoothnessSource);
+        mat.SetTexture("_CliffAlbedo", kitRock != null ? kitRock : rock.diffuseTexture);
+        mat.SetTexture("_CliffNormal", kitRock != null ? null : rock.normalMapTexture);
+        mat.SetVector("_CliffTiling", new Vector4(1f / CliffTileMetres, 1f / CliffTileMetres, 0f, 0f));
+        mat.SetColor("_CliffTint", new Color(tint.r, tint.g, tint.b, 1f));
+        mat.SetFloat("_CliffSmoothness", 0.12f);
+        mat.SetFloat("_CliffMetallic", 0f);
+        mat.SetFloat("_CliffNormalScale", kitRock != null ? 0f : rock.normalScale);
+        mat.SetFloat("_CliffSmoothnessSource", 2f);
+        mat.enableInstancing = true;
         EditorUtility.SetDirty(mat);
         return mat;
     }

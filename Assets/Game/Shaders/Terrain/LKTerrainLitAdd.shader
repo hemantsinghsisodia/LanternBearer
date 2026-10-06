@@ -66,7 +66,6 @@ Shader "Hidden/LanternKeeper/TerrainLit (Add Pass)"
             HLSLPROGRAM
             #pragma target 3.0
 
-            #pragma multi_compile_fragment _ _LK_TERRAIN_LOW
             #pragma vertex SplatmapVert
             #pragma fragment SplatmapFragment
 
@@ -145,7 +144,6 @@ Shader "Hidden/LanternKeeper/TerrainLit (Add Pass)"
             // Desktop OpenGL, OpenGL ES 3.0, WebGL 2.0.
             #pragma exclude_renderers gles3 glcore
 
-            #pragma multi_compile_fragment _ _LK_TERRAIN_LOW
             #pragma vertex SplatmapVert
             #pragma fragment SplatmapFragment
 

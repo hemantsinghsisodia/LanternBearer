@@ -274,6 +274,8 @@ void SplatmapFinalColor(inout half4 color, half fogCoord)
 //   LanternKeeper rock-wall shading                                         //
 ///////////////////////////////////////////////////////////////////////////////
 
+float _LKTerrainLow;
+
 // 1 on steep faces. cos(55 deg) = 0.5736, cos(45 deg) = 0.7071: about a 10 degree blend centred near 50 degrees.
 half LKCliffAmount(half normalY)
 {
@@ -292,28 +294,31 @@ void LKSampleCliff(float2 uvX, float2 uvZ, float2 dxX, float2 dyX, float2 dxZ, f
     half4 cX, cZ;
     half3 nX = half3(0, 0, 1), nZ = half3(0, 0, 1);
 
-#if defined(_LK_TERRAIN_LOW)
-    // Dominant axis only: one albedo and one normal sample.
-    bool useX = w.x >= w.y;
-    float2 uv = useX ? uvX : uvZ;
-    float2 dx = useX ? dxX : dxZ;
-    float2 dy = useX ? dyX : dyZ;
-    half4 c = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uv, dx, dy);
-    cX = c; cZ = c;
-    #if defined(_NORMALMAP)
-        half3 n = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uv, dx, dy), _CliffNormalScale);
-        if (useX) { nX = n; w = half2(1, 0); } else { nZ = n; w = half2(0, 1); }
-    #else
+    // _LKTerrainLow (global, set by TerrainQuality): uniform branch, Low samples the dominant axis only (1 albedo + 1 normal).
+    [branch]
+    if (_LKTerrainLow > 0.5)
+    {
+        bool useX = w.x >= w.y;
+        float2 uv = useX ? uvX : uvZ;
+        float2 dx = useX ? dxX : dxZ;
+        float2 dy = useX ? dyX : dyZ;
+        half4 c = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uv, dx, dy);
+        cX = c; cZ = c;
+        #if defined(_NORMALMAP)
+            half3 n = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uv, dx, dy), _CliffNormalScale);
+            if (useX) { nX = n; } else { nZ = n; }
+        #endif
         w = useX ? half2(1, 0) : half2(0, 1);
-    #endif
-#else
-    cX = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uvX, dxX, dyX);
-    cZ = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uvZ, dxZ, dyZ);
-    #if defined(_NORMALMAP)
-        nX = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uvX, dxX, dyX), _CliffNormalScale);
-        nZ = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uvZ, dxZ, dyZ), _CliffNormalScale);
-    #endif
-#endif
+    }
+    else
+    {
+        cX = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uvX, dxX, dyX);
+        cZ = SAMPLE_TEXTURE2D_GRAD(_CliffAlbedo, LK_CLIFF_SAMPLER, uvZ, dxZ, dyZ);
+        #if defined(_NORMALMAP)
+            nX = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uvX, dxX, dyX), _CliffNormalScale);
+            nZ = UnpackNormalScale(SAMPLE_TEXTURE2D_GRAD(_CliffNormal, LK_CLIFF_SAMPLER, uvZ, dxZ, dyZ), _CliffNormalScale);
+        #endif
+    }
 
     half4 c4 = cX * w.x + cZ * w.y;
     albedo = c4.rgb * _CliffTint.rgb;
@@ -327,18 +332,39 @@ void LKSampleCliff(float2 uvX, float2 uvZ, float2 dxX, float2 dyX, float2 dxZ, f
 }
 
 
-// Smooth terrain normal (world space), used for the horizontal direction of a cliff wall. The heightmap normal changes
-// abruptly between texels on a stair-stepped cliff, so on the instanced path a 4-tap box average is used.
+// Smoothed wall normal (world space). The plateau walls are sawtooth facets in the heightmap, so any per-fragment normal
+// alternates light/dark facet by facet (and the moon grazes the walls, which amplifies tiny normal changes). On the instanced
+// path the gradient is taken straight from the heightmap over a wide kernel (+-K texels) at the four surrounding texels and
+// bilinearly interpolated, so it is smooth within and across texels. Without instancing (no heightmap texture) the
+// interpolated vertex normal is used instead.
+#if defined(UNITY_INSTANCING_ENABLED)
+float2 LKHeightmapGradient(int2 c, int2 maxC)
+{
+    const int K = 6;
+    float hxp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2( K, 0), 0, maxC), 0)));
+    float hxm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(-K, 0), 0, maxC), 0)));
+    float hzp = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0,  K), 0, maxC), 0)));
+    float hzm = UnpackHeightmap(_TerrainHeightmapTexture.Load(int3(clamp(c + int2(0, -K), 0, maxC), 0)));
+    return float2(hxp - hxm, hzp - hzm);
+}
+#endif
+
 half3 LKSmoothTerrainNormalWS(Varyings IN)
 {
-#if defined(ENABLE_TERRAIN_PERPIXEL_NORMAL)
-    float2 sampleCoords = (IN.uvMainAndLM.xy / _TerrainHeightmapRecipSize.zw + 0.5f) * _TerrainHeightmapRecipSize.xy;
-    float2 o = 1.5f * _TerrainHeightmapRecipSize.xy;
-    float3 n = SAMPLE_TEXTURE2D_LOD(_TerrainNormalmapTexture, sampler_TerrainNormalmapTexture, sampleCoords + float2( o.x,  o.y), 0).rgb * 2 - 1;
-    n += SAMPLE_TEXTURE2D_LOD(_TerrainNormalmapTexture, sampler_TerrainNormalmapTexture, sampleCoords + float2(-o.x,  o.y), 0).rgb * 2 - 1;
-    n += SAMPLE_TEXTURE2D_LOD(_TerrainNormalmapTexture, sampler_TerrainNormalmapTexture, sampleCoords + float2( o.x, -o.y), 0).rgb * 2 - 1;
-    n += SAMPLE_TEXTURE2D_LOD(_TerrainNormalmapTexture, sampler_TerrainNormalmapTexture, sampleCoords + float2(-o.x, -o.y), 0).rgb * 2 - 1;
-    return (half3)TransformObjectToWorldNormal(normalize(n));
+#if defined(UNITY_INSTANCING_ENABLED)
+    const int K = 6;
+    int2 maxC = int2(1.0 / _TerrainHeightmapRecipSize.zw + 0.5);
+    float2 tc = IN.uvMainAndLM.xy / _TerrainHeightmapRecipSize.zw;
+    int2 c0 = int2(floor(tc));
+    float2 f = tc - floor(tc);
+    float2 g00 = LKHeightmapGradient(c0, maxC);
+    float2 g10 = LKHeightmapGradient(c0 + int2(1, 0), maxC);
+    float2 g01 = LKHeightmapGradient(c0 + int2(0, 1), maxC);
+    float2 g11 = LKHeightmapGradient(c0 + int2(1, 1), maxC);
+    float2 g = lerp(lerp(g00, g10, f.x), lerp(g01, g11, f.x), f.y);
+    float inv = _TerrainHeightmapScale.y / (2.0 * K * _TerrainHeightmapScale.x);
+    float3 nOS = normalize(float3(-g.x * inv, 1.0, -g.y * inv));
+    return (half3)TransformObjectToWorldNormal(nOS);
 #elif defined(_NORMALMAP)
     return (half3)normalize(IN.normal.xyz);
 #else
@@ -550,20 +576,34 @@ void SplatmapFragment(
         // Derivatives are taken outside the branch; the samples inside use explicit gradients.
         float2 uvX = IN.positionWS.zy * _CliffTiling.xy;
         float2 uvZ = IN.positionWS.xy * _CliffTiling.xy;
-        float2 dxX = ddx(uvX), dyX = ddy(uvX);
-        float2 dxZ = ddx(uvZ), dyZ = ddy(uvZ);
+        // Gradients for mip selection from the pixel footprint (distance and view angle), not from ddx/ddy: the position
+        // derivatives jump at every sawtooth facet of the wall, which would pick a blurred mip in alternating columns.
+        float pixelSize = distance(IN.positionWS, _WorldSpaceCameraPos) * (2.0 / (_ScreenParams.y * unity_CameraProjection._m11));
+        float footprint = pixelSize * rsqrt(max(abs(dot(faceN, inputData.viewDirectionWS)), 0.3));
+        float2 dxX = float2(footprint * _CliffTiling.x, 0.0), dyX = float2(0.0, footprint * _CliffTiling.y);
+        float2 dxZ = dxX, dyZ = dyX;
         [branch]
         if (steep > 0.002h)
         {
             // Wall normal: face steepness, horizontal direction from the smoothed terrain normal (no per-slat shading).
             half3 sm = LKSmoothTerrainNormalWS(IN);
             half2 hdir = normalize(sm.xz + half2(1e-4h, 0.0h));
-            half nh = sqrt(saturate(1.0h - ny * ny));
-            half3 gN = half3(hdir.x * nh, (half)ny, hdir.y * nh);
+            half ny2 = min(sm.y, 0.3h); // small vertical part: the wall reads as one smooth curved surface
+            half nh = sqrt(saturate(1.0h - ny2 * ny2));
+            half3 gN = half3(hdir.x * nh, ny2, hdir.y * nh);
             half3 cliffAlbedo;
             half cliffSmoothness;
             half3 cliffNormalWS;
             LKSampleCliff(uvX, uvZ, dxX, dyX, dxZ, dyZ, gN, cliffAlbedo, cliffSmoothness, cliffNormalWS);
+            // The terrain draws in passes (layers 0-3, then 4-7 added on top), each weighted by its splat weight, and the
+            // alphamap texels run as vertical columns down a wall. Put the whole rock result in the first pass at full
+            // weight and none in the add pass, so the column pattern of the splat weights never shows.
+            #ifdef TERRAIN_SPLAT_ADDPASS
+                alpha *= (1.0h - steep);
+                clip(alpha <= 0.002h ? -1.0h : 1.0h);
+            #else
+                alpha = lerp(alpha, 1.0h, steep);
+            #endif
             albedo = lerp(albedo, cliffAlbedo, steep);
             smoothness = lerp(smoothness, cliffSmoothness, steep);
             metallic = lerp(metallic, _CliffMetallic, steep);
