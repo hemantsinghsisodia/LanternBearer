@@ -591,6 +591,7 @@ public static class SceneWiring
         nulls += RequireKeeperScale(quiet);
         nulls += RequireKeeperLod(quiet);
         nulls += RequireTerrainShading(quiet);
+        nulls += RequireCliffSkin(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)
@@ -1696,6 +1697,81 @@ public static class SceneWiring
         }
 
         return problems;
+    }
+
+    // Every terrain with step edges (neighbouring cells more than 1.5 m apart) needs a CliffSkin with at least one mesh, and the skin has no colliders.
+    static int RequireCliffSkin(bool quiet)
+    {
+        int problems = 0;
+        Terrain[] terrains = Object.FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        GameObject[] skins = FindNamedObjects(IslandBuilder.CliffSkinName);
+        for (int i = 0; i < skins.Length; i++)
+        {
+            Collider[] colliders = skins[i].GetComponentsInChildren<Collider>(true);
+            for (int c = 0; c < colliders.Length; c++)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning("CliffSkin must not have colliders: " + colliders[c].name, colliders[c]);
+                }
+            }
+        }
+
+        for (int t = 0; t < terrains.Length; t++)
+        {
+            TerrainData data = terrains[t].terrainData;
+            if (data == null)
+            {
+                continue;
+            }
+
+            int res = data.heightmapResolution;
+            Vector3 origin = terrains[t].transform.position;
+            if (CliffSkinPlanner.Plan(data.GetHeights(0, 0, res, res), data.size.x, data.size.y, new Vector2(origin.x, origin.z), CliffSkinPlanner.StepThresholdM).Count == 0)
+            {
+                continue;
+            }
+
+            int meshes = 0;
+            for (int i = 0; i < skins.Length; i++)
+            {
+                MeshFilter[] filters = skins[i].GetComponentsInChildren<MeshFilter>(true);
+                for (int f = 0; f < filters.Length; f++)
+                {
+                    if (filters[f].sharedMesh != null && filters[f].sharedMesh.vertexCount > 0)
+                    {
+                        meshes++;
+                    }
+                }
+            }
+
+            if (meshes == 0)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(terrains[t].name + " has step edges but no CliffSkin mesh", terrains[t]);
+                }
+            }
+        }
+
+        return problems;
+    }
+
+    static GameObject[] FindNamedObjects(string objectName)
+    {
+        List<GameObject> found = new List<GameObject>();
+        Transform[] all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < all.Length; i++)
+        {
+            if (all[i].name == objectName)
+            {
+                found.Add(all[i].gameObject);
+            }
+        }
+
+        return found.ToArray();
     }
 
     // The keeper needs a two-level LODGroup (LOD0 / LOD1 renderers), every renderer skinned to CharacterArmature, and triangle caps per level.

@@ -912,8 +912,9 @@ public static partial class IslandBuilder
         int undergrowth = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), scale, "fern");
         int rocks = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Rock), scale, null);
         int cladding = PlaceCladding(config, stage, parent);
+        int skinTriangles = PlaceCliffSkin(config, stage, parent);
         PlaceMushrooms(config, art, stage, parent, random);
-        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " cladding=" + cladding);
+        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " cladding=" + cladding + " skinTriangles=" + skinTriangles);
     }
 
     static List<BiomeEntry> Entries(LevelConfig config, BiomeCategory category)
