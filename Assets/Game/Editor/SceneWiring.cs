@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace LanternKeeper
 {
-public static class SceneWiring
+public static partial class SceneWiring
 {
     [MenuItem("Lantern Keeper/Wire Scene References")]
     public static void WireMenu()
@@ -591,6 +591,7 @@ public static class SceneWiring
         nulls += RequireKeeperLod(quiet);
         nulls += RequireTerrainShading(quiet);
         nulls += RequireCliffSkin(quiet);
+        nulls += RequireUi(quiet);
         nulls += PropValidation.Report(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);

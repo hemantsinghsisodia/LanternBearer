@@ -21,6 +21,8 @@ namespace LanternKeeper.Tests
         const float ArriveHeight = 3f;
         // A jump is allowed only over terrain (or a hidden-path stone) no higher than this; a prop in the way always fails.
         const float MaxJumpStep = 2f;
+        // Game seconds per frame while the test walks (see captureDeltaTime above).
+        const float FixedFrameSeconds = 1f / 120f;
 
         // Jumps the trails need today, "island:beacon" -> count. They are terrain steps above the 0.4 m step offset that pre-date D2
         // (and the hidden-path stones on Island 4 beacons 8 and 9). Any other jump, or more jumps than listed, fails the test.
@@ -44,6 +46,7 @@ namespace LanternKeeper.Tests
         readonly List<string> failures = new List<string>();
         float previousScale;
         float previousMaxDelta;
+        float previousCaptureDelta;
         bool yawWasExternal;
 
         static Type GameType(string name)
@@ -69,6 +72,7 @@ namespace LanternKeeper.Tests
             Application.logMessageReceived += OnLog;
             previousScale = Time.timeScale;
             previousMaxDelta = Time.maximumDeltaTime;
+            previousCaptureDelta = Time.captureDeltaTime;
             yawWasExternal = (bool)GameType("CameraFollow").GetField("UseExternalYaw", BindingFlags.Public | BindingFlags.Static).GetValue(null);
         }
 
@@ -78,6 +82,7 @@ namespace LanternKeeper.Tests
             Application.logMessageReceived -= OnLog;
             Time.timeScale = previousScale;
             Time.maximumDeltaTime = previousMaxDelta;
+            Time.captureDeltaTime = previousCaptureDelta;
             SetStatic("PlayerController", "ExternalMove", Vector2.zero);
             SetStatic("CameraFollow", "UseExternalYaw", yawWasExternal);
         }
@@ -110,6 +115,9 @@ namespace LanternKeeper.Tests
             SetStatic("CameraFollow", "ExternalYaw", 0f);
             SetStatic("CameraFollow", "UseExternalYaw", true);
             Time.maximumDeltaTime = 0.05f;
+            // Every frame advances the game by the same step, however slowly the editor renders (an unfocused editor runs at a
+            // few fps, and real-time steps made the keeper's stalls, and so the jump count, depend on the frame rate).
+            Time.captureDeltaTime = FixedFrameSeconds;
             Time.timeScale = PlaybackScale;
 
             Vector3 spawn = player.transform.position;
@@ -147,6 +155,8 @@ namespace LanternKeeper.Tests
                 float stuckSince = 0f;
                 float lastJump = -10f;
                 int jumps = 0;
+                // A jump is counted once per obstacle: retrying at the spot the keeper has not left since the last counted jump is the same obstacle.
+                Vector3 jumpedFrom = new Vector3(float.MaxValue, 0f, 0f);
                 while (elapsed < limit)
                 {
                     Vector3 position = player.transform.position;
@@ -202,13 +212,18 @@ namespace LanternKeeper.Tests
                                 break;
                             }
 
-                            jumps++;
-                            int allowed;
-                            ExpectedJumps.TryGetValue(island + ":" + (b + 1), out allowed);
-                            if (jumps > allowed)
+                            bool retry = (stuckFrom - jumpedFrom).sqrMagnitude < 0.0001f;
+                            if (!retry)
                             {
-                                failures.Add(island + ": beacon " + (b + 1) + " needed an unexpected jump (" + jumps + " of " + allowed + " allowed) at " + at.ToString("F1"));
-                                break;
+                                jumps++;
+                                jumpedFrom = stuckFrom;
+                                int allowed;
+                                ExpectedJumps.TryGetValue(island + ":" + (b + 1), out allowed);
+                                if (jumps > allowed)
+                                {
+                                    failures.Add(island + ": beacon " + (b + 1) + " needed an unexpected jump (" + jumps + " of " + allowed + " allowed) at " + at.ToString("F1"));
+                                    break;
+                                }
                             }
 
                             SetStatic("PlayerController", "ExternalJump", true);
