@@ -1,3 +1,8 @@
+// Forked from the URP Terrain/Lit shader of com.unity.render-pipelines.universal 17.6.0.
+// LanternKeeper-specific changes:
+//  - Cliff triplanar: steep faces sample the rock layers from the X and Z axes (Y never contributes).
+//  - Smoothed steep normal: wall normal is taken from a wide heightmap kernel instead of per-fragment facets.
+//  - _LKTerrainLow branch: global switch set by TerrainQuality; Low samples the dominant triplanar axis only.
 Shader "LanternKeeper/TerrainLit"
 {
     Properties

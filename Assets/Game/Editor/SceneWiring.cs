@@ -1700,7 +1700,7 @@ public static class SceneWiring
         return problems;
     }
 
-    // Every terrain with step edges (neighbouring cells more than 1.5 m apart) needs a CliffSkin with at least one mesh, and the skin has no colliders.
+    // Every terrain with step edges (neighbouring cells more than CliffSkinPlanner.StepThresholdM apart) needs a CliffSkin with at least one mesh, and the skin has no colliders.
     static int RequireCliffSkin(bool quiet)
     {
         int problems = 0;

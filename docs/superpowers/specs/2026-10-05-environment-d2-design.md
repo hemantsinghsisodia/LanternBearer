@@ -180,3 +180,5 @@ Replace the photo-scanned Poly Haven props and the stretched terrain cliff faces
 **Validation:**
 - Play-mode captures of the same cliff views show continuous rock walls with no vertical ribbing.
 - Validate Scene Wiring checks that a CliffSkin exists on every island with cliffs.
+
+**Implementation note:** `StepThresholdM` was lowered to 0.8 m after review (short ledges near spawn).

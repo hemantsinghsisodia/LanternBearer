@@ -320,22 +320,6 @@ public static class CliffCladdingPlanner
         return result;
     }
 
-    public static float SurfaceY(float[,] heights, float heightScale, float worldSize, Vector2 originXZ, Vector2 xz)
-    {
-        int rows = heights.GetLength(0);
-        int cols = heights.GetLength(1);
-        float cell = worldSize / (cols - 1);
-        float fx = Mathf.Clamp((xz.x - originXZ.x) / cell, 0f, cols - 1.001f);
-        float fz = Mathf.Clamp((xz.y - originXZ.y) / cell, 0f, rows - 1.001f);
-        int x0 = (int)fx;
-        int z0 = (int)fz;
-        float tx = fx - x0;
-        float tz = fz - z0;
-        float a = Mathf.Lerp(heights[z0, x0], heights[z0, x0 + 1], tx);
-        float b = Mathf.Lerp(heights[z0 + 1, x0], heights[z0 + 1, x0 + 1], tx);
-        return Mathf.Lerp(a, b, tz) * heightScale;
-    }
-
     static Vector2 Gradient(float[,] heights, float heightScale, float cell, int x, int z)
     {
         float dx = (heights[z, x + 1] - heights[z, x - 1]) * heightScale / (2f * cell);
