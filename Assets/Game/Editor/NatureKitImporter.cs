@@ -240,11 +240,13 @@ public static class NatureKitImporter
         {
             case "Namaqualand":
                 t.trees = new[] { "TwistedTree_1", "DeadTree_2" };
+                t.saplings = new[] { "Sapling_TwistedTree_1" };
                 t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
                 t.flowers = new[] { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
                 break;
             case "Marsh":
                 t.trees = new[] { "TwistedTree_3", "TwistedTree_2" };
+                t.saplings = new[] { "Sapling_TwistedTree_1" };
                 t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
                 t.flowers = new[] { "Flower_3_Group", "Flower_4_Group" };
                 break;
@@ -254,12 +256,15 @@ public static class NatureKitImporter
                 t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big" };
                 t.flowers = new[] { "Flower_3_Single" };
                 break;
-            default:
+            case "PineForest":
                 t.trees = new[] { "", "Pine_1", "Pine_3" };
                 t.saplings = new[] { "Sapling_Pine_1", "Sapling_CommonTree_1", "Sapling_Pine_2", "Sapling_CommonTree_2", "Sapling_TwistedTree_1" };
                 t.bushes = new[] { "Bush_Common", "Plant_1_Big", "Plant_7_Big", "Plant_1", "Plant_7" };
                 t.flowers = new[] { "Flower_3_Single", "Flower_4_Group", "Flower_3_Group", "Flower_4_Single" };
                 break;
+            default:
+                Debug.LogError("NatureKitImporter: unknown biome '" + biomeName + "'");
+                return null;
         }
 
         return t;
@@ -322,6 +327,12 @@ public static class NatureKitImporter
         }
 
         Table table = TableFor(biomeName);
+        if (table == null)
+        {
+            Debug.LogError("NatureKitImporter: no model table for biome " + biomeName + "; nothing changed.");
+            return;
+        }
+
         Dictionary<BiomeCategory, int> counters = new Dictionary<BiomeCategory, int>();
         int saplingIndex = 0;
         int bushIndex = 0;
