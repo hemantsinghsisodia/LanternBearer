@@ -52,7 +52,7 @@ public class ThemedButton : Button
         block.fadeDuration = 0.08f;
         if (primary)
         {
-            block.normalColor = Color.white;
+            block.normalColor = new Color(0.92f, 0.92f, 0.92f, 1f);
             block.highlightedColor = Color.white;
             block.selectedColor = Color.white;
             block.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
@@ -68,7 +68,7 @@ public class ThemedButton : Button
             ink.a = 1f;
             Color lit = Color.Lerp(ink, theme.brassLine, 0.35f);
             block.normalColor = ink;
-            block.highlightedColor = lit;
+            block.highlightedColor = Color.Lerp(ink, theme.brassLine, 0.18f);
             block.selectedColor = lit;
             block.pressedColor = Color.Lerp(ink, Color.black, 0.3f);
             block.disabledColor = new Color(ink.r, ink.g, ink.b, 0.5f);
@@ -85,7 +85,7 @@ public class ThemedButton : Button
     protected override void DoStateTransition(SelectionState state, bool instant)
     {
         base.DoStateTransition(state, instant);
-        ShowFocus(state == SelectionState.Selected || state == SelectionState.Highlighted || state == SelectionState.Pressed);
+        ShowFocus(state == SelectionState.Selected || state == SelectionState.Pressed);
     }
 
     private void ShowFocus(bool on)

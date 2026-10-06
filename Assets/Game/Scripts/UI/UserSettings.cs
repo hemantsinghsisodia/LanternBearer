@@ -177,12 +177,33 @@ public static class UserSettings
 
     public static bool PendingSave { get; private set; }
 
+    // Idle debounce. One shared timestamp (not per row): it is set whenever a deferred change marks a save pending,
+    // so any SliderRow's Update may call FlushIfIdle and only the last change on screen restarts the countdown.
+    // TimeSource is a test hook; it defaults to unscaled time.
+    public static Func<float> TimeSource = () => Time.unscaledTime;
+    public static float LastDeferredChangeTime { get; private set; }
+
+    // Number of real PlayerPrefs.Save() calls made by this class (for tests).
+    public static int SaveCount { get; private set; }
+
+    // Flushes a pending save once idleSeconds have passed since the last deferred change. Returns true if it saved.
+    public static bool FlushIfIdle(float idleSeconds)
+    {
+        if (PendingSave && TimeSource() - LastDeferredChangeTime >= idleSeconds)
+        {
+            Flush();
+            return true;
+        }
+        return false;
+    }
+
     // Writes any deferred changes to disk. Does nothing if nothing is pending.
     public static void Flush()
     {
         if (PendingSave)
         {
             PendingSave = false;
+            SaveCount++;
             PlayerPrefs.Save();
         }
     }
@@ -192,10 +213,12 @@ public static class UserSettings
         if (DeferSave)
         {
             PendingSave = true;
+            LastDeferredChangeTime = TimeSource();
         }
         else
         {
             PendingSave = false;
+            SaveCount++;
             PlayerPrefs.Save();
         }
         Action handler = Changed;

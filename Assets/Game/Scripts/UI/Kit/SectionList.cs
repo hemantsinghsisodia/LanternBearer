@@ -5,7 +5,6 @@ using UnityEngine.UI;
 namespace LanternKeeper
 {
 // A vertical list of section buttons, each owning one panel. Show(i) activates only panel i and marks button i amber.
-[ExecuteAlways]
 public class SectionList : MonoBehaviour
 {
     [SerializeField] private UITheme theme;

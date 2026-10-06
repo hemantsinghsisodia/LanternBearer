@@ -181,6 +181,10 @@ public static class UIBuilder
         GameObject sliderGo = NewUI("Slider", row.transform);
         Anchor(sliderGo, new Vector2(0.40f, 0.5f), new Vector2(0.86f, 0.5f), new Vector2(0, -16), new Vector2(0, 16));
         Slider slider = sliderGo.AddComponent<Slider>();
+        // Transparent full-size raycast target so clicking anywhere on the track jumps the value.
+        Image trackHit = sliderGo.AddComponent<Image>();
+        trackHit.color = new Color(0f, 0f, 0f, 0f);
+        trackHit.raycastTarget = true;
 
         Image background = NewImage("Background", sliderGo.transform, theme.brassLine, false);
         Anchor(background.gameObject, new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -3), new Vector2(0, 3));

@@ -10,7 +10,7 @@ namespace LanternKeeper
 // Persistence is deferred: while ValueChanged handlers run, UserSettings.DeferSave is true, so setters called
 // from the handlers write PlayerPrefs and raise UserSettings.Changed but do not call PlayerPrefs.Save().
 // UserSettings.Flush() then runs on pointer-up, submit or deselect (via SliderCommitRelay on the slider), or after
-// 0.3 s of no change (unscaled time), whichever comes first. This avoids a disk write on every drag tick.
+// 0.3 s of no change (unscaled time, measured from the one shared UserSettings.LastDeferredChangeTime), whichever comes first. This avoids a disk write on every drag tick.
 [ExecuteAlways]
 public class SliderRow : MonoBehaviour
 {
@@ -23,7 +23,6 @@ public class SliderRow : MonoBehaviour
     [SerializeField] private TMP_Text valueText;
 
     private Func<float, string> formatter;
-    private float lastChangeTime;
 
     public event Action<float> ValueChanged;
 
@@ -101,16 +100,12 @@ public class SliderRow : MonoBehaviour
 
     private void Update()
     {
-        if (UserSettings.PendingSave && Time.unscaledTime - lastChangeTime >= IdleSaveSeconds)
-        {
-            Commit();
-        }
+        UserSettings.FlushIfIdle(IdleSaveSeconds);
     }
 
     private void OnSliderChanged(float value)
     {
         RefreshValueText(value);
-        lastChangeTime = Time.unscaledTime;
         bool previous = UserSettings.DeferSave;
         UserSettings.DeferSave = true;
         try

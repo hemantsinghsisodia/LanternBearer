@@ -69,6 +69,7 @@ public class ParchmentSpread : MonoBehaviour
         }
         float t = 0f;
         pages.alpha = 0f;
+        yield return null; // one transparent frame, so the first delta (which can be huge in the editor) is not counted
         while (t < seconds)
         {
             t += Time.unscaledDeltaTime;
@@ -86,6 +87,10 @@ public class ParchmentSpread : MonoBehaviour
     private void OnDisable()
     {
         Unwire();
+        if (pages != null)
+        {
+            pages.alpha = 1f;
+        }
     }
 
     private void Wire()

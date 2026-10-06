@@ -147,7 +147,7 @@ public class SwitchRow : Selectable, ISubmitHandler, IPointerClickHandler
     protected override void DoStateTransition(SelectionState state, bool instant)
     {
         base.DoStateTransition(state, instant);
-        ShowFocus(state == SelectionState.Selected || state == SelectionState.Highlighted || state == SelectionState.Pressed);
+        ShowFocus(state == SelectionState.Selected || state == SelectionState.Pressed);
     }
 
     private void CycleBack()

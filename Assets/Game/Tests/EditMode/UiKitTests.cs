@@ -218,15 +218,73 @@ public class UiKitTests
     }
 
     [Test]
+    public void SliderRowsShareOneIdleDebounce()
+    {
+        float now = 100f;
+        Func<float> savedSource = UserSettings.TimeSource;
+        UserSettings.TimeSource = () => now;
+        try
+        {
+            SliderRow a = Build("MakeSliderRow", root.transform, "A").GetComponent<SliderRow>();
+            SliderRow b = Build("MakeSliderRow", root.transform, "B").GetComponent<SliderRow>();
+            UserSettings.Flush();
+            a.ValueChanged += v => UserSettings.TextScale = 1.3f;
+            int before = UserSettings.SaveCount;
+            a.Slider.value = 0.2f;
+            Assert.IsTrue(UserSettings.PendingSave);
+            Assert.AreEqual(before, UserSettings.SaveCount, "no save while dragging");
+            now += 0.1f;
+            Assert.IsFalse(UserSettings.FlushIfIdle(SliderRow.IdleSaveSeconds), "not idle yet (untouched row B must not flush)");
+            Assert.AreEqual(before, UserSettings.SaveCount);
+            now += 0.25f;
+            Assert.IsTrue(UserSettings.FlushIfIdle(SliderRow.IdleSaveSeconds));
+            Assert.IsFalse(UserSettings.FlushIfIdle(SliderRow.IdleSaveSeconds));
+            Assert.AreEqual(before + 1, UserSettings.SaveCount, "exactly one flush");
+            Assert.IsNotNull(b);
+        }
+        finally
+        {
+            UserSettings.TimeSource = savedSource;
+        }
+    }
+
+    [Test]
+    public void SliderRowFlushesOnDisable()
+    {
+        SliderRow a = Build("MakeSliderRow", root.transform, "A").GetComponent<SliderRow>();
+        UserSettings.Flush();
+        a.ValueChanged += v => UserSettings.TextScale = 1.3f;
+        int before = UserSettings.SaveCount;
+        a.Slider.value = 0.3f;
+        Assert.IsTrue(UserSettings.PendingSave);
+        a.gameObject.SetActive(false);
+        Assert.IsFalse(UserSettings.PendingSave);
+        Assert.AreEqual(before + 1, UserSettings.SaveCount);
+    }
+
+    [Test]
+    public void FocusCueShowsOnSelectionNotHover()
+    {
+        ThemedButton button = Build("MakeButton", root.transform, "Play", false).GetComponent<ThemedButton>();
+        System.Reflection.MethodInfo m = typeof(ThemedButton).GetMethod("DoStateTransition", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        m.Invoke(button, new object[] { 1 /*Highlighted*/, true });
+        Assert.IsFalse(button.FocusFrame.activeSelf, "hover shows no outline");
+        m.Invoke(button, new object[] { 3 /*Selected*/, true });
+        Assert.IsTrue(button.FocusFrame.activeSelf, "selection shows the outline");
+    }
+
+    [Test]
     public void TextScalerAppliesScale()
     {
         root.AddComponent<TextScaler>();
         GameObject go = Build("MakeLabel", root.transform, "Hello", ThemedLabel.Role.Body, 22f);
         ThemedLabel label = go.GetComponent<ThemedLabel>();
         UserSettings.TextScale = 1.0f;
+        root.GetComponent<TextScaler>().Reapply();
         Assert.AreEqual(22f, label.Text.fontSize, 0.001f);
         UserSettings.TextScale = 1.3f;
         Assert.AreEqual(1.3f, TextScaler.Current, 0.0001f);
+        root.GetComponent<TextScaler>().Reapply();
         Assert.AreEqual(28.6f, label.Text.fontSize, 0.001f);
     }
 }

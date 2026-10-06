@@ -3,8 +3,8 @@ using UnityEngine;
 namespace LanternKeeper
 {
 // Put on a screen root. Follows UserSettings.TextScale and re-applies basePx x Current to every
-// ThemedLabel underneath whenever settings change. ExecuteAlways so it also works in edit mode.
-[ExecuteAlways]
+// ThemedLabel underneath whenever settings change. Not ExecuteAlways: edit mode
+// never rewrites label sizes (that could bake the developer's scale into prefabs); tests call Reapply().
 public class TextScaler : MonoBehaviour
 {
     public static float Current
