@@ -116,3 +116,67 @@ Replace the photo-scanned Poly Haven props and the stretched terrain cliff faces
 - UI (Phase E).
 - New animations.
 - Terrain shape changes.
+
+## Amendment (2026-10-06, after the cladding fix round): rock-wall shading
+**Finding:** rock meshes cannot cover cliff walls that border trails, beacon rings or rim walkways without intruding on walkable ground. The stretched terrain texture still shows there.
+
+**Decision (user chose "rocks + rock-wall shading"):** keep the cladding rocks, and add **rock-wall shading** to the terrain.
+- A project copy of URP `Terrain/Lit`, named `LanternKeeper/TerrainLit`, used by every island and the menu terrain material.
+- On steep faces (normal.y below about cos 50°, blended over about 10°) the splat result is replaced by the island's rock layer, sampled **triplanar** (world XZ-projected from the side), so it has no vertical stretching.
+- The flat-ground look is unchanged.
+- Holes, the basemap/distance pass, instancing and Low are kept. Low uses a 2-sample (dominant-axis) projection.
+- **Unchanged:** terrain data (heights, alphamaps, holes, details) stays byte-identical. This is shading only.
+- **Validation:** Validate Scene Wiring checks that each island terrain uses `LanternKeeper/TerrainLit`. Cliff screenshots show no vertical stripes beside trails.
+- Performance stays within Ultra ≤ 12.5 ms.
+
+## Amendment 2 (2026-10-06): smooth the cliff walls
+**Finding:** in play mode the cliff faces still show vertical bands after triplanar shading. The cause is geometry: the heightmap's plateau and ridge walls are sawtooth facets (aliased rims), which light differently facet by facet.
+
+**Decision (user chose "smooth walls only"):** the builder applies a final pass to the heights that smooths **wall cells only**.
+- **Wall cells:** slope above about 50°.
+- **Locked cells** keep their height bit for bit. These are every cell with slope ≤ 45° before smoothing, plus trail, beacon-ring, hidden-path, spawn and shore cells and their 1-cell neighbours.
+- **Method:** constrained iterative averaging in plan (XZ) and height, so a wall becomes one continuous surface. Each wall cell moves at most 0.5 m in height.
+- It runs after splat, detail and hole generation. Alphamaps, holes and detail layers stay byte-identical to the pre-change terrain. Heights stay identical on all locked cells.
+- Cladding is re-planned on the smoothed heights.
+- **Logic:** `CliffWallSmoother` is pure and tested. Locked cells are unchanged, the change is bounded, a synthetic sawtooth rim is measurably smoother, and the result is deterministic.
+- **Validation:** every beacon is still reachable on each island (trail capsule check plus a play-mode walk in Task 6). Validate Scene Wiring reports 0 problems.
+- This replaces "terrain heights byte-identical" for wall cells only.
+
+## Amendment 3 (2026-10-06): cliff skin mesh, replacing Amendment 2
+**Finding:** the island cliffs are single-cell height steps of up to about 6 m. Smoothing within 0.5 m can't make them continuous, and cells beside trails must stay locked. Amendment 2 is withdrawn: heights stay byte-identical, and the unused `CliffWallSmoother` is removed.
+
+**Decision (user chose "A. Cliff skin mesh"):** the builder generates a **cliff skin** for each island.
+
+**Shape:**
+- Trace each steep step in the heightmap: any neighbouring cells whose height difference is over 1.5 m.
+- Chain the traces into polylines in plan view, then smooth them in plan (Chaikin or similar) so there is no zig-zag.
+- Extrude each polyline into a wall strip. The bottom sits 0.3 m below the foot; the top sits at the rim with a small inward lip that hides the jagged top edge.
+- Each strip sits just proud of the terrain's ribbed face (at most 0.4 m outward of the outermost tooth). It gets gentle low-frequency bulges so it reads as rock, not as a flat sheet.
+
+**Look:**
+- Material: URP Lit with the MegaKit rock texture and normal, tinted by the island's `rockTint`, with enableInstancing on.
+- UVs: baked in world units (u = arc length, v = height), with the same tiling as the cladding.
+- Faces and boulders read as one material.
+
+**Gameplay:**
+- No collider; the terrain keeps all collision.
+- It covers the faces beside trails too. A clip of up to about 0.4 m by the keeper against a wall is accepted.
+- The cladding rocks stay.
+
+**Data:**
+- Terrain heights, alphamaps, holes and detail layers stay byte-identical.
+
+**Performance:**
+- One mesh per island, or a few chunks for culling, inside the existing budget (Ultra ≤ 12.5 ms).
+
+**Logic:**
+- A pure `CliffSkinPlanner`, tested to show it:
+  - is deterministic;
+  - covers every step edge within 0.5 m in plan;
+  - is smooth, with bounded turning angle per segment;
+  - stays within 0.4 m of the outermost face;
+  - produces no geometry on walkable ground away from the wall foot.
+
+**Validation:**
+- Play-mode captures of the same cliff views show continuous rock walls with no vertical ribbing.
+- Validate Scene Wiring checks that a CliffSkin exists on every island with cliffs.

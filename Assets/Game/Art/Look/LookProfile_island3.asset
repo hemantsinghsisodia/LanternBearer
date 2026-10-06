@@ -41,3 +41,6 @@ MonoBehaviour:
   ridgeColour: {r: 0, g: 0, b: 0, a: 0}
   tideBand: {r: 0.30588236, g: 0.43137255, b: 0.4, a: 1}
   groundTones: []
+  foliage: {r: 0.36863, g: 0.44706, b: 0.21961, a: 1}
+  bark: {r: 0.30588, g: 0.27451, b: 0.19608, a: 1}
+  rockTint: {r: 0.43137, g: 0.47843, b: 0.40784, a: 1}

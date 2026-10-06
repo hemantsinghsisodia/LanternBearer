@@ -45,7 +45,7 @@ public static partial class IslandBuilder
         stage.terrain = terrainObject.GetComponent<Terrain>();
         if (art.terrain != null)
         {
-            stage.terrain.materialTemplate = art.terrain;
+            stage.terrain.materialTemplate = TerrainMaterialFor(config, art, paintedLayers);
         }
 
         stage.terrain.drawInstanced = true;
@@ -795,7 +795,8 @@ public static partial class IslandBuilder
 
         if (art.detailReed != null)
         {
-            prototypes.Add(Billboard(art.detailReed, new Color(0.45f, 0.5f, 0.22f), new Color(0.28f, 0.32f, 0.14f), 0.55f, 1.25f, 0.18f, 0.36f));
+            // Generated reed clumps (1.0-1.6 m, island 3 olive-to-straw tones) replace the old billboard.
+            prototypes.Add(MeshDetail(ReedTuftBuilder.EnsurePrefab(), 0.9f, 1.15f, false));
             int[,] reeds = new int[detailRes, detailRes];
             for (int z = 0; z < detailRes; z++)
             {
@@ -851,7 +852,7 @@ public static partial class IslandBuilder
                 continue;
             }
 
-            bool moss = prefabName.Contains("moss");
+            bool moss = prefabName.Contains("moss") || prefabName.Contains("mushroom");
             bool flower = entry.category == BiomeCategory.Flower;
             prototypes.Add(MeshDetail(entry.prefab, entry.scaleRange.x, entry.scaleRange.y, namaqualand));
             int[,] map = new int[detailRes, detailRes];
@@ -948,12 +949,12 @@ public static partial class IslandBuilder
 
     static bool HiddenUnderCarpet(string prefabName)
     {
-        if (prefabName.Contains("moss"))
+        if (prefabName.Contains("moss") || prefabName.Contains("mushroom"))
         {
             return false;
         }
 
-        if (prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel") || prefabName.Contains("weed_plant") || prefabName.Contains("grasstuft"))
+        if (prefabName.Contains("nature_grass") || prefabName.Contains("grass_medium_01") || prefabName.Contains("grass_medium_02") || prefabName.Contains("grass_bermuda") || prefabName.Contains("shrub_sorrel") || prefabName.Contains("weed_plant") || prefabName.Contains("grasstuft"))
         {
             return true;
         }
@@ -964,7 +965,6 @@ public static partial class IslandBuilder
     static int AddPackGrassCarpet(List<DetailPrototype> prototypes, List<int[,]> layers, float[,,] alphamaps, float[,] heights, int heightRes, LevelConfig config, float worldSize, List<List<Vector2>> trails, int detailRes, bool namaqualand)
     {
         GameObject clump = GrassTuftBuilder.EnsurePrefab();
-        GameObject fine = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/PolyHaven/GroundCover/grass_bermuda_01_medium_e.prefab");
         if (clump == null)
         {
             Debug.LogWarning("Grass carpet skipped; the tuft prefab is missing.");
@@ -983,7 +983,6 @@ public static partial class IslandBuilder
         int added = 0;
 
         int[,] clumpMap = new int[detailRes, detailRes];
-        int[,] fineMap = null;
         DetailPrototype clumpPrototype = MeshDetail(clump, 1.05f, 1.55f, namaqualand);
         clumpPrototype.density = namaqualand ? 6f : 3f;
         clumpPrototype.minWidth = 1.6f;
@@ -1088,10 +1087,6 @@ public static partial class IslandBuilder
         }
 
         layers.Add(clumpMap);
-        if (fineMap != null && fine != null)
-        {
-            layers.Add(fineMap);
-        }
 
         int peak = 0;
         for (int z = 0; z < detailRes; z++)
@@ -1101,11 +1096,6 @@ public static partial class IslandBuilder
                 if (clumpMap[z, x] > peak)
                 {
                     peak = clumpMap[z, x];
-                }
-
-                if (fineMap != null && fineMap[z, x] > peak)
-                {
-                    peak = fineMap[z, x];
                 }
             }
         }

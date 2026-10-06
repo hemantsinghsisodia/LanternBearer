@@ -174,7 +174,12 @@ public static partial class IslandBuilder
         Shader unlitShader = Shader.Find("LanternKeeper/SkyUnlitNoFog");
         Shader addShader = Shader.Find("LanternKeeper/AdditiveUnlit");
         Shader flameShader = Shader.Find("LanternKeeper/Flame");
-        Shader terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
+        Shader terrainShader = Shader.Find(TerrainShaderName);
+        if (terrainShader == null)
+        {
+            Debug.LogError("Shader " + TerrainShaderName + " is missing; falling back to URP Terrain/Lit (no rock-wall shading).");
+            terrainShader = Shader.Find("Universal Render Pipeline/Terrain/Lit");
+        }
         Shader waterShader = Shader.Find("LanternKeeper/Water");
         Shader silhouetteShader = Shader.Find("LanternKeeper/Silhouette");
         Shader hazeShader = Shader.Find("LanternKeeper/HorizonHaze");
@@ -333,6 +338,76 @@ public static partial class IslandBuilder
         mat.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
         mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
         EditorUtility.SetDirty(mat);
+    }
+
+    public const string TerrainShaderName = "LanternKeeper/TerrainLit";
+    const float CliffTileMetres = 2.5f;
+
+    // One terrain material per level: the rock layer (and so the cliff textures) differs by island.
+    static Material TerrainMaterialFor(LevelConfig config, ArtKit art, TerrainLayer[] layers)
+    {
+        if (art.terrain == null || art.terrain.shader == null || art.terrain.shader.name != TerrainShaderName)
+        {
+            return art.terrain;
+        }
+
+        int index = -1;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i] != null && layers[i].name == "rock")
+            {
+                index = i;
+            }
+        }
+
+        if (index < 0)
+        {
+            Debug.LogError("Terrain material " + config.levelId + ": no layer named rock; rock-wall shading is off.");
+            return art.terrain;
+        }
+
+        string path = "Assets/Game/Materials/Generated/TerrainLit_" + config.levelId + ".mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat == null)
+        {
+            mat = new Material(art.terrain.shader);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+
+        mat.shader = art.terrain.shader;
+        mat.CopyPropertiesFromMaterial(art.terrain);
+        // The faces use the same rock as the cladding rocks (kit Rocks_Diffuse greyscale, island rockTint), so both read as one material.
+        TerrainLayer rock = layers[index];
+        LookProfile look = LoadLookProfile();
+        if (look == null)
+        {
+            look = config.lookProfile;
+        }
+
+        if (look == null)
+        {
+            look = AssetDatabase.LoadAssetAtPath<LookProfile>("Assets/Game/Art/Look/LookProfile_island1.asset");
+        }
+
+        Texture2D kitRock = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Game/Art/Environment/Nature/Textures/Rocks_Diffuse_Grey.png");
+        if (kitRock == null)
+        {
+            Debug.LogWarning("Kit rock texture missing; terrain faces use the rock ground layer instead.");
+        }
+
+        Color tint = look != null ? look.rockTint : Color.white;
+        mat.SetFloat("_CliffLayerIndex", index);
+        mat.SetTexture("_CliffAlbedo", kitRock != null ? kitRock : rock.diffuseTexture);
+        mat.SetTexture("_CliffNormal", kitRock != null ? null : rock.normalMapTexture);
+        mat.SetVector("_CliffTiling", new Vector4(1f / CliffTileMetres, 1f / CliffTileMetres, 0f, 0f));
+        mat.SetColor("_CliffTint", new Color(tint.r, tint.g, tint.b, 1f));
+        mat.SetFloat("_CliffSmoothness", 0.12f);
+        mat.SetFloat("_CliffMetallic", 0f);
+        mat.SetFloat("_CliffNormalScale", kitRock != null ? 0f : rock.normalScale);
+        mat.SetFloat("_CliffSmoothnessSource", 2f);
+        mat.enableInstancing = true;
+        EditorUtility.SetDirty(mat);
+        return mat;
     }
 
     static Material LitMat(string path, Shader shader, Color color, float smoothness, float metallic, Color emission)

@@ -75,6 +75,13 @@ HDRIs (Assets/Game/Textures/Sky):
   https://polyhaven.com/a/qwantani_dawn_puresky
 
 ------------------------------------------------------------------------
+Stylized Nature MegaKit (CC0)
+------------------------------------------------------------------------
+
+Stylized Nature MegaKit by Quaternius (CC0) — https://quaternius.com
+Used models and textures: Assets/Game/Art/Environment/Nature
+
+------------------------------------------------------------------------
 Made for this project
 ------------------------------------------------------------------------
 

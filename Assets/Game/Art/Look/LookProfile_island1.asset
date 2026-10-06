@@ -35,3 +35,6 @@ MonoBehaviour:
   grassRoot: {r: 0.06, g: 0.30, b: 0.05, a: 1}
   grassTip: {r: 0.32, g: 0.72, b: 0.14, a: 1}
   gradeExposure: 0
+  foliage: {r: 0.24314, g: 0.47843, b: 0.22745, a: 1}
+  bark: {r: 0.35294, g: 0.25098, b: 0.18824, a: 1}
+  rockTint: {r: 0.54118, g: 0.54902, b: 0.55686, a: 1}

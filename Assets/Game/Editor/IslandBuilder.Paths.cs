@@ -259,6 +259,7 @@ public static partial class IslandBuilder
             // Stones over open water are revealed by the lantern. The two end stones and any stone over
             // dry ground are always visible and solid, so the landings never depend on light.
             Vector3 stone = plan.stones[i];
+            stage.pathStones.Add(stone);
             bool end = i == 0 || i == plan.stones.Count - 1;
             if (!end && PathGround(stage, new Vector2(stone.x, stone.z)) < edgeY)
             {

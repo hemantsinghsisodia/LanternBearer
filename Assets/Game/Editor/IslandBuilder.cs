@@ -181,6 +181,7 @@ public static partial class IslandBuilder
             EditorUtility.DisplayProgressBar("Lantern Keeper", "Building " + config.sceneName, 0.15f);
             // The build unloads unused assets, so keep the profile's path and reload it when the atmosphere needs it.
             lookProfilePath = AssetDatabase.GetAssetPath(config.lookProfile);
+            string biomePath = config.biome != null ? AssetDatabase.GetAssetPath(config.biome) : "";
             EnsureFolder("Assets/Game/Scenes");
             EditorSceneManager.SaveOpenScenes();
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -191,6 +192,12 @@ public static partial class IslandBuilder
             }
 
             ArtKit art = EnsureArt();
+            // The scene reset can drop the biome reference; reload it so Islands 2-4 keep their own biome instead of falling back to PineForest.
+            if (config.biome == null && !string.IsNullOrEmpty(biomePath))
+            {
+                config.biome = AssetDatabase.LoadAssetAtPath<Biome>(biomePath);
+            }
+
             Biome resolvedBiome = ResolveBiome(config);
             if (resolvedBiome != null)
             {
@@ -262,6 +269,7 @@ public static partial class IslandBuilder
         public readonly List<Vector3> beaconSpots = new List<Vector3>();
         public readonly List<Vector3> islets = new List<Vector3>();
         public readonly List<List<Vector2>> trails = new List<List<Vector2>>();
+        public readonly List<Vector3> pathStones = new List<Vector3>();   // x, top, z of every hidden-path stone and bank step
     }
 
     static void BuildTerrain(LevelConfig config, ArtKit art, string terrainPath, Stage stage)
@@ -754,6 +762,27 @@ public static partial class IslandBuilder
             stage.beaconSpots.Add(spot);
             stage.beacons++;
         }
+
+        PlaceTrailGuide(stage);
+    }
+
+    // The trail centrelines from the spawn to each beacon (same order as the Beacons folder), kept in the scene as empty
+    // transforms so the PlayMode reachability test can walk them. No components; purely data.
+    static void PlaceTrailGuide(Stage stage)
+    {
+        Transform guide = Folder("TrailGuide");
+        for (int t = 0; t < stage.trails.Count; t++)
+        {
+            Transform trail = Folder("Trail_" + t);
+            trail.SetParent(guide, false);
+            List<Vector2> path = stage.trails[t];
+            for (int i = 0; i < path.Count; i++)
+            {
+                Transform point = Folder("P" + i);
+                point.SetParent(trail, false);
+                point.position = new Vector3(path[i].x, GroundY(stage.terrain, path[i].x, path[i].y), path[i].y);
+            }
+        }
     }
 
     static void PlaceShowBeacon(ArtKit art, Stage stage)
@@ -904,9 +933,11 @@ public static partial class IslandBuilder
         int ferns = PlaceNamedNear(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), trees, scale, 1.1f, 3.2f, "fern");
         int undergrowth = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Undergrowth), scale, "fern");
         int rocks = PlaceScattered(config, stage, parent, random, Entries(config, BiomeCategory.Rock), scale, null);
-        int pieces = PlaceCliff(config, stage, parent, random);
+        int offTrail = PropTrailClearance(config, stage, parent);
+        int cladding = PlaceCladding(config, stage, parent);
+        int skinTriangles = PlaceCliffSkin(config, stage, parent);
         PlaceMushrooms(config, art, stage, parent, random);
-        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " setpieces=" + pieces);
+        Debug.Log(config.sceneName + " biome trees=" + treesPlaced + "/" + treeTarget + " saplings=" + saplingsPlaced + "/" + saplingTarget + " deadwood=" + deadwood + " ferns=" + ferns + " undergrowth=" + undergrowth + " rocks=" + rocks + " offTrail=" + offTrail + " cladding=" + cladding + " skinTriangles=" + skinTriangles);
     }
 
     static List<BiomeEntry> Entries(LevelConfig config, BiomeCategory category)
@@ -1073,67 +1104,6 @@ public static partial class IslandBuilder
         }
 
         return placed;
-    }
-
-    static int PlaceCliff(LevelConfig config, Stage stage, Transform parent, System.Random random)
-    {
-        if (!config.hasCliff)
-        {
-            return 0;
-        }
-
-        BiomeEntry piece = null;
-        BiomeEntry[] entries = config.biome.entries;
-        for (int i = 0; i < entries.Length; i++)
-        {
-            if (entries[i] != null && entries[i].prefab != null && entries[i].category == BiomeCategory.SetPiece && entries[i].count > 0)
-            {
-                piece = entries[i];
-                break;
-            }
-        }
-
-        if (piece == null)
-        {
-            return 0;
-        }
-
-        float cliffAngle = (config.seed % 360) * Mathf.Deg2Rad;
-        Vector3 pos = Vector3.zero;
-        bool found = false;
-        for (float dist = 0.66f; dist >= 0.48f && !found; dist -= 0.04f)
-        {
-            for (int nudge = 0; nudge < 7 && !found; nudge++)
-            {
-                float angle = cliffAngle + (nudge - 3) * 0.08f;
-                float reach = config.islandRadius * dist;
-                float x = Mathf.Cos(angle) * reach;
-                float z = Mathf.Sin(angle) * reach;
-                float y = GroundY(stage.terrain, x, z);
-                if (y < stage.highWaterY + 0.5f)
-                {
-                    continue;
-                }
-
-                if (NearSpot(stage.beaconSpots, x, z, 4f))
-                {
-                    continue;
-                }
-
-                pos = new Vector3(x, y - 0.35f, z);
-                found = true;
-                cliffAngle = angle;
-            }
-        }
-
-        if (!found)
-        {
-            return 0;
-        }
-
-        Vector3 outward = new Vector3(Mathf.Cos(cliffAngle), 0f, Mathf.Sin(cliffAngle));
-        PlacePrefab(piece.prefab, parent, pos, Quaternion.LookRotation(outward, Vector3.up));
-        return 1;
     }
 
     static void PlaceMushrooms(LevelConfig config, ArtKit art, Stage stage, Transform parent, System.Random random)
@@ -2234,6 +2204,12 @@ public static partial class IslandBuilder
             AssetDatabase.CreateAsset(biome, HeathBiomePath);
         }
 
+        // Already converted to the nature kit (NatureKitImporter.RebuildBiome): keep it instead of regenerating the Poly Haven entries.
+        if (NatureKitImporter.IsConverted(biome))
+        {
+            return biome;
+        }
+
         List<BiomeEntry> entries = new List<BiomeEntry>();
         AddHeath(entries, "Rock", "boulder_01", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
         AddHeath(entries, "Rock", "rock_07", BiomeCategory.Rock, 10, 0.9f, 1.4f, false, 0f, 1f);
@@ -2293,6 +2269,12 @@ public static partial class IslandBuilder
         {
             biome = ScriptableObject.CreateInstance<Biome>();
             AssetDatabase.CreateAsset(biome, MarshBiomePath);
+        }
+
+        // Already converted to the nature kit (NatureKitImporter.RebuildBiome): keep it instead of regenerating the Poly Haven entries.
+        if (NatureKitImporter.IsConverted(biome))
+        {
+            return biome;
         }
 
         List<BiomeEntry> entries = new List<BiomeEntry>();

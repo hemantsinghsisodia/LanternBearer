@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TerrainLit
-  m_Shader: {fileID: 4800000, guid: 69c1f799e772cb6438f56c23efccb782, type: 3}
+  m_Shader: {fileID: 4800000, guid: ce68ba0d0be342f4cac1fa461243414d, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -23,6 +23,14 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _CliffAlbedo:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CliffNormal:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Control:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -85,6 +93,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _CliffLayerIndex: -1
+    - _CliffMetallic: 0
+    - _CliffNormalScale: 1
+    - _CliffSmoothness: 0.08
+    - _CliffSmoothnessSource: 1
     - _EnableHeightBlend: 0
     - _EnableInstancedPerPixelNormal: 1
     - _HeightTransition: 0
@@ -99,6 +112,8 @@ Material:
     - _Smoothness3: 0.5
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CliffTiling: {r: 0.25, g: 0.25, b: 0, a: 0}
+    - _CliffTint: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &3756287151845650715
