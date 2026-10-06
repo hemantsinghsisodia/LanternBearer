@@ -23,9 +23,10 @@ public static class CliffSkinMesher
     public const float RowStep = 0.5f;           // vertical resolution
     public const float ColumnStep = 0.45f;       // horizontal resolution (columns also split at corners)
     public const float CornerAngle = 12f;        // degrees of turning that force a column
-    public const float LipRise = 0.1f;           // wall top above the rim
-    public const float LipOuter = 0.2f;          // lip row 1: this far behind the skin line, which puts it 0.05 m beyond the step edge
-    public const float LipInner = 0.55f;         // lip row 2: 0.3 m behind the step edge (skin line is 0.25 m beyond it)
+    public const float LipRise = 0.08f;          // wall top above the rim (hides the rim zig-zag; keep within 0.05-0.15)
+    public const float TuckCurl = 0.13f;         // row 1: the top edge curls this far inward from the wall top, a hair lower
+    public const float TuckDepth = 0.30f;        // row 2: this far behind the skin line (0.05 m inside the step edge), buried below the rim
+    public const float TuckSink = 0.3f;          // row 2 sits this far below the rim ground, so no rock lies flat on walkable ground
     public const float BulgeMin = -0.07f;        // bulges never move the wall inward past the face (it sits 0.25 m out)
     public const float BulgeMax = 0.15f;
     public const float NoiseWavelengthArc = 3f;
@@ -167,14 +168,14 @@ public static class CliffSkinMesher
                 grid.uvs[c][r] = new Vector2(arc, y);
             }
 
-            // Lip: rolls inward over the rim, ending close to the ground behind it.
+            // Tuck: the top edge curls a little inward and then drops steeply into the terrain, so nothing lies flat on the rim.
             float topBulge = Bulge(arc, top[c], totalArc, noiseCells, seed);
             Vector2 outer = p.position + p.normal * topBulge;
-            Vector2 lip1 = p.position - p.normal * LipOuter;
-            Vector2 lip2 = p.position - p.normal * LipInner;
+            Vector2 lip1 = outer - p.normal * TuckCurl;
+            Vector2 lip2 = p.position - p.normal * TuckDepth;
             float rimY = top[c] - LipRise;
-            float y1 = rimY + 0.05f;
-            float y2 = Mathf.Min(top[c], ground(lip2) + 0.02f);
+            float y1 = top[c] - 0.03f;
+            float y2 = Mathf.Min(rimY, ground(lip2)) - TuckSink;
             grid.positions[c][wallRows + 1] = new Vector3(lip1.x, y1, lip1.y);
             grid.positions[c][wallRows + 2] = new Vector3(lip2.x, y2, lip2.y);
             float travel1 = Vector2.Distance(outer, lip1);

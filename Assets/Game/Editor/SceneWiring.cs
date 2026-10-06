@@ -1739,7 +1739,9 @@ public static class SceneWiring
                 MeshFilter[] filters = skins[i].GetComponentsInChildren<MeshFilter>(true);
                 for (int f = 0; f < filters.Length; f++)
                 {
-                    if (filters[f].sharedMesh != null && filters[f].sharedMesh.vertexCount > 0)
+                    Vector3 centre = filters[f].sharedMesh != null ? filters[f].transform.TransformPoint(filters[f].sharedMesh.bounds.center) : Vector3.zero;
+                    bool onTerrain = centre.x >= origin.x && centre.x <= origin.x + data.size.x && centre.z >= origin.z && centre.z <= origin.z + data.size.z;
+                    if (onTerrain && filters[f].sharedMesh.vertexCount > 0)
                     {
                         meshes++;
                     }
@@ -1751,7 +1753,7 @@ public static class SceneWiring
                 problems++;
                 if (!quiet)
                 {
-                    Debug.LogWarning(terrains[t].name + " has step edges but no CliffSkin mesh", terrains[t]);
+                    Debug.LogWarning(terrains[t].name + " has step edges but no CliffSkin mesh over it", terrains[t]);
                 }
             }
         }

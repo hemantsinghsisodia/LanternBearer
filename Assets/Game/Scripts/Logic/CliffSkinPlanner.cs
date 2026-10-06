@@ -30,7 +30,7 @@ public class SkinStrip
 // 3. The polyline is pushed outward (towards the low side) by ProudOffset, so the skin sits clear of the aliased teeth of the face.
 public static class CliffSkinPlanner
 {
-    public const float StepThresholdM = 1.5f;
+    public const float StepThresholdM = 0.8f;
     public const float ProudOffset = 0.25f;     // plan distance from the step edge to the skin (the face's outermost tooth is about 0.06 m beyond the edge)
     public const float Spacing = 0.15f;         // resampled point spacing, metres
     public const int SmoothRadius = 2;          // box-filter half width in samples (two passes make a triangular kernel)

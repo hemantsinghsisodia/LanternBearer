@@ -11,7 +11,7 @@ public class CliffSkinPlannerTests
     const float WorldSize = (N - 1) * Cell;
     const float HeightScale = 10f;
     const float Top = 6f;
-    const float Threshold = 1.5f;
+    const float Threshold = CliffSkinPlanner.StepThresholdM;
     static readonly Vector2 Origin = new Vector2(-3f, -3f);
 
     // A 6 m plateau shaped as a rectangle rotated 30 degrees against the grid, so all four rims are aliased one-cell staircases.

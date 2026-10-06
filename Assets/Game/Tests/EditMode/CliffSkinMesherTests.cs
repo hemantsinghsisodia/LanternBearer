@@ -35,7 +35,7 @@ public class CliffSkinMesherTests
 
     static List<SkinChunk> Mesh(int seed = 5)
     {
-        List<SkinStrip> strips = CliffSkinPlanner.Plan(Plateau(), WorldSize, HeightScale, Origin, 1.5f);
+        List<SkinStrip> strips = CliffSkinPlanner.Plan(Plateau(), WorldSize, HeightScale, Origin, CliffSkinPlanner.StepThresholdM);
         float[,] h = Plateau();
         System.Func<Vector2, float> ground = p => h[Mathf.Clamp(Mathf.RoundToInt((p.y - Origin.y) / Cell), 0, N - 1), Mathf.Clamp(Mathf.RoundToInt((p.x - Origin.x) / Cell), 0, N - 1)] * HeightScale;
         return CliffSkinMesher.Build(strips, ground, 0f, seed);
@@ -84,7 +84,7 @@ public class CliffSkinMesherTests
                 Vector3 v = chunks[c].vertices[i];
                 minY = Mathf.Min(minY, v.y);
                 maxY = Mathf.Max(maxY, v.y);
-                if (v.y > Top - 0.3f)
+                if (v.y > Top - 0.35f)
                 {
                     continue; // the lip is meant to reach over the rim
                 }
@@ -151,9 +151,23 @@ public class CliffSkinMesherTests
     [Test]
     public void ClosedLoopSeamHasNoCrack()
     {
-        // The loop's closing column duplicates the first one; positions and normals must match exactly.
-        List<SkinStrip> strips = CliffSkinPlanner.Plan(Plateau(), WorldSize, HeightScale, Origin, 1.5f);
-        Assert.IsTrue(strips[0].closed);
+        // The loop's closing column duplicates the first one; positions and normals must match.
+        List<SkinChunk> chunks = Mesh();
+        SkinChunk chunk = chunks[0];
+        int rows = 0;
+        while (rows < chunk.uvs.Length && chunk.uvs[rows].x == chunk.uvs[0].x)
+        {
+            rows++;
+        }
+
+        Assert.Greater(rows, 3);
+        int last = chunk.vertices.Length - rows;
+        for (int r = 0; r < rows; r++)
+        {
+            Assert.AreEqual(0f, Vector3.Distance(chunk.vertices[r], chunk.vertices[last + r]), 1e-3f, "seam position row " + r);
+            Assert.AreEqual(0f, Vector3.Distance(chunk.normals[r], chunk.normals[last + r]), 1e-3f, "seam normal row " + r);
+        }
+
         float a = CliffSkinMesher.Bulge(0f, 2f, 10f, 3, 4);
         float b = CliffSkinMesher.Bulge(10f, 2f, 10f, 3, 4);
         Assert.AreEqual(a, b, 1e-4f);
