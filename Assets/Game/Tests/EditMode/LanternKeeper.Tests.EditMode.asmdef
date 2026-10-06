@@ -4,6 +4,7 @@
     "references": [
         "LanternKeeper.Logic",
         "LanternKeeper.Look",
+        "LanternKeeper.UI",
         "LanternKeeper.Editor.KeeperClips",
         "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
