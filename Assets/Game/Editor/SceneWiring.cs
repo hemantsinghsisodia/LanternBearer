@@ -151,7 +151,6 @@ public static partial class SceneWiring
             assigned += Set(shadeSpawners[i], "lantern", lantern);
             assigned += Set(shadeSpawners[i], "player", body);
             assigned += Set(shadeSpawners[i], "hazard", water.Length > 0 ? water[0] : null);
-            assigned += Set(shadeSpawners[i], "hud", hud);
         }
 
         Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -179,7 +178,6 @@ public static partial class SceneWiring
         assigned += WireKeeperQuality();
         assigned += WireLightQuality();
         assigned += WireHorizonQuality();
-        assigned += WireGraphicsMenus();
         assigned += WireMoonRim();
         return assigned;
     }
@@ -570,14 +568,16 @@ public static partial class SceneWiring
         for (int i = 0; i < huds.Length; i++)
         {
             nulls += Require(huds[i], "lantern", quiet);
-            nulls += Require(huds[i], "fuelFill", quiet);
             nulls += Require(huds[i], "promptText", quiet);
-            nulls += Require(huds[i], "timerText", quiet);
-            nulls += Require(huds[i], "statusText", quiet);
             nulls += Require(huds[i], "pauseScreen", quiet);
-            nulls += Require(huds[i], "graphicsMenu", quiet);
             nulls += Require(huds[i], "fadeOverlay", quiet);
-            nulls += Require(huds[i], "fuelMeter", quiet);
+            nulls += Require(huds[i], "fuelGauge", quiet);
+            nulls += Require(huds[i], "roofs", quiet);
+            nulls += Require(huds[i], "drainIcons", quiet);
+            nulls += Require(huds[i], "timerLabel", quiet);
+            nulls += Require(huds[i], "islandLabel", quiet);
+            nulls += Require(huds[i], "tideChip", quiet);
+            nulls += Require(huds[i], "stormChip", quiet);
         }
 
         Lantern[] lanterns = Object.FindObjectsByType<Lantern>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -616,7 +616,6 @@ public static partial class SceneWiring
             nulls += Require(shadeSpawners[i], "lantern", quiet);
             nulls += Require(shadeSpawners[i], "player", quiet);
             nulls += Require(shadeSpawners[i], "hazard", quiet);
-            nulls += Require(shadeSpawners[i], "hud", quiet);
         }
 
         Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -783,7 +782,6 @@ public static partial class SceneWiring
 
         nulls += ReportSteppingStones(quiet);
         nulls += ReportHorizon(quiet);
-        nulls += ReportGraphicsMenus(quiet);
         nulls += ReportLookProfiles(quiet);
         nulls += ReportLookApplier(quiet);
         nulls += ReportWaterMaterials(quiet);
@@ -1298,81 +1296,6 @@ public static partial class SceneWiring
         }
 
         return "no dry ground within 0.6 m of the step edge and within 0.35 m of its top " + top.ToString("F2");
-    }
-
-    static int WireGraphicsMenus()
-    {
-        int assigned = 0;
-        GraphicsMenu[] menus = Object.FindObjectsByType<GraphicsMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (int i = 0; i < menus.Length; i++)
-        {
-            assigned += BindGraphicsMenu(menus[i]);
-        }
-
-        HUD[] huds = Object.FindObjectsByType<HUD>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (int i = 0; i < huds.Length; i++)
-        {
-            GraphicsMenu menu = huds[i].GetComponent<GraphicsMenu>();
-            assigned += Set(huds[i], "graphicsMenu", menu);
-        }
-
-        return assigned;
-    }
-
-    static int BindGraphicsMenu(GraphicsMenu menu)
-    {
-        if (menu == null)
-        {
-            return 0;
-        }
-
-        Transform panel = FindNamed(menu.transform, "GraphicsPanel");
-        Transform readout = FindNamed(menu.transform, "FpsReadout");
-        int assigned = 0;
-        assigned += Set(menu, "panel", panel != null ? panel.gameObject : null);
-        assigned += Set(menu, "lowButton", ButtonNamed(panel, "LowButton"));
-        assigned += Set(menu, "mediumButton", ButtonNamed(panel, "MediumButton"));
-        assigned += Set(menu, "highButton", ButtonNamed(panel, "HighButton"));
-        assigned += Set(menu, "ultraButton", ButtonNamed(panel, "UltraButton"));
-        assigned += Set(menu, "vsyncButton", ButtonNamed(panel, "VSyncButton"));
-        assigned += Set(menu, "fpsButton", ButtonNamed(panel, "FpsButton"));
-        assigned += Set(menu, "backButton", ButtonNamed(panel, "BackButton"));
-        Transform status = panel != null ? FindNamed(panel, "GraphicsStatus") : null;
-        assigned += Set(menu, "statusLabel", status != null ? status.gameObject : null);
-        assigned += Set(menu, "fpsReadout", readout != null ? readout.gameObject : null);
-        return assigned;
-    }
-
-    static int ReportGraphicsMenus(bool quiet)
-    {
-        bool expect = Object.FindAnyObjectByType<MainMenu>() != null || Object.FindAnyObjectByType<HUD>() != null;
-        GraphicsMenu[] menus = Object.FindObjectsByType<GraphicsMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        if (menus.Length == 0)
-        {
-            if (expect && !quiet)
-            {
-                Debug.LogWarning("Null reference: GraphicsMenu missing");
-            }
-
-            return expect ? 1 : 0;
-        }
-
-        int nulls = 0;
-        for (int i = 0; i < menus.Length; i++)
-        {
-            nulls += Require(menus[i], "panel", quiet);
-            nulls += Require(menus[i], "lowButton", quiet);
-            nulls += Require(menus[i], "mediumButton", quiet);
-            nulls += Require(menus[i], "highButton", quiet);
-            nulls += Require(menus[i], "ultraButton", quiet);
-            nulls += Require(menus[i], "vsyncButton", quiet);
-            nulls += Require(menus[i], "fpsButton", quiet);
-            nulls += Require(menus[i], "backButton", quiet);
-            nulls += Require(menus[i], "statusLabel", quiet);
-            nulls += Require(menus[i], "fpsReadout", quiet);
-        }
-
-        return nulls;
     }
 
     static Button ButtonNamed(Transform root, string name)

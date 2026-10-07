@@ -24,7 +24,6 @@ public static partial class IslandBuilder
         public Material water;
         public Material moon;
         public Material unlit;
-        public Material column;
         public Material wood;
         public Material iron;
         public Material charred;
@@ -236,7 +235,6 @@ public static partial class IslandBuilder
         art.moon = UnlitMat("Assets/Game/Materials/Generated/Moon.mat", unlitShader, new Color(2.7f, 2.5f, 2.15f, 1f));
         art.unlit = UnlitMat("Assets/Game/Materials/Generated/SkyUnlit.mat", unlitShader, Color.white);
         art.unlit.SetTexture("_BaseMap", art.softCircle);
-        art.column = UnlitMat("Assets/Game/Materials/Generated/LightColumn.mat", addShader, new Color(1f, 0.55f, 0.16f, 0.38f));
         art.wood = LitMat("Assets/Game/Materials/Generated/TorchWood.mat", lit, new Color(0.28f, 0.16f, 0.08f), 0.18f, 0f, Color.black);
         art.iron = LitMat("Assets/Game/Materials/Generated/TorchIron.mat", lit, new Color(0.12f, 0.12f, 0.13f), 0.55f, 0.72f, Color.black);
         art.charred = LitMat("Assets/Game/Materials/Generated/CharredCloth.mat", lit, new Color(0.05f, 0.04f, 0.035f), 0.08f, 0f, new Color(0.15f, 0.05f, 0.01f));

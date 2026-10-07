@@ -11,6 +11,8 @@ public class BeaconCompass : MonoBehaviour
 
     [SerializeField] RectTransform markerRoot;
     [SerializeField] Transform player;
+    [SerializeField] UITheme theme;
+    [SerializeField] Sprite roofIcon;
 
     readonly Marker[] markers = new Marker[MaxMarkers];
     readonly Beacon[] nearest = new Beacon[MaxMarkers];
@@ -21,6 +23,7 @@ public class BeaconCompass : MonoBehaviour
     static bool loggedFallback;
     static string[] meterLabels;
     static Sprite arrowSprite;
+    static Sprite backingSprite;
     static TMP_FontAsset font;
     static Material fontFace;
 
@@ -199,7 +202,7 @@ public class BeaconCompass : MonoBehaviour
             markers[index].Root.anchoredPosition = local;
         }
 
-        float scale = index == 0 ? 1.2f : 0.72f;
+        float scale = index == 0 ? 1.2f : 0.9f;
         if (Mathf.Abs(markers[index].Root.localScale.x - scale) > 0.01f)
         {
             markers[index].Root.localScale = new Vector3(scale, scale, 1f);
@@ -271,12 +274,13 @@ public class BeaconCompass : MonoBehaviour
         built = true;
     }
 
+    // An amber edge arrow above a soft ink chip holding a roof icon and the distance (Inter, 20 px base; the smaller markers scale to 18).
     Marker CreateMarker(int index)
     {
         GameObject root = new GameObject("Marker" + index, typeof(RectTransform), typeof(CanvasGroup));
         root.transform.SetParent(markerRoot, false);
         RectTransform rect = root.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(64f, 72f);
+        rect.sizeDelta = new Vector2(110f, 76f);
         CanvasGroup group = root.GetComponent<CanvasGroup>();
         group.interactable = false;
         group.blocksRaycasts = false;
@@ -284,33 +288,62 @@ public class BeaconCompass : MonoBehaviour
         GameObject arrowObject = new GameObject("Arrow", typeof(RectTransform), typeof(Image));
         arrowObject.transform.SetParent(root.transform, false);
         RectTransform arrow = arrowObject.GetComponent<RectTransform>();
-        arrow.anchoredPosition = new Vector2(0f, 10f);
+        arrow.anchoredPosition = new Vector2(0f, 14f);
         arrow.sizeDelta = new Vector2(22f, 28f);
         Image image = arrowObject.GetComponent<Image>();
         image.sprite = Arrow();
-        image.color = new Color(1f, 0.86f, 0.48f, 1f);
+        image.color = theme != null ? theme.amber : new Color(1f, 0.86f, 0.48f, 1f);
         image.raycastTarget = false;
 
-        GameObject labelObject = new GameObject("Distance", typeof(RectTransform));
-        labelObject.transform.SetParent(root.transform, false);
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.anchoredPosition = new Vector2(0f, -22f);
-        labelRect.sizeDelta = new Vector2(80f, 24f);
-        TextMeshProUGUI label = labelObject.AddComponent<TextMeshProUGUI>();
-        label.font = font;
-        if (fontFace != null)
-        {
-            label.fontSharedMaterial = fontFace;
-        }
+        GameObject chip = new GameObject("Chip", typeof(RectTransform), typeof(Image));
+        chip.transform.SetParent(root.transform, false);
+        RectTransform chipRect = chip.GetComponent<RectTransform>();
+        chipRect.anchoredPosition = new Vector2(0f, -20f);
+        chipRect.sizeDelta = new Vector2(104f, 34f);
+        Image back = chip.GetComponent<Image>();
+        back.sprite = Backing();
+        back.type = Image.Type.Sliced;
+        Color ink = theme != null ? theme.inkPanel : new Color(0.05f, 0.06f, 0.12f, 0.88f);
+        ink.a = 0.7f;
+        back.color = ink;
+        back.raycastTarget = false;
 
-        label.fontSize = 18;
-        label.color = new Color(0.96f, 0.93f, 0.86f, 1f);
-        label.alignment = TextAlignmentOptions.Center;
+        GameObject iconObject = new GameObject("Roof", typeof(RectTransform), typeof(Image));
+        iconObject.transform.SetParent(chip.transform, false);
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.anchoredPosition = new Vector2(-34f, 0f);
+        iconRect.sizeDelta = new Vector2(22f, 20f);
+        Image icon = iconObject.GetComponent<Image>();
+        icon.sprite = roofIcon;
+        icon.enabled = roofIcon != null;
+        icon.preserveAspect = true;
+        icon.color = theme != null ? theme.amber : new Color(1f, 0.86f, 0.48f, 1f);
+        icon.raycastTarget = false;
+
+        GameObject labelObject = new GameObject("Distance", typeof(RectTransform));
+        labelObject.transform.SetParent(chip.transform, false);
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchoredPosition = new Vector2(10f, 0f);
+        labelRect.sizeDelta = new Vector2(70f, 30f);
+        TextMeshProUGUI label = labelObject.AddComponent<TextMeshProUGUI>();
         label.textWrappingMode = TextWrappingModes.NoWrap;
         label.overflowMode = TextOverflowModes.Overflow;
+        label.alignment = TextAlignmentOptions.Center;
         label.raycastTarget = false;
         label.richText = false;
         label.text = Label(0);
+        if (theme != null)
+        {
+            ThemedLabel themed = labelObject.AddComponent<ThemedLabel>();
+            themed.Configure(theme, label, ThemedLabel.Role.Number, 20f);
+        }
+        else
+        {
+            label.font = font;
+            label.fontSize = 18;
+            label.color = new Color(0.96f, 0.93f, 0.86f, 1f);
+        }
+
         TextScaler.Notify(label);
 
         Marker marker = new Marker();
@@ -367,6 +400,38 @@ public class BeaconCompass : MonoBehaviour
         }
 
         fontFace = Resources.Load<Material>("Fonts & Materials/LiberationSans SDF - Outline");
+    }
+
+    // Soft rounded rectangle, nine-sliced, with feathered edges.
+    static Sprite Backing()
+    {
+        if (backingSprite != null)
+        {
+            return backingSprite;
+        }
+
+        const int size = 32;
+        const float radius = 12f;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.wrapMode = TextureWrapMode.Clamp;
+        Color[] pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float cx = Mathf.Max(radius - (x + 0.5f), 0f, (x + 0.5f) - (size - radius));
+                float cy = Mathf.Max(radius - (y + 0.5f), 0f, (y + 0.5f) - (size - radius));
+                float dist = Mathf.Sqrt(cx * cx + cy * cy);
+                float alpha = Mathf.Clamp01((radius - dist) / 3f + 0.25f);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        texture.SetPixels(pixels);
+        texture.Apply(false);
+        backingSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(12f, 12f, 12f, 12f));
+        backingSprite.name = "CompassBacking";
+        return backingSprite;
     }
 
     static Sprite Arrow()

@@ -16,7 +16,6 @@ public class ShadeSpawner : MonoBehaviour
     [SerializeField] Lantern lantern;
     [SerializeField] PlayerController player;
     [SerializeField] WaterHazard hazard;
-    [SerializeField] HUD hud;
 
     bool refsResolved;
     bool warnedMissingPrefab;
@@ -114,7 +113,7 @@ public class ShadeSpawner : MonoBehaviour
         }
 
         refsResolved = true;
-        bool missing = lantern == null || player == null || hazard == null || hud == null;
+        bool missing = lantern == null || player == null || hazard == null;
         if (player == null)
         {
             player = FindAnyObjectByType<PlayerController>();
@@ -133,11 +132,6 @@ public class ShadeSpawner : MonoBehaviour
         if (hazard == null)
         {
             hazard = FindAnyObjectByType<WaterHazard>();
-        }
-
-        if (hud == null)
-        {
-            hud = FindAnyObjectByType<HUD>();
         }
 
         if (missing && !loggedFallback)
@@ -166,7 +160,7 @@ public class ShadeSpawner : MonoBehaviour
         Shade shade = shadeObject.GetComponent<Shade>();
         if (shade != null)
         {
-            shade.Bind(player != null ? player.transform : null, lantern, hazard, hud);
+            shade.Bind(player != null ? player.transform : null, lantern, hazard);
         }
     }
 

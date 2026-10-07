@@ -21,14 +21,6 @@ public class UiLayoutTests
 
     static readonly Vector2[] CanvasSizes = { new Vector2(1920f, 1080f), new Vector2(1280f, 720f) };
 
-    // HUD texts that are still Phase F's: plain code-made labels whose box is not a layout row. Each entry says why.
-    // (Anything else under the HUD canvas that overflows at 130% fails the test.)
-    static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>
-    {
-        "WinPanel", "LosePanel", "GraphicsPanel", // end-of-round and dev graphics panels: restyled with the HUD in Phase F
-        "FpsReadout"                              // developer readout, off by default
-    };
-
     GameObject canvasGo;
     bool hadScale;
     float savedScale;
@@ -359,11 +351,6 @@ public class UiLayoutTests
         Assert.IsNotNull(scaler, "the HUD canvas has a TextScaler");
         Assert.IsTrue(scaler.ScalePlainText, "the HUD scaler scales plain texts");
 
-        // The widest status line the game can produce, with the safe-light second line.
-        Transform status = hud.transform.Find("StatusText");
-        Assert.IsNotNull(status, "StatusText");
-        TMP_Text statusText = status.GetComponent<TMP_Text>();
-        statusText.text = DrainReadout.Format(2.25f, 2, 2, 2) + "\nSafe light";
         scaler.Reapply();
         Canvas.ForceUpdateCanvases();
 
@@ -372,7 +359,7 @@ public class UiLayoutTests
         TMP_Text[] texts = hud.GetComponentsInChildren<TMP_Text>(true);
         for (int i = 0; i < texts.Length; i++)
         {
-            if (IsPhaseF(texts[i].transform, hud.transform) || InsideScreen(texts[i].transform, hud.transform))
+            if (InsideScreen(texts[i].transform, hud.transform))
             {
                 continue;
             }
@@ -381,14 +368,69 @@ public class UiLayoutTests
         Assert.IsEmpty(problems, string.Join("\n", problems));
     }
 
-    static bool IsPhaseF(Transform text, Transform hud)
+    // Nine beacons at 130% text: every roof stays inside the cluster panel, the panel stays on the canvas, and no HUD text overflows.
+    [Test]
+    public void HudPanelFitsNineRoofsAt130()
     {
-        Transform top = text;
-        while (top.parent != null && top.parent != hud)
+        List<string> problems = new List<string>();
+        UserSettings.TextScale = 1.3f;
+        for (int s = 0; s < CanvasSizes.Length; s++)
         {
-            top = top.parent;
+            Vector2 size = CanvasSizes[s];
+            string at = size.x + "x" + size.y;
+            GameObject hud = Instantiate("GameHud", size);
+            BeaconRoofs roofs = hud.GetComponentInChildren<BeaconRoofs>(true);
+            Assert.IsNotNull(roofs, "GameHud has BeaconRoofs");
+            roofs.Show(9, 5);
+            Layout(hud);
+
+            RectTransform canvasRect = (RectTransform)canvasGo.transform;
+            Transform cluster = hud.transform.Find("Cluster");
+            Assert.IsNotNull(cluster, "GameHud has a Cluster panel");
+            Rect panel = LocalRect((RectTransform)cluster, canvasRect);
+            Rect canvasBounds = new Rect(-canvasRect.rect.width * canvasRect.pivot.x, -canvasRect.rect.height * canvasRect.pivot.y, canvasRect.rect.width, canvasRect.rect.height);
+            if (!Inside(canvasBounds, panel))
+            {
+                problems.Add("Cluster@" + at + " leaves the canvas");
+            }
+            int visible = 0;
+            for (int i = 0; i < roofs.Roofs.Count; i++)
+            {
+                Image roof = roofs.Roofs[i];
+                if (!roof.gameObject.activeSelf)
+                {
+                    continue;
+                }
+                visible++;
+                if (!Inside(panel, LocalRect(roof.rectTransform, canvasRect)))
+                {
+                    problems.Add("Roof" + i + "@" + at + " leaves the Cluster panel");
+                }
+            }
+            if (visible != 9)
+            {
+                problems.Add("expected 9 visible roofs at " + at + ", found " + visible);
+            }
+            CheckAll(hud, "GameHud@" + at, 0f, problems, null);
+            UnityEngine.Object.DestroyImmediate(canvasGo);
+            canvasGo = null;
         }
-        return PhaseFHudTexts.Contains(top.name);
+        Assert.IsEmpty(problems, string.Join("\n", problems));
+    }
+
+    static Rect LocalRect(RectTransform rect, RectTransform space)
+    {
+        Vector3[] corners = new Vector3[4];
+        rect.GetWorldCorners(corners);
+        Vector3 min = space.InverseTransformPoint(corners[0]);
+        Vector3 max = space.InverseTransformPoint(corners[2]);
+        return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+    }
+
+    static bool Inside(Rect outer, Rect inner)
+    {
+        const float Slack = 0.5f;
+        return inner.xMin >= outer.xMin - Slack && inner.xMax <= outer.xMax + Slack && inner.yMin >= outer.yMin - Slack && inner.yMax <= outer.yMax + Slack;
     }
 
     // PauseScreen and SettingsScreen under the HUD are checked as screens above.

@@ -25,7 +25,7 @@ public class TextScaler : MonoBehaviour
     private float nextScan;
     private float lastScale = -1f;
 
-    // Scales a text the moment its creator makes it (HUD.MakeRuntimeText, the compass labels), so it never
+    // Scales a text the moment its creator makes it (the compass labels, other runtime-made texts), so it never
     // renders a frame at 100%. The 0.5 s rescan stays as the safety net for anything created elsewhere.
     public static void Notify(TMP_Text text)
     {

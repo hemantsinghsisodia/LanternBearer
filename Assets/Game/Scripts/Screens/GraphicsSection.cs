@@ -2,8 +2,7 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// Settings > Graphics: the preset, VSync and FPS counter. It drives the same GraphicsQuality / GraphicsMenu logic
-// the old graphics screen used, which is left unchanged; only the presentation (kit rows) is new.
+// Settings > Graphics: the preset, VSync and FPS counter. The FPS counter reads the same switch (GraphicsMenu.FpsEnabled) from the HUD's FpsReadout, which polls it.
 public class GraphicsSection : MonoBehaviour
 {
     static readonly GraphicsLevel[] Levels =
@@ -68,11 +67,6 @@ public class GraphicsSection : MonoBehaviour
     private void OnFps(int index)
     {
         GraphicsMenu.FpsEnabled = index == 1;
-        GraphicsMenu menu = FindAnyObjectByType<GraphicsMenu>(FindObjectsInactive.Include);
-        if (menu != null)
-        {
-            menu.SyncFpsReadout();
-        }
     }
 }
 }

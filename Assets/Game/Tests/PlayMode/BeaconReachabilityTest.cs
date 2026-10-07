@@ -48,6 +48,9 @@ namespace LanternKeeper.Tests
         float previousMaxDelta;
         float previousCaptureDelta;
         bool yawWasExternal;
+        // Mirrors GameSettings.IntroKey. A first-visit intro card pauses the game, so the walk would never move: mark every intro seen.
+        static readonly string[] IntroKeys = { "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4" };
+        readonly int[] previousIntro = new int[4];
 
         static Type GameType(string name)
         {
@@ -69,6 +72,11 @@ namespace LanternKeeper.Tests
         {
             problems.Clear();
             failures.Clear();
+            for (int i = 0; i < IntroKeys.Length; i++)
+            {
+                previousIntro[i] = PlayerPrefs.HasKey(IntroKeys[i]) ? PlayerPrefs.GetInt(IntroKeys[i], 0) : -1;
+                PlayerPrefs.SetInt(IntroKeys[i], 1);
+            }
             Application.logMessageReceived += OnLog;
             previousScale = Time.timeScale;
             previousMaxDelta = Time.maximumDeltaTime;
@@ -80,6 +88,18 @@ namespace LanternKeeper.Tests
         public void TearDown()
         {
             Application.logMessageReceived -= OnLog;
+            for (int i = 0; i < IntroKeys.Length; i++)
+            {
+                if (previousIntro[i] < 0)
+                {
+                    PlayerPrefs.DeleteKey(IntroKeys[i]);
+                }
+                else
+                {
+                    PlayerPrefs.SetInt(IntroKeys[i], previousIntro[i]);
+                }
+            }
+            PlayerPrefs.Save();
             Time.timeScale = previousScale;
             Time.maximumDeltaTime = previousMaxDelta;
             Time.captureDeltaTime = previousCaptureDelta;

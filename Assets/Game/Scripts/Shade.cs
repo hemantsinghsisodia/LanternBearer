@@ -43,7 +43,6 @@ public class Shade : MonoBehaviour
     Transform player;
     Lantern lantern;
     WaterHazard hazard;
-    HUD hud;
     Renderer body;
     Renderer[] eyes;
     ParticleSystem smoke;
@@ -142,7 +141,7 @@ public class Shade : MonoBehaviour
         Subscribe();
     }
 
-    public void Bind(Transform playerBody, Lantern playerLantern, WaterHazard waterHazard, HUD playerHud)
+    public void Bind(Transform playerBody, Lantern playerLantern, WaterHazard waterHazard)
     {
         if (playerBody != null)
         {
@@ -155,7 +154,6 @@ public class Shade : MonoBehaviour
         }
 
         hazard = waterHazard;
-        hud = playerHud;
         if (player != null && lantern != null)
         {
             targetsResolved = true;
@@ -246,11 +244,6 @@ public class Shade : MonoBehaviour
         if (hazard == null)
         {
             hazard = FindAnyObjectByType<WaterHazard>();
-        }
-
-        if (hud == null)
-        {
-            hud = FindAnyObjectByType<HUD>();
         }
 
         if ((player == null || lantern == null) && !loggedFallback)
@@ -427,11 +420,6 @@ public class Shade : MonoBehaviour
 
         if (lantern.TrySpend(amount))
         {
-            if (hud != null)
-            {
-                hud.ShowFuelPenalty("-" + Mathf.Max(1, Mathf.RoundToInt(amount)).ToString());
-            }
-
             Action<float> handler = Stole;
             if (handler != null)
             {

@@ -1,0 +1,20 @@
+{
+    "name": "LanternKeeper.Hud",
+    "rootNamespace": "LanternKeeper",
+    "references": [
+        "LanternKeeper.Logic",
+        "LanternKeeper.Look",
+        "LanternKeeper.UI",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

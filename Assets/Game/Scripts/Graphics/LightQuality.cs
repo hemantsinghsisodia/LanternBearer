@@ -804,7 +804,6 @@ public class LightQuality : MonoBehaviour
         AppendGlow(text, "moth", moths);
         AppendLights(text);
         ParticleQuality.AppendNamed(text, "Sparks", 1);
-        ParticleQuality.AppendNamed(text, "Flare", 1);
         ParticleQuality.AppendNamed(text, "Smoke", 1);
         ParticleQuality.AppendNamed(text, "PickupBurst", 1);
         ParticleQuality.AppendNamed(text, "Splash", 1);
