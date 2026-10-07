@@ -138,6 +138,84 @@ public class UserSettingsTests
         Assert.AreEqual(0.6f, UserSettings.MusicVolume, 0.0001f);
     }
 
+    static bool PlayerIsMuted()
+    {
+        Type t = Type.GetType("LanternKeeper.MusicPlayer, Assembly-CSharp");
+        Assert.IsNotNull(t, "MusicPlayer");
+        t.GetMethod("ReloadMute").Invoke(null, null);
+        return (bool)t.GetProperty("IsMuted").GetValue(null);
+    }
+
+    [Test]
+    public void MigrationClearsLegacyFlag()
+    {
+        PlayerPrefs.SetInt("LanternKeeperMusicMuted", 1);
+        UserSettings.MigrateLegacy();
+        Assert.IsFalse(PlayerPrefs.HasKey("LanternKeeperMusicMuted"));
+        // Running it again must not undo what the player does next.
+        UserSettings.MusicVolume = 0.7f;
+        UserSettings.MigrateLegacy();
+        Assert.AreEqual(0.7f, UserSettings.MusicVolume, 0.0001f);
+    }
+
+    [Test]
+    public void MigrationClearsFlagEvenWithExplicitVolume()
+    {
+        PlayerPrefs.SetInt("LanternKeeperMusicMuted", 1);
+        UserSettings.MusicVolume = 0.6f;
+        UserSettings.MigrateLegacy();
+        Assert.IsFalse(PlayerPrefs.HasKey("LanternKeeperMusicMuted"));
+        Assert.IsFalse(PlayerIsMuted());
+    }
+
+    [Test]
+    public void MigratedMutedSaveUnmutesWhenVolumeRaised()
+    {
+        PlayerPrefs.SetInt("LanternKeeperMusicMuted", 1);
+        UserSettings.MigrateLegacy();
+        Assert.IsTrue(PlayerIsMuted(), "volume 0 is silent");
+        UserSettings.MusicVolume = 0.5f;
+        Assert.IsFalse(PlayerIsMuted(), "raising the slider makes music audible again");
+    }
+
+    [Test]
+    public void MuteToggleSwitchesBetweenZeroAndRememberedVolume()
+    {
+        UserSettings.MusicVolume = 0.4f;
+        UserSettings.ToggleMusicMute();
+        Assert.AreEqual(0f, UserSettings.MusicVolume, 0.0001f);
+        Assert.IsTrue(UserSettings.MusicMuted);
+        Assert.IsTrue(PlayerIsMuted());
+        UserSettings.ToggleMusicMute();
+        Assert.AreEqual(0.4f, UserSettings.MusicVolume, 0.0001f);
+        Assert.IsFalse(PlayerIsMuted());
+    }
+
+    [Test]
+    public void MuteToggleFromSliderZeroRestoresLastAudibleOrDefault()
+    {
+        UserSettings.MusicVolume = 0.3f;
+        UserSettings.MusicVolume = 0f;
+        UserSettings.ToggleMusicMute();
+        Assert.AreEqual(0.3f, UserSettings.MusicVolume, 0.0001f, "remembers the last non-zero volume");
+    }
+
+    [Test]
+    public void StaticsResetOnSubsystemRegistration()
+    {
+        UserSettings.DeferSave = true;
+        UserSettings.MusicVolume = 0.5f;
+        Assert.IsTrue(UserSettings.PendingSave);
+        Func<float> original = UserSettings.TimeSource;
+        UserSettings.TimeSource = () => 123f;
+        typeof(UserSettings).GetMethod("ResetStatics", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, null);
+        Assert.IsFalse(UserSettings.DeferSave);
+        Assert.IsFalse(UserSettings.PendingSave);
+        Assert.AreEqual(0, UserSettings.SaveCount);
+        Assert.AreEqual(0, UserSettings.HotReadCount);
+        Assert.AreNotEqual(123f, UserSettings.TimeSource());
+    }
+
     static Resolution Res(int w, int h, uint hz = 60)
     {
         Resolution r = new Resolution();

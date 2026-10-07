@@ -49,6 +49,10 @@ public class UserSettingsApplier : MonoBehaviour
     private int appliedHeight;
     private int appliedHz;
     private FullScreenMode appliedMode;
+    private int savedWidth;
+    private int savedHeight;
+    private int savedHz;
+    private FullScreenMode savedModeSeen;
 
     public static UserSettingsApplier Instance { get; private set; }
 
@@ -86,6 +90,7 @@ public class UserSettingsApplier : MonoBehaviour
         }
         DontDestroyOnLoad(gameObject);
         UserSettings.MigrateLegacy();
+        MusicPlayer.ReloadMute();
     }
 
     private void OnEnable()
@@ -188,9 +193,39 @@ public class UserSettingsApplier : MonoBehaviour
         return Instance != null && Instance.moon == light && Instance.moonField.Have ? Instance.moonField.Authored : light.intensity;
     }
 
+    // Number of RenderSettings / light assignments made by ApplyLightBrightness (for tests: zero in steady state).
+    public static int LightWriteCount { get; private set; }
+
+    private bool AnyScaled()
+    {
+        return Scaled(moonField) || Scaled(ambientIntensityField) || Scaled(skyField) || Scaled(equatorField) || Scaled(groundField);
+    }
+
+    private static bool Scaled(Tracked<float> f)
+    {
+        return f.Have && Mathf.Abs(f.Authored - f.Written) > Tolerance;
+    }
+
+    private static bool Scaled(Tracked<Color> f)
+    {
+        return f.Have && !Same(f.Authored, f.Written);
+    }
+
     private void ApplyLightBrightness()
     {
         float factor = LookVolumeQuality.ExposureActive ? 1f : Mathf.Pow(2f, UserEv);
+
+        // Nothing to scale and nothing left scaled: leave the lighting alone. Drop the cached authored values so the
+        // Authored* getters return the live ones (DawnSequence and LookApplier own the lighting while unscaled).
+        if (Mathf.Abs(factor - 1f) <= Tolerance && !AnyScaled())
+        {
+            moonField.Have = false;
+            ambientIntensityField.Have = false;
+            skyField.Have = false;
+            equatorField.Have = false;
+            groundField.Have = false;
+            return;
+        }
 
         Light sun = RenderSettings.sun;
         if (sun == null && moon == null && !searchedDirectional)
@@ -205,13 +240,46 @@ public class UserSettingsApplier : MonoBehaviour
         }
         if (moon != null)
         {
-            moon.intensity = Track(moonField, moon.intensity, factor);
+            float current = moon.intensity;
+            float wanted = Track(moonField, current, factor);
+            if (Mathf.Abs(wanted - current) > Tolerance)
+            {
+                moon.intensity = wanted;
+                LightWriteCount++;
+            }
         }
 
-        RenderSettings.ambientIntensity = Track(ambientIntensityField, RenderSettings.ambientIntensity, factor);
-        RenderSettings.ambientSkyColor = Track(skyField, RenderSettings.ambientSkyColor, factor);
-        RenderSettings.ambientEquatorColor = Track(equatorField, RenderSettings.ambientEquatorColor, factor);
-        RenderSettings.ambientGroundColor = Track(groundField, RenderSettings.ambientGroundColor, factor);
+        float ambient = RenderSettings.ambientIntensity;
+        float wantedAmbient = Track(ambientIntensityField, ambient, factor);
+        if (Mathf.Abs(wantedAmbient - ambient) > Tolerance)
+        {
+            RenderSettings.ambientIntensity = wantedAmbient;
+            LightWriteCount++;
+        }
+
+        Color sky = RenderSettings.ambientSkyColor;
+        Color wantedSky = Track(skyField, sky, factor);
+        if (!Same(wantedSky, sky))
+        {
+            RenderSettings.ambientSkyColor = wantedSky;
+            LightWriteCount++;
+        }
+
+        Color equator = RenderSettings.ambientEquatorColor;
+        Color wantedEquator = Track(equatorField, equator, factor);
+        if (!Same(wantedEquator, equator))
+        {
+            RenderSettings.ambientEquatorColor = wantedEquator;
+            LightWriteCount++;
+        }
+
+        Color ground = RenderSettings.ambientGroundColor;
+        Color wantedGround = Track(groundField, ground, factor);
+        if (!Same(wantedGround, ground))
+        {
+            RenderSettings.ambientGroundColor = wantedGround;
+            LightWriteCount++;
+        }
     }
 
     private static Light FindDirectional()
@@ -278,11 +346,18 @@ public class UserSettingsApplier : MonoBehaviour
         {
             return;
         }
-        target.SetFloat(MasterParam, SettingsMath.VolumeToDb(UserSettings.MasterVolume));
-        target.SetFloat(MusicParam, SettingsMath.VolumeToDb(UserSettings.MusicVolume) + duckOffset);
-        target.SetFloat(SfxParam, SettingsMath.VolumeToDb(UserSettings.EffectsVolume));
-        target.SetFloat(AmbienceParam, SettingsMath.VolumeToDb(UserSettings.AmbienceVolume));
+        bool ok = target.SetFloat(MasterParam, SettingsMath.VolumeToDb(UserSettings.MasterVolume));
+        ok &= target.SetFloat(MusicParam, SettingsMath.VolumeToDb(UserSettings.MusicVolume) + duckOffset);
+        ok &= target.SetFloat(SfxParam, SettingsMath.VolumeToDb(UserSettings.EffectsVolume));
+        ok &= target.SetFloat(AmbienceParam, SettingsMath.VolumeToDb(UserSettings.AmbienceVolume));
+        if (!ok && !warnedMixerParam)
+        {
+            warnedMixerParam = true;
+            Debug.LogWarning("UserSettingsApplier: the mixer has no exposed volume parameter for one of Master/Music/Sfx/Ambience; that setting will have no effect.", this);
+        }
     }
+
+    private bool warnedMixerParam;
 
     // Exclusive fullscreen exists on Windows and macOS only.
     private static bool ExclusiveSupported()
@@ -300,6 +375,18 @@ public class UserSettingsApplier : MonoBehaviour
         {
             return;
         }
+        // Volume and brightness ticks come through here too. Skip Screen.resolutions (it allocates) when the saved
+        // values are the ones already applied.
+        FullScreenMode savedMode = UserSettings.WindowMode;
+        if (haveAppliedScreen && savedWidth == UserSettings.ResolutionWidth && savedHeight == UserSettings.ResolutionHeight
+            && savedHz == UserSettings.RefreshRateHz && savedMode == savedModeSeen)
+        {
+            return;
+        }
+        savedWidth = UserSettings.ResolutionWidth;
+        savedHeight = UserSettings.ResolutionHeight;
+        savedHz = UserSettings.RefreshRateHz;
+        savedModeSeen = savedMode;
         Resolution desktop = Screen.currentResolution;
         Resolution wanted = UserSettings.ResolveResolution(Screen.resolutions, desktop);
         FullScreenMode mode = UserSettings.WindowMode;

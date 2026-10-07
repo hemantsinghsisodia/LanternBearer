@@ -26,6 +26,7 @@ public class SettingsScreen : MonoBehaviour
     private Selectable opener;
     private Action onClosed;
     private bool dropdownWasExpanded;
+    private TMP_Dropdown[] dropdowns;
 
     public bool IsOpen { get { return gameObject.activeInHierarchy; } }
     public SectionList SectionList { get { return sectionList; } }
@@ -133,10 +134,14 @@ public class SettingsScreen : MonoBehaviour
 
     private bool AnyDropdownExpanded()
     {
-        TMP_Dropdown[] dropdowns = GetComponentsInChildren<TMP_Dropdown>(false);
+        // Cached: GetComponentsInChildren allocates, and this runs every frame. Includes inactive ones; they are never expanded.
+        if (dropdowns == null)
+        {
+            dropdowns = GetComponentsInChildren<TMP_Dropdown>(true);
+        }
         for (int i = 0; i < dropdowns.Length; i++)
         {
-            if (dropdowns[i].IsExpanded)
+            if (dropdowns[i] != null && dropdowns[i].IsExpanded)
             {
                 return true;
             }

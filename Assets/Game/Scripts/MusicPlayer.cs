@@ -6,12 +6,12 @@ namespace LanternKeeper
 {
 public class MusicPlayer : MonoBehaviour
 {
-    const string MutePref = "LanternKeeperMusicMuted";
     const float BaseVolume = 0.35f;
     const float FadeInDuration = 3f;
     const float CrossfadeDuration = 2f;
 
-    static bool muteLoaded;
+    // Muted is derived from UserSettings.MusicVolume (the single source of truth), read at most once per frame.
+    static int muteFrame = -1;
     static bool muted;
 
     AudioSource sourceA;
@@ -35,9 +35,30 @@ public class MusicPlayer : MonoBehaviour
     {
         get
         {
-            EnsureMuteLoaded();
+            if (!Application.isPlaying || muteFrame != Time.frameCount)
+            {
+                muteFrame = Application.isPlaying ? Time.frameCount : -1;
+                muted = UserSettings.MusicMuted;
+            }
+
             return muted;
         }
+    }
+
+    // Drops the cached mute state, so the next IsMuted read looks at the saved volume again.
+    public static void ReloadMute()
+    {
+        muteFrame = -1;
+        if (Instance != null)
+        {
+            Instance.ApplyVolumes();
+        }
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics()
+    {
+        muteFrame = -1;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -54,25 +75,8 @@ public class MusicPlayer : MonoBehaviour
 
     public static void ToggleMute()
     {
-        EnsureMuteLoaded();
-        muted = !muted;
-        PlayerPrefs.SetInt(MutePref, muted ? 1 : 0);
-        PlayerPrefs.Save();
-        if (Instance != null)
-        {
-            Instance.ApplyVolumes();
-        }
-    }
-
-    static void EnsureMuteLoaded()
-    {
-        if (muteLoaded)
-        {
-            return;
-        }
-
-        muteLoaded = true;
-        muted = PlayerPrefs.GetInt(MutePref, 0) == 1;
+        UserSettings.ToggleMusicMute();
+        ReloadMute();
     }
 
     void Awake()

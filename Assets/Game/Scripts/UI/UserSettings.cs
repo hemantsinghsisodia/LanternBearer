@@ -35,7 +35,40 @@ public static class UserSettings
     public static float MusicVolume
     {
         get { return PlayerPrefs.GetFloat(MusicKey, DefaultVolume); }
-        set { SetFloat(MusicKey, Mathf.Clamp01(value)); }
+        set
+        {
+            float v = Mathf.Clamp01(value);
+            if (v > MuteThreshold)
+            {
+                lastAudibleMusic = v;
+            }
+            SetFloat(MusicKey, v);
+        }
+    }
+
+    // Music counts as muted at or below this volume. MusicVolume is the only mute state there is.
+    public const float MuteThreshold = 0.0001f;
+    private static float lastAudibleMusic = DefaultVolume;
+
+    public static bool MusicMuted
+    {
+        get { return MusicVolume <= MuteThreshold; }
+    }
+
+    // The M key: mute music, or restore the last audible volume (default 0.8). Goes through MusicVolume so the
+    // slider, the mixer and the storm sounds all follow.
+    public static void ToggleMusicMute()
+    {
+        float current = MusicVolume;
+        if (current > MuteThreshold)
+        {
+            lastAudibleMusic = current;
+            MusicVolume = 0f;
+        }
+        else
+        {
+            MusicVolume = lastAudibleMusic > MuteThreshold ? lastAudibleMusic : DefaultVolume;
+        }
     }
 
     public static float EffectsVolume
@@ -63,6 +96,18 @@ public static class UserSettings
 
     // Fast-enter-play-mode (no domain reload) keeps statics, and Time.frameCount restarts, so drop the cache on every play start.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        DeferSave = false;
+        PendingSave = false;
+        TimeSource = () => Time.unscaledTime;
+        LastDeferredChangeTime = 0f;
+        SaveCount = 0;
+        HotReadCount = 0;
+        lastAudibleMusic = DefaultVolume;
+        InvalidateCache();
+    }
+
     public static void InvalidateCache()
     {
         hotFrame = -1;
@@ -181,12 +226,23 @@ public static class UserSettings
         return haveSize ? best : desktop;
     }
 
-    // Older builds stored a music mute flag. Carry it over once, if no volume was ever saved.
+    // Older builds stored a music mute flag. Carry it over once (as volume 0, if no volume was ever saved), then clear
+    // it: MusicVolume is the only mute state, so the slider and the M key work from there.
     public static void MigrateLegacy()
     {
-        if (PlayerPrefs.GetInt(LegacyMusicMutedKey, 0) == 1 && !PlayerPrefs.HasKey(MusicKey))
+        if (PlayerPrefs.GetInt(LegacyMusicMutedKey, 0) != 1)
+        {
+            return;
+        }
+        bool neverSet = !PlayerPrefs.HasKey(MusicKey);
+        PlayerPrefs.DeleteKey(LegacyMusicMutedKey);
+        if (neverSet)
         {
             MusicVolume = 0f;
+        }
+        else
+        {
+            PlayerPrefs.Save();
         }
     }
 
