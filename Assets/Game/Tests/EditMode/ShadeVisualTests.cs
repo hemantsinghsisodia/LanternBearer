@@ -124,6 +124,7 @@ public class ShadeVisualTests
     // The ShadeState enum values: Chase 0, Creep 1, Freeze 2, Retreat 3, Reforming 4, Stunned 5.
     const int Chase = 0;
     const int Freeze = 2;
+    const int Stunned = 5;
 
     Component NewVisual(out Component shade)
     {
@@ -209,6 +210,41 @@ public class ShadeVisualTests
 
         // 0.34 s after release.
         Assert.AreEqual(0f, Get(visual, "Burn"), 0.0001f, "burn is gone within 0.35 s of release");
+    }
+
+    // The stunned look comes from an explicit _Stunned property, not from the blue channel of Shade.cs's tint.
+    [Test]
+    public void StunnedSignalIsExplicit()
+    {
+        Component shade;
+        Component visual = NewVisual(out shade);
+        Tick(visual, 0.02f);
+        Assert.AreEqual(0f, Get(visual, "Stunned"), 0f, "not stunned");
+
+        SetState(shade, Stunned);
+        for (int i = 0; i < 10; i++)
+        {
+            Tick(visual, 0.02f);
+        }
+
+        Assert.AreEqual(1f, Get(visual, "Stunned"), 0.0001f, "eases to 1 while stunned");
+        VisualType().GetMethod("Apply", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(visual, null);
+        Renderer body = instance.transform.Find("Body").GetComponent<Renderer>();
+        MaterialPropertyBlock block = new MaterialPropertyBlock();
+        body.GetPropertyBlock(block);
+        Assert.AreEqual(1f, block.GetFloat("_Stunned"), 0.0001f, "_Stunned in the property block");
+
+        SetState(shade, Chase);
+        for (int i = 0; i < 10; i++)
+        {
+            Tick(visual, 0.02f);
+        }
+
+        Assert.AreEqual(0f, Get(visual, "Stunned"), 0.0001f, "eases back to 0");
+
+        string source = System.IO.File.ReadAllText("Assets/Game/Shaders/Shade.shader");
+        StringAssert.Contains("_Stunned", source);
+        StringAssert.DoesNotContain("baseColor.b", source, "the blue channel trick is gone");
     }
 
     [Test]

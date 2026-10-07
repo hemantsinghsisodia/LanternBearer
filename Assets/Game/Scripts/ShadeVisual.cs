@@ -7,6 +7,7 @@ namespace LanternKeeper
 //   _Outline  the capped lightning flash (Lightning.CurrentFlash already honours Reduce flashing), drawn as a pale blue rim.
 //   _Burn     0 -> 1 while the Shade is frozen in the lantern light, easing back to 0 over BurnFallSeconds after release.
 //   _Speed    the Shade's speed in m/s from a smoothed position delta (the Shade moves its transform directly).
+//   _Stunned  0 -> 1 while ShadeState.Stunned (the shader's dark navy ink), eased over StunEaseSeconds.
 // It also drives the smoke trail emission by speed, and publishes the Low preset as the shader global _LKShadeLow.
 public class ShadeVisual : MonoBehaviour
 {
@@ -15,6 +16,8 @@ public class ShadeVisual : MonoBehaviour
     public const string BurnEdgeHex = "A86A55";
     public const float BurnRiseSeconds = 0.45f;
     public const float BurnFallSeconds = 0.3f;
+    // Seconds for _Stunned to ease fully in or out (the old look followed Shade.cs's tint, which snaps; this is a short ease).
+    public const float StunEaseSeconds = 0.08f;
     public const float MaxSpeed = 5f;
     public const float TrailLifetimeScaleLow = 0.5f;
     public const float TrailRateScaleLow = 0.6f;
@@ -26,6 +29,7 @@ public class ShadeVisual : MonoBehaviour
     static readonly int OutlineId = Shader.PropertyToID("_Outline");
     static readonly int BurnId = Shader.PropertyToID("_Burn");
     static readonly int SpeedId = Shader.PropertyToID("_Speed");
+    static readonly int StunnedId = Shader.PropertyToID("_Stunned");
     static readonly int LowId = Shader.PropertyToID(LowGlobalName);
 
     [SerializeField] Renderer bodyRenderer;
@@ -37,6 +41,7 @@ public class ShadeVisual : MonoBehaviour
     float outline;
     float burn;
     float speed;
+    float stunned;
     Vector3 lastPosition;
     bool hasLast;
     float trailBaseLifetime = -1f;
@@ -45,6 +50,14 @@ public class ShadeVisual : MonoBehaviour
     public float Outline => outline;
     public float Burn => burn;
     public float Speed => speed;
+    public float Stunned => stunned;
+
+    // Stunned eases toward 1 while the Shade is stunned and back to 0 after.
+    public static float StepStunned(float value, bool isStunned, float dt)
+    {
+        float step = dt / StunEaseSeconds;
+        return isStunned ? Mathf.Min(1f, value + step) : Mathf.Max(0f, value - step);
+    }
     public Renderer BodyRenderer => bodyRenderer;
     public ParticleSystem Trail => trail;
 
@@ -131,6 +144,7 @@ public class ShadeVisual : MonoBehaviour
         Resolve();
         ShadeState state = shade != null ? shade.State : ShadeState.Chase;
         burn = StepBurn(burn, state == ShadeState.Freeze, dt);
+        stunned = StepStunned(stunned, state == ShadeState.Stunned, dt);
         outline = Lightning.CurrentFlash;
 
         Vector3 position = transform.position;
@@ -167,6 +181,7 @@ public class ShadeVisual : MonoBehaviour
             block.SetFloat(OutlineId, outline);
             block.SetFloat(BurnId, burn);
             block.SetFloat(SpeedId, speed);
+            block.SetFloat(StunnedId, stunned);
             bodyRenderer.SetPropertyBlock(block);
         }
 

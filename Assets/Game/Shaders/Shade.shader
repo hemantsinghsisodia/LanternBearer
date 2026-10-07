@@ -3,14 +3,14 @@ Shader "LanternKeeper/Shade"
     // Smoke wraith for the Island 4 Shade: an ink dark, near opaque body with a ragged smoke hem, a swaying tatter, an optional
     // lightning outline and a freeze burn. Opaque dithered alpha-cutout: no transparency, so depth and sorting stay correct.
     // Object space is the imported FBX space of Body (Z up, hem near _HeightMin, head near _HeightMin + _HeightRange).
-    // Per renderer (MaterialPropertyBlock, written by ShadeVisual and Shade.cs): _BaseColor (a = body alpha; its rgb only says "stunned" because
-    // Shade.cs tints a stunned body pale blue, and the concept board wants it to stay dark with a crisp outline instead),
+    // Per renderer (MaterialPropertyBlock, written by ShadeVisual and Shade.cs): _BaseColor (a = body alpha only; its rgb is ignored),
+    // _Stunned (0..1, eased by ShadeVisual from ShadeState.Stunned: a stunned Shade keeps a dark cold navy ink and the crisp outline shows it),
     // _Outline (0..1, follows the capped lightning flash), _Burn (0..1 while frozen in the lantern light), _Speed (m/s).
     // Hem breakup: the bottom _HemFrac of the height is eaten by animated noise; the same function runs in every pass so the depth,
     // depth normals and shadow passes clip exactly like the colour pass.
     // Burn: the edge of the erosion glows a dim ash ember (_BurnColor). It is deliberately NOT amber: amber means safe warmth.
     // Low: _LKShadeLow = 1 uses one noise octave. The outline and the hem breakup are unchanged. A uniform branch, never a keyword.
-    // Stencil bit 8 is written (as KeeperLit and BeaconIron do) so the screen-space moon rim skips the Shade: its slope lift washed the ink body pale grey on
+    // Stencil bit 8 is written (the writers are KeeperLit, BeaconGlass, BeaconIron and this shader) so the screen-space moon rim skips the Shade: its slope lift washed the ink body pale grey on
     // faces turned to the moon. The Shade keeps a dim moon rim of its own (_RimColor, _RimStrength) so the silhouette still reads at the edges.
     Properties
     {
@@ -69,6 +69,7 @@ Shader "LanternKeeper/Shade"
             UNITY_DEFINE_INSTANCED_PROP(float, _Outline)
             UNITY_DEFINE_INSTANCED_PROP(float, _Burn)
             UNITY_DEFINE_INSTANCED_PROP(float, _Speed)
+            UNITY_DEFINE_INSTANCED_PROP(float, _Stunned)
         UNITY_INSTANCING_BUFFER_END(ShadeProps)
 
         // 1 on the Low preset. Set by ShadeVisual.
@@ -235,9 +236,9 @@ Shader "LanternKeeper/Shade"
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
                 float h01 = ShadeHeight01(input.positionOS);
 
-                // Ink, lifted by the island's sky ambient so the hue follows the island. A stunned Shade (Shade.cs writes a pale blue _BaseColor)
+                // Ink, lifted by the island's sky ambient so the hue follows the island. A stunned Shade (_Stunned, set by ShadeVisual)
                 // keeps a dark cold navy ink: the lightning outline is what shows it.
-                float stunned = saturate((baseColor.b - 0.15) * 4.0);
+                float stunned = saturate(UNITY_ACCESS_INSTANCED_PROP(ShadeProps, _Stunned));
                 float3 ink = lerp(_InkColor.rgb, _StunInkColor.rgb, stunned);
                 float3 sky = SampleSH(normalWS);
                 float3 color = ink * lerp(0.7, 1.0, h01) + sky * _SkyTint;

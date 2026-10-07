@@ -34,7 +34,7 @@ Shader "LanternKeeper/KeeperLit"
             Tags { "LightMode" = "UniversalForward" }
             Cull Back
             ZWrite On
-            // Marks the keeper (and its lantern iron) for the screen-space moon rim, which skips stencil bit 8 (URP user bit; 32 is Deferred MaterialLit) so the keeper keeps only its own rim.
+            // Marks the keeper (and its lantern iron) for the screen-space moon rim, which skips stencil bit 8 (URP user bit; 32 is Deferred MaterialLit). Writers of bit 8: KeeperLit (the keeper and its lantern iron), BeaconGlass, BeaconIron and Shade; each has its own rim.
             Stencil
             {
                 Ref 8

@@ -8,7 +8,8 @@ namespace LanternKeeper
 // follows slopes. Vertex alpha fades the ring out wherever it should not be seen:
 //  - where the terrain height differs from the beacon's base by more than FadeStart..FadeEnd (a cliff edge, a drop or a rise),
 //  - where the sample is off the terrain, and
-//  - at or below the water surface (plus a margin).
+//  - at or below the player's safe-water line (WaterHazard.SafeFloorY plus the player's safeWaterMargin), so the ring ends where walking ends.
+// With no terrain at all (a test or bare scene) the ring falls back to a flat visible ring at the beacon's height.
 // Chosen over a URP decal: a mesh needs no decal feature on every quality renderer, costs one draw call and is rebuilt only
 // while the radius changes. The radius is driven by BeaconVisual (the bloom from the base out to ZoneRadius over 0.3..1.2 s).
 // The gameplay radius (Beacon.SafeRadius) is not touched.
@@ -18,7 +19,8 @@ public class BeaconSafeRing : MonoBehaviour
     public const float Width = 1.3f;
     public const float FadeStart = 0.6f;
     public const float FadeEnd = 1.1f;
-    public const float WaterMargin = 0.3f;
+    // Mirrors PlayerController.safeWaterMargin (0.45), the margin the player's safe-ground check uses.
+    public const float WaterMargin = 0.45f;
     // Above the grass tips.
     const float HeightOffset = 0.3f;
 
@@ -212,8 +214,11 @@ public class BeaconSafeRing : MonoBehaviour
     void Fit(float radius, float alpha)
     {
         Vector3 centre = beacon.transform.position;
-        float baseHeight = TerrainQuery.Height(centre, centre.y);
-        float water = WaterHazard.SurfaceY;
+        float centreHeight;
+        Vector3 centreNormal;
+        bool hasTerrain = TerrainQuery.TrySample(centre, out centreHeight, out centreNormal);
+        float baseHeight = hasTerrain ? centreHeight : centre.y;
+        float water = WaterHazard.SafeFloorY;
         float half = Width * 0.5f;
         float a = Mathf.Clamp01(alpha);
         for (int i = 0; i < Segments; i++)
@@ -232,6 +237,13 @@ public class BeaconSafeRing : MonoBehaviour
                 float height;
                 Vector3 normal;
                 bool onTerrain = TerrainQuery.TrySample(p, out height, out normal);
+                if (!hasTerrain)
+                {
+                    // No terrain anywhere: a flat ring at the beacon's height.
+                    onTerrain = true;
+                    height = centre.y;
+                }
+
                 p.y = (onTerrain ? height : centre.y) + HeightOffset;
                 vertices[i * 2 + side] = p;
                 float vis = Visibility(height, onTerrain, baseHeight, water) * a;
