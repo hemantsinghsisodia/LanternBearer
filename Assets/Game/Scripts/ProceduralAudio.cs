@@ -8,6 +8,7 @@ public static class ProceduralAudio
 
     static AudioClip firefly;
     static AudioClip beacon;
+    static AudioClip whoomp;
     static AudioClip footstep;
     static AudioClip moth;
     static AudioClip ambience;
@@ -69,6 +70,37 @@ public static class ProceduralAudio
 
         beacon = Clip("BeaconWhoosh", data);
         return beacon;
+    }
+
+    // The deep "whoomp" of a beacon catching: a pitch-dropping sine thump with a soft low-passed rush behind it. About 1.3 s.
+    public static AudioClip Whoomp()
+    {
+        if (whoomp != null)
+        {
+            return whoomp;
+        }
+
+        int length = (int)(Rate * 1.3f);
+        float[] data = new float[length];
+        System.Random random = new System.Random(23);
+        float low = 0f;
+        float phase = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float attack = Mathf.Clamp01(time / 0.012f);
+            float body = attack * Mathf.Exp(-time * 3.2f);
+            float freq = Mathf.Lerp(120f, 38f, 1f - Mathf.Exp(-time * 9f));
+            phase += 2f * Mathf.PI * freq / Rate;
+            float thump = Mathf.Sin(phase) * body;
+            float noise = (float)random.NextDouble() * 2f - 1f;
+            low = low * 0.93f + noise * 0.07f;
+            float rush = low * Mathf.Sin(Mathf.Clamp01(time / 0.7f) * Mathf.PI) * 0.6f;
+            data[i] = Mathf.Clamp((thump * 0.95f + rush * 0.45f) * 0.85f, -1f, 1f);
+        }
+
+        whoomp = Clip("BeaconWhoomp", data);
+        return whoomp;
     }
 
     public static AudioClip Footstep()

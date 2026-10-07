@@ -1,7 +1,7 @@
 Shader "Hidden/LanternKeeper/MoonRim"
 {
     // Moon rim reconstructed from the camera depth texture: a soft pale edge where a surface meets farther depth,
-    // plus a gentle lift on slopes that face the moon. The direct and upsample passes test the keeper stencil bit, so the keeper is excluded on both Ultra and Low. Pass 0 composites straight onto the camera colour; passes 1 and 2
+    // plus a gentle lift on slopes that face the moon. The direct and upsample passes test stencil bit 8 (written by KeeperLit, BeaconGlass, BeaconIron and Shade), so those are excluded on both Ultra and Low. Pass 0 composites straight onto the camera colour; passes 1 and 2
     // render the same rim to a half-resolution target and upsample it (Low preset).
     SubShader
     {
@@ -19,7 +19,7 @@ Shader "Hidden/LanternKeeper/MoonRim"
         {
             Name "MoonRimDirect"
             Blend One One
-            // Skips pixels the keeper wrote (KeeperLit stencil bit 8 (URP user bit; 32 is Deferred MaterialLit)): the keeper has its own rim.
+            // Skips pixels that wrote stencil bit 8 (URP user bit; 32 is Deferred MaterialLit). Writers of bit 8: KeeperLit (the keeper and its lantern iron), BeaconGlass, BeaconIron and Shade; each has its own rim.
             Stencil
             {
                 Ref 8
@@ -49,7 +49,7 @@ Shader "Hidden/LanternKeeper/MoonRim"
         {
             Name "MoonRimUpsample"
             Blend One One
-            // Skips pixels the keeper wrote (KeeperLit stencil bit 8 (URP user bit; 32 is Deferred MaterialLit)): the keeper has its own rim.
+            // Skips pixels that wrote stencil bit 8 (URP user bit; 32 is Deferred MaterialLit). Writers of bit 8: KeeperLit (the keeper and its lantern iron), BeaconGlass, BeaconIron and Shade; each has its own rim.
             Stencil
             {
                 Ref 8

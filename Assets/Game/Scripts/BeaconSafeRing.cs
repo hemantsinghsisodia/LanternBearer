@@ -3,13 +3,60 @@ using UnityEngine.Rendering;
 
 namespace LanternKeeper
 {
+// The warm glowing ring on the ground that marks a lit beacon's safe radius, drawn as a ground-conforming mesh strip
+// (a "projected" ring): every vertex is placed on the terrain height at its own XZ, so the ring hugs the ground and
+// follows slopes. Vertex alpha fades the ring out wherever it should not be seen:
+//  - where the terrain height differs from the beacon's base by more than FadeStart..FadeEnd (a cliff edge, a drop or a rise),
+//  - where the sample is off the terrain, and
+//  - at or below the player's safe-water line (WaterHazard.SafeFloorY plus the player's safeWaterMargin), so the ring ends where walking ends.
+// With no terrain at all (a test or bare scene) the ring falls back to a flat visible ring at the beacon's height.
+// Chosen over a URP decal: a mesh needs no decal feature on every quality renderer, costs one draw call and is rebuilt only
+// while the radius changes. The radius is driven by BeaconVisual (the bloom from the base out to ZoneRadius over 0.3..1.2 s).
+// The gameplay radius (Beacon.SafeRadius) is not touched.
 public class BeaconSafeRing : MonoBehaviour
 {
+    public const int Segments = 96;
+    public const float Width = 1.3f;
+    public const float FadeStart = 0.6f;
+    public const float FadeEnd = 1.1f;
+    // The ring follows the SafeFloorY check at PlayerController.cs:313 (SafeFloorY + safeWaterMargin), whose default is this shared margin.
+    public const float WaterMargin = WaterHazard.DefaultSafeWaterMargin;
+    // Above the grass tips.
+    const float HeightOffset = 0.3f;
+
     static Material sharedMaterial;
+    static Texture2D bandTexture;
 
     Beacon beacon;
-    LineRenderer ring;
-    bool fitted;
+    BeaconVisual visual;
+    MeshFilter filter;
+    MeshRenderer meshRenderer;
+    Mesh mesh;
+    Vector3[] vertices;
+    Color[] colours;
+    float fittedRadius = -1f;
+    float fittedAlpha = -1f;
+
+    public Mesh RingMesh => mesh;
+    public MeshRenderer RingRenderer => meshRenderer;
+    public float FittedRadius => fittedRadius;
+
+    // 0..1 visibility of a ring point from its height relative to the beacon's base, and the water surface.
+    public static float Visibility(float groundHeight, bool onTerrain, float baseHeight, float waterY)
+    {
+        if (!onTerrain)
+        {
+            return 0f;
+        }
+
+        if (groundHeight < waterY + WaterMargin)
+        {
+            return 0f;
+        }
+
+        float diff = Mathf.Abs(groundHeight - baseHeight);
+        return 1f - Mathf.Clamp01((diff - FadeStart) / (FadeEnd - FadeStart));
+    }
 
     public static void Ensure(Beacon owner)
     {
@@ -33,17 +80,48 @@ public class BeaconSafeRing : MonoBehaviour
         Build();
     }
 
-    void Update()
+    void OnDestroy()
     {
-        bool show = beacon != null && beacon.IsLit;
-        if (ring != null)
+        if (mesh != null)
         {
-            ring.enabled = show;
+            Destroy(mesh);
+        }
+    }
+
+    // After BeaconVisual.Update, so the ring follows the radius computed this frame.
+    void LateUpdate()
+    {
+        if (meshRenderer == null || beacon == null)
+        {
+            return;
         }
 
-        if (show && !fitted)
+        if (!beacon.IsLit)
         {
-            Fit();
+            meshRenderer.enabled = false;
+            fittedRadius = -1f;
+            fittedAlpha = -1f;
+            return;
+        }
+
+        if (visual == null)
+        {
+            visual = GetComponentInChildren<BeaconVisual>(true);
+        }
+
+        float radius = visual != null ? visual.RingRadius : Mathf.Max(1f, beacon.ZoneRadius);
+        float alpha = visual != null ? visual.RingAlpha : 1f;
+        if (radius < 0.05f)
+        {
+            meshRenderer.enabled = false;
+            fittedRadius = -1f;
+            return;
+        }
+
+        meshRenderer.enabled = true;
+        if (!Mathf.Approximately(radius, fittedRadius) || !Mathf.Approximately(alpha, fittedAlpha))
+        {
+            Fit(radius, alpha);
         }
     }
 
@@ -61,61 +139,156 @@ public class BeaconSafeRing : MonoBehaviour
             ringObject.transform.SetParent(transform, false);
         }
 
-        ring = ringObject.GetComponent<LineRenderer>();
-        if (ring == null)
+        // An earlier version drew a LineRenderer.
+        LineRenderer legacy = ringObject.GetComponent<LineRenderer>();
+        if (legacy != null)
         {
-            ring = ringObject.AddComponent<LineRenderer>();
+            Destroy(legacy);
         }
 
-        ring.loop = true;
-        ring.useWorldSpace = true;
-        ring.shadowCastingMode = ShadowCastingMode.Off;
-        ring.receiveShadows = false;
-        ring.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-        ring.numCapVertices = 4;
-        ring.numCornerVertices = 2;
-        ring.widthMultiplier = 0.45f;
-        ring.positionCount = 64;
-        ring.material = SharedMaterial();
-        ring.textureMode = LineTextureMode.Stretch;
-        Color glow = new Color(1f, 0.58f, 0.22f, 0.85f);
-        ring.startColor = glow;
-        ring.endColor = glow;
-        ring.enabled = false;
-        fitted = false;
+        // World space vertices: the child must not move, rotate or scale with the beacon.
+        ringObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        ringObject.transform.localScale = Vector3.one;
+
+        filter = ringObject.GetComponent<MeshFilter>();
+        if (filter == null)
+        {
+            filter = ringObject.AddComponent<MeshFilter>();
+        }
+
+        meshRenderer = ringObject.GetComponent<MeshRenderer>();
+        if (meshRenderer == null)
+        {
+            meshRenderer = ringObject.AddComponent<MeshRenderer>();
+        }
+
+        if (mesh == null)
+        {
+            BuildMesh();
+        }
+
+        filter.sharedMesh = mesh;
+        meshRenderer.sharedMaterial = SharedMaterial();
+        meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        meshRenderer.receiveShadows = false;
+        meshRenderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+        meshRenderer.lightProbeUsage = LightProbeUsage.Off;
+        meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        meshRenderer.enabled = false;
+        fittedRadius = -1f;
+        fittedAlpha = -1f;
     }
 
-    void Fit()
+    void BuildMesh()
     {
-        if (ring == null || beacon == null)
+        int count = Segments * 2;
+        vertices = new Vector3[count];
+        colours = new Color[count];
+        Vector2[] uvs = new Vector2[count];
+        int[] triangles = new int[Segments * 6];
+        for (int i = 0; i < Segments; i++)
         {
-            return;
+            int next = (i + 1) % Segments;
+            uvs[i * 2] = new Vector2(0f, 0f);
+            uvs[i * 2 + 1] = new Vector2(0f, 1f);
+            int t = i * 6;
+            // Facing up.
+            triangles[t] = i * 2;
+            triangles[t + 1] = i * 2 + 1;
+            triangles[t + 2] = next * 2;
+            triangles[t + 3] = next * 2;
+            triangles[t + 4] = i * 2 + 1;
+            triangles[t + 5] = next * 2 + 1;
         }
 
-        float radius = Mathf.Max(1f, beacon.ZoneRadius);
-        int count = ring.positionCount;
-        Vector3 center = beacon.transform.position;
-        for (int i = 0; i < count; i++)
+        mesh = new Mesh();
+        mesh.name = "BeaconSafeRing";
+        mesh.MarkDynamic();
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.colors = colours;
+        mesh.triangles = triangles;
+        // Bounds are set by Fit.
+    }
+
+    void Fit(float radius, float alpha)
+    {
+        Vector3 centre = beacon.transform.position;
+        float centreHeight;
+        Vector3 centreNormal;
+        bool hasTerrain = TerrainQuery.TrySample(centre, out centreHeight, out centreNormal);
+        float baseHeight = hasTerrain ? centreHeight : centre.y;
+        float water = WaterHazard.SafeFloorY;
+        float half = Width * 0.5f;
+        float a = Mathf.Clamp01(alpha);
+        for (int i = 0; i < Segments; i++)
         {
-            float angle = i * Mathf.PI * 2f / count;
-            Vector3 point = center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-            float height = TerrainQuery.Height(point, center.y);
-            point.y = height + 0.35f;
-            ring.SetPosition(i, point);
+            float angle = i * Mathf.PI * 2f / Segments;
+            Vector3 dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            for (int side = 0; side < 2; side++)
+            {
+                float r = radius + (side == 0 ? -half : half);
+                if (r < 0f)
+                {
+                    r = 0f;
+                }
+
+                Vector3 p = centre + dir * r;
+                float height;
+                Vector3 normal;
+                bool onTerrain = TerrainQuery.TrySample(p, out height, out normal);
+                if (!hasTerrain)
+                {
+                    // No terrain anywhere: a flat ring at the beacon's height.
+                    onTerrain = true;
+                    height = centre.y;
+                }
+
+                p.y = (onTerrain ? height : centre.y) + HeightOffset;
+                vertices[i * 2 + side] = p;
+                float vis = Visibility(height, onTerrain, baseHeight, water) * a;
+                // Soft across the band comes from the texture; the alpha here is the plateau/water fade.
+                colours[i * 2 + side] = new Color(1f, 1f, 1f, vis);
+            }
         }
 
-        Color glow = new Color(1f, 0.58f, 0.22f, 0.9f);
-        Light beaconLight = beacon.GetComponentInChildren<Light>(true);
-        if (beaconLight != null)
+        mesh.vertices = vertices;
+        mesh.colors = colours;
+        mesh.bounds = new Bounds(centre, new Vector3(radius * 2f + Width + 4f, 30f, radius * 2f + Width + 4f));
+        fittedRadius = radius;
+        fittedAlpha = alpha;
+    }
+
+    // Soft across the band (V): a bright core line fading to nothing at both edges.
+    static Texture2D BandTexture()
+    {
+        if (bandTexture != null)
         {
-            glow = beaconLight.color;
-            glow.a = 0.9f;
+            return bandTexture;
         }
 
-        ring.startColor = glow;
-        ring.endColor = glow;
-        ring.widthMultiplier = 0.85f;
-        fitted = true;
+        const int height = 32;
+        bandTexture = new Texture2D(2, height, TextureFormat.RGBA32, false);
+        bandTexture.name = "BeaconSafeRingBand";
+        bandTexture.wrapMode = TextureWrapMode.Clamp;
+        bandTexture.filterMode = FilterMode.Bilinear;
+        Color amber = LookPalette.FromHex(LookPalette.LanternAmber);
+        Color core = LookPalette.FromHex(LookPalette.GlowCore);
+        for (int y = 0; y < height; y++)
+        {
+            float v = (y + 0.5f) / height * 2f - 1f;
+            float edge = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(v)), 1.6f);
+            float heart = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(v) * 2.2f), 2f);
+            Color c = Color.Lerp(amber, core, heart);
+            c.a = Mathf.Clamp01(edge * 0.8f + heart * 0.35f);
+            for (int x = 0; x < 2; x++)
+            {
+                bandTexture.SetPixel(x, y, c);
+            }
+        }
+
+        bandTexture.Apply(false, true);
+        return bandTexture;
     }
 
     static Material SharedMaterial()
@@ -125,39 +298,16 @@ public class BeaconSafeRing : MonoBehaviour
             return sharedMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("LanternKeeper/AdditiveUnlit");
         if (shader == null)
         {
-            shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-        }
-
-        if (shader == null)
-        {
-            shader = Shader.Find("Sprites/Default");
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
         }
 
         sharedMaterial = new Material(shader);
         sharedMaterial.name = "BeaconSafeRing";
-        Color color = new Color(1f, 0.58f, 0.22f, 0.9f);
-        if (sharedMaterial.HasProperty("_BaseColor"))
-        {
-            sharedMaterial.SetColor("_BaseColor", color);
-        }
-
-        if (sharedMaterial.HasProperty("_Color"))
-        {
-            sharedMaterial.SetColor("_Color", color);
-        }
-
-        if (sharedMaterial.HasProperty("_Surface"))
-        {
-            sharedMaterial.SetFloat("_Surface", 1f);
-        }
-
-        sharedMaterial.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-        sharedMaterial.SetInt("_DstBlend", (int)BlendMode.One);
-        sharedMaterial.SetInt("_ZWrite", 0);
-        sharedMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        sharedMaterial.SetTexture("_BaseMap", BandTexture());
+        sharedMaterial.SetColor("_BaseColor", Color.white);
         sharedMaterial.renderQueue = 3000;
         return sharedMaterial;
     }

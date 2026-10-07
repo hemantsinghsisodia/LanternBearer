@@ -593,6 +593,7 @@ public static partial class SceneWiring
         nulls += RequireCliffSkin(quiet);
         nulls += RequireUi(quiet);
         nulls += PropValidation.Report(quiet);
+        nulls += RequireCreatureVisuals(quiet);
 
         Tide[] tides = Object.FindObjectsByType<Tide>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         for (int i = 0; i < tides.Length; i++)
@@ -1657,6 +1658,70 @@ public static partial class SceneWiring
             if (!quiet)
             {
                 Debug.LogWarning("Keeper transform " + TransformPath(t, keeper.transform) + " has scale " + scale.ToString("0.000"), t);
+            }
+        }
+
+        return problems;
+    }
+
+    // The moth, beacon and Shade prefabs an island uses must carry the modelled visuals (F1), not the placeholder primitives.
+    static int RequireCreatureVisuals(bool quiet)
+    {
+        int problems = 0;
+        string scene = EditorSceneManager.GetActiveScene().name;
+        System.Action<string> fail = message =>
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(scene + " " + message);
+            }
+        };
+
+        MothSpawner[] mothSpawners = Object.FindObjectsByType<MothSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < mothSpawners.Length; i++)
+        {
+            GameObject prefab = GetObject(mothSpawners[i], "mothPrefab") as GameObject;
+            if (prefab == null)
+            {
+                continue;
+            }
+
+            if (prefab.GetComponentInChildren<MothVisual>(true) == null || prefab.transform.Find("Body") != null || prefab.transform.Find("Wings") != null)
+            {
+                fail("moth uses legacy visual");
+            }
+
+            if (prefab.GetComponentInChildren<SpriteRenderer>(true) != null)
+            {
+                fail("references legacy moth glow sprite");
+            }
+        }
+
+        Beacon[] beacons = Object.FindObjectsByType<Beacon>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < beacons.Length; i++)
+        {
+            bool legacy = beacons[i].GetComponentInChildren<BeaconVisual>(true) == null;
+            for (int c = 0; c < CreatureInstaller.LegacyBeaconChildren.Length && !legacy; c++)
+            {
+                string name = CreatureInstaller.LegacyBeaconChildren[c];
+                legacy = name != CreatureInstaller.VisualName && beacons[i].transform.Find(name) != null;
+            }
+
+            if (legacy)
+            {
+                fail("beacon uses legacy visual");
+                break;
+            }
+        }
+
+        ShadeSpawner[] shadeSpawners = Object.FindObjectsByType<ShadeSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < shadeSpawners.Length; i++)
+        {
+            GameObject prefab = GetObject(shadeSpawners[i], "shadePrefab") as GameObject;
+            if (prefab != null && prefab.GetComponent<ShadeVisual>() == null)
+            {
+                fail("shade missing ShadeVisual");
             }
         }
 

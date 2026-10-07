@@ -309,9 +309,23 @@ public static partial class IslandBuilder
         art.stump = SavePrefab(BuildStump(art), "Assets/Game/Prefabs/Props/Stump.prefab");
         art.mushroom = SavePrefab(BuildMushroom(art, false), "Assets/Game/Prefabs/Props/Mushroom.prefab");
         art.mushroomGlow = SavePrefab(BuildMushroom(art, true), "Assets/Game/Prefabs/Props/MushroomGlow.prefab");
-        art.beacon = SavePrefab(BuildBeacon(art), "Assets/Game/Prefabs/Gameplay/Beacon.prefab");
+        art.beacon = InstalledPrefab<BeaconVisual>("Assets/Game/Prefabs/Gameplay/Beacon.prefab");
+        if (art.beacon == null)
+        {
+            art.beacon = SavePrefab(BuildBeacon(art), "Assets/Game/Prefabs/Gameplay/Beacon.prefab");
+            CreatureInstaller.InstallBeacon();
+            art.beacon = InstalledPrefab<BeaconVisual>("Assets/Game/Prefabs/Gameplay/Beacon.prefab") ?? art.beacon;
+        }
+
         art.firefly = SavePrefab(BuildFirefly(art), "Assets/Game/Prefabs/Gameplay/Firefly.prefab");
-        art.moth = SavePrefab(BuildMoth(art), "Assets/Game/Prefabs/Gameplay/Moth.prefab");
+        art.moth = InstalledPrefab<MothVisual>("Assets/Game/Prefabs/Gameplay/Moth.prefab");
+        if (art.moth == null)
+        {
+            art.moth = SavePrefab(BuildMoth(art), "Assets/Game/Prefabs/Gameplay/Moth.prefab");
+            CreatureInstaller.InstallMoth();
+            art.moth = InstalledPrefab<MothVisual>("Assets/Game/Prefabs/Gameplay/Moth.prefab") ?? art.moth;
+        }
+
         PrepareKeeperImport();
         art.keeper = SavePrefab(BuildKeeper(art), "Assets/Game/Prefabs/Characters/Keeper.prefab");
         AssetDatabase.SaveAssets();
@@ -677,6 +691,14 @@ public static partial class IslandBuilder
         return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
+    // The prefab at path when it already carries the modelled visual component (installed by CreatureInstaller). Rebuilding a level
+    // must not replace it with the placeholder primitives.
+    static GameObject InstalledPrefab<T>(string path) where T : Component
+    {
+        GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        return existing != null && existing.GetComponentInChildren<T>(true) != null ? existing : null;
+    }
+
     static GameObject SavePrefab(GameObject temp, string path)
     {
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(temp, path);
@@ -1036,6 +1058,12 @@ public static partial class IslandBuilder
             throw new System.InvalidOperationException("Universal Render Pipeline/Unlit is missing.");
         }
 
+        GameObject installed = InstalledPrefab<ShadeVisual>("Assets/Game/Prefabs/Gameplay/Shade.prefab");
+        if (installed != null)
+        {
+            return installed;
+        }
+
         Material bodyMat = UnlitMat("Assets/Game/Materials/Generated/ShadeBody.mat", unlit, new Color(0.02f, 0.02f, 0.04f, 0.92f));
         SetupTransparent(bodyMat);
         Material eyeMat = UnlitMat("Assets/Game/Materials/Generated/ShadeEye.mat", unlit, new Color(3.2f, 2.6f, 1.1f, 1f));
@@ -1055,7 +1083,9 @@ public static partial class IslandBuilder
         rise.y = 0.5f;
         StripColliders(root);
         root.AddComponent<Shade>();
-        return SavePrefab(root, "Assets/Game/Prefabs/Gameplay/Shade.prefab");
+        GameObject saved = SavePrefab(root, "Assets/Game/Prefabs/Gameplay/Shade.prefab");
+        CreatureInstaller.InstallShade();
+        return InstalledPrefab<ShadeVisual>("Assets/Game/Prefabs/Gameplay/Shade.prefab") ?? saved;
     }
 
     static GameObject BuildKeeper(ArtKit art)
