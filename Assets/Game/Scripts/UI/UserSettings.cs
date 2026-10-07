@@ -50,21 +50,52 @@ public static class UserSettings
         set { SetFloat(AmbienceKey, Mathf.Clamp01(value)); }
     }
 
+    // Brightness, TextScale and ReduceFlashing are read every frame (lighting, HUD scaling, Lightning.CurrentFlash from dozens
+    // of components on Island 4). PlayerPrefs reads cost about 15 microseconds each on Windows, so these three are read at most
+    // once per frame in play mode. Setters and InvalidateCache() refresh them; edit mode always reads through.
+    private static int hotFrame = -1;
+    private static float hotBrightness;
+    private static float hotTextScale;
+    private static bool hotReduceFlashing;
+
+    // Number of PlayerPrefs refreshes of the hot values (for tests).
+    public static int HotReadCount { get; private set; }
+
+    // Fast-enter-play-mode (no domain reload) keeps statics, and Time.frameCount restarts, so drop the cache on every play start.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void InvalidateCache()
+    {
+        hotFrame = -1;
+    }
+
+    private static void RefreshHot()
+    {
+        if (Application.isPlaying && hotFrame == Time.frameCount)
+        {
+            return;
+        }
+        hotFrame = Application.isPlaying ? Time.frameCount : -1;
+        HotReadCount++;
+        hotBrightness = PlayerPrefs.GetFloat(BrightnessKey, 0f);
+        hotTextScale = Snap(PlayerPrefs.GetFloat(TextScaleKey, 1f));
+        hotReduceFlashing = PlayerPrefs.GetInt(ReduceFlashingKey, 0) == 1;
+    }
+
     public static float Brightness
     {
-        get { return PlayerPrefs.GetFloat(BrightnessKey, 0f); }
+        get { RefreshHot(); return hotBrightness; }
         set { SetFloat(BrightnessKey, Mathf.Clamp(value, -1f, 1f)); }
     }
 
     public static float TextScale
     {
-        get { return Snap(PlayerPrefs.GetFloat(TextScaleKey, 1f)); }
+        get { RefreshHot(); return hotTextScale; }
         set { SetFloat(TextScaleKey, Snap(value)); }
     }
 
     public static bool ReduceFlashing
     {
-        get { return PlayerPrefs.GetInt(ReduceFlashingKey, 0) == 1; }
+        get { RefreshHot(); return hotReduceFlashing; }
         set { SetInt(ReduceFlashingKey, value ? 1 : 0); }
     }
 
@@ -225,6 +256,7 @@ public static class UserSettings
 
     static void Raise()
     {
+        InvalidateCache();
         if (DeferSave)
         {
             PendingSave = true;
