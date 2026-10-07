@@ -31,6 +31,6 @@ Material:
     - _AmberColor: {r: 1, g: 0.69411767, b: 0.36078432, a: 1}
     - _ColdColor: {r: 0.58, g: 0.72, b: 0.95, a: 1}
     - _CoreColor: {r: 1, g: 0.827451, b: 0.5411765, a: 1}
-    - _GlassColor: {r: 0.035, g: 0.045, b: 0.07, a: 1}
+    - _GlassColor: {r: 0.008, g: 0.01, b: 0.016, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

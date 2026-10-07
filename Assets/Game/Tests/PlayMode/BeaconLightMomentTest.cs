@@ -185,15 +185,27 @@ namespace LanternKeeper.Tests
             Assert.AreEqual(8f, Get<float>(visual, "RingRadius"), 0.01f, "ring radius value");
             Transform ringTransform = beacon.transform.Find("SafeRing");
             Assert.IsNotNull(ringTransform, "SafeRing child");
-            LineRenderer ring = ringTransform.GetComponent<LineRenderer>();
+            MeshRenderer ring = ringTransform.GetComponent<MeshRenderer>();
+            MeshFilter ringFilter = ringTransform.GetComponent<MeshFilter>();
             Assert.IsTrue(ring.enabled, "ring visible");
+            Vector3[] verts = ringFilter.sharedMesh.vertices;
             Vector3 centre = beacon.transform.position;
-            for (int i = 0; i < ring.positionCount; i += 9)
+            float sum = 0f;
+            for (int i = 0; i < verts.Length; i++)
             {
-                Vector3 p = ring.GetPosition(i);
-                float flat = Vector2.Distance(new Vector2(p.x, p.z), new Vector2(centre.x, centre.z));
-                Assert.AreEqual(8f, flat, 0.05f, "ring point " + i);
+                sum += Vector2.Distance(new Vector2(verts[i].x, verts[i].z), new Vector2(centre.x, centre.z));
             }
+
+            Assert.AreEqual(8f, sum / verts.Length, 0.05f, "mean ring radius (centre line)");
+            Color[] colours = ringFilter.sharedMesh.colors;
+            float maxAlpha = 0f;
+            for (int i = 0; i < colours.Length; i++)
+            {
+                maxAlpha = Mathf.Max(maxAlpha, colours[i].a);
+                Assert.GreaterOrEqual(colours[i].a, 0f);
+            }
+
+            Assert.Greater(maxAlpha, 0.5f, "some of the ring is visible on walkable ground");
 
             Assert.IsEmpty(problems, string.Join("\n", problems));
         }

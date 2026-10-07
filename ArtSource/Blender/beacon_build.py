@@ -31,24 +31,25 @@ BLEND_PATH = os.path.join(HERE, "Beacon.blend")
 OUT_DIR = os.path.join(PROJECT, "Assets", "Game", "Art", "Beacons")
 FBX_PATH = os.path.join(OUT_DIR, "Beacon.fbx")
 
-# Heights (m). Cairn about 1.2 m, lantern about 0.9 m, total about 3.2 m.
-CAIRN_TOP = 1.2
-POST_BOT = 1.0
-POST_TOP = 2.2
-PLATE_Z = 2.2
-BASE_BOT = 2.225
-FRAME_BOT = 2.30
-FRAME_TOP = 2.95
-CAP_BASE = 2.95
-CAP_APEX = 3.12
-FRAME_HALF = 0.14
-CAP_HALF = 0.19
-PANE_HALF = 0.125     # half width of a pane
-PANE_PLANE = 0.122    # distance of the pane plane from the lantern axis
-POST_T = 0.03         # corner post half thickness
-RING_R = 0.055
-RING_T = 0.012
-BEAM_START = 0.125
+# Heights (m). A big storm lantern sitting low and heavy on a broad cairn: cairn about 1.5 m tall and 1.8 m wide, a short stout iron
+# stand on top, the lantern about 1.2 m with its cap and ring, total about 3.1 m.
+CAIRN_TOP = 1.5
+POST_BOT = 1.3
+POST_TOP = 1.72
+PLATE_Z = 1.72
+BASE_BOT = 1.745
+FRAME_BOT = 1.82
+FRAME_TOP = 2.70
+CAP_BASE = 2.70
+CAP_APEX = 2.95
+FRAME_HALF = 0.17
+CAP_HALF = 0.23
+PANE_HALF = 0.152     # half width of a pane
+PANE_PLANE = 0.148    # distance of the pane plane from the lantern axis
+POST_T = 0.035        # corner post half thickness
+RING_R = 0.065
+RING_T = 0.014
+BEAM_START = 0.15
 BEAM_LEN = 3.0
 CAIRN_TILE = 1.6      # metres per texture repeat
 
@@ -109,32 +110,32 @@ def build_iron(detail):
     """detail 1 = LOD0, 0 = LOD1."""
     bm = bmesh.new()
     # Post, with a collar where it leaves the stones and a plate under the lantern.
-    cylinder(bm, POST_BOT, POST_TOP, 0.05, 0.042, 8 if detail else 6)
+    cylinder(bm, POST_BOT, POST_TOP, 0.10, 0.082, 8 if detail else 6)
     if detail:
-        cylinder(bm, 1.28, 1.36, 0.075, 0.075, 8)
-        cylinder(bm, 1.88, 1.94, 0.065, 0.065, 8)
-    box(bm, (0, 0, PLATE_Z), (0.34, 0.34, 0.05))
+        cylinder(bm, 1.46, 1.54, 0.13, 0.13, 8)
+        cylinder(bm, 1.64, 1.69, 0.115, 0.115, 8)
+    box(bm, (0, 0, PLATE_Z), (0.42, 0.42, 0.05))
     # Bracket: four diagonal braces from the post up to the plate corners.
     if detail:
         for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
-            bar(bm, (0, 0, 1.78), (sx * 0.15, sy * 0.15, PLATE_Z - 0.02), 0.012)
+            bar(bm, (0, 0, 1.52), (sx * 0.18, sy * 0.18, PLATE_Z - 0.02), 0.016)
     # Lantern base and foot.
-    box(bm, (0, 0, (BASE_BOT + FRAME_BOT) / 2 + 0.005), (0.31, 0.31, FRAME_BOT - BASE_BOT + 0.01))
+    box(bm, (0, 0, (BASE_BOT + FRAME_BOT) / 2 + 0.005), (0.38, 0.38, FRAME_BOT - BASE_BOT + 0.01))
     # Frame: four corner posts, top and bottom rails.
     for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
         box(bm, (sx * FRAME_HALF, sy * FRAME_HALF, (FRAME_BOT + FRAME_TOP) / 2), (POST_T * 2, POST_T * 2, FRAME_TOP - FRAME_BOT))
     if detail:
         for z in (FRAME_BOT + 0.02, FRAME_TOP - 0.02):
             for sign in (1, -1):
-                box(bm, (sign * FRAME_HALF, 0, z), (0.04, 2 * FRAME_HALF, 0.04))
-                box(bm, (0, sign * FRAME_HALF, z), (2 * FRAME_HALF, 0.04, 0.04))
+                box(bm, (sign * FRAME_HALF, 0, z), (0.05, 2 * FRAME_HALF, 0.05))
+                box(bm, (0, sign * FRAME_HALF, z), (2 * FRAME_HALF, 0.05, 0.05))
         # A slim mullion in the middle of every pane, like the keeper's lantern.
         for sign in (1, -1):
-            box(bm, (sign * (PANE_PLANE + 0.004), 0, (FRAME_BOT + FRAME_TOP) / 2), (0.014, 0.014, FRAME_TOP - FRAME_BOT))
-            box(bm, (0, sign * (PANE_PLANE + 0.004), (FRAME_BOT + FRAME_TOP) / 2), (0.014, 0.014, FRAME_TOP - FRAME_BOT))
+            box(bm, (sign * (PANE_PLANE + 0.004), 0, (FRAME_BOT + FRAME_TOP) / 2), (0.02, 0.02, FRAME_TOP - FRAME_BOT))
+            box(bm, (0, sign * (PANE_PLANE + 0.004), (FRAME_BOT + FRAME_TOP) / 2), (0.02, 0.02, FRAME_TOP - FRAME_BOT))
     # Peaked roof cap with a slight overhang, and a small knob under the ring.
     frustum(bm, CAP_BASE, CAP_BASE + 0.02, CAP_HALF, CAP_HALF)
-    frustum(bm, CAP_BASE + 0.02, CAP_APEX, CAP_HALF, 0.035)
+    frustum(bm, CAP_BASE + 0.02, CAP_APEX, CAP_HALF, 0.045)
     ring(bm, 12 if detail else 6, 4 if detail else 3)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bmesh.ops.triangulate(bm, faces=bm.faces)
@@ -150,10 +151,11 @@ def cairn_blocks():
     blocks = []
     layers = [
         # radius of block centres, count, half width, base z, half height
-        (0.40, 9, 0.21, 0.00, 0.16),
-        (0.33, 7, 0.19, 0.27, 0.14),
-        (0.26, 6, 0.17, 0.52, 0.13),
-        (0.17, 4, 0.15, 0.76, 0.12),
+        (0.55, 10, 0.27, 0.00, 0.19),
+        (0.49, 9, 0.25, 0.32, 0.17),
+        (0.43, 8, 0.23, 0.62, 0.16),
+        (0.36, 7, 0.20, 0.90, 0.15),
+        (0.29, 6, 0.18, 1.16, 0.13),
     ]
     for radius, count, half, z0, hz in layers:
         for i in range(count):
@@ -165,11 +167,11 @@ def cairn_blocks():
         # Fill the middle so the stack has no hole.
         blocks.append((Vector((0, 0, z0 + hz)), Vector((half * 1.1, half * 1.1, hz)), rng.uniform(0, math.pi)))
     # Summit stone: the post stands in it.
-    blocks.append((Vector((0.0, 0.0, 1.0)), Vector((0.2, 0.18, 0.17)), 0.4))
+    blocks.append((Vector((0.0, 0.0, 1.30)), Vector((0.34, 0.32, 0.20)), 0.4))
     # A few small stones at the foot.
     for i in range(8):
         a = 2 * math.pi * i / 8 + rng.uniform(-0.2, 0.2)
-        r = rng.uniform(0.56, 0.62)
+        r = rng.uniform(0.78, 0.86)
         h = rng.uniform(0.09, 0.14)
         blocks.append((Vector((math.cos(a) * r, math.sin(a) * r, h * 0.7)), Vector((h * 1.2, h, h * 0.8)), rng.uniform(0, math.pi)))
     return blocks
@@ -182,7 +184,7 @@ def build_cairn(detail):
     for centre, half, yaw in cairn_blocks():
         blk = bmesh.new()
         bmesh.ops.create_cube(blk, size=2.0)
-        cuts = (2 if half.x > 0.15 else 1) if detail else 0
+        cuts = (2 if half.x > 0.24 else 1) if detail else 0
         if cuts:
             bmesh.ops.subdivide_edges(blk, edges=list(blk.edges), cuts=cuts, use_grid_fill=True)
         rot = Matrix.Rotation(yaw, 4, 'Z')
@@ -190,9 +192,9 @@ def build_cairn(detail):
             p = v.co.copy()
             inf = max(abs(p.x), abs(p.y), abs(p.z))
             if p.length > 1e-6:
-                p = p.lerp(p.normalized() * inf, 0.5 if detail else 0.3)
+                p = p.lerp(p.normalized() * inf, 0.4 if detail else 0.25)
             p = Vector((p.x * half.x, p.y * half.y, p.z * half.z))
-            p += Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))) * 0.025
+            p += Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-1, 1))) * 0.05
             v.co = (rot @ p) + centre
         blk.to_mesh(scratch)
         blk.free()

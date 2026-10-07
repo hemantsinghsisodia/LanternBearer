@@ -3,30 +3,58 @@ using UnityEngine.Rendering;
 
 namespace LanternKeeper
 {
-// The warm glowing ring on the ground that marks a lit beacon's safe radius. A soft additive band lying flat on the terrain,
-// in the LookPalette amber with a core-coloured heart. Its radius is driven by BeaconVisual (the bloom from the base out to
-// the full ZoneRadius over 0.3..1.2 s, then steady); without a BeaconVisual it is simply the full radius.
+// The warm glowing ring on the ground that marks a lit beacon's safe radius, drawn as a ground-conforming mesh strip
+// (a "projected" ring): every vertex is placed on the terrain height at its own XZ, so the ring hugs the ground and
+// follows slopes. Vertex alpha fades the ring out wherever it should not be seen:
+//  - where the terrain height differs from the beacon's base by more than FadeStart..FadeEnd (a cliff edge, a drop or a rise),
+//  - where the sample is off the terrain, and
+//  - at or below the water surface (plus a margin).
+// Chosen over a URP decal: a mesh needs no decal feature on every quality renderer, costs one draw call and is rebuilt only
+// while the radius changes. The radius is driven by BeaconVisual (the bloom from the base out to ZoneRadius over 0.3..1.2 s).
+// The gameplay radius (Beacon.SafeRadius) is not touched.
 public class BeaconSafeRing : MonoBehaviour
 {
-    const int Points = 72;
-    // Above the grass tips, or the band disappears into the blades.
-    const float HeightOffset = 0.65f;
-    // The ring stays within this band of the beacon's own height, so it never drops down a cliff face in a vertical ribbon.
-    const float MaxBelow = 0.6f;
-    const float MaxAbove = 1.5f;
-    const float BandWidth = 1.4f;
+    public const int Segments = 96;
+    public const float Width = 1.3f;
+    public const float FadeStart = 0.6f;
+    public const float FadeEnd = 1.1f;
+    public const float WaterMargin = 0.3f;
+    // Above the grass tips.
+    const float HeightOffset = 0.3f;
 
     static Material sharedMaterial;
     static Texture2D bandTexture;
 
     Beacon beacon;
     BeaconVisual visual;
-    LineRenderer ring;
+    MeshFilter filter;
+    MeshRenderer meshRenderer;
+    Mesh mesh;
+    Vector3[] vertices;
+    Color[] colours;
     float fittedRadius = -1f;
     float fittedAlpha = -1f;
 
-    public LineRenderer Ring => ring;
+    public Mesh RingMesh => mesh;
+    public MeshRenderer RingRenderer => meshRenderer;
     public float FittedRadius => fittedRadius;
+
+    // 0..1 visibility of a ring point from its height relative to the beacon's base, and the water surface.
+    public static float Visibility(float groundHeight, bool onTerrain, float baseHeight, float waterY)
+    {
+        if (!onTerrain)
+        {
+            return 0f;
+        }
+
+        if (groundHeight < waterY + WaterMargin)
+        {
+            return 0f;
+        }
+
+        float diff = Mathf.Abs(groundHeight - baseHeight);
+        return 1f - Mathf.Clamp01((diff - FadeStart) / (FadeEnd - FadeStart));
+    }
 
     public static void Ensure(Beacon owner)
     {
@@ -50,17 +78,25 @@ public class BeaconSafeRing : MonoBehaviour
         Build();
     }
 
+    void OnDestroy()
+    {
+        if (mesh != null)
+        {
+            Destroy(mesh);
+        }
+    }
+
     // After BeaconVisual.Update, so the ring follows the radius computed this frame.
     void LateUpdate()
     {
-        if (ring == null || beacon == null)
+        if (meshRenderer == null || beacon == null)
         {
             return;
         }
 
         if (!beacon.IsLit)
         {
-            ring.enabled = false;
+            meshRenderer.enabled = false;
             fittedRadius = -1f;
             fittedAlpha = -1f;
             return;
@@ -75,20 +111,15 @@ public class BeaconSafeRing : MonoBehaviour
         float alpha = visual != null ? visual.RingAlpha : 1f;
         if (radius < 0.05f)
         {
-            ring.enabled = false;
+            meshRenderer.enabled = false;
             fittedRadius = -1f;
             return;
         }
 
-        ring.enabled = true;
-        if (!Mathf.Approximately(radius, fittedRadius))
+        meshRenderer.enabled = true;
+        if (!Mathf.Approximately(radius, fittedRadius) || !Mathf.Approximately(alpha, fittedAlpha))
         {
-            Fit(radius);
-        }
-
-        if (!Mathf.Approximately(alpha, fittedAlpha))
-        {
-            SetAlpha(alpha);
+            Fit(radius, alpha);
         }
     }
 
@@ -106,52 +137,113 @@ public class BeaconSafeRing : MonoBehaviour
             ringObject.transform.SetParent(transform, false);
         }
 
-        ring = ringObject.GetComponent<LineRenderer>();
-        if (ring == null)
+        // An earlier version drew a LineRenderer.
+        LineRenderer legacy = ringObject.GetComponent<LineRenderer>();
+        if (legacy != null)
         {
-            ring = ringObject.AddComponent<LineRenderer>();
+            Destroy(legacy);
         }
 
-        // The band lies flat on the ground: the line faces along its transform's Z, which points up.
-        ringObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        ring.alignment = LineAlignment.TransformZ;
-        ring.loop = true;
-        ring.useWorldSpace = true;
-        ring.shadowCastingMode = ShadowCastingMode.Off;
-        ring.receiveShadows = false;
-        ring.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-        ring.numCapVertices = 0;
-        ring.numCornerVertices = 2;
-        ring.widthMultiplier = BandWidth;
-        ring.positionCount = Points;
-        ring.textureMode = LineTextureMode.Stretch;
-        ring.sharedMaterial = SharedMaterial();
-        ring.enabled = false;
+        // World space vertices: the child must not move, rotate or scale with the beacon.
+        ringObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        ringObject.transform.localScale = Vector3.one;
+
+        filter = ringObject.GetComponent<MeshFilter>();
+        if (filter == null)
+        {
+            filter = ringObject.AddComponent<MeshFilter>();
+        }
+
+        meshRenderer = ringObject.GetComponent<MeshRenderer>();
+        if (meshRenderer == null)
+        {
+            meshRenderer = ringObject.AddComponent<MeshRenderer>();
+        }
+
+        if (mesh == null)
+        {
+            BuildMesh();
+        }
+
+        filter.sharedMesh = mesh;
+        meshRenderer.sharedMaterial = SharedMaterial();
+        meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        meshRenderer.receiveShadows = false;
+        meshRenderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+        meshRenderer.lightProbeUsage = LightProbeUsage.Off;
+        meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        meshRenderer.enabled = false;
         fittedRadius = -1f;
         fittedAlpha = -1f;
     }
 
-    void Fit(float radius)
+    void BuildMesh()
     {
-        Vector3 center = beacon.transform.position;
-        for (int i = 0; i < Points; i++)
+        int count = Segments * 2;
+        vertices = new Vector3[count];
+        colours = new Color[count];
+        Vector2[] uvs = new Vector2[count];
+        int[] triangles = new int[Segments * 6];
+        for (int i = 0; i < Segments; i++)
         {
-            float angle = i * Mathf.PI * 2f / Points;
-            Vector3 point = center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-            float ground = Mathf.Clamp(TerrainQuery.Height(point, center.y), center.y - MaxBelow, center.y + MaxAbove);
-            point.y = ground + HeightOffset;
-            ring.SetPosition(i, point);
+            int next = (i + 1) % Segments;
+            uvs[i * 2] = new Vector2(0f, 0f);
+            uvs[i * 2 + 1] = new Vector2(0f, 1f);
+            int t = i * 6;
+            // Facing up.
+            triangles[t] = i * 2;
+            triangles[t + 1] = i * 2 + 1;
+            triangles[t + 2] = next * 2;
+            triangles[t + 3] = next * 2;
+            triangles[t + 4] = i * 2 + 1;
+            triangles[t + 5] = next * 2 + 1;
         }
 
-        fittedRadius = radius;
+        mesh = new Mesh();
+        mesh.name = "BeaconSafeRing";
+        mesh.MarkDynamic();
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.colors = colours;
+        mesh.triangles = triangles;
+        // Bounds are set by Fit.
     }
 
-    void SetAlpha(float alpha)
+    void Fit(float radius, float alpha)
     {
-        Color amber = LookPalette.FromHex(LookPalette.LanternAmber);
-        amber.a = Mathf.Clamp01(alpha);
-        ring.startColor = amber;
-        ring.endColor = amber;
+        Vector3 centre = beacon.transform.position;
+        float baseHeight = TerrainQuery.Height(centre, centre.y);
+        float water = WaterHazard.SurfaceY;
+        float half = Width * 0.5f;
+        float a = Mathf.Clamp01(alpha);
+        for (int i = 0; i < Segments; i++)
+        {
+            float angle = i * Mathf.PI * 2f / Segments;
+            Vector3 dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            for (int side = 0; side < 2; side++)
+            {
+                float r = radius + (side == 0 ? -half : half);
+                if (r < 0f)
+                {
+                    r = 0f;
+                }
+
+                Vector3 p = centre + dir * r;
+                float height;
+                Vector3 normal;
+                bool onTerrain = TerrainQuery.TrySample(p, out height, out normal);
+                p.y = (onTerrain ? height : centre.y) + HeightOffset;
+                vertices[i * 2 + side] = p;
+                float vis = Visibility(height, onTerrain, baseHeight, water) * a;
+                // Soft across the band comes from the texture; the alpha here is the plateau/water fade.
+                colours[i * 2 + side] = new Color(1f, 1f, 1f, vis);
+            }
+        }
+
+        mesh.vertices = vertices;
+        mesh.colors = colours;
+        mesh.bounds = new Bounds(centre, new Vector3(radius * 2f + Width + 4f, 30f, radius * 2f + Width + 4f));
+        fittedRadius = radius;
         fittedAlpha = alpha;
     }
 

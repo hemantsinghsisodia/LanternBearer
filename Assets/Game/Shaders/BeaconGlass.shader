@@ -7,7 +7,7 @@ Shader "LanternKeeper/BeaconGlass"
     // No ShadowCaster pass: the panes are inside the iron frame, which casts the shadow.
     Properties
     {
-        _GlassColor ("Dark Glass", Color) = (0.035, 0.045, 0.07, 1)
+        _GlassColor ("Dark Glass", Color) = (0.008, 0.01, 0.016, 1)
         _ColdColor ("Cold Reflection", Color) = (0.58, 0.72, 0.95, 1)
         _AmberColor ("Pane Amber", Color) = (1, 0.694, 0.361, 1)
         _CoreColor ("Pane Core", Color) = (1, 0.827, 0.541, 1)
@@ -43,6 +43,15 @@ Shader "LanternKeeper/BeaconGlass"
         {
             Name "Forward"
             Tags { "LightMode" = "UniversalForward" }
+            // Marks the pixels for the screen-space moon rim to skip (stencil bit 8, as KeeperLit does): the beacon has its own controlled rim, and the global
+            // slope lift would wash the dark iron and glass pale grey on faces turned to the moon.
+            Stencil
+            {
+                Ref 8
+                WriteMask 8
+                Comp Always
+                Pass Replace
+            }
             Cull Back
             ZWrite On
             HLSLPROGRAM
@@ -88,14 +97,15 @@ Shader "LanternKeeper/BeaconGlass"
                 float glow = UNITY_ACCESS_INSTANCED_PROP(GlassProps, _Glow);
                 float3 normalWS = normalize(input.normalWS);
                 float3 viewDir = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                float fresnel = pow(saturate(1.0 - dot(normalWS, viewDir)), 3.0);
+                float fresnel = pow(saturate(1.0 - dot(normalWS, viewDir)), 4.0);
 
-                // Unlit: dark glass, a cold sky reflection at grazing angles and a thin moon glint.
+                // Unlit: near-black glass with a faint cool sheen: a cold fresnel at grazing angles and one soft diagonal streak of sky reflection.
                 float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
                 Light mainLight = GetMainLight(shadowCoord);
-                float3 reflected = reflect(-mainLight.direction, normalWS);
-                float glint = pow(saturate(dot(reflected, viewDir)), 48.0) * mainLight.shadowAttenuation;
-                float3 cold = _ColdColor.rgb * (fresnel * 0.35 + glint * 0.5 * saturate(Luminance(mainLight.color) * 2.0));
+                float diag = input.uv.x * 0.8 + input.uv.y * 0.5;
+                float streak = smoothstep(0.12, 0.0, abs(diag - 0.55)) * 0.7 + smoothstep(0.06, 0.0, abs(diag - 0.8)) * 0.4;
+                float moon = saturate(Luminance(mainLight.color) * 3.0) * mainLight.shadowAttenuation;
+                float3 cold = _ColdColor.rgb * (fresnel * 0.3 + streak * (0.05 + 0.1 * moon));
                 float3 color = _GlassColor.rgb + cold;
 
                 // Lit: amber at the pane edges, the warm core in the middle.

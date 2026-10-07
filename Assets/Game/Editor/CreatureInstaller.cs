@@ -248,7 +248,7 @@ public static class CreatureInstaller
         ("BeaconLight", new Vector3(0f, 0.25f, 0f), Vector3.one)
     };
 
-    const float LanternCentreY = 2.36f;
+    const float LanternCentreY = 2.26f;
     const float EmberConeAngle = 42f;
 
     public static void InstallBeacon()
@@ -318,7 +318,7 @@ public static class CreatureInstaller
         material.name = "BeaconGlass";
         material.SetColor("_AmberColor", LookPalette.FromHex(LookPalette.LanternAmber));
         material.SetColor("_CoreColor", LookPalette.FromHex(LookPalette.GlowCore));
-        material.SetColor("_GlassColor", new Color(0.035f, 0.045f, 0.07f, 1f));
+        material.SetColor("_GlassColor", new Color(0.008f, 0.01f, 0.016f, 1f));
         material.SetColor("_ColdColor", new Color(0.58f, 0.72f, 0.95f, 1f));
         material.SetFloat("_EmissionGain", 4f);
         EditorUtility.SetDirty(material);
@@ -345,11 +345,19 @@ public static class CreatureInstaller
 
     static Material EnsureBeaconIronMaterial()
     {
-        Material material = LoadOrCreate(BeaconIronMaterialPath, Shader.Find("Universal Render Pipeline/Lit"));
+        Shader shader = Shader.Find("LanternKeeper/BeaconIron");
+        if (shader == null)
+        {
+            Debug.LogError("CreatureInstaller: shader LanternKeeper/BeaconIron not found.");
+            return null;
+        }
+
+        Material material = LoadOrCreate(BeaconIronMaterialPath, shader);
         material.name = "BeaconIron";
-        material.SetColor("_BaseColor", new Color(0.165f, 0.165f, 0.18f, 1f));
-        material.SetFloat("_Metallic", 0.6f);
-        material.SetFloat("_Smoothness", 0.35f);
+        material.SetColor("_BaseColor", new Color(0.045f, 0.047f, 0.055f, 1f));
+        material.SetFloat("_Smoothness", 0.4f);
+        material.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        material.SetFloat("_RimStrength", 1.6f);
         EditorUtility.SetDirty(material);
         return material;
     }
@@ -514,7 +522,7 @@ public static class CreatureInstaller
     {
         GameObject go = new GameObject("MomentEmbers");
         go.transform.SetParent(parent, false);
-        go.transform.localPosition = new Vector3(0f, 3.15f, 0f);
+        go.transform.localPosition = new Vector3(0f, 3.2f, 0f);
         go.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
         ParticleSystem system = go.AddComponent<ParticleSystem>();
         system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);

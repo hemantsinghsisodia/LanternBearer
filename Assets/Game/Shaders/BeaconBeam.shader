@@ -51,7 +51,7 @@ Shader "LanternKeeper/BeaconBeam"
             UNITY_INSTANCING_BUFFER_END(BeamProps)
 
             // Distance of the pane plane from the lantern axis (BEAM_START in ArtSource/Blender/beacon_build.py).
-            static const float BeamStart = 0.125;
+            static const float BeamStart = 0.15;
 
             struct Attributes
             {

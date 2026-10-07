@@ -169,5 +169,59 @@ public class BeaconVisualTests
             Assert.LessOrEqual(value, 1f + 1e-5f);
         }
     }
+
+    [Test]
+    public void RingVisibilityHugsWalkableGround()
+    {
+        Type ring = Type.GetType("LanternKeeper.BeaconSafeRing, Assembly-CSharp");
+        Assert.IsNotNull(ring, "BeaconSafeRing type");
+        MethodInfo visibility = ring.GetMethod("Visibility", BindingFlags.Public | BindingFlags.Static);
+        Assert.IsNotNull(visibility, "Visibility");
+        System.Func<float, bool, float, float, float> vis = (g, on, b, w) => (float)visibility.Invoke(null, new object[] { g, on, b, w });
+        Assert.AreEqual(1f, vis(10f, true, 10f, 2f), 1e-5f, "same height is fully visible");
+        Assert.AreEqual(1f, vis(10.5f, true, 10f, 2f), 1e-5f, "small slope is fully visible");
+        Assert.AreEqual(0f, vis(11.5f, true, 10f, 2f), 1e-5f, "a rise of more than 1 m is hidden");
+        Assert.AreEqual(0f, vis(8f, true, 10f, 2f), 1e-5f, "a cliff drop is hidden");
+        Assert.AreEqual(0f, vis(2.1f, true, 2.1f, 2f), 1e-5f, "below water plus margin is hidden");
+        Assert.AreEqual(0f, vis(10f, false, 10f, 2f), 1e-5f, "off the terrain is hidden");
+        float mid = vis(10.85f, true, 10f, 2f);
+        Assert.Greater(mid, 0f);
+        Assert.Less(mid, 1f);
+    }
+
+    [Test]
+    public void TotalHeightAboutThreeMetres()
+    {
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(FbxPath);
+        Assert.IsNotNull(model);
+        float lo = float.MaxValue;
+        float hi = float.MinValue;
+        foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>(true))
+        {
+            if (filter.name.EndsWith("_L1") || filter.name == "BeaconBeams")
+            {
+                continue;
+            }
+
+            Bounds b = filter.sharedMesh.bounds;
+            lo = Mathf.Min(lo, b.min.y);
+            hi = Mathf.Max(hi, b.max.y);
+        }
+
+        Assert.GreaterOrEqual(hi - lo, 3.0f, "height");
+        Assert.LessOrEqual(hi - lo, 3.3f, "height");
+    }
+
+    [Test]
+    public void UnlitIronIsDark()
+    {
+        Material iron = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Art/Beacons/BeaconIron.mat");
+        Assert.IsNotNull(iron);
+        Color c = iron.GetColor("_BaseColor");
+        Assert.Less(c.r + c.g + c.b, 0.3f, "iron base colour is dark");
+        Material glass = AssetDatabase.LoadAssetAtPath<Material>(GlassMaterialPath);
+        Color g = glass.GetColor("_GlassColor");
+        Assert.Less(g.r + g.g + g.b, 0.12f, "glass is near black");
+    }
 }
 }
