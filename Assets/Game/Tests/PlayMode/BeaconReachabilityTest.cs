@@ -212,6 +212,8 @@ namespace LanternKeeper.Tests
                                 break;
                             }
 
+                            // Retries at the same obstacle (same stuck position as the last counted jump) are deliberately not counted:
+                            // the keeper may need several frames or attempts to clear one obstacle, and only distinct obstacles count as jumps.
                             bool retry = (stuckFrom - jumpedFrom).sqrMagnitude < 0.0001f;
                             if (!retry)
                             {

@@ -108,6 +108,20 @@ public class UiBuildDeterminismTests
         StringAssert.DoesNotContain("9021", result);
     }
 
+    [Test]
+    public void InsertingASiblingBeforeKeepsTheExistingSiblingsFileIds()
+    {
+        // "Extra" is saved into slot 0, so Child moves from child index 0 to 1. Child must keep its old fileIDs.
+        string grown = Rebuilt + "--- !u!1 &9021\nGameObject:\n  m_Component:\n  - component: {fileID: 9022}\n  m_Name: Extra\n" +
+            "--- !u!224 &9022\nRectTransform:\n  m_GameObject: {fileID: 9021}\n  m_Children: []\n  m_Father: {fileID: 9002}\n";
+        grown = grown.Replace("  m_Children:\n  - {fileID: 9012}\n", "  m_Children:\n  - {fileID: 9022}\n  - {fileID: 9012}\n");
+        string result = Normalize(grown, Previous);
+        StringAssert.Contains("--- !u!1 &121\n", result, "Child GameObject keeps its fileID");
+        StringAssert.Contains("--- !u!224 &122\n", result, "Child transform keeps its fileID");
+        StringAssert.Contains("m_Father: {fileID: 112}", result);
+        StringAssert.DoesNotContain("9021", result);
+    }
+
     // ---------- TextScaler ----------
 
     TextScaler MakeScaler()

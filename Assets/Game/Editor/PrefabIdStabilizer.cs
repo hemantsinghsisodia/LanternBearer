@@ -273,13 +273,36 @@ public static class PrefabIdStabilizer
                 long parentId = RefOf(Field(fatherDoc, "m_GameObject"));
                 if (byId.TryGetValue(parentId, out parentGo))
                 {
-                    int index = RefList(fatherDoc, "m_Children", "").IndexOf(transform.id);
+                    // Only the position among siblings of the same name, so inserting a differently named sibling keeps every key.
+                    int index = SameNameOrdinal(fatherDoc, transform.id, name, byId);
                     key = GoKey(parentGo, byId, cache, depth + 1) + "/" + name + "#" + index;
                 }
             }
         }
         cache[go.id] = key;
         return key;
+    }
+
+    // How many siblings before this one (in m_Children order) have the same name.
+    static int SameNameOrdinal(Doc fatherDoc, long transformId, string name, Dictionary<long, Doc> byId)
+    {
+        int ordinal = 0;
+        foreach (long child in RefList(fatherDoc, "m_Children", ""))
+        {
+            if (child == transformId)
+            {
+                return ordinal;
+            }
+            Doc childTransform;
+            Doc childGo;
+            if (byId.TryGetValue(child, out childTransform)
+                && byId.TryGetValue(RefOf(Field(childTransform, "m_GameObject")), out childGo)
+                && (Field(childGo, "m_Name") ?? "").Trim('\'', '"') == name)
+            {
+                ordinal++;
+            }
+        }
+        return ordinal;
     }
 
     // FNV-1a over the key, folded into a positive 63-bit number.

@@ -89,8 +89,13 @@ public class UiLayoutTests
             UnityEngine.Object.DestroyImmediate(canvasGo);
         }
         canvasGo = new GameObject("LayoutTestCanvas", typeof(RectTransform), typeof(Canvas));
+        // A root Overlay canvas takes its size from the Game view and ignores sizeDelta, so the loop would not vary the size.
+        // A WorldSpace canvas keeps the rect we set.
+        canvasGo.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
         RectTransform rect = (RectTransform)canvasGo.transform;
         rect.sizeDelta = size;
+        Assert.AreEqual(size.x, rect.rect.width, 0.01f, "canvas width sticks");
+        Assert.AreEqual(size.y, rect.rect.height, 0.01f, "canvas height sticks");
         return canvasGo;
     }
 
@@ -180,9 +185,11 @@ public class UiLayoutTests
                 problems.Add(where + " needs " + h.ToString("F1") + " px of height, has " + rect.rect.height.ToString("F1"));
             }
         }
-        if (text.fontSize < minPx - 0.01f && !text.enableAutoSizing)
+        // The floor is bodyPx x 0.9 at the 100% base, so undo the text scale before comparing.
+        float basePx = text.fontSize / Mathf.Max(0.01f, TextScaler.Current);
+        if (basePx < minPx - 0.01f && !text.enableAutoSizing)
         {
-            problems.Add(where + " font " + text.fontSize.ToString("F1") + " is below the minimum " + minPx.ToString("F1"));
+            problems.Add(where + " base font " + basePx.ToString("F1") + " is below the minimum " + minPx.ToString("F1"));
         }
     }
 
