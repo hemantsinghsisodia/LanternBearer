@@ -23,7 +23,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float stepDistance = 2.3f;
     [SerializeField] float safeCheckInterval = 0.25f;
     [SerializeField] float safeEdgeRadius = 1.5f;
-    [SerializeField] float safeWaterMargin = 0.45f;
+    [SerializeField] float safeWaterMargin = WaterHazard.DefaultSafeWaterMargin;
     [SerializeField] float safeSlope = 0.85f;
 
     public const float GrassBendRadius = 1.4f;

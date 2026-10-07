@@ -24,6 +24,17 @@ public class MothVisual : MonoBehaviour
     public float FlapHz => flapHz;
     public Renderer WingRenderer => wingRenderer;
 
+    // CPU mirror of the wing angle the shader computes this frame (same time base as _Time.y, same Low rule: no glide on Low).
+    public float CurrentAngle
+    {
+        get
+        {
+            bool low = GraphicsQuality.Current == GraphicsLevel.Low;
+            float time = Time.timeSinceLevelLoad;
+            return MothFlap.Angle(time, phase, flapHz, low ? 0f : MothFlap.GlideFactor(time, phase));
+        }
+    }
+
     public void Configure(float newPhase, float newFlapHz)
     {
         phase = newPhase;

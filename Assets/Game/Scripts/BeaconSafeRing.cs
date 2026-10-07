@@ -19,8 +19,8 @@ public class BeaconSafeRing : MonoBehaviour
     public const float Width = 1.3f;
     public const float FadeStart = 0.6f;
     public const float FadeEnd = 1.1f;
-    // Mirrors PlayerController.safeWaterMargin (0.45), the margin the player's safe-ground check uses.
-    public const float WaterMargin = 0.45f;
+    // The ring follows the SafeFloorY check at PlayerController.cs:313 (SafeFloorY + safeWaterMargin), whose default is this shared margin.
+    public const float WaterMargin = WaterHazard.DefaultSafeWaterMargin;
     // Above the grass tips.
     const float HeightOffset = 0.3f;
 

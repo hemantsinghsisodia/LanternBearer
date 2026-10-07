@@ -186,6 +186,32 @@ public class ShadeVisualTests
         Assert.LessOrEqual(SettingsMath.FlashCap(false), 1f);
     }
 
+    // A pooled or re-enabled Shade must not come back mid-burn or mid-stun.
+    [Test]
+    public void EnableResetsStunnedAndBurn()
+    {
+        Component shade;
+        Component visual = NewVisual(out shade);
+        SetState(shade, Freeze);
+        for (int i = 0; i < 10; i++)
+        {
+            Tick(visual, 0.02f);
+        }
+
+        SetState(shade, Stunned);
+        for (int i = 0; i < 5; i++)
+        {
+            Tick(visual, 0.02f);
+        }
+
+        Assert.Greater(Get(visual, "Burn"), 0f, "burn built up");
+        Assert.Greater(Get(visual, "Stunned"), 0f, "stun built up");
+
+        VisualType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(visual, null);
+        Assert.AreEqual(0f, Get(visual, "Burn"), 0f, "burn reset on enable");
+        Assert.AreEqual(0f, Get(visual, "Stunned"), 0f, "stunned reset on enable");
+    }
+
     // Review focus 5: the burn clears when the Shade is released.
     [Test]
     public void FreezeBurnClearsOnRelease()

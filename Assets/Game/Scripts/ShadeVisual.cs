@@ -101,6 +101,8 @@ public class ShadeVisual : MonoBehaviour
         GraphicsQuality.QualityChanged += OnQuality;
         PublishQuality();
         hasLast = false;
+        stunned = 0f;
+        burn = 0f;
     }
 
     void OnDisable()

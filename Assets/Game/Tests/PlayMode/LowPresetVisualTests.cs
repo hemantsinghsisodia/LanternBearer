@@ -48,12 +48,27 @@ namespace LanternKeeper.Tests
             PlayerPrefs.SetInt(GraphicsKey, 0);
         }
 
-        [TearDown]
-        public void TearDown()
+        // Leave no Low behind for later PlayMode tests: restore the preset, republish the shader globals from it,
+        // and reload a neutral scene so the lit beacon and any spawned creatures are gone.
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             PlayerPrefs.SetInt(GraphicsKey, savedGraphics);
             Time.timeScale = previousScale;
             Time.captureDeltaTime = previousCaptureDelta;
+            GameType("MothVisual").GetMethod("PublishQuality").Invoke(null, null);
+            GameType("ShadeVisual").GetMethod("PublishQuality").Invoke(null, null);
+            float expected = savedGraphics == 0 ? 1f : 0f;
+            AsyncOperation load = SceneManager.LoadSceneAsync("MainMenu");
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            // Scene objects can republish on enable; the globals must still match the restored preset.
+            Assert.AreEqual(expected, Shader.GetGlobalFloat("_LKMothLow"), "_LKMothLow restored");
+            Assert.AreEqual(expected, Shader.GetGlobalFloat("_LKShadeLow"), "_LKShadeLow restored");
         }
 
         IEnumerator LoadIsland4()
@@ -70,47 +85,77 @@ namespace LanternKeeper.Tests
 
         [UnityTest]
         [Timeout(120000)]
-        public IEnumerator MothWingAngleChangesOnLow()
+        public IEnumerator MothWingFlapsOnLow()
         {
             yield return LoadIsland4();
             Assert.AreEqual("Low", GameType("GraphicsQuality").GetProperty("Current").GetValue(null).ToString());
             Component spawner = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("MothSpawner"));
             Assert.IsNotNull(spawner, "MothSpawner");
             GameObject prefab = Field<GameObject>(spawner, "mothPrefab");
-            Component visual = prefab.GetComponentInChildren(GameType("MothVisual"), true);
+            GameObject moth = UnityEngine.Object.Instantiate(prefab, spawner.transform.position + Vector3.up * 3f, Quaternion.identity);
+            Component visual = moth.GetComponentInChildren(GameType("MothVisual"), true);
             Assert.IsNotNull(visual, "moth prefab uses MothVisual");
-            Assert.AreEqual(1f, Shader.GetGlobalFloat("_LKMothLow"), "Low flag published to the moth shader");
 
-            // The shader uses a plain sine on Low (glide 0): the angle must change from frame to frame.
-            Type flap = GameType("MothFlap");
-            MethodInfo angle = flap.GetMethod("Angle");
-            float phase = Get<float>(visual, "Phase");
-            float hz = Get<float>(visual, "FlapHz");
-            float first = (float)angle.Invoke(null, new object[] { 0.01f, phase, hz, 0f });
-            bool changed = false;
-            for (int i = 1; i < 6; i++)
+            // Island 4 opens paused behind its intro card (time frozen, so the shader time is too); resume it.
+            Time.timeScale = 1f;
+            Component manager = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("GameManager"));
+            if (Get<bool>(manager, "IsPaused"))
             {
-                float next = (float)angle.Invoke(null, new object[] { 0.01f + i * 0.013f, phase, hz, 0f });
-                changed |= Mathf.Abs(next - first) > 0.5f;
+                manager.GetType().GetMethod("Resume").Invoke(manager, null);
             }
 
-            Assert.IsTrue(changed, "the wing angle changes over frames");
+            // CPU-observable signal: the per-instance property block the shader reads (_FlapHz > 0), plus MothVisual.CurrentAngle,
+            // a CPU mirror of the shader's wing angle on the shader's time base (Low: plain sine, no glide). It must sweep over real frames.
+            float min = float.MaxValue;
+            float max = float.MinValue;
+            for (int i = 0; i < 12; i++)
+            {
+                yield return null;
+                float angle = Get<float>(visual, "CurrentAngle");
+                min = Mathf.Min(min, angle);
+                max = Mathf.Max(max, angle);
+            }
+
+            Assert.AreEqual(1f, Shader.GetGlobalFloat("_LKMothLow"), "Low flag published to the moth shader");
+            Renderer wing = Get<Renderer>(visual, "WingRenderer");
+            Assert.IsNotNull(wing, "wing renderer");
+            Assert.AreEqual("LanternKeeper/MothWing", wing.sharedMaterial.shader.name);
+            MaterialPropertyBlock block = new MaterialPropertyBlock();
+            wing.GetPropertyBlock(block);
+            float hz = block.GetFloat("_FlapHz");
+            Assert.Greater(hz, 0f, "_FlapHz in the property block");
+            Assert.AreEqual(Get<float>(visual, "FlapHz"), hz, 0.0001f, "block matches the published flap rate");
+            Assert.AreEqual(Get<float>(visual, "Phase"), block.GetFloat("_Phase"), 0.0001f, "block matches the published phase");
+            Assert.Greater(max - min, 10f, "the wing angle sweeps across frames on Low");
+            UnityEngine.Object.Destroy(moth);
         }
 
         [UnityTest]
         [Timeout(120000)]
-        public IEnumerator ShadeHemBreakupActiveOnLow()
+        public IEnumerator ShadeUsesLowPathOnLow()
         {
             yield return LoadIsland4();
             Component spawner = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("ShadeSpawner"));
             Assert.IsNotNull(spawner, "ShadeSpawner");
             GameObject prefab = Field<GameObject>(spawner, "shadePrefab");
             Assert.IsNotNull(prefab.GetComponent(GameType("ShadeVisual")), "ShadeVisual on the shade prefab");
-            Renderer body = prefab.transform.Find("Body").GetComponent<Renderer>();
-            Material material = body.sharedMaterial;
-            Assert.AreEqual("LanternKeeper/Shade", material.shader.name);
-            Assert.Greater(material.GetFloat("_HemFrac"), 0.05f, "hem breakup fraction");
+            ParticleSystem prefabTrail = prefab.transform.Find("Smoke").GetComponent<ParticleSystem>();
+            float baseLifetime = prefabTrail.main.startLifetime.constant;
+            GameObject shade = UnityEngine.Object.Instantiate(prefab, spawner.transform.position + Vector3.up * 2f, Quaternion.identity);
+            for (int i = 0; i < 5; i++)
+            {
+                yield return null;
+            }
+
+            Renderer body = shade.transform.Find("Body").GetComponent<Renderer>();
+            Assert.AreEqual("LanternKeeper/Shade", body.sharedMaterial.shader.name);
+            // The hem breakup stays on (the cutout fraction is in the material); Low only drops noise octaves, selected by the global.
+            Assert.Greater(body.sharedMaterial.GetFloat("_HemFrac"), 0.05f, "hem breakup fraction");
             Assert.AreEqual(1f, Shader.GetGlobalFloat("_LKShadeLow"), "Low flag published to the Shade shader");
+            // A Low-only runtime effect on a live Shade: the smoke trail is thinned.
+            ParticleSystem trail = shade.transform.Find("Smoke").GetComponent<ParticleSystem>();
+            Assert.AreEqual(baseLifetime * 0.5f, trail.main.startLifetime.constant, 0.001f, "trail lifetime halved on Low");
+            UnityEngine.Object.Destroy(shade);
         }
 
         [UnityTest]

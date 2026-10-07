@@ -4,6 +4,9 @@ namespace LanternKeeper
 {
 public class WaterHazard : MonoBehaviour
 {
+    // Height above the safe floor that still counts as dry: shared by the player's ground check and the beacon ring.
+    public const float DefaultSafeWaterMargin = 0.45f;
+
     public static float SurfaceY { get; private set; } = -100f;
     public static float HighWaterY { get; private set; } = -100f;
     public static float SafeFloorY => Mathf.Max(SurfaceY, HighWaterY);
