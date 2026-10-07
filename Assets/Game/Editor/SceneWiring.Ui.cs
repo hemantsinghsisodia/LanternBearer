@@ -8,12 +8,11 @@ namespace LanternKeeper
 // Validate Scene Wiring: the Phase E UI. Each problem is one message (and counts once).
 public static partial class SceneWiring
 {
-    // HUD readouts and end-of-round panels that are still code-made or LiberationSans. They are Phase F's to restyle,
+    // The prompt, toasts, intro card and end-of-round panels are still code-made or LiberationSans. Phase F2 task 4 restyles them,
     // so the font check skips these children of the HUD canvas (and nothing else). Texts under a Phase E screen are always checked.
     static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>
     {
-        "StatusText", "TimerText", "PromptText", "FuelPenalty", "FpsReadout", "IslandLabel",
-        "WinPanel", "LosePanel", "GraphicsPanel", "TideGauge", "TideToast", "LogToast", "IntroCard", "FuelCostGhost"
+        "PromptText", "WinPanel", "LosePanel", "TideToast", "LogToast", "IntroCard"
     };
 
     static int RequireUi(bool quiet)

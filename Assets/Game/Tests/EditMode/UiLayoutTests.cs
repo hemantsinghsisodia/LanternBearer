@@ -25,8 +25,7 @@ public class UiLayoutTests
     // (Anything else under the HUD canvas that overflows at 130% fails the test.)
     static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>
     {
-        "WinPanel", "LosePanel", "GraphicsPanel", // end-of-round and dev graphics panels: restyled with the HUD in Phase F
-        "FpsReadout"                              // developer readout, off by default
+        "WinPanel", "LosePanel" // end-of-round panels: restyled in Phase F2 task 4
     };
 
     GameObject canvasGo;
@@ -359,11 +358,6 @@ public class UiLayoutTests
         Assert.IsNotNull(scaler, "the HUD canvas has a TextScaler");
         Assert.IsTrue(scaler.ScalePlainText, "the HUD scaler scales plain texts");
 
-        // The widest status line the game can produce, with the safe-light second line.
-        Transform status = hud.transform.Find("StatusText");
-        Assert.IsNotNull(status, "StatusText");
-        TMP_Text statusText = status.GetComponent<TMP_Text>();
-        statusText.text = DrainReadout.Format(2.25f, 2, 2, 2) + "\nSafe light";
         scaler.Reapply();
         Canvas.ForceUpdateCanvases();
 

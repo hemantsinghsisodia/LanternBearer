@@ -7,6 +7,9 @@ using UnityEngine.UI;
 
 namespace LanternKeeper
 {
+// Coordinator for the in-game HUD. It reads GameManager, Lantern, the player, Tide and the storm sources and pushes plain values
+// into the widgets of the GameHud prefab (Scripts/Hud). The intro card, result panels and toasts below are still code-made;
+// Phase F2 task 4 replaces them.
 public class HUD : MonoBehaviour
 {
     const float PromptShakeDuration = 0.3f;
@@ -14,112 +17,74 @@ public class HUD : MonoBehaviour
     static readonly Color PromptColor = new Color(1f, 0.9f, 0.7f, 1f);
     static readonly Color WarningColor = new Color(1f, 0.38f, 0.28f, 1f);
     static readonly Color FlashColor = new Color(1f, 0.05f, 0.04f, 1f);
-    static readonly Color GhostColor = new Color(0.15f, 0.07f, 0.03f, 0.82f);
-    static readonly Color DotLit = new Color(1f, 0.55f, 0.16f, 1f);
-    static readonly Color DotDim = new Color(0.28f, 0.3f, 0.34f, 1f);
-    static readonly Color SafeStatusColor = new Color(1f, 0.86f, 0.45f);
-    static readonly Color DrainStatusColor = new Color(1f, 0.78f, 0.48f);
     static readonly Color IslandLabelColor = new Color(0.86f, 0.76f, 0.58f, 0.85f);
     static readonly Color ShakeColor = new Color(1f, 0.28f, 0.16f, 1f);
 
     static Sprite whiteSprite;
-    static Sprite circleSprite;
-    static Sprite glowSprite;
+    static Sprite vignetteSprite;
     static TMP_FontAsset hudFont;
     static Material hudFace;
 
-    [SerializeField] Image fuelFill;
-    [SerializeField] Image fuelCostGhost;
-    [SerializeField] Image fuelGlow;
-    [SerializeField] RectTransform fuelMeter;
-    [SerializeField] RectTransform beaconDots;
+    [SerializeField] FuelGaugeWidget fuelGauge;
+    [SerializeField] BeaconRoofs roofs;
+    [SerializeField] DrainIcons drainIcons;
+    [SerializeField] TimerLabel timerLabel;
+    [SerializeField] IslandLabel islandLabel;
+    [SerializeField] TideChip tideChip;
+    [SerializeField] StormChip stormChip;
     [SerializeField] TMP_Text promptText;
-    [SerializeField] TMP_Text timerText;
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
     [SerializeField] PauseScreen pauseScreen;
-    [SerializeField] GraphicsMenu graphicsMenu;
     [SerializeField] TMP_Text winDetailText;
     [SerializeField] TMP_Text loseDetailText;
-    [SerializeField] TMP_Text statusText;
     [SerializeField] Image fadeOverlay;
     [SerializeField] Image deathOverlay;
-    [SerializeField] TMP_Text penaltyText;
     [SerializeField] Lantern lantern;
 
-    Image[] dots;
-    Image[] dotGlows;
-    float[] dotFlare;
+    PlayerController player;
+    Transform cameraTransform;
+    Tide tide;
     bool bound;
+    bool lanternBound;
     bool missingResolved;
     bool lanternResolved;
     bool promptShaking;
-    bool ghostStyled;
-    int shownSecond = int.MinValue;
-    int promptCost = int.MinValue;
-    int paintedLit = int.MinValue;
-    int statusCents = int.MinValue;
-    int statusMoths = int.MinValue;
-    int statusDraining = int.MinValue;
-    int statusNear = int.MinValue;
-    bool promptAfford;
-    bool statusSafe;
-    bool statusReady;
-    string promptLine;
     bool buttonsWired;
-    float shakeRemaining;
-    Vector2 promptHome;
-    bool promptHomeReady;
-    Vector2 penaltyHome;
-    bool penaltyHomeReady;
-    Coroutine penaltyRoutine;
-    bool penaltyGain;
-    bool fuelReady;
-    float displayedFuel = 1f;
-    float fuelVelocity;
-    float lastNorm = 1f;
-    float gainFlash;
     bool panelsAudited;
-    RectTransform tideRoot;
-    Image tideFill;
-    TMP_Text tideText;
-    TMP_Text logText;
-    Image logBack;
-    Coroutine logRoutine;
-    Coroutine tideRoutine;
-    TMP_Text tideToast;
-    Tide tide;
     bool tideSearched;
     bool tideWasRising;
     bool tideWarned;
-    int tideShownSecond = int.MinValue;
-    StormHUD storm;
-    MothHUD mothFx;
-    bool mothSearched;
     bool stormSearched;
-    static Sprite vignetteSprite;
-    TMP_Text islandLabelText;
+    bool hasStorm;
+    bool promptAfford;
+    bool promptHomeReady;
+    int shownSecond = int.MinValue;
+    int shownTotal = int.MinValue;
+    int shownLit = int.MinValue;
+    int promptCost = int.MinValue;
+    string promptLine;
     string shownIslandLabel;
+    string shownCardKey;
+    float shakeRemaining;
+    Vector2 promptHome;
+    TMP_Text logText;
+    TMP_Text tideToast;
+    Image logBack;
+    Coroutine logRoutine;
+    Coroutine tideRoutine;
     GameObject introCard;
     TMP_Text introTitle;
     TMP_Text introBody;
     TMP_Text introFooter;
-    string shownCardKey;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
     public float DeathAmount { get; private set; }
-    public string StatusLine => statusText != null ? statusText.text : "";
-    public string PenaltyLine => penaltyText != null && penaltyText.gameObject.activeInHierarchy ? penaltyText.text : "";
-
-    // Wide enough for "Drain x2.25 · Moths 2/2 • 2 moths on you" at 130% text (about 420 px) with room to spare.
-    public const float StatusBoxWidth = 560f;
 
     void OnEnable()
     {
         Beacon.LightFailed += OnLightFailed;
         BindIfNeeded();
-        EnsureFuelGhost();
-        EnsureGraphicsSurface();
         WireButtons();
         EnsureWidgets();
         HidePanels();
@@ -134,58 +99,31 @@ public class HUD : MonoBehaviour
     void Start()
     {
         BindIfNeeded();
-        EnsureFuelGhost();
-        EnsureGraphicsSurface();
         WireButtons();
         EnsureWidgets();
+        if (timerLabel != null)
+        {
+            timerLabel.SetFormatter(GameManager.FormatTime);
+        }
     }
 
     void Update()
     {
-        GameManager manager = GameManager.Instance;
-        if (lantern != null && fuelFill != null)
-        {
-            float target = lantern.FuelNormalized;
-            if (!fuelReady)
-            {
-                displayedFuel = target;
-                lastNorm = target;
-                fuelVelocity = 0f;
-                fuelReady = true;
-            }
-            else
-            {
-            displayedFuel = FuelGauge.Step(displayedFuel, target, ref fuelVelocity, 0.3f, Time.deltaTime, 0.0005f);
-            if (!Mathf.Approximately(fuelFill.fillAmount, displayedFuel))
-            {
-                fuelFill.fillAmount = displayedFuel;
-            }
-            }
-
-            PulseFuel(target);
-            TickGainFlash();
-        }
-
+        UpdateFuelAndDrain();
         UpdateTide();
-        EnsureStorm();
-        EnsureMothFx();
-        TickDots();
+        UpdateStorm();
 
+        GameManager manager = GameManager.Instance;
         if (manager == null)
         {
             return;
         }
 
-        EnsureDots(manager.BeaconsToWin);
-        PaintDots(manager.LitCount);
+        UpdateRoofs(manager);
         RefreshIslandLabel(manager);
-
         ShowTimer(manager.Elapsed);
-
         RefreshPrompt(manager);
-        UpdateGhost(manager);
         UpdateIntroCard(manager);
-        RefreshStatus();
 
         if (manager.Won)
         {
@@ -200,44 +138,168 @@ public class HUD : MonoBehaviour
         }
     }
 
+    void UpdateFuelAndDrain()
+    {
+        if (lantern == null)
+        {
+            return;
+        }
+
+        if (fuelGauge != null)
+        {
+            fuelGauge.Show(lantern.FuelNormalized, lantern.MaxFuel, UserSettings.ReduceFlashing);
+        }
+
+        if (drainIcons == null)
+        {
+            return;
+        }
+
+        if (player == null)
+        {
+            player = FindAnyObjectByType<PlayerController>();
+        }
+
+        HudMath.DrainState state = new HudMath.DrainState();
+        state.MothsDraining = lantern.MothsDraining;
+        state.InSafeLight = lantern.InSafeLight;
+        state.Sprinting = player != null && player.IsSprinting;
+        state.DrainRelative = lantern.DrainRelative;
+        drainIcons.Show(HudMath.DrainIcons(state));
+    }
+
+    void UpdateRoofs(GameManager manager)
+    {
+        if (roofs == null || (manager.BeaconsToWin == shownTotal && manager.LitCount == shownLit))
+        {
+            return;
+        }
+
+        shownTotal = manager.BeaconsToWin;
+        shownLit = manager.LitCount;
+        roofs.Show(shownTotal, shownLit);
+    }
+
+    // The tide chip (Island 3) and the storm chip (Island 4) share a slot; only the one whose source exists shows.
+    void UpdateTide()
+    {
+        if (tide == null)
+        {
+            if (tideSearched)
+            {
+                return;
+            }
+
+            tideSearched = true;
+            tide = Tide.Instance != null ? Tide.Instance : FindAnyObjectByType<Tide>();
+            if (tide == null)
+            {
+                return;
+            }
+
+            tideWasRising = tide.IsRising;
+        }
+
+        bool rising = tide.IsRising;
+        if (tideChip != null)
+        {
+            tideChip.Show(true, rising, tide.Normalized);
+        }
+
+        if (rising != tideWasRising)
+        {
+            tideWasRising = rising;
+            tideWarned = false;
+        }
+
+        if (!tideWarned && Mathf.CeilToInt(tide.SecondsToTurn) <= 5)
+        {
+            tideWarned = true;
+            ShowTideToast("Tide turning");
+        }
+    }
+
+    // Islands without wind or lightning never show the storm chip or pulse the screen edge on a Shade steal.
+    void UpdateStorm()
+    {
+        if (!stormSearched)
+        {
+            stormSearched = true;
+            hasStorm = Wind.Instance != null || Lightning.Instance != null;
+            if (hasStorm && GetComponent<StealPulse>() == null)
+            {
+                gameObject.AddComponent<StealPulse>();
+            }
+        }
+
+        if (!hasStorm || stormChip == null)
+        {
+            return;
+        }
+
+        float angle = 0f;
+        float strength = 0f;
+        Wind wind = Wind.Instance;
+        if (wind != null)
+        {
+            if (cameraTransform == null && Camera.main != null)
+            {
+                cameraTransform = Camera.main.transform;
+            }
+
+            Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
+            forward.y = 0f;
+            Vector3 direction = wind.Direction;
+            direction.y = 0f;
+            if (forward.sqrMagnitude > 0.0001f && direction.sqrMagnitude > 0.0001f)
+            {
+                angle = Vector3.SignedAngle(forward, direction, Vector3.up);
+            }
+
+            strength = wind.Phase == WindPhase.Gust ? wind.Strength01 : 0f;
+        }
+
+        float thunder = 0f;
+        Lightning lightning = Lightning.Instance;
+        if (lightning != null && lightning.Phase == LightningPhase.Thunder)
+        {
+            thunder = UserSettings.ReduceFlashing ? 0.8f : 0.6f + 0.4f * Mathf.Abs(Mathf.Sin(Time.time * 14f));
+        }
+
+        stormChip.Show(true, angle, strength, thunder);
+    }
+
     void BindIfNeeded()
     {
         ResolveLantern();
         ResolveMissing();
+        if (!lanternBound && lantern != null && fuelGauge != null)
+        {
+            lanternBound = true;
+            lantern.FuelAdjusted += fuelGauge.Changed;
+        }
+
         if (bound || GameManager.Instance == null)
         {
             return;
         }
 
         GameManager manager = GameManager.Instance;
-        manager.BeaconsChanged += OnBeaconsChanged;
         manager.PromptChanged += OnPromptChanged;
         manager.WonGame += ShowWin;
         manager.LostGame += ShowLose;
-        manager.TimeChanged += OnTimeChanged;
-        if (lantern != null)
-        {
-            displayedFuel = lantern.FuelNormalized;
-            lastNorm = displayedFuel;
-            fuelVelocity = 0f;
-            fuelReady = true;
-            lantern.FuelChanged += OnFuelChanged;
-            OnFuelChanged(lantern.FuelNormalized);
-        }
-
-        OnBeaconsChanged(manager.LitCount, manager.BeaconsToWin);
         OnPromptChanged();
-        OnTimeChanged(manager.Elapsed);
         bound = true;
     }
 
     void Unbind()
     {
-        if (lantern != null)
+        if (lanternBound && lantern != null && fuelGauge != null)
         {
-            lantern.FuelChanged -= OnFuelChanged;
+            lantern.FuelAdjusted -= fuelGauge.Changed;
         }
 
+        lanternBound = false;
         if (!bound || GameManager.Instance == null)
         {
             bound = false;
@@ -245,11 +307,9 @@ public class HUD : MonoBehaviour
         }
 
         GameManager manager = GameManager.Instance;
-        manager.BeaconsChanged -= OnBeaconsChanged;
         manager.PromptChanged -= OnPromptChanged;
         manager.WonGame -= ShowWin;
         manager.LostGame -= ShowLose;
-        manager.TimeChanged -= OnTimeChanged;
         bound = false;
     }
 
@@ -265,6 +325,7 @@ public class HUD : MonoBehaviour
         Debug.LogWarning("HUD lantern was not wired. Resolved once.", this);
     }
 
+    // Safety net for scenes whose references were lost: finds the prefab parts and panels once, by type and name.
     void ResolveMissing()
     {
         if (missingResolved)
@@ -273,249 +334,33 @@ public class HUD : MonoBehaviour
         }
 
         missingResolved = true;
-        bool missing = fuelFill == null || promptText == null || timerText == null || statusText == null;
-        if (fuelFill == null)
+        if (fuelGauge == null)
         {
-            fuelFill = FindImage("FuelFill");
+            fuelGauge = GetComponentInChildren<FuelGaugeWidget>(true);
+            roofs = roofs != null ? roofs : GetComponentInChildren<BeaconRoofs>(true);
+            drainIcons = drainIcons != null ? drainIcons : GetComponentInChildren<DrainIcons>(true);
+            timerLabel = timerLabel != null ? timerLabel : GetComponentInChildren<TimerLabel>(true);
+            islandLabel = islandLabel != null ? islandLabel : GetComponentInChildren<IslandLabel>(true);
+            tideChip = tideChip != null ? tideChip : GetComponentInChildren<TideChip>(true);
+            stormChip = stormChip != null ? stormChip : GetComponentInChildren<StormChip>(true);
+            Debug.LogWarning("HUD widget references were not wired. Resolved by type once.", this);
         }
 
-        if (fuelCostGhost == null)
-        {
-            fuelCostGhost = FindImage("FuelCostGhost");
-        }
-
-        if (fuelMeter == null)
-        {
-            Transform meter = FindNamed("FuelMeter");
-            if (meter != null)
-            {
-                fuelMeter = meter as RectTransform;
-            }
-        }
-
-        if (beaconDots == null)
-        {
-            Transform dotsRoot = FindNamed("BeaconDots");
-            if (dotsRoot != null)
-            {
-                beaconDots = dotsRoot as RectTransform;
-            }
-        }
-
-        if (promptText == null)
-        {
-            promptText = FindText("PromptText");
-        }
-
-        if (timerText == null)
-        {
-            timerText = FindText("TimerText");
-        }
-
-        if (winPanel == null)
-        {
-            Transform panel = FindNamed("WinPanel");
-            if (panel != null)
-            {
-                winPanel = panel.gameObject;
-            }
-        }
-
-        if (losePanel == null)
-        {
-            Transform panel = FindNamed("LosePanel");
-            if (panel != null)
-            {
-                losePanel = panel.gameObject;
-            }
-        }
-
-        if (pauseScreen == null)
-        {
-            pauseScreen = GetComponentInChildren<PauseScreen>(true);
-        }
-
-        if (winDetailText == null)
-        {
-            winDetailText = FindText("WinDetail");
-        }
-
-        if (loseDetailText == null)
-        {
-            loseDetailText = FindText("LoseDetail");
-        }
-
-        if (missing)
-        {
-            Debug.LogWarning("HUD widget references were not fully wired. Resolved by name once.", this);
-        }
-    }
-
-    void EnsureFuelGhost()
-    {
-        if (fuelFill == null)
-        {
-            return;
-        }
-
-        PrepareRadial(fuelFill);
-        if (fuelCostGhost == null)
-        {
-            Transform existing = fuelFill.transform.parent != null ? fuelFill.transform.parent.Find("FuelCostGhost") : null;
-            if (existing == null)
-            {
-                existing = fuelFill.transform.Find("FuelCostGhost");
-            }
-
-            if (existing != null)
-            {
-                fuelCostGhost = existing.GetComponent<Image>();
-            }
-        }
-
-        if (fuelCostGhost == null && fuelMeter != null)
-        {
-            GameObject ghostObject = new GameObject("FuelCostGhost", typeof(RectTransform), typeof(Image));
-            ghostObject.transform.SetParent(fuelMeter, false);
-            fuelCostGhost = ghostObject.GetComponent<Image>();
-            ghostObject.SetActive(false);
-        }
-
-        if (fuelCostGhost != null)
-        {
-            PrepareRadial(fuelCostGhost);
-            fuelCostGhost.color = GhostColor;
-            fuelCostGhost.raycastTarget = false;
-        }
-
-        if (fuelGlow == null && fuelMeter != null)
-        {
-            Transform existingGlow = fuelMeter.Find("FuelGlow");
-            if (existingGlow != null)
-            {
-                fuelGlow = existingGlow.GetComponent<Image>();
-            }
-        }
-
-        if (fuelGlow == null && fuelMeter != null)
-        {
-            GameObject glowObject = new GameObject("FuelGlow", typeof(RectTransform), typeof(Image));
-            glowObject.transform.SetParent(fuelMeter, false);
-            glowObject.transform.SetAsFirstSibling();
-            fuelGlow = glowObject.GetComponent<Image>();
-        }
-
-        if (fuelGlow != null)
-        {
-            RectTransform glowRect = fuelGlow.rectTransform;
-            glowRect.anchorMin = new Vector2(0.5f, 0.5f);
-            glowRect.anchorMax = new Vector2(0.5f, 0.5f);
-            glowRect.pivot = new Vector2(0.5f, 0.5f);
-            glowRect.sizeDelta = new Vector2(150f, 150f);
-            fuelGlow.sprite = Glow();
-            fuelGlow.raycastTarget = false;
-            fuelGlow.color = new Color(1f, 0.55f, 0.16f, 0.45f);
-        }
-    }
-
-    static void PrepareRadial(Image image)
-    {
-        image.sprite = Circle();
-        image.type = Image.Type.Filled;
-        image.fillMethod = Image.FillMethod.Radial360;
-        image.fillOrigin = (int)Image.Origin360.Bottom;
-        image.fillClockwise = true;
-        RectTransform rect = image.rectTransform;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(86f, 86f);
-        rect.anchoredPosition = Vector2.zero;
-    }
-
-    // Phase F2: remove
-    bool EnsureGraphicsSurface()
-    {
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = GetComponent<GraphicsMenu>();
-        }
-
-        bool created = false;
-        if (FindNamed("GraphicsPanel") == null)
-        {
-            CreateRuntimeGraphicsPanel();
-            created = true;
-        }
-
-        if (FindNamed("FpsReadout") == null)
-        {
-            TMP_Text readout = MakeRuntimeText(transform, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f), TextAlignmentOptions.MidlineRight);
-            readout.rectTransform.pivot = new Vector2(1f, 1f);
-            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
-            readout.gameObject.SetActive(false);
-            created = true;
-        }
-
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = gameObject.AddComponent<GraphicsMenu>();
-            created = true;
-        }
-
-        return created;
-    }
-
-    // Phase F2: remove
-    void CreateRuntimeGraphicsPanel()
-    {
-        Sprite sprite = PanelSprite();
-        GameObject panel = new GameObject("GraphicsPanel", typeof(RectTransform), typeof(Image));
-        panel.transform.SetParent(transform, false);
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(700f, 560f);
-        Image image = panel.GetComponent<Image>();
-        image.sprite = sprite;
-        image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-        image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-        MakeRuntimeText(rect, "Title", "Graphics", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(640f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
-        MakeRuntimeText(rect, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 150f), new Vector2(640f, 40f), new Color(1f, 0.92f, 0.78f), TextAlignmentOptions.Center);
-        MakeRuntimeButton(rect, "LowButton", "Low", sprite, new Vector2(0.5f, 0.5f), new Vector2(-243f, 70f), new Vector2(150f, 48f));
-        MakeRuntimeButton(rect, "MediumButton", "Medium", sprite, new Vector2(0.5f, 0.5f), new Vector2(-81f, 70f), new Vector2(150f, 48f));
-        MakeRuntimeButton(rect, "HighButton", "High", sprite, new Vector2(0.5f, 0.5f), new Vector2(81f, 70f), new Vector2(150f, 48f));
-        MakeRuntimeButton(rect, "UltraButton", "Ultra", sprite, new Vector2(0.5f, 0.5f), new Vector2(243f, 70f), new Vector2(150f, 48f));
-        MakeRuntimeButton(rect, "VSyncButton", "VSync: Off", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(420f, 48f));
-        MakeRuntimeButton(rect, "FpsButton", "FPS counter: Off", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -88f), new Vector2(420f, 48f));
-        MakeRuntimeButton(rect, "BackButton", "Back", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -168f), new Vector2(280f, 48f));
-        panel.SetActive(false);
+        promptText = promptText != null ? promptText : FindText("PromptText");
+        winDetailText = winDetailText != null ? winDetailText : FindText("WinDetail");
+        loseDetailText = loseDetailText != null ? loseDetailText : FindText("LoseDetail");
+        pauseScreen = pauseScreen != null ? pauseScreen : GetComponentInChildren<PauseScreen>(true);
+        winPanel = winPanel != null ? winPanel : FindObject("WinPanel");
+        losePanel = losePanel != null ? losePanel : FindObject("LosePanel");
     }
 
     public bool ConsumePauseBack()
     {
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = GetComponent<GraphicsMenu>();
-        }
-
-        if (graphicsMenu != null && graphicsMenu.IsOpen)
-        {
-            graphicsMenu.Close();
-            return true;
-        }
-
         return pauseScreen != null && pauseScreen.ConsumeBack();
     }
 
     public void EnsureWidgets()
     {
-        if (statusText == null)
-        {
-            statusText = FindText("StatusText");
-        }
-
         if (fadeOverlay == null)
         {
             fadeOverlay = FindImage("FadeOverlay");
@@ -524,17 +369,6 @@ public class HUD : MonoBehaviour
         if (deathOverlay == null)
         {
             deathOverlay = FindImage("DeathOverlay");
-        }
-
-        if (penaltyText == null)
-        {
-            penaltyText = FindText("FuelPenalty");
-        }
-
-        if (statusText == null)
-        {
-            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
-            statusText.rectTransform.pivot = new Vector2(0f, 1f);
         }
 
         if (fadeOverlay == null)
@@ -549,16 +383,9 @@ public class HUD : MonoBehaviour
         {
             deathOverlay = MakeOverlay("DeathOverlay", VignetteSprite());
         }
-
-        if (penaltyText == null)
-        {
-            penaltyText = MakeRuntimeText(transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(150f, -78f), new Vector2(140f, 40f), new Color(1f, 0.28f, 0.2f, 0f), TextAlignmentOptions.MidlineLeft);
-            penaltyText.rectTransform.pivot = new Vector2(0f, 1f);
-            penaltyText.gameObject.SetActive(false);
-        }
     }
 
-    // Quiet island name at top centre (clear of the timer, fuel gauge and status text), plus a subtitle on each panel.
+    // Quiet island name at top centre, plus a subtitle on each panel.
     void RefreshIslandLabel(GameManager manager)
     {
         string label = manager.IslandLabel;
@@ -568,13 +395,11 @@ public class HUD : MonoBehaviour
         }
 
         shownIslandLabel = label;
-        if (islandLabelText == null)
+        if (islandLabel != null)
         {
-            islandLabelText = MakeRuntimeText(transform, "IslandLabel", "", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(520f, 32f), IslandLabelColor, TextAlignmentOptions.Center);
+            islandLabel.Show(string.IsNullOrEmpty(label) ? "" : manager.IslandLabelHud);
         }
 
-        islandLabelText.text = manager.IslandLabelHud;
-        islandLabelText.gameObject.SetActive(!string.IsNullOrEmpty(label));
         SetPanelSubtitle(winPanel, label, 78f);
         SetPanelSubtitle(losePanel, label, 78f);
     }
@@ -595,135 +420,6 @@ public class HUD : MonoBehaviour
 
         subtitle.text = GameManager.Instance != null ? GameManager.Instance.IslandLabelHud : "";
         subtitle.gameObject.SetActive(!string.IsNullOrEmpty(label));
-    }
-
-    void UpdateTide()
-    {
-        if (tide == null)
-        {
-            if (tideSearched)
-            {
-                return;
-            }
-
-            tideSearched = true;
-            tide = Tide.Instance != null ? Tide.Instance : FindAnyObjectByType<Tide>();
-            if (tide == null)
-            {
-                return;
-            }
-
-            tideWasRising = tide.IsRising;
-        }
-
-        EnsureTideGauge();
-        float level = tide.Normalized;
-        bool rising = tide.IsRising;
-        int seconds = Mathf.CeilToInt(tide.SecondsToTurn);
-        if (tideFill != null && !Mathf.Approximately(tideFill.fillAmount, level))
-        {
-            tideFill.fillAmount = level;
-        }
-
-        if (tideText != null && (seconds != tideShownSecond || rising != tideWasRising))
-        {
-            tideShownSecond = seconds;
-            tideText.text = (rising ? "^ Rising " : "v Falling ") + seconds + "s";
-        }
-
-        if (rising != tideWasRising)
-        {
-            tideWasRising = rising;
-            tideWarned = false;
-        }
-
-        if (!tideWarned && seconds <= 5)
-        {
-            tideWarned = true;
-            ShowTideToast("Tide turning");
-        }
-    }
-
-    // Islands without wind or lightning never get the storm widgets.
-    void EnsureStorm()
-    {
-        if (storm != null || stormSearched)
-        {
-            return;
-        }
-
-        stormSearched = true;
-        if (Wind.Instance == null && Lightning.Instance == null)
-        {
-            return;
-        }
-
-        storm = gameObject.AddComponent<StormHUD>();
-    }
-
-    // Islands without a moth spawner never get the moth feedback.
-    void EnsureMothFx()
-    {
-        if (mothFx != null || mothSearched || lantern == null || fuelMeter == null || statusText == null)
-        {
-            return;
-        }
-
-        if (MothSpawner.Instance == null)
-        {
-            return;
-        }
-
-        mothSearched = true;
-        mothFx = gameObject.AddComponent<MothHUD>();
-        mothFx.Bind(lantern, fuelMeter, statusText);
-    }
-
-    void EnsureTideGauge()
-    {
-        if (tideRoot != null)
-        {
-            return;
-        }
-
-        GameObject root = new GameObject("TideGauge", typeof(RectTransform));
-        root.transform.SetParent(transform, false);
-        tideRoot = root.GetComponent<RectTransform>();
-        tideRoot.anchorMin = new Vector2(0f, 1f);
-        tideRoot.anchorMax = new Vector2(0f, 1f);
-        tideRoot.pivot = new Vector2(0f, 1f);
-        tideRoot.anchoredPosition = new Vector2(36f, -228f);
-        tideRoot.sizeDelta = new Vector2(260f, 30f);
-        TMP_Text label = MakeRuntimeText(tideRoot, "TideLabel", "Tide", 20, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(48f, 28f), new Color(0.62f, 0.86f, 0.9f), TextAlignmentOptions.MidlineLeft);
-        label.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        GameObject track = new GameObject("TideTrack", typeof(RectTransform), typeof(Image));
-        track.transform.SetParent(tideRoot, false);
-        RectTransform trackRect = track.GetComponent<RectTransform>();
-        trackRect.anchorMin = new Vector2(0f, 0.5f);
-        trackRect.anchorMax = new Vector2(0f, 0.5f);
-        trackRect.pivot = new Vector2(0f, 0.5f);
-        trackRect.anchoredPosition = new Vector2(52f, 0f);
-        trackRect.sizeDelta = new Vector2(64f, 10f);
-        Image trackImage = track.GetComponent<Image>();
-        trackImage.sprite = White();
-        trackImage.color = new Color(0.05f, 0.1f, 0.14f, 0.85f);
-        trackImage.raycastTarget = false;
-        GameObject fill = new GameObject("TideFill", typeof(RectTransform), typeof(Image));
-        fill.transform.SetParent(trackRect, false);
-        RectTransform fillRect = fill.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = new Vector2(1f, 1f);
-        fillRect.offsetMax = new Vector2(-1f, -1f);
-        tideFill = fill.GetComponent<Image>();
-        tideFill.sprite = White();
-        tideFill.color = new Color(0.4f, 0.78f, 0.88f, 1f);
-        tideFill.type = Image.Type.Filled;
-        tideFill.fillMethod = Image.FillMethod.Horizontal;
-        tideFill.fillAmount = 0.5f;
-        tideFill.raycastTarget = false;
-        tideText = MakeRuntimeText(tideRoot, "TideText", "^ Rising", 20, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(122f, 0f), new Vector2(140f, 28f), new Color(0.62f, 0.86f, 0.9f), TextAlignmentOptions.MidlineLeft);
-        tideText.rectTransform.pivot = new Vector2(0f, 0.5f);
     }
 
     void ShowTideToast(string line)
@@ -823,11 +519,6 @@ public class HUD : MonoBehaviour
     public void SetFadeAlpha(float alpha)
     {
         EnsureWidgets();
-        if (fadeOverlay == null)
-        {
-            return;
-        }
-
         Color color = Color.black;
         color.a = Mathf.Clamp01(alpha);
         fadeOverlay.color = color;
@@ -839,11 +530,6 @@ public class HUD : MonoBehaviour
     {
         EnsureWidgets();
         DeathAmount = Mathf.Clamp01(amount);
-        if (deathOverlay == null)
-        {
-            return;
-        }
-
         deathOverlay.sprite = VignetteSprite();
         deathOverlay.type = Image.Type.Simple;
         deathOverlay.preserveAspect = false;
@@ -852,115 +538,13 @@ public class HUD : MonoBehaviour
         deathOverlay.color = color;
         deathOverlay.raycastTarget = false;
         deathOverlay.enabled = DeathAmount > 0.01f;
-        if (DeathAmount > 0.45f && fadeOverlay != null)
+        if (DeathAmount > 0.45f)
         {
             float fill = Mathf.InverseLerp(0.45f, 1f, DeathAmount);
             Color black = Color.black;
             black.a = fill;
             fadeOverlay.color = black;
             fadeOverlay.enabled = fill > 0.01f;
-        }
-    }
-
-    public void ShowFuelPenalty(string label)
-    {
-        ShowFuelPopup(label, false);
-    }
-
-    void ShowFuelPopup(string label, bool gain)
-    {
-        EnsureWidgets();
-        if (penaltyText == null)
-        {
-            return;
-        }
-
-        if (penaltyRoutine != null)
-        {
-            StopCoroutine(penaltyRoutine);
-        }
-
-        penaltyGain = gain;
-        penaltyRoutine = StartCoroutine(PenaltyTween(label));
-    }
-
-    IEnumerator PenaltyTween(string label)
-    {
-        penaltyText.gameObject.SetActive(true);
-        penaltyText.text = label;
-        RectTransform rect = penaltyText.rectTransform;
-        if (!penaltyHomeReady)
-        {
-            penaltyHome = rect.anchoredPosition;
-            penaltyHomeReady = true;
-        }
-
-        float elapsed = 0f;
-        const float duration = 0.9f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float unit = Mathf.Clamp01(elapsed / duration);
-            rect.anchoredPosition = penaltyHome + new Vector2(0f, 42f * unit);
-            Color color = penaltyGain ? new Color(1f, 0.92f, 0.5f, 1f) : new Color(1f, 0.25f, 0.18f, 1f);
-            color.a = 1f - Mathf.Clamp01((unit - 0.4f) / 0.6f);
-            penaltyText.color = color;
-            yield return null;
-        }
-
-        penaltyText.gameObject.SetActive(false);
-        penaltyRoutine = null;
-    }
-
-    void RefreshStatus()
-    {
-        if (statusText == null || lantern == null)
-        {
-            return;
-        }
-
-        int cents = Mathf.RoundToInt(lantern.DrainRelative * 100f);
-        int moths = Moth.LivingCount();
-        int draining = lantern.MothsDraining;
-        MothSpawner spawner = MothSpawner.Instance;
-        int near = spawner != null ? spawner.NearCount : 0;
-        bool safe = lantern.InSafeLight;
-        if (statusReady && cents == statusCents && moths == statusMoths && draining == statusDraining && near == statusNear && safe == statusSafe)
-        {
-            return;
-        }
-
-        statusReady = true;
-        statusCents = cents;
-        statusMoths = moths;
-        statusDraining = draining;
-        statusNear = near;
-        statusSafe = safe;
-        string line = DrainReadout.Format(lantern.DrainRelative, draining, near, moths);
-        if (safe)
-        {
-            line += "\nSafe light";
-        }
-
-        if (statusText.text != line)
-        {
-            statusText.text = line;
-        }
-
-        // While moths are draining, MothHUD owns the (violet, pulsing) colour.
-        Color color = safe ? SafeStatusColor : DrainStatusColor;
-        if (draining < 1 && statusText.color != color)
-        {
-            statusText.color = color;
-        }
-    }
-
-    // Puts the base status colour back without waiting for the next text change (MothHUD calls this when its violet pulse stops).
-    public void RestoreStatusColor()
-    {
-        if (statusText != null)
-        {
-            statusText.color = statusSafe ? SafeStatusColor : DrainStatusColor;
         }
     }
 
@@ -1084,189 +668,11 @@ public class HUD : MonoBehaviour
         {
             pauseScreen.Hide();
         }
-
-        if (graphicsMenu != null)
-        {
-            graphicsMenu.DismissQuiet();
-        }
     }
 
-    void PulseFuel(float normalized)
+    void OnLightFailed()
     {
-        Color warm = new Color(1f, 0.62f, 0.22f, 1f);
-        float pulse = 0.2f;
-        if (normalized < 0.2f)
-        {
-            pulse = 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.time * 6f));
-            warm = Color.Lerp(warm, new Color(1f, 0.15f, 0.1f, 1f), pulse);
-            if (fuelMeter != null)
-            {
-                float wobble = 1f + Mathf.Sin(Time.time * 18f) * 0.03f;
-                fuelMeter.localScale = new Vector3(wobble, wobble, 1f);
-            }
-        }
-        else if (fuelMeter != null)
-        {
-            fuelMeter.localScale = Vector3.one;
-        }
-
-        if (fuelFill.color != warm)
-        {
-            fuelFill.color = warm;
-        }
-
-        if (fuelGlow == null)
-        {
-            return;
-        }
-
-        float glowPulse = normalized < 0.2f ? pulse : 0.35f;
-        float alpha = 0.28f + glowPulse * 0.5f + gainFlash;
-        float scale = 1f + (normalized < 0.2f ? glowPulse * 0.22f : 0f) + gainFlash * 0.35f;
-        Color glow = new Color(1f, 0.62f, 0.22f, Mathf.Clamp01(alpha));
-        if (fuelGlow.color != glow)
-        {
-            fuelGlow.color = glow;
-        }
-
-        if (Mathf.Abs(fuelGlow.rectTransform.localScale.x - scale) > 0.01f)
-        {
-            fuelGlow.rectTransform.localScale = new Vector3(scale, scale, 1f);
-        }
-    }
-
-    void TickGainFlash()
-    {
-        if (gainFlash <= 0f)
-        {
-            return;
-        }
-
-        gainFlash = Mathf.Max(0f, gainFlash - Time.deltaTime * 1.4f);
-    }
-
-    void EnsureDots(int count)
-    {
-        if (beaconDots == null || count < 0)
-        {
-            return;
-        }
-
-        if (dots != null && dots.Length == count)
-        {
-            return;
-        }
-
-        for (int i = beaconDots.childCount - 1; i >= 0; i--)
-        {
-            Destroy(beaconDots.GetChild(i).gameObject);
-        }
-
-        paintedLit = int.MinValue;
-        dots = new Image[count];
-        dotGlows = new Image[count];
-        dotFlare = new float[count];
-        for (int i = 0; i < count; i++)
-        {
-            GameObject dot = new GameObject("Dot" + i, typeof(RectTransform), typeof(Image));
-            dot.transform.SetParent(beaconDots, false);
-            RectTransform rect = dot.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(18f, 18f);
-            Image image = dot.GetComponent<Image>();
-            image.sprite = Circle();
-            image.raycastTarget = false;
-            dots[i] = image;
-
-            GameObject glow = new GameObject("Glow", typeof(RectTransform), typeof(Image));
-            glow.transform.SetParent(dot.transform, false);
-            RectTransform glowRect = glow.GetComponent<RectTransform>();
-            glowRect.sizeDelta = new Vector2(36f, 36f);
-            Image glowImage = glow.GetComponent<Image>();
-            glowImage.sprite = Glow();
-            glowImage.color = new Color(1f, 0.55f, 0.16f, 0f);
-            glowImage.raycastTarget = false;
-            dotGlows[i] = glowImage;
-        }
-    }
-
-    void PaintDots(int lit)
-    {
-        if (dots == null || lit == paintedLit)
-        {
-            return;
-        }
-
-        int previous = paintedLit;
-        for (int i = 0; i < dots.Length; i++)
-        {
-            if (dots[i] == null)
-            {
-                continue;
-            }
-
-            bool on = i < lit;
-            dots[i].color = on ? DotLit : DotDim;
-            if (dotGlows != null && dotGlows[i] != null)
-            {
-                dotGlows[i].color = new Color(1f, 0.55f, 0.16f, on ? 0.75f : 0f);
-            }
-
-            if (previous >= 0 && on && i >= previous)
-            {
-                dotFlare[i] = 0.4f;
-                dots[i].rectTransform.localScale = new Vector3(1.5f, 1.5f, 1f);
-            }
-        }
-
-        paintedLit = lit;
-    }
-
-    void TickDots()
-    {
-        if (dotFlare == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < dotFlare.Length; i++)
-        {
-            if (dotFlare[i] <= 0f || dots[i] == null)
-            {
-                continue;
-            }
-
-            dotFlare[i] = Mathf.Max(0f, dotFlare[i] - Time.deltaTime);
-            float unit = 1f - dotFlare[i] / 0.4f;
-            float scale = Mathf.Lerp(1.5f, 1f, unit);
-            dots[i].rectTransform.localScale = new Vector3(scale, scale, 1f);
-            Color flash = Color.Lerp(new Color(1f, 0.95f, 0.7f, 1f), DotLit, unit);
-            dots[i].color = flash;
-        }
-    }
-
-    void OnFuelChanged(float normalized)
-    {
-        if (!fuelReady)
-        {
-            displayedFuel = normalized;
-            lastNorm = normalized;
-            fuelReady = true;
-            return;
-        }
-
-        if (normalized > lastNorm + 0.08f)
-        {
-            gainFlash = 0.55f;
-            ShowFuelPopup("+20", true);
-        }
-
-        lastNorm = normalized;
-    }
-
-    void OnBeaconsChanged(int lit, int target)
-    {
-        EnsureDots(target);
-        PaintDots(lit);
+        shakeRemaining = PromptShakeDuration;
     }
 
     void OnPromptChanged()
@@ -1277,31 +683,16 @@ public class HUD : MonoBehaviour
         }
     }
 
-    void OnTimeChanged(float seconds)
-    {
-        ShowTimer(seconds);
-    }
-
     void ShowTimer(float seconds)
     {
-        if (timerText == null)
-        {
-            return;
-        }
-
         int whole = seconds < 0f ? -1 : Mathf.FloorToInt(seconds);
-        if (whole == shownSecond)
+        if (timerLabel == null || whole == shownSecond)
         {
             return;
         }
 
         shownSecond = whole;
-        timerText.text = GameManager.FormatTime(seconds);
-    }
-
-    void OnLightFailed()
-    {
-        shakeRemaining = PromptShakeDuration;
+        timerLabel.Show(seconds);
     }
 
     void RefreshPrompt(GameManager manager)
@@ -1376,51 +767,6 @@ public class HUD : MonoBehaviour
             {
                 promptText.color = color;
             }
-        }
-    }
-
-    void UpdateGhost(GameManager manager)
-    {
-        if (fuelCostGhost == null)
-        {
-            return;
-        }
-
-        Beacon nearest = manager.NearestBeacon;
-        bool show = manager.ShowInteractPrompt && nearest != null && lantern != null && lantern.MaxFuel > 0.01f;
-        float from = 0f;
-        float to = 0f;
-        if (show)
-        {
-            float cost = nearest.FuelCost / lantern.MaxFuel;
-            to = displayedFuel;
-            from = Mathf.Clamp01(displayedFuel - cost);
-            show = to - from > 0.01f;
-        }
-
-        if (fuelCostGhost.gameObject.activeSelf != show)
-        {
-            fuelCostGhost.gameObject.SetActive(show);
-        }
-
-        if (!show)
-        {
-            return;
-        }
-
-        if (!ghostStyled)
-        {
-            PrepareRadial(fuelCostGhost);
-            fuelCostGhost.color = GhostColor;
-            fuelCostGhost.raycastTarget = false;
-            ghostStyled = true;
-        }
-
-        fuelCostGhost.fillAmount = Mathf.Clamp01(to - from);
-        fuelCostGhost.rectTransform.localEulerAngles = new Vector3(0f, 0f, -from * 360f);
-        if (fuelCostGhost.transform.parent != null && fuelFill != null && fuelCostGhost.transform.GetSiblingIndex() < fuelFill.transform.GetSiblingIndex())
-        {
-            fuelCostGhost.transform.SetSiblingIndex(fuelFill.transform.GetSiblingIndex() + 1);
         }
     }
 
@@ -1505,7 +851,7 @@ public class HUD : MonoBehaviour
                 builder.Append('\n');
             }
 
-            builder.Append("<indent=1.3em><line-indent=-1.3em>\u2022  ").Append(lines[i]).Append("</line-indent></indent>");
+            builder.Append("<indent=1.3em><line-indent=-1.3em>•  ").Append(lines[i]).Append("</line-indent></indent>");
         }
 
         return builder.ToString();
@@ -1546,11 +892,6 @@ public class HUD : MonoBehaviour
 
     void ShowWin()
     {
-        if (graphicsMenu != null)
-        {
-            graphicsMenu.DismissQuiet();
-        }
-
         if (winPanel != null)
         {
             winPanel.SetActive(true);
@@ -1585,11 +926,6 @@ public class HUD : MonoBehaviour
         if (GameManager.Instance != null && (GameManager.Instance.Won || GameManager.Instance.DawnPlaying))
         {
             return;
-        }
-
-        if (graphicsMenu != null)
-        {
-            graphicsMenu.DismissQuiet();
         }
 
         if (losePanel != null)
@@ -1708,26 +1044,22 @@ public class HUD : MonoBehaviour
         return null;
     }
 
+    GameObject FindObject(string objectName)
+    {
+        Transform found = FindNamed(objectName);
+        return found != null ? found.gameObject : null;
+    }
+
     TMP_Text FindText(string objectName)
     {
         Transform found = FindNamed(objectName);
-        if (found == null)
-        {
-            return null;
-        }
-
-        return found.GetComponent<TMP_Text>();
+        return found != null ? found.GetComponent<TMP_Text>() : null;
     }
 
     Image FindImage(string objectName)
     {
         Transform found = FindNamed(objectName);
-        if (found == null)
-        {
-            return null;
-        }
-
-        return found.GetComponent<Image>();
+        return found != null ? found.GetComponent<Image>() : null;
     }
 
     internal static TMP_Text MakeRuntimeText(Transform parent, string name, string value, int size, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 box, Color color, TextAlignmentOptions alignment)
@@ -1746,36 +1078,6 @@ public class HUD : MonoBehaviour
         text.text = value;
         TextScaler.Notify(text);
         return text;
-    }
-
-    static void MakeRuntimeButton(Transform parent, string name, string label, Sprite sprite, Vector2 anchor, Vector2 position, Vector2 size)
-    {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        go.transform.SetParent(parent, false);
-        RectTransform rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = size;
-        Image image = go.GetComponent<Image>();
-        image.sprite = sprite;
-        image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-        image.color = new Color(0.14f, 0.16f, 0.2f, 1f);
-        Button button = go.GetComponent<Button>();
-        button.targetGraphic = image;
-        ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(0.85f, 0.55f, 0.25f, 1f);
-        colors.pressedColor = new Color(1f, 0.7f, 0.3f, 1f);
-        colors.disabledColor = new Color(0.2f, 0.2f, 0.22f, 0.6f);
-        button.colors = colors;
-        MakeRuntimeText(rect, "Label", label, 22, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.96f, 0.93f, 0.86f, 1f), TextAlignmentOptions.Center);
-        RectTransform labelRect = rect.Find("Label") as RectTransform;
-        if (labelRect != null)
-        {
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-        }
     }
 
     static void EnsureFont()
@@ -1823,11 +1125,6 @@ public class HUD : MonoBehaviour
             }
         }
 
-        if (fuelFill != null && fuelFill.sprite != null)
-        {
-            return fuelFill.sprite;
-        }
-
         return White();
     }
 
@@ -1844,53 +1141,6 @@ public class HUD : MonoBehaviour
         whiteSprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
         whiteSprite.name = "HUDWhite";
         return whiteSprite;
-    }
-
-    internal static Sprite Circle()
-    {
-        if (circleSprite != null)
-        {
-            return circleSprite;
-        }
-
-        circleSprite = Disc(64, 0.46f, 0.02f, "HUDCircle");
-        return circleSprite;
-    }
-
-    static Sprite Glow()
-    {
-        if (glowSprite != null)
-        {
-            return glowSprite;
-        }
-
-        glowSprite = Disc(64, 0.08f, 0.48f, "HUDGlow");
-        return glowSprite;
-    }
-
-    static Sprite Disc(int size, float solid, float feather, string spriteName)
-    {
-        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        texture.wrapMode = TextureWrapMode.Clamp;
-        Color[] pixels = new Color[size * size];
-        float radius = size * 0.5f;
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float dx = (x + 0.5f - radius) / radius;
-                float dy = (y + 0.5f - radius) / radius;
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                float alpha = 1f - Mathf.InverseLerp(solid, solid + feather, dist);
-                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
-            }
-        }
-
-        texture.SetPixels(pixels);
-        texture.Apply(false);
-        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
-        sprite.name = spriteName;
-        return sprite;
     }
 }
 }

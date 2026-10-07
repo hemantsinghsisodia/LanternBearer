@@ -127,18 +127,6 @@ public static partial class UIBuilder
         scaler.ScalePlainText = true;
         EditorUtility.SetDirty(scaler);
 
-        // The status line ("Drain x2.25 · Moths 2/2 • 2 moths on you") is about 420 px at 130% text; keep its box wide enough.
-        Transform status = canvas.Find("StatusText");
-        if (status != null)
-        {
-            RectTransform statusRect = (RectTransform)status;
-            if (!Mathf.Approximately(statusRect.sizeDelta.x, HUD.StatusBoxWidth))
-            {
-                statusRect.sizeDelta = new Vector2(HUD.StatusBoxWidth, statusRect.sizeDelta.y);
-                EditorUtility.SetDirty(statusRect);
-            }
-        }
-
         SerializedObject so = new SerializedObject(hud);
         so.FindProperty("pauseScreen").objectReferenceValue = pause;
         so.ApplyModifiedPropertiesWithoutUndo();

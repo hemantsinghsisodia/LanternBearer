@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LanternKeeper
 {
 // The in-game HUD prefab (layout A: top-left cluster). Widgets are placed here and only read state at run time;
-// Task 3 of Phase F2 installs the prefab on the islands and drives it from HUD.cs.
+// InstallGameHud puts it on each island's HUD canvas; HUD.cs drives it.
 public static partial class UIBuilder
 {
     public const string GameHudPrefabPath = "Assets/Game/Prefabs/UI/GameHud.prefab";
@@ -99,6 +100,145 @@ public static partial class UIBuilder
         AssetDatabase.SaveAssets();
         Debug.Log("Lantern Keeper: built " + GameHudPrefabPath);
         return saved;
+    }
+
+
+    // Code-made readouts the prefab replaces (and the old graphics panel). Removed by name from an island's HUD canvas.
+    static readonly string[] LegacyHudChildren =
+    {
+        "FuelMeter", "BeaconDots", "TimerText", "StatusText", "FuelPenalty", "GraphicsPanel", "FpsReadout", "IslandLabel", "TideGauge"
+    };
+
+    public static void InstallGameHudInActiveScene()
+    {
+        HUD hud = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include);
+        if (hud == null)
+        {
+            return;
+        }
+        InstallGameHud(hud);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+    }
+
+    // On an island's HUD canvas: removes the old readouts and the dead GraphicsMenu component, places GameHud.prefab behind
+    // the prompt and panels, wires HUD's widget fields and the compass's theme and roof icon. Idempotent.
+    public static void InstallGameHud(HUD hud)
+    {
+        Transform canvas = hud.transform;
+        RemoveDeadComponents(hud.gameObject);
+        for (int i = 0; i < LegacyHudChildren.Length; i++)
+        {
+            Transform legacy = canvas.Find(LegacyHudChildren[i]);
+            if (legacy != null)
+            {
+                Object.DestroyImmediate(legacy.gameObject);
+            }
+        }
+
+        Transform existing = canvas.Find("GameHud");
+        if (existing == null)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GameHudPrefabPath);
+            if (prefab == null)
+            {
+                prefab = BuildGameHud();
+            }
+            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, canvas);
+            instance.name = "GameHud";
+            existing = instance.transform;
+        }
+
+        // Above the fade and death overlays (which are first), below the prompt, compass markers, panels and pause.
+        int index = 0;
+        Transform fade = canvas.Find("FadeOverlay");
+        Transform death = canvas.Find("DeathOverlay");
+        if (fade != null)
+        {
+            index = Mathf.Max(index, fade.GetSiblingIndex() + 1);
+        }
+        if (death != null)
+        {
+            index = Mathf.Max(index, death.GetSiblingIndex() + 1);
+        }
+        if (existing.GetSiblingIndex() < index)
+        {
+            index--;
+        }
+        existing.SetSiblingIndex(index);
+
+        SerializedObject so = new SerializedObject(hud);
+        SetObject(so, "fuelGauge", existing.GetComponentInChildren<FuelGaugeWidget>(true));
+        SetObject(so, "roofs", existing.GetComponentInChildren<BeaconRoofs>(true));
+        SetObject(so, "drainIcons", existing.GetComponentInChildren<DrainIcons>(true));
+        SetObject(so, "timerLabel", existing.GetComponentInChildren<TimerLabel>(true));
+        SetObject(so, "islandLabel", existing.GetComponentInChildren<IslandLabel>(true));
+        SetObject(so, "tideChip", existing.GetComponentInChildren<TideChip>(true));
+        SetObject(so, "stormChip", existing.GetComponentInChildren<StormChip>(true));
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        BeaconCompass compass = hud.GetComponent<BeaconCompass>();
+        if (compass != null)
+        {
+            SerializedObject compassObject = new SerializedObject(compass);
+            SetObject(compassObject, "theme", LoadTheme());
+            SetObject(compassObject, "roofIcon", AssetDatabase.LoadAssetAtPath<Sprite>(HudIcons.Folder + "/Icon_Roof.png"));
+            compassObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+        EditorUtility.SetDirty(hud);
+    }
+
+    // The old GraphicsMenu component no longer has a MonoBehaviour behind it, so Unity does not count it as a missing script.
+    static void RemoveDeadComponents(GameObject go)
+    {
+        SerializedObject so = new SerializedObject(go);
+        SerializedProperty components = so.FindProperty("m_Component");
+        for (int i = components.arraySize - 1; i >= 0; i--)
+        {
+            SerializedProperty entry = components.GetArrayElementAtIndex(i).FindPropertyRelative("component");
+            if (entry.objectReferenceValue == null)
+            {
+                int before = components.arraySize;
+                components.DeleteArrayElementAtIndex(i);
+                if (components.arraySize == before)
+                {
+                    components.DeleteArrayElementAtIndex(i); // the first delete only nulls an object reference
+                }
+            }
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void SetObject(SerializedObject so, string property, Object value)
+    {
+        SerializedProperty prop = so.FindProperty(property);
+        if (prop != null)
+        {
+            prop.objectReferenceValue = value;
+        }
+    }
+
+    [MenuItem("Lantern Keeper/Install Game HUD")]
+    public static void InstallGameHudEverywhere()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogError("Exit Play mode before installing the game HUD.");
+            return;
+        }
+        string[] scenes =
+        {
+            "Assets/Game/Scenes/Island1.unity",
+            "Assets/Game/Scenes/Island2.unity",
+            "Assets/Game/Scenes/Island3.unity",
+            "Assets/Game/Scenes/Island4.unity"
+        };
+        for (int i = 0; i < scenes.Length; i++)
+        {
+            EditorSceneManager.OpenScene(scenes[i], OpenSceneMode.Single);
+            InstallGameHudInActiveScene();
+            EditorSceneManager.SaveOpenScenes();
+            Debug.Log("Installed game HUD in " + scenes[i]);
+        }
     }
 
     // ---------- layout helpers ----------

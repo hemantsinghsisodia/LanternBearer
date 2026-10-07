@@ -1656,12 +1656,11 @@ public static partial class IslandBuilder
         }
 
         menuObject.ApplyModifiedPropertiesWithoutUndo();
-        // The actions and island list live in the MainMenuScreen prefab; the legacy log view and graphics panel stay until later tasks.
+        // The actions and island list live in the MainMenuScreen prefab; the legacy log view stays until later tasks.
         RectTransform legacyMatch = MakeRect(canvasObject.transform, "LegacyMatch", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
         legacyMatch.pivot = new Vector2(0f, 0.5f);
         legacyMatch.gameObject.AddComponent<Image>().sprite = art.uiSprite;
         CreateLogPanel(art, canvasObject.transform, font);
-        CreateLegacyGraphics(art, canvasObject.transform, legacyMatch);
         Object.DestroyImmediate(legacyMatch.gameObject);
         UIBuilder.InstallMainMenuInActiveScene();
         UIBuilder.InstallSettingsInActiveScene();
@@ -1716,70 +1715,13 @@ public static partial class IslandBuilder
     static void CreateHud(ArtKit art, Stage stage)
     {
         EnsureEventSystem();
-        EnsureHudSprites();
         GameObject canvasObject = MakeCanvas("HUD");
         HUD hud = canvasObject.AddComponent<HUD>();
         canvasObject.AddComponent<BeaconCompass>();
-        Sprite circle = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/UI/HudCircle.png");
-        Sprite glow = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Game/UI/HudGlow.png");
-        if (circle == null)
-        {
-            circle = art.uiSprite;
-        }
-
-        RectTransform fuel = MakeRect(canvasObject.transform, "FuelMeter", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -28f), new Vector2(120f, 120f));
-        fuel.pivot = new Vector2(0f, 1f);
-        RectTransform glowRect = MakeRect(fuel, "FuelGlow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150f, 150f));
-        Image glowImage = glowRect.gameObject.AddComponent<Image>();
-        glowImage.sprite = glow != null ? glow : circle;
-        glowImage.color = new Color(1f, 0.55f, 0.16f, 0.4f);
-        glowImage.raycastTarget = false;
-
-        RectTransform track = MakeRect(fuel, "FuelTrack", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
-        Image trackImage = track.gameObject.AddComponent<Image>();
-        trackImage.sprite = circle;
-        trackImage.color = new Color(0.12f, 0.08f, 0.05f, 0.9f);
-        trackImage.raycastTarget = false;
-
-        RectTransform fill = MakeRect(fuel, "FuelFill", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
-        Image fillImage = fill.gameObject.AddComponent<Image>();
-        fillImage.sprite = circle;
-        fillImage.color = new Color(1f, 0.62f, 0.22f, 1f);
-        fillImage.type = Image.Type.Filled;
-        fillImage.fillMethod = Image.FillMethod.Radial360;
-        fillImage.fillOrigin = (int)Image.Origin360.Bottom;
-        fillImage.fillClockwise = true;
-        fillImage.fillAmount = 1f;
-        fillImage.raycastTarget = false;
-
-        RectTransform ghost = MakeRect(fuel, "FuelCostGhost", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86f, 86f));
-        Image ghostImage = ghost.gameObject.AddComponent<Image>();
-        ghostImage.sprite = circle;
-        ghostImage.color = new Color(0.15f, 0.07f, 0.03f, 0.82f);
-        ghostImage.type = Image.Type.Filled;
-        ghostImage.fillMethod = Image.FillMethod.Radial360;
-        ghostImage.fillOrigin = (int)Image.Origin360.Bottom;
-        ghostImage.fillClockwise = true;
-        ghostImage.fillAmount = 0f;
-        ghostImage.raycastTarget = false;
-        ghost.gameObject.SetActive(false);
-
-        RectTransform dots = MakeRect(canvasObject.transform, "BeaconDots", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(170f, -48f), new Vector2(280f, 28f));
-        dots.pivot = new Vector2(0f, 1f);
-        HorizontalLayoutGroup layout = dots.gameObject.AddComponent<HorizontalLayoutGroup>();
-        layout.spacing = 10f;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        layout.childControlWidth = false;
-        layout.childControlHeight = false;
 
         Color ink = new Color(0.96f, 0.93f, 0.86f, 1f);
-        TMP_Text timer = MakeTmp(canvasObject.transform, "TimerText", "00:00", 32, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -28f), new Vector2(240f, 52f), ink, TextAlignmentOptions.MidlineRight);
-        timer.rectTransform.pivot = new Vector2(1f, 1f);
         TMP_Text prompt = MakeTmp(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(680f, 56f), new Color(1f, 0.9f, 0.7f, 1f), TextAlignmentOptions.Center);
         prompt.gameObject.SetActive(false);
-
-        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(HUD.StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
-        status.rectTransform.pivot = new Vector2(0f, 1f);
 
         RectTransform fade = MakeRect(canvasObject.transform, "FadeOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         fade.offsetMin = Vector2.zero;
@@ -1797,10 +1739,6 @@ public static partial class IslandBuilder
         deathImage.sprite = art.uiSprite;
         deathImage.color = new Color(0f, 0f, 0f, 0f);
         deathImage.raycastTarget = false;
-
-        TMP_Text penalty = MakeTmp(canvasObject.transform, "FuelPenalty", "-10", 28, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(168f, -64f), new Vector2(160f, 44f), new Color(1f, 0.28f, 0.2f, 1f), TextAlignmentOptions.MidlineLeft);
-        penalty.rectTransform.pivot = new Vector2(0f, 1f);
-        penalty.gameObject.SetActive(false);
 
         RectTransform markers = MakeRect(canvasObject.transform, "EdgeMarkers", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         markers.offsetMin = Vector2.zero;
@@ -1820,32 +1758,17 @@ public static partial class IslandBuilder
         MakeHudButton(art, lose.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
         lose.SetActive(false);
 
-        CreateTmpGraphics(art, canvasObject.transform);
-
-        BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
-        SerializedObject compassObject = new SerializedObject(compassScript);
-        compassObject.FindProperty("markerRoot").objectReferenceValue = markers;
-        compassObject.ApplyModifiedPropertiesWithoutUndo();
-
         SerializedObject hudObject = new SerializedObject(hud);
-        hudObject.FindProperty("fuelFill").objectReferenceValue = fillImage;
-        hudObject.FindProperty("fuelGlow").objectReferenceValue = glowImage;
-        hudObject.FindProperty("fuelMeter").objectReferenceValue = fuel;
-        hudObject.FindProperty("beaconDots").objectReferenceValue = dots;
         hudObject.FindProperty("promptText").objectReferenceValue = prompt;
-        hudObject.FindProperty("timerText").objectReferenceValue = timer;
         hudObject.FindProperty("winPanel").objectReferenceValue = win;
         hudObject.FindProperty("losePanel").objectReferenceValue = lose;
         hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
-        hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
-        hudObject.FindProperty("graphicsMenu").objectReferenceValue = canvasObject.GetComponent<GraphicsMenu>();
-        hudObject.FindProperty("statusText").objectReferenceValue = status;
         hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
         hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
-        hudObject.FindProperty("penaltyText").objectReferenceValue = penalty;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
         UIBuilder.InstallPause(hud);
+        UIBuilder.InstallGameHud(hud);
     }
 
     static GameObject MakePanel(ArtKit art, Transform parent, string name, string title)
@@ -2318,257 +2241,6 @@ public static partial class IslandBuilder
         entry.minSlope = minSlope;
         entry.maxSlope = maxSlope;
         entries.Add(entry);
-    }
-
-    [MenuItem("Lantern Keeper/Install Graphics Menus")]
-    public static void InstallGraphicsMenus()
-    {
-        if (EditorApplication.isPlaying)
-        {
-            Debug.LogError("Exit Play mode before installing graphics menus.");
-            return;
-        }
-
-        List<string> sceneList = new List<string>();
-        sceneList.Add("Assets/Game/Scenes/MainMenu.unity");
-        sceneList.AddRange(LevelScenePaths());
-        string[] scenes = sceneList.ToArray();
-
-        for (int i = 0; i < scenes.Length; i++)
-        {
-            EditorSceneManager.OpenScene(scenes[i], OpenSceneMode.Single);
-            PatchActiveSceneGraphics();
-            SceneWiring.ApplyActiveScene();
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            EditorSceneManager.SaveOpenScenes();
-            int nulls = SceneWiring.ReportActiveScene();
-            Debug.Log("Graphics menu installed in " + scenes[i] + " with " + nulls + " null references.");
-        }
-    }
-
-    static void PatchActiveSceneGraphics()
-    {
-        MainMenu menu = Object.FindAnyObjectByType<MainMenu>();
-        if (menu != null && menu.GetComponentInChildren<MainMenuScreen>(true) == null)
-        {
-            PatchMainMenu(menu);
-        }
-
-        HUD hud = Object.FindAnyObjectByType<HUD>();
-        if (hud != null)
-        {
-            PatchHud(hud);
-        }
-    }
-
-    static void PatchMainMenu(MainMenu menu)
-    {
-        Transform panel = menu.transform.Find("Panel");
-        if (panel == null)
-        {
-            Debug.LogError("Main menu Panel is missing.");
-            return;
-        }
-
-        MoveRect(panel, "PlayButton", new Vector2(0f, MenuPlayY));
-        MoveRect(panel, "DifficultyButton", new Vector2(0f, MenuPlayY - 62f));
-        MoveRect(panel, "MusicButton", new Vector2(0f, MenuPlayY - 124f));
-        MoveRect(panel, "QuitButton", new Vector2(0f, MenuQuitY));
-        for (int i = 0; i < LevelNames.Length; i++)
-        {
-            MoveRect(panel, LevelNames[i] + "Button", new Vector2(MenuLevelButtonX, MenuLevelY(i)));
-            MoveRect(panel, "Best" + LevelNames[i], new Vector2(MenuBestX, MenuLevelY(i)));
-        }
-
-        ArtKit art = KitFrom(panel.Find("PlayButton"));
-        if (panel.Find("GraphicsButton") == null)
-        {
-            MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, MenuPlayY - 186f));
-        }
-        else
-        {
-            MoveRect(panel, "GraphicsButton", new Vector2(0f, MenuPlayY - 186f));
-        }
-
-        MoveRect(panel, "LogButton", new Vector2(0f, MenuPlayY - 248f));
-
-        CreateLegacyGraphics(art, menu.transform, panel as RectTransform);
-    }
-
-    static void PatchHud(HUD hud)
-    {
-        ArtKit art = KitFrom(hud.transform.Find("WinPanel") != null ? hud.transform.Find("WinPanel").Find("RetryButton") : null);
-        CreateTmpGraphics(art, hud.transform);
-        SerializedObject hudObject = new SerializedObject(hud);
-        hudObject.FindProperty("graphicsMenu").objectReferenceValue = hud.GetComponent<GraphicsMenu>();
-        hudObject.ApplyModifiedPropertiesWithoutUndo();
-        UIBuilder.InstallPause(hud);
-    }
-
-    static void CreateLegacyGraphics(ArtKit art, Transform canvas, RectTransform match)
-    {
-        if (canvas.Find("GraphicsPanel") == null && match != null)
-        {
-            Font font = BuiltinFont();
-            RectTransform panel = MakeRect(canvas, "GraphicsPanel", match.anchorMin, match.anchorMax, match.anchoredPosition, match.sizeDelta);
-            panel.pivot = match.pivot;
-            Image image = panel.gameObject.AddComponent<Image>();
-            Image source = match.GetComponent<Image>();
-            image.sprite = source != null && source.sprite != null ? source.sprite : art.uiSprite;
-            image.type = Image.Type.Sliced;
-            image.color = source != null ? source.color : new Color(0.03f, 0.04f, 0.07f, 0.72f);
-            MakeText(panel, "Title", "Graphics", 58, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 80f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
-            MakeText(panel, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 200f), new Vector2(440f, 40f), new Color(1f, 0.92f, 0.78f), font, TextAnchor.MiddleCenter);
-            MakeButton(art, panel, "LowButton", "Low", new Vector2(-174f, 110f), new Vector2(108f, 48f));
-            MakeButton(art, panel, "MediumButton", "Medium", new Vector2(-58f, 110f), new Vector2(108f, 48f));
-            MakeButton(art, panel, "HighButton", "High", new Vector2(58f, 110f), new Vector2(108f, 48f));
-            MakeButton(art, panel, "UltraButton", "Ultra", new Vector2(174f, 110f), new Vector2(108f, 48f));
-            MakeButton(art, panel, "VSyncButton", "VSync: Off", new Vector2(0f, 20f), new Vector2(320f, 48f));
-            MakeButton(art, panel, "FpsButton", "FPS counter: Off", new Vector2(0f, -60f), new Vector2(320f, 48f));
-            MakeButton(art, panel, "BackButton", "Back", new Vector2(0f, -160f), new Vector2(280f, 48f));
-            panel.gameObject.SetActive(false);
-        }
-
-        if (canvas.Find("FpsReadout") == null)
-        {
-            Font font = BuiltinFont();
-            Text readout = MakeText(canvas, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f), font, TextAnchor.MiddleRight);
-            readout.rectTransform.pivot = new Vector2(1f, 1f);
-            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
-            readout.gameObject.SetActive(false);
-        }
-
-        if (canvas.GetComponent<GraphicsMenu>() == null)
-        {
-            canvas.gameObject.AddComponent<GraphicsMenu>();
-        }
-
-        BindGraphicsMenu(canvas.GetComponent<GraphicsMenu>(), canvas);
-    }
-
-    static void CreateTmpGraphics(ArtKit art, Transform canvas)
-    {
-        if (canvas.Find("GraphicsPanel") == null)
-        {
-            RectTransform panel = MakeRect(canvas, "GraphicsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 560f));
-            Image image = panel.gameObject.AddComponent<Image>();
-            image.sprite = art.uiSprite;
-            image.type = Image.Type.Sliced;
-            image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-            MakeTmp(panel, "Title", "Graphics", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(640f, 64f), new Color(1f, 0.82f, 0.45f, 1f), TextAlignmentOptions.Center);
-            MakeTmp(panel, "GraphicsStatus", "Graphics: Medium", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 150f), new Vector2(640f, 40f), new Color(1f, 0.92f, 0.78f, 1f), TextAlignmentOptions.Center);
-            MakeHudButton(art, panel, "LowButton", "Low", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-243f, 70f), new Vector2(150f, 48f));
-            MakeHudButton(art, panel, "MediumButton", "Medium", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-81f, 70f), new Vector2(150f, 48f));
-            MakeHudButton(art, panel, "HighButton", "High", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(81f, 70f), new Vector2(150f, 48f));
-            MakeHudButton(art, panel, "UltraButton", "Ultra", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(243f, 70f), new Vector2(150f, 48f));
-            MakeHudButton(art, panel, "VSyncButton", "VSync: Off", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(420f, 48f));
-            MakeHudButton(art, panel, "FpsButton", "FPS counter: Off", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -88f), new Vector2(420f, 48f));
-            MakeHudButton(art, panel, "BackButton", "Back", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -168f), new Vector2(280f, 48f));
-            panel.gameObject.SetActive(false);
-        }
-
-        if (canvas.Find("FpsReadout") == null)
-        {
-            TMP_Text readout = MakeTmp(canvas, "FpsReadout", "0 FPS", 22, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-36f, -84f), new Vector2(240f, 36f), new Color(1f, 0.95f, 0.82f, 1f), TextAlignmentOptions.MidlineRight);
-            readout.rectTransform.pivot = new Vector2(1f, 1f);
-            readout.rectTransform.anchoredPosition = new Vector2(-36f, -84f);
-            readout.gameObject.SetActive(false);
-        }
-
-        if (canvas.GetComponent<GraphicsMenu>() == null)
-        {
-            canvas.gameObject.AddComponent<GraphicsMenu>();
-        }
-
-        BindGraphicsMenu(canvas.GetComponent<GraphicsMenu>(), canvas);
-    }
-
-    static void BindGraphicsMenu(GraphicsMenu menu, Transform canvas)
-    {
-        if (menu == null)
-        {
-            return;
-        }
-
-        Transform panel = canvas.Find("GraphicsPanel");
-        SerializedObject so = new SerializedObject(menu);
-        SetRef(so, "panel", panel != null ? panel.gameObject : null);
-        SetRef(so, "lowButton", ButtonOn(panel, "LowButton"));
-        SetRef(so, "mediumButton", ButtonOn(panel, "MediumButton"));
-        SetRef(so, "highButton", ButtonOn(panel, "HighButton"));
-        SetRef(so, "ultraButton", ButtonOn(panel, "UltraButton"));
-        SetRef(so, "vsyncButton", ButtonOn(panel, "VSyncButton"));
-        SetRef(so, "fpsButton", ButtonOn(panel, "FpsButton"));
-        SetRef(so, "backButton", ButtonOn(panel, "BackButton"));
-        Transform status = panel != null ? panel.Find("GraphicsStatus") : null;
-        SetRef(so, "statusLabel", status != null ? status.gameObject : null);
-        Transform readout = canvas.Find("FpsReadout");
-        SetRef(so, "fpsReadout", readout != null ? readout.gameObject : null);
-        so.ApplyModifiedPropertiesWithoutUndo();
-        if (panel != null)
-        {
-            panel.gameObject.SetActive(false);
-        }
-
-        if (readout != null)
-        {
-            readout.gameObject.SetActive(false);
-        }
-    }
-
-    static void SetRef(SerializedObject so, string property, Object value)
-    {
-        SerializedProperty prop = so.FindProperty(property);
-        if (prop != null)
-        {
-            prop.objectReferenceValue = value;
-        }
-    }
-
-    static Button ButtonOn(Transform panel, string name)
-    {
-        if (panel == null)
-        {
-            return null;
-        }
-
-        Transform child = panel.Find(name);
-        return child != null ? child.GetComponent<Button>() : null;
-    }
-
-    static void MoveRect(Transform parent, string name, Vector2 position)
-    {
-        if (parent == null)
-        {
-            return;
-        }
-
-        Transform child = parent.Find(name);
-        RectTransform rect = child as RectTransform;
-        if (rect != null)
-        {
-            rect.anchoredPosition = position;
-        }
-    }
-
-    static ArtKit KitFrom(Transform button)
-    {
-        ArtKit art = new ArtKit();
-        if (button != null)
-        {
-            Image image = button.GetComponent<Image>();
-            if (image != null)
-            {
-                art.uiSprite = image.sprite;
-            }
-        }
-
-        if (art.uiSprite == null)
-        {
-            art.uiSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-        }
-
-        return art;
     }
 }
 }
