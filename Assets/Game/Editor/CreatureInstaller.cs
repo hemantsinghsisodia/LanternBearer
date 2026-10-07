@@ -32,6 +32,7 @@ public static class CreatureInstaller
     {
         InstallMoth();
         InstallBeacon();
+        InstallShade();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
@@ -626,6 +627,148 @@ public static class CreatureInstaller
         }
 
         return true;
+    }
+
+    // ---- Shade -----------------------------------------------------------------------------------------------------
+
+    public const string ShadePrefabPath = "Assets/Game/Prefabs/Gameplay/Shade.prefab";
+    public const string ShadeBodyMaterialPath = "Assets/Game/Art/Creatures/Shade/ShadeWraith.mat";
+    public const string ShadeEyeMaterialPath = "Assets/Game/Art/Creatures/Shade/ShadeEyePale.mat";
+    public const string ShadeSmokeMaterialPath = "Assets/Game/Art/Creatures/Shade/ShadeTrail.mat";
+    const string ShadeFolder = "Assets/Game/Art/Creatures/Shade";
+    const string SmokeSoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
+
+    // Re-materials the existing hollow wraith (the mesh, the Body/Eyes/Smoke children, the colliders and the Shade logic are kept),
+    // adds the ShadeVisual controller on the root and turns the existing Smoke child into the speed driven trail.
+    // Shade.cs finds Body, Eyes and Smoke by name, so no child is renamed or added.
+    public static void InstallShade()
+    {
+        Shader body = Shader.Find("LanternKeeper/Shade");
+        Shader eye = Shader.Find("LanternKeeper/ShadeEye");
+        Shader smoke = Shader.Find("LanternKeeper/ShadeSmoke");
+        if (body == null || eye == null || smoke == null)
+        {
+            Debug.LogError("CreatureInstaller: Shade shaders not found (LanternKeeper/Shade, ShadeEye, ShadeSmoke).");
+            return;
+        }
+
+        if (!AssetDatabase.IsValidFolder(ShadeFolder))
+        {
+            AssetDatabase.CreateFolder("Assets/Game/Art/Creatures", "Shade");
+        }
+
+        Material bodyMaterial = LoadOrCreate(ShadeBodyMaterialPath, body);
+        bodyMaterial.name = "ShadeWraith";
+        bodyMaterial.SetColor("_BaseColor", new Color(0.02f, 0.02f, 0.04f, 0.92f));
+        bodyMaterial.SetColor("_InkColor", new Color(0.02f, 0.02f, 0.04f, 1f));
+        bodyMaterial.SetColor("_StunInkColor", new Color(0.04f, 0.055f, 0.11f, 1f));
+        bodyMaterial.SetFloat("_BodyAlphaRef", 0.92f);
+        bodyMaterial.SetColor("_OutlineColor", LookPalette.FromHex(LookPalette.LightningBlue));
+        bodyMaterial.SetColor("_BurnColor", LookPalette.FromHex(ShadeVisual.BurnEdgeHex));
+        bodyMaterial.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        bodyMaterial.SetFloat("_RimStrength", 0.3f);
+        bodyMaterial.SetFloat("_SkyTint", 0.08f);
+        bodyMaterial.SetFloat("_BurnGain", 1f);
+        EditorUtility.SetDirty(bodyMaterial);
+
+        Material eyeMaterial = LoadOrCreate(ShadeEyeMaterialPath, eye);
+        eyeMaterial.name = "ShadeEyePale";
+        eyeMaterial.SetColor("_Color", new Color(0.78f, 0.88f, 1f, 1f));
+        eyeMaterial.SetFloat("_Gain", 2.4f);
+        EditorUtility.SetDirty(eyeMaterial);
+
+        Material smokeMaterial = LoadOrCreate(ShadeSmokeMaterialPath, smoke);
+        smokeMaterial.name = "ShadeTrail";
+        smokeMaterial.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(SmokeSoftTexturePath));
+        smokeMaterial.SetColor("_BaseColor", new Color(0.14f, 0.17f, 0.3f, 1f));
+        EditorUtility.SetDirty(smokeMaterial);
+        AssetDatabase.SaveAssets();
+
+        GameObject root = PrefabUtility.LoadPrefabContents(ShadePrefabPath);
+        try
+        {
+            Transform bodyTransform = root.transform.Find("Body");
+            Transform eyes = root.transform.Find("Eyes");
+            Transform smokeTransform = root.transform.Find("Smoke");
+            if (bodyTransform == null || eyes == null || smokeTransform == null)
+            {
+                Debug.LogError("CreatureInstaller: Shade.prefab needs Body, Eyes and Smoke children.");
+                return;
+            }
+
+            Renderer bodyRenderer = bodyTransform.GetComponent<Renderer>();
+            bodyRenderer.sharedMaterial = bodyMaterial;
+            bodyRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            foreach (Renderer eyeRenderer in eyes.GetComponentsInChildren<Renderer>(true))
+            {
+                eyeRenderer.sharedMaterial = eyeMaterial;
+            }
+
+            ParticleSystem trail = smokeTransform.GetComponent<ParticleSystem>();
+            ConfigureShadeTrail(trail, smokeMaterial);
+
+            ShadeVisual visual = root.GetComponent<ShadeVisual>();
+            if (visual == null)
+            {
+                visual = root.AddComponent<ShadeVisual>();
+            }
+
+            SerializedObject serialized = new SerializedObject(visual);
+            serialized.FindProperty("bodyRenderer").objectReferenceValue = bodyRenderer;
+            serialized.FindProperty("trail").objectReferenceValue = trail;
+            serialized.FindProperty("trailBaseRate").floatValue = 10f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            PrefabUtility.SaveAsPrefabAsset(root, ShadePrefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    // A low, slow smoke that lingers behind the Shade in world space: thin when idle, thick at speed (ShadeVisual drives the rate).
+    static void ConfigureShadeTrail(ParticleSystem system, Material material)
+    {
+        ParticleSystem.MainModule main = system.main;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.startLifetime = 1.5f;
+        main.startSpeed = 0.12f;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.1f);
+        main.startColor = new Color(1f, 1f, 1f, 0.85f);
+        main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.2831853f);
+        main.maxParticles = 80;
+
+        ParticleSystem.EmissionModule emission = system.emission;
+        emission.rateOverTime = 10f;
+        emission.SetBursts(new ParticleSystem.Burst[0]);
+
+        ParticleSystem.ShapeModule shape = system.shape;
+        shape.shapeType = ParticleSystemShapeType.Sphere;
+        shape.radius = 0.3f;
+
+        ParticleSystem.VelocityOverLifetimeModule rise = system.velocityOverLifetime;
+        rise.enabled = true;
+        rise.space = ParticleSystemSimulationSpace.Local;
+        rise.y = 0.2f;
+
+        ParticleSystem.ColorOverLifetimeModule colour = system.colorOverLifetime;
+        colour.enabled = true;
+        Gradient gradient = new Gradient();
+        gradient.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(0f, 1f) });
+        colour.color = new ParticleSystem.MinMaxGradient(gradient);
+
+        ParticleSystem.SizeOverLifetimeModule size = system.sizeOverLifetime;
+        size.enabled = true;
+        size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.6f, 1f, 1.5f));
+
+        ParticleSystemRenderer renderer = system.GetComponent<ParticleSystemRenderer>();
+        renderer.sharedMaterial = material;
+        renderer.renderMode = ParticleSystemRenderMode.Billboard;
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
     }
 }
 }
