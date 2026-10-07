@@ -314,5 +314,63 @@ Shader "LanternKeeper/MothWing"
             }
             ENDHLSL
         }
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            Cull Off
+            ZWrite On
+            HLSLPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD1;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                float angle = MothAngle(_Time.y, UNITY_ACCESS_INSTANCED_PROP(MothProps, _Phase), UNITY_ACCESS_INSTANCED_PROP(MothProps, _FlapHz));
+                float3 pos;
+                float3 nrm;
+                MothFlapVertex(input.positionOS.xyz, input.normalOS, input.color.r, angle, pos, nrm);
+                output.positionCS = TransformObjectToHClip(pos);
+                output.normalWS = TransformObjectToWorldNormal(nrm);
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                return output;
+            }
+
+            half4 frag(Varyings input, float facing : VFACE) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a * _BaseColor.a - _Cutoff);
+                float3 normalWS = normalize(input.normalWS);
+                if (facing < 0.0)
+                {
+                    normalWS = -normalWS;
+                }
+
+                return half4(NormalizeNormalPerPixel(normalWS), 0.0);
+            }
+            ENDHLSL
+        }
     }
 }
