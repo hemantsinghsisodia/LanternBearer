@@ -37,6 +37,36 @@ public static class CreatureInstaller
         AssetDatabase.Refresh();
     }
 
+    // Island scenes spawn moths and Shades from the prefabs and hold Beacon prefab instances, so they pick up the new visuals
+    // through the prefabs. This ensures the prefabs are installed and reports any island scene that does not depend on them.
+    // It never opens or saves a scene, and never rebuilds a level.
+    public static readonly string[] IslandScenePaths =
+    {
+        "Assets/Game/Scenes/Island1.unity",
+        "Assets/Game/Scenes/Island2.unity",
+        "Assets/Game/Scenes/Island3.unity",
+        "Assets/Game/Scenes/Island4.unity"
+    };
+
+    [MenuItem("Lantern Keeper/Install Creature Visuals On Every Island")]
+    public static void InstallAllIslands()
+    {
+        InstallAll();
+        for (int i = 0; i < IslandScenePaths.Length; i++)
+        {
+            string scene = IslandScenePaths[i];
+            string[] dependencies = AssetDatabase.GetDependencies(scene, true);
+            bool beacon = System.Array.IndexOf(dependencies, BeaconPrefabPath) >= 0;
+            bool moth = System.Array.IndexOf(dependencies, MothPrefabPath) >= 0;
+            bool shade = System.Array.IndexOf(dependencies, ShadePrefabPath) >= 0;
+            Debug.Log("InstallAllIslands: " + scene + " references Beacon=" + beacon + " Moth=" + moth + " Shade=" + shade + ".");
+            if (!beacon)
+            {
+                Debug.LogWarning("InstallAllIslands: " + scene + " does not reference Beacon.prefab; rebuild that island.");
+            }
+        }
+    }
+
     public static void InstallMoth()
     {
         ConfigureTexture();
@@ -231,7 +261,7 @@ public static class CreatureInstaller
     // ---- Beacon ----------------------------------------------------------------------------------------------------
 
     // Old primitive children of the generated beacon (IslandBuilder.BuildBeacon): the whole visual is replaced by "Visual".
-    static readonly string[] LegacyBeaconChildren =
+    public static readonly string[] LegacyBeaconChildren =
     {
         "Footing", "Pole", "BandLow", "BandMid", "BandHigh", "Cloth", "CageA", "CageB", "CageC", "CageD", "CageRing",
         "Wisp", "Flare", VisualName
