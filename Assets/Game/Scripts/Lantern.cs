@@ -59,6 +59,8 @@ public class Lantern : MonoBehaviour
     public float ProximityScale => Mathf.Lerp(1f, 1f - proximityDimStrength, proximityDim);
 
     public event Action<float> FuelChanged;
+    // Discrete gains and spends only (pickups, beacon costs, Shade steals, water), in fuel points. Never the per-frame drain.
+    public event Action<float> FuelAdjusted;
     public event Action FuelDepleted;
 
     void Awake()
@@ -214,7 +216,9 @@ public class Lantern : MonoBehaviour
             return;
         }
 
+        float before = fuel;
         CommitFuel(fuel + amount, true);
+        RaiseAdjusted(fuel - before);
     }
 
     public bool TrySpend(float amount)
@@ -229,13 +233,23 @@ public class Lantern : MonoBehaviour
             return false;
         }
 
+        float before = fuel;
         CommitFuel(fuel - amount, true);
         if (fuel <= 0f)
         {
             fuel = 0f;
         }
 
+        RaiseAdjusted(fuel - before);
         return true;
+    }
+
+    void RaiseAdjusted(float delta)
+    {
+        if (FuelAdjusted != null && Mathf.Abs(delta) > 0.0001f)
+        {
+            FuelAdjusted.Invoke(delta);
+        }
     }
 
     float ModifierProduct()

@@ -204,6 +204,29 @@ public class HudWidgetTests
     }
 
     [Test]
+    public void FuelFlashColourFollowsCoalescedTotalAndHidesAtZero()
+    {
+        FuelGaugeWidget gauge = One<FuelGaugeWidget>();
+        gauge.Changed(-10f);
+        gauge.Changed(4f);
+        Assert.AreEqual(FuelGaugeWidget.FlameRed, gauge.ChangeColour, "total is still negative");
+        gauge.Changed(20f);
+        Assert.AreEqual("+14", gauge.ChangeText);
+        Assert.AreEqual(theme.amber, gauge.ChangeColour, "total turned positive");
+        gauge.Changed(-14f);
+        Assert.IsFalse(gauge.ChangeVisible, "a total of 0 is not shown");
+    }
+
+    [Test]
+    public void FpsPrefsKeyMatchesGraphicsMenu()
+    {
+        System.Type menu = System.Type.GetType("LanternKeeper.GraphicsMenu, Assembly-CSharp");
+        Assert.IsNotNull(menu);
+        object key = menu.GetField("FpsKey").GetRawConstantValue();
+        Assert.AreEqual(FpsReadout.FpsKey, key);
+    }
+
+    [Test]
     public void TimerIslandAndFpsShowText()
     {
         TimerLabel timer = One<TimerLabel>();

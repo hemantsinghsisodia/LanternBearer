@@ -25,6 +25,7 @@ public class FuelGaugeWidget : MonoBehaviour
     public Color FlameColour { get { return flame.color; } }
     public float GlowAlpha { get { return glow.color.a; } }
     public float BarFill { get { return barFill.rectTransform.anchorMax.x; } }
+    public Color ChangeColour { get { return changeLabel.Text.color; } }
     public bool ChangeVisible { get { return changeLabel.gameObject.activeSelf; } }
     public string ChangeText { get { return changeLabel.Text.text; } }
 
@@ -59,8 +60,13 @@ public class FuelGaugeWidget : MonoBehaviour
     public void Changed(float delta)
     {
         flash.Add(delta, Time.unscaledTime);
+        if (flash.RoundsToZero)
+        {
+            changeLabel.gameObject.SetActive(false);
+            return;
+        }
         changeLabel.Text.text = flash.Text;
-        changeLabel.SetColourOverride(true, delta < 0f ? FlameRed : theme.amber);
+        changeLabel.SetColourOverride(true, flash.IsNegative ? FlameRed : theme.amber);
         changeLabel.gameObject.SetActive(true);
     }
 

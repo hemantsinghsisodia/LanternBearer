@@ -427,11 +427,6 @@ public class Shade : MonoBehaviour
 
         if (lantern.TrySpend(amount))
         {
-            if (hud != null)
-            {
-                hud.ShowFuelPenalty("-" + Mathf.Max(1, Mathf.RoundToInt(amount)).ToString());
-            }
-
             Action<float> handler = Stole;
             if (handler != null)
             {

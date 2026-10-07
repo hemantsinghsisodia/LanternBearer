@@ -103,5 +103,44 @@ public class HudMathTests
 
         Assert.IsFalse(new HudMath.FuelFlash().Visible(0f));
     }
+    [Test]
+    public void NaNFuelIsEmptyAndNaNDeltaIsSkipped()
+    {
+        HudMath.FlameLook look = HudMath.Flame(float.NaN, 0f, false);
+        Assert.AreEqual(0.35f, look.Scale, 1e-4f);
+        Assert.AreEqual(1f, look.Redness, 1e-4f);
+        Assert.IsFalse(float.IsNaN(look.Glow));
+
+        var flash = new HudMath.FuelFlash();
+        flash.Add(-5f, 0f);
+        flash.Add(float.NaN, 0.1f);
+        Assert.AreEqual("−5", flash.Text);
+        Assert.IsFalse(float.IsNaN(flash.Total));
+    }
+
+    [Test]
+    public void HugeDeltasStayFormattable()
+    {
+        var flash = new HudMath.FuelFlash();
+        flash.Add(float.MaxValue, 0f);
+        flash.Add(float.MaxValue, 0.1f);
+        Assert.AreEqual("+99999", flash.Text);
+        flash.Add(float.NegativeInfinity, 0.2f);
+        Assert.IsTrue(flash.IsNegative);
+        Assert.AreEqual("−99999", flash.Text);
+    }
+
+    [Test]
+    public void FlashSignFollowsTheTotal()
+    {
+        var flash = new HudMath.FuelFlash();
+        flash.Add(-10f, 0f);
+        flash.Add(4f, 0.2f);
+        Assert.IsTrue(flash.IsNegative);
+        flash.Add(10f, 0.4f);
+        Assert.IsFalse(flash.IsNegative);
+        flash.Add(-4f, 0.5f);
+        Assert.IsTrue(flash.RoundsToZero);
+    }
 }
 }

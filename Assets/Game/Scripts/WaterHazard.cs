@@ -253,11 +253,6 @@ public class WaterHazard : MonoBehaviour
             }
         }
 
-        if (hud != null)
-        {
-            hud.ShowFuelPenalty("-" + Mathf.RoundToInt(penalty).ToString());
-        }
-
         if (cameraFollow != null)
         {
             cameraFollow.SnapBehind();

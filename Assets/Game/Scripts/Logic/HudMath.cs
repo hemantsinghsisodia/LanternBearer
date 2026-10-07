@@ -13,7 +13,7 @@ public static class HudMath
     // Scale 0.35..1 from fuel. Redness 0 at 30% and above, 1 at empty. Pulse only below 15%: 2 Hz sine, 1 Hz when reduced.
     public static FlameLook Flame(float fuel01, float time, bool reduceFlashing)
     {
-        float fuel = Mathf.Clamp01(fuel01);
+        float fuel = float.IsNaN(fuel01) ? 0f : Mathf.Clamp01(fuel01);
         FlameLook look = new FlameLook();
         look.Scale = 0.35f + 0.65f * fuel;
         look.Glow = fuel;
@@ -61,18 +61,24 @@ public static class HudMath
     public class FuelFlash
     {
         const float Window = 1f;
+        const float MaxTotal = 99999f;
 
         float total;
         float lastTime = float.NegativeInfinity;
 
         public void Add(float delta, float now)
         {
+            if (float.IsNaN(delta))
+            {
+                return;
+            }
+
             if (now - lastTime >= Window)
             {
                 total = 0f;
             }
 
-            total += delta;
+            total = Mathf.Clamp(total + delta, -MaxTotal, MaxTotal);
             lastTime = now;
         }
 
@@ -80,6 +86,10 @@ public static class HudMath
         {
             return now - lastTime < Window;
         }
+
+        public float Total { get { return total; } }
+        public bool IsNegative { get { return total < 0f; } }
+        public bool RoundsToZero { get { return Mathf.RoundToInt(total) == 0; } }
 
         public string Text
         {
