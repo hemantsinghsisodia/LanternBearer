@@ -1,0 +1,136 @@
+using UnityEngine;
+
+namespace LanternKeeper
+{
+// Timing curves for firefly swarms: blink, stream into the lantern, linger and fade-in. Pure functions, visual only.
+public static class FireflyCurve
+{
+    public const int Motes = 6, MotesLow = 4, Linger = 2, LingerLow = 1;
+    public const float StreamTime = 0.5f, LingerEnd = 2.0f, FadeInTime = 1.0f;
+    public const float ReduceFlashingFloor = 0.3f, LitThreshold = 0.5f;
+
+    // Blink cycle length in seconds: 2.6 to 3.4, 1.3x slower on Low.
+    public static float Period(float swarmSeed01, bool low)
+    {
+        float p = Mathf.Lerp(2.6f, 3.4f, Mathf.Clamp01(swarmSeed01));
+        return low ? p * 1.3f : p;
+    }
+
+    // Cycle offset of a mote: evenly spread, with a small jitter.
+    public static float MoteOffset(int index, int count, float jitter01)
+    {
+        return (float)index / Mathf.Max(1, count) + (jitter01 - 0.5f) * 0.06f;
+    }
+
+    // Brightness 0..1. Short rise, hold, short fall, then dark for the rest of the cycle.
+    public static float Blink(float time, float period, float offset, int count, bool reduceFlashing)
+    {
+        float u = time / period + offset;
+        u -= Mathf.Floor(u);
+
+        float edge = reduceFlashing ? 0.2f : 0.1f;
+        float hold = Mathf.Max(0f, 2.6f / Mathf.Max(1, count) - edge);
+        float result;
+        if (u < edge)
+        {
+            result = u / edge;
+        }
+        else if (u < edge + hold)
+        {
+            result = 1f;
+        }
+        else if (u < edge + hold + edge)
+        {
+            result = 1f - (u - edge - hold) / edge;
+        }
+        else
+        {
+            result = 0f;
+        }
+
+        return reduceFlashing ? Mathf.Max(result, ReduceFlashingFloor) : result;
+    }
+
+    // How many motes are lit right now (Blink at or above LitThreshold).
+    public static int LitCount(float time, float period, float swarmSeed01, int count, bool reduceFlashing)
+    {
+        int lit = 0;
+        for (int i = 0; i < count; i++)
+        {
+            float offset = MoteOffset(i, count, Jitter01(swarmSeed01, i));
+            if (Blink(time, period, offset, count, reduceFlashing) >= LitThreshold)
+            {
+                lit++;
+            }
+        }
+
+        return lit;
+    }
+
+    // Eased progress of the stream into the lantern.
+    public static float Stream01(float sinceCollect)
+    {
+        return Smooth(sinceCollect / StreamTime);
+    }
+
+    // Quadratic arc from start to target, bowed sideways and a little up.
+    public static Vector3 StreamPoint(Vector3 start, Vector3 target, float sideSign, float t01)
+    {
+        t01 = Mathf.Clamp01(t01);
+        Vector3 d = target - start;
+        Vector3 side = Vector3.Cross(d, Vector3.up);
+        side = side.sqrMagnitude > 1e-8f ? side.normalized : Vector3.right;
+        Vector3 control = (start + target) * 0.5f + side * (sideSign * d.magnitude * 0.25f) + Vector3.up * 0.3f;
+        float inv = 1f - t01;
+        return inv * inv * start + 2f * inv * t01 * control + t01 * t01 * target;
+    }
+
+    // 1 until 0.7, eases to 0 at 1.
+    public static float StreamScale(float t01)
+    {
+        if (t01 <= 0.7f)
+        {
+            return 1f;
+        }
+
+        return 1f - Smooth((t01 - 0.7f) / 0.3f);
+    }
+
+    // 1 until 1.5 s, eases to 0 at LingerEnd.
+    public static float LingerAlpha(float sinceCollect)
+    {
+        if (sinceCollect <= 1.5f)
+        {
+            return 1f;
+        }
+
+        return 1f - Smooth((sinceCollect - 1.5f) / (LingerEnd - 1.5f));
+    }
+
+    // Horizontal orbit around the lantern, radius 0.3, about 2 rad/s.
+    public static Vector3 LingerOffset(int lingerIndex, float sinceCollect)
+    {
+        float a = lingerIndex * Mathf.PI + 2f * sinceCollect;
+        return new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.3f;
+    }
+
+    // Mote i starts at i * (0.8 / count) and fades in over 0.2 s.
+    public static float FadeIn(int index, int count, float sinceRespawn)
+    {
+        float start = index * (0.8f / Mathf.Max(1, count));
+        return Mathf.Clamp01((sinceRespawn - start) / 0.2f);
+    }
+
+    static float Jitter01(float seed01, int index)
+    {
+        float v = Mathf.Sin(seed01 * 127.1f + index * 311.7f) * 43758.5453f;
+        return v - Mathf.Floor(v);
+    }
+
+    static float Smooth(float x)
+    {
+        x = Mathf.Clamp01(x);
+        return x * x * (3f - 2f * x);
+    }
+}
+}
