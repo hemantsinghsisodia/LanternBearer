@@ -121,6 +121,11 @@ Shader "LanternKeeper/FireflyMote"
 
                 float3 centre = TransformObjectToWorld(float3(0.0, 0.0, 0.0)) + drift;
                 float size = length(float3(unity_ObjectToWorld[0].x, unity_ObjectToWorld[1].x, unity_ObjectToWorld[2].x));
+                // Minimum on-screen size: never smaller than about 10 px across, so a far mote stays a visible green point.
+                float depth = max(TransformWorldToHClip(centre).w, 0.01);
+                float minSize = 10.0 * 2.0 * depth / (unity_CameraProjection._m11 * _ScreenParams.y);
+                minSize *= saturate(size / 0.075); // a mote scaled to nothing (collect stream) still shrinks away
+                size = max(size, minSize);
                 float3 right = UNITY_MATRIX_V[0].xyz;
                 float3 up = UNITY_MATRIX_V[1].xyz;
                 float3 world = centre + (right * input.positionOS.x + up * input.positionOS.y) * size;
@@ -135,12 +140,14 @@ Shader "LanternKeeper/FireflyMote"
 
             half4 frag(Varyings input) : SV_Target
             {
-                float r = length(input.uv - 0.5) * 2.0;
-                float halo = saturate(1.0 - r);
-                float core = (1.0 - smoothstep(0.14, 0.2, r)) * 0.7;
-                float3 colour = lerp(float3(1.0, 1.0, 1.0), _Color.rgb, smoothstep(0.2, 0.55, r));
-                float strength = pow(halo, 2.5) * 0.65 + core;
-                return half4(colour * strength * input.alpha * _Gain, 1.0);
+                // rr: 0 at the centre, 0.5 at the quad edge (the quad is 0.15 m, so the core is about 3 cm).
+                float rr = length(input.uv - 0.5);
+                float core = exp(-(rr * rr) / (0.08 * 0.08));
+                float halo = exp(-(rr * rr) / (0.17 * 0.17)) * (1.0 - smoothstep(0.28, 0.5, rr));
+                float3 coreColour = lerp(_Color.rgb, float3(1.0, 1.0, 1.0), 0.4);
+                // Core peak about 1.5 (plus the halo underneath), halo peak 0.55: bloom adds a gentle green glow.
+                float3 colour = coreColour * (core * 1.5) + _Color.rgb * (halo * 0.55);
+                return half4(colour * input.alpha * _Gain, 1.0);
             }
             ENDHLSL
         }
