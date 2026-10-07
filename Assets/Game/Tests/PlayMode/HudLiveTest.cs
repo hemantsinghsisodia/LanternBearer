@@ -129,6 +129,29 @@ public class HudLiveTest
 
     [UnityTest]
     [Timeout(120000)]
+    public IEnumerator MothDrainInsideLitRingShowsMothAndShield()
+    {
+        yield return LoadIsland1();
+        DrainIcons icons = UnityEngine.Object.FindFirstObjectByType<DrainIcons>();
+        Component beacon = (Component)UnityEngine.Object.FindFirstObjectByType(GameType("Beacon"));
+        Assert.IsTrue((bool)Call(beacon, "TryLight"));
+        Component player = (Component)Find("PlayerController");
+        player.transform.position = beacon.transform.position;
+        Physics.SyncTransforms();
+        UnityEngine.Object lantern = Find("Lantern");
+        GameObject holder = new GameObject("TestMoth");
+        Component moth = holder.AddComponent(GameType("Moth"));
+        ((Behaviour)moth).enabled = false;
+        Call(lantern, "SetDrainModifier", moth, 2f);
+        yield return Frames(5);
+        Assert.IsTrue(icons.ShieldVisible, "shield inside the lit ring");
+        Assert.IsTrue(icons.MothVisible, "moth icon while a moth drains inside the ring");
+        Assert.AreEqual("×1", icons.MothText, "one draining moth");
+        UnityEngine.Object.Destroy(holder);
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
     public IEnumerator RetryResetsHud()
     {
         yield return LoadIsland1();
@@ -139,6 +162,12 @@ public class HudLiveTest
         Assert.IsTrue((bool)Call(beacon, "TryLight"));
         yield return Frames(3);
         Assert.AreEqual(1, roofs.LitCount);
+        GameObject mothHolder = new GameObject("TestMoth");
+        Component drainMoth = mothHolder.AddComponent(GameType("Moth"));
+        ((Behaviour)drainMoth).enabled = false;
+        Call(lantern, "SetDrainModifier", drainMoth, 2f);
+        yield return Frames(3);
+        Assert.IsTrue(UnityEngine.Object.FindFirstObjectByType<DrainIcons>().MothVisible, "a moth drain was showing before the retry");
         Call(lantern, "TrySpend", Get<float>(lantern, "Fuel"));
         yield return Frames(10);
         Assert.IsTrue(gauge.ChangeVisible, "the lose spend flashed");
@@ -152,6 +181,11 @@ public class HudLiveTest
         TimerLabel timer = UnityEngine.Object.FindFirstObjectByType<TimerLabel>();
         Assert.AreEqual(0, roofs.LitCount, "no lit roofs after retry");
         Assert.IsFalse(gauge.ChangeVisible, "no flash after retry");
+        DrainIcons icons = UnityEngine.Object.FindFirstObjectByType<DrainIcons>();
+        Assert.IsFalse(icons.MothVisible, "moth icon reset after retry");
+        Assert.IsFalse(icons.ShieldVisible, "shield reset after retry");
+        Assert.IsFalse(icons.EmberVisible, "ember icon reset after retry");
+        Assert.IsFalse(icons.MultiplierVisible, "multiplier reset after retry");
         Assert.IsTrue(timer.Text == "00:00" || timer.Text == "00:01", "timer restarted, was " + timer.Text);
     }
 
@@ -173,9 +207,11 @@ public class HudLiveTest
             }
 
             checkedCount++;
-            if (texts[i].fontSize < 18f - 0.01f)
+            // On-screen size: the font size times every scale between the canvas and the text (the compass's far markers are 0.9 x 20).
+            float effective = texts[i].fontSize * texts[i].transform.lossyScale.x / canvas.transform.lossyScale.x;
+            if (effective < 18f - 0.01f)
             {
-                problems.Add(texts[i].name + " is " + texts[i].fontSize + " px");
+                problems.Add(texts[i].name + " is " + effective + " px");
             }
 
             if (!HasBacking(texts[i].transform, canvas.transform))

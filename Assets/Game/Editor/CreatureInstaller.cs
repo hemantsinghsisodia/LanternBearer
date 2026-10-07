@@ -727,6 +727,11 @@ public static class CreatureInstaller
             }
 
             Renderer bodyRenderer = bodyTransform.GetComponent<Renderer>();
+            if (IsShadeInstalled(root, bodyRenderer, eyes, smokeTransform, bodyMaterial, eyeMaterial, smokeMaterial))
+            {
+                return;
+            }
+
             bodyRenderer.sharedMaterial = bodyMaterial;
             bodyRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             foreach (Renderer eyeRenderer in eyes.GetComponentsInChildren<Renderer>(true))
@@ -755,6 +760,43 @@ public static class CreatureInstaller
         {
             PrefabUtility.UnloadPrefabContents(root);
         }
+    }
+
+    // True when the Shade prefab already carries these materials and a fully wired ShadeVisual, so a re-run changes nothing.
+    static bool IsShadeInstalled(GameObject root, Renderer bodyRenderer, Transform eyes, Transform smokeTransform,
+        Material bodyMaterial, Material eyeMaterial, Material smokeMaterial)
+    {
+        if (bodyRenderer == null || bodyRenderer.sharedMaterial != bodyMaterial
+            || bodyRenderer.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)
+        {
+            return false;
+        }
+
+        foreach (Renderer eyeRenderer in eyes.GetComponentsInChildren<Renderer>(true))
+        {
+            if (eyeRenderer.sharedMaterial != eyeMaterial)
+            {
+                return false;
+            }
+        }
+
+        ParticleSystem trail = smokeTransform.GetComponent<ParticleSystem>();
+        ParticleSystemRenderer trailRenderer = smokeTransform.GetComponent<ParticleSystemRenderer>();
+        if (trail == null || trailRenderer == null || trailRenderer.sharedMaterial != smokeMaterial)
+        {
+            return false;
+        }
+
+        ShadeVisual visual = root.GetComponent<ShadeVisual>();
+        if (visual == null)
+        {
+            return false;
+        }
+
+        SerializedObject serialized = new SerializedObject(visual);
+        return serialized.FindProperty("bodyRenderer").objectReferenceValue == bodyRenderer
+            && serialized.FindProperty("trail").objectReferenceValue == trail
+            && Mathf.Approximately(serialized.FindProperty("trailBaseRate").floatValue, 10f);
     }
 
     // A low, slow smoke that lingers behind the Shade in world space: thin when idle, thick at speed (ShadeVisual drives the rate).

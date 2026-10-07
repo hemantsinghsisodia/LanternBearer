@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -8,19 +7,12 @@ namespace LanternKeeper
 // Validate Scene Wiring: the Phase E UI. Each problem is one message (and counts once).
 public static partial class SceneWiring
 {
-    // The interact prompt is still LiberationSans, so the font check skips it (and nothing else on the HUD canvas).
-    // Texts under a Phase E screen are always checked.
-    static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>
-    {
-        "PromptText"
-    };
-
     static int RequireUi(bool quiet)
     {
         string scene = EditorSceneManager.GetActiveScene().name;
         int problems = 0;
         bool isMenu = Object.FindAnyObjectByType<MainMenu>(FindObjectsInactive.Include) != null;
-        bool isIsland = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include) != null;
+        bool isIsland = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include) != null || Object.FindAnyObjectByType<GameManager>(FindObjectsInactive.Include) != null;
 
         if (isMenu)
         {
@@ -32,10 +24,16 @@ public static partial class SceneWiring
         {
             problems += RequireScreen<PauseScreen>(scene, "PauseScreen", quiet);
             problems += RequireScreen<SettingsScreen>(scene, "SettingsScreen", quiet);
+            problems += RequireGameHud(scene, quiet);
         }
         if ((isMenu || isIsland) && Object.FindAnyObjectByType<UserSettingsApplier>(FindObjectsInactive.Include) == null)
         {
             problems += Problem(scene + " missing UserSettingsApplier", quiet);
+        }
+
+        if (isIsland)
+        {
+            problems += RequireNoRuntimeHudText(scene, quiet);
         }
 
         UITheme theme = UIBuilder.LoadTheme();
@@ -53,7 +51,7 @@ public static partial class SceneWiring
             for (int i = 0; i < texts.Length; i++)
             {
                 TMP_Text text = texts[i];
-                if (System.Array.IndexOf(allowed, text.font) >= 0 || IsPhaseFReadout(text.transform, canvases[c].transform))
+                if (System.Array.IndexOf(allowed, text.font) >= 0)
                 {
                     continue;
                 }
@@ -70,14 +68,36 @@ public static partial class SceneWiring
         return found.Length > 0 ? 0 : Problem(scene + " missing " + screenName + " prefab", quiet);
     }
 
-    static bool IsPhaseFReadout(Transform text, Transform canvas)
+    static int RequireGameHud(string scene, bool quiet)
     {
-        Transform top = text;
-        while (top.parent != null && top.parent != canvas)
+        HUD hud = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include);
+        bool found = hud != null && hud.transform.Find("GameHud") != null;
+        return found ? 0 : Problem(scene + " missing GameHud prefab", quiet);
+    }
+
+    // Any text left over from the old code-made readouts (they were built by HUD.MakeRuntimeText) is a problem.
+    static int RequireNoRuntimeHudText(string scene, bool quiet)
+    {
+        int problems = 0;
+        HUD hud = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include);
+        if (hud == null)
         {
-            top = top.parent;
+            return 0;
         }
-        return PhaseFHudTexts.Contains(top.name);
+        for (int i = 0; i < UIBuilder.LegacyHudChildren.Length; i++)
+        {
+            Transform legacy = hud.transform.Find(UIBuilder.LegacyHudChildren[i]);
+            if (legacy == null)
+            {
+                continue;
+            }
+            TMP_Text[] texts = legacy.GetComponentsInChildren<TMP_Text>(true);
+            for (int t = 0; t < texts.Length; t++)
+            {
+                problems += Problem(scene + " HUD text '" + PathUnder(texts[t].transform, hud.transform) + "' built at runtime", quiet);
+            }
+        }
+        return problems;
     }
 
     static string PathUnder(Transform t, Transform canvas)

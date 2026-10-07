@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace LanternKeeper.Tests
 {
 // The win and lose panels, the intro card and the toasts running on Island1. ResultPanel, IntroCard and Toasts are used
-// directly (LanternKeeper.Hud); GameManager, Lantern and PauseScreen are reached by reflection (this assembly can't reference Assembly-CSharp). The tests touch three Island1 PlayerPrefs keys and restore them.
+// directly (namespace LanternKeeper, assembly LanternKeeper.Hud); GameManager, Lantern and PauseScreen are reached by reflection (this assembly can't reference Assembly-CSharp). The tests touch three Island1 PlayerPrefs keys and restore them.
 public class ResultPanelTest
 {
     static readonly string[] Keys =

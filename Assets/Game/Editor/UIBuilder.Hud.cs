@@ -109,7 +109,7 @@ public static partial class UIBuilder
 
 
     // Code-made readouts the prefab replaces (and the old graphics panel). Removed by name from an island's HUD canvas.
-    static readonly string[] LegacyHudChildren =
+    internal static readonly string[] LegacyHudChildren =
     {
         "FuelMeter", "BeaconDots", "TimerText", "StatusText", "FuelPenalty", "GraphicsPanel", "FpsReadout", "IslandLabel", "TideGauge",
         "WinPanel", "LosePanel", "TideToast", "LogToastBack", "LogToast"
@@ -139,6 +139,16 @@ public static partial class UIBuilder
             {
                 Object.DestroyImmediate(legacy.gameObject);
             }
+        }
+
+        // The interact prompt is a scene text; it uses the theme's UI font like everything else on the HUD canvas.
+        Transform promptTransform = canvas.Find("PromptText");
+        TMP_Text promptText = promptTransform != null ? promptTransform.GetComponent<TMP_Text>() : null;
+        UITheme promptTheme = LoadTheme();
+        if (promptText != null && promptTheme != null && promptTheme.uiFont != null && promptText.font != promptTheme.uiFont)
+        {
+            promptText.font = promptTheme.uiFont;
+            EditorUtility.SetDirty(promptText);
         }
 
         Transform existing = canvas.Find("GameHud");

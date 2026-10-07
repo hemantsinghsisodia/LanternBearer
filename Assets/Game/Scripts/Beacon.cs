@@ -81,20 +81,6 @@ public class Beacon : MonoBehaviour
             }
         }
 
-        if (embers == null)
-        {
-            Transform burst = transform.Find("Flare");
-            if (burst == null)
-            {
-                burst = transform.Find("Embers");
-            }
-
-            if (burst != null)
-            {
-                embers = burst.GetComponent<ParticleSystem>();
-            }
-        }
-
         if (smoke == null)
         {
             Transform wisp = transform.Find("Smoke");
@@ -135,12 +121,6 @@ public class Beacon : MonoBehaviour
         if (flameRoot != null)
         {
             flameRoot.localScale = Vector3.zero;
-        }
-
-        Transform legacyColumn = transform.Find("LightColumn");
-        if (legacyColumn != null)
-        {
-            legacyColumn.gameObject.SetActive(false);
         }
     }
 

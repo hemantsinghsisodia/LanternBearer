@@ -422,7 +422,7 @@ public class BeaconCompass : MonoBehaviour
                 float cx = Mathf.Max(radius - (x + 0.5f), 0f, (x + 0.5f) - (size - radius));
                 float cy = Mathf.Max(radius - (y + 0.5f), 0f, (y + 0.5f) - (size - radius));
                 float dist = Mathf.Sqrt(cx * cx + cy * cy);
-                float alpha = Mathf.Clamp01((radius - dist) / 3f + 0.25f) ;
+                float alpha = Mathf.Clamp01((radius - dist) / 3f + 0.25f);
                 pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
             }
         }

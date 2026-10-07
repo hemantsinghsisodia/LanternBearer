@@ -35,7 +35,6 @@ public class Moth : MonoBehaviour
     Transform player;
     PlayerController body;
     Lantern lantern;
-    Transform wings;
     AudioSource flutter;
     Light glow;
     MothDrainFx drainFx;
@@ -78,7 +77,6 @@ public class Moth : MonoBehaviour
             baseScale = Vector3.one * 0.35f;
         }
 
-        wings = transform.Find("Wings");
         flutter = GetComponent<AudioSource>();
         appear = 0f;
         transform.localScale = baseScale * 0.05f;
@@ -175,12 +173,6 @@ public class Moth : MonoBehaviour
         EnforceHeight();
         transform.position = PushOutOfSafe(transform.position);
         RecordProbe();
-
-        if (wings != null)
-        {
-            float flap = Mathf.Sin(Time.time * 42f) * 32f * appear;
-            wings.localRotation = Quaternion.Euler(flap, 0f, 0f);
-        }
     }
 
     public void BeginDespawn()

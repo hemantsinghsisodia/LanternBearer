@@ -136,7 +136,7 @@ public class MoonRimFeature : ScriptableRendererFeature
                     data.gain = gain;
                     builder.UseTexture(resources.cameraDepthTexture);
                     builder.SetRenderAttachment(resources.activeColorTexture, 0);
-                    // Read-only depth-stencil: the shader's stencil test excludes the keeper.
+                    // Read-only depth-stencil: the shader's stencil test excludes the keeper, the beacon and the Shade.
                     builder.SetRenderAttachmentDepth(resources.activeDepthTexture, AccessFlags.Read);
                     builder.AllowPassCulling(false);
                     builder.SetRenderFunc(static (PassData d, RasterGraphContext context) => DrawRim(d, context));
