@@ -3,13 +3,30 @@ using UnityEngine.Rendering;
 
 namespace LanternKeeper
 {
+// The warm glowing ring on the ground that marks a lit beacon's safe radius. A soft additive band lying flat on the terrain,
+// in the LookPalette amber with a core-coloured heart. Its radius is driven by BeaconVisual (the bloom from the base out to
+// the full ZoneRadius over 0.3..1.2 s, then steady); without a BeaconVisual it is simply the full radius.
 public class BeaconSafeRing : MonoBehaviour
 {
+    const int Points = 72;
+    // Above the grass tips, or the band disappears into the blades.
+    const float HeightOffset = 0.65f;
+    // The ring stays within this band of the beacon's own height, so it never drops down a cliff face in a vertical ribbon.
+    const float MaxBelow = 0.6f;
+    const float MaxAbove = 1.5f;
+    const float BandWidth = 1.4f;
+
     static Material sharedMaterial;
+    static Texture2D bandTexture;
 
     Beacon beacon;
+    BeaconVisual visual;
     LineRenderer ring;
-    bool fitted;
+    float fittedRadius = -1f;
+    float fittedAlpha = -1f;
+
+    public LineRenderer Ring => ring;
+    public float FittedRadius => fittedRadius;
 
     public static void Ensure(Beacon owner)
     {
@@ -33,17 +50,45 @@ public class BeaconSafeRing : MonoBehaviour
         Build();
     }
 
-    void Update()
+    // After BeaconVisual.Update, so the ring follows the radius computed this frame.
+    void LateUpdate()
     {
-        bool show = beacon != null && beacon.IsLit;
-        if (ring != null)
+        if (ring == null || beacon == null)
         {
-            ring.enabled = show;
+            return;
         }
 
-        if (show && !fitted)
+        if (!beacon.IsLit)
         {
-            Fit();
+            ring.enabled = false;
+            fittedRadius = -1f;
+            fittedAlpha = -1f;
+            return;
+        }
+
+        if (visual == null)
+        {
+            visual = GetComponentInChildren<BeaconVisual>(true);
+        }
+
+        float radius = visual != null ? visual.RingRadius : Mathf.Max(1f, beacon.ZoneRadius);
+        float alpha = visual != null ? visual.RingAlpha : 1f;
+        if (radius < 0.05f)
+        {
+            ring.enabled = false;
+            fittedRadius = -1f;
+            return;
+        }
+
+        ring.enabled = true;
+        if (!Mathf.Approximately(radius, fittedRadius))
+        {
+            Fit(radius);
+        }
+
+        if (!Mathf.Approximately(alpha, fittedAlpha))
+        {
+            SetAlpha(alpha);
         }
     }
 
@@ -67,55 +112,79 @@ public class BeaconSafeRing : MonoBehaviour
             ring = ringObject.AddComponent<LineRenderer>();
         }
 
+        // The band lies flat on the ground: the line faces along its transform's Z, which points up.
+        ringObject.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        ring.alignment = LineAlignment.TransformZ;
         ring.loop = true;
         ring.useWorldSpace = true;
         ring.shadowCastingMode = ShadowCastingMode.Off;
         ring.receiveShadows = false;
         ring.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-        ring.numCapVertices = 4;
+        ring.numCapVertices = 0;
         ring.numCornerVertices = 2;
-        ring.widthMultiplier = 0.45f;
-        ring.positionCount = 64;
-        ring.material = SharedMaterial();
+        ring.widthMultiplier = BandWidth;
+        ring.positionCount = Points;
         ring.textureMode = LineTextureMode.Stretch;
-        Color glow = new Color(1f, 0.58f, 0.22f, 0.85f);
-        ring.startColor = glow;
-        ring.endColor = glow;
+        ring.sharedMaterial = SharedMaterial();
         ring.enabled = false;
-        fitted = false;
+        fittedRadius = -1f;
+        fittedAlpha = -1f;
     }
 
-    void Fit()
+    void Fit(float radius)
     {
-        if (ring == null || beacon == null)
-        {
-            return;
-        }
-
-        float radius = Mathf.Max(1f, beacon.ZoneRadius);
-        int count = ring.positionCount;
         Vector3 center = beacon.transform.position;
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < Points; i++)
         {
-            float angle = i * Mathf.PI * 2f / count;
+            float angle = i * Mathf.PI * 2f / Points;
             Vector3 point = center + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-            float height = TerrainQuery.Height(point, center.y);
-            point.y = height + 0.35f;
+            float ground = Mathf.Clamp(TerrainQuery.Height(point, center.y), center.y - MaxBelow, center.y + MaxAbove);
+            point.y = ground + HeightOffset;
             ring.SetPosition(i, point);
         }
 
-        Color glow = new Color(1f, 0.58f, 0.22f, 0.9f);
-        Light beaconLight = beacon.GetComponentInChildren<Light>(true);
-        if (beaconLight != null)
+        fittedRadius = radius;
+    }
+
+    void SetAlpha(float alpha)
+    {
+        Color amber = LookPalette.FromHex(LookPalette.LanternAmber);
+        amber.a = Mathf.Clamp01(alpha);
+        ring.startColor = amber;
+        ring.endColor = amber;
+        fittedAlpha = alpha;
+    }
+
+    // Soft across the band (V): a bright core line fading to nothing at both edges.
+    static Texture2D BandTexture()
+    {
+        if (bandTexture != null)
         {
-            glow = beaconLight.color;
-            glow.a = 0.9f;
+            return bandTexture;
         }
 
-        ring.startColor = glow;
-        ring.endColor = glow;
-        ring.widthMultiplier = 0.85f;
-        fitted = true;
+        const int height = 32;
+        bandTexture = new Texture2D(2, height, TextureFormat.RGBA32, false);
+        bandTexture.name = "BeaconSafeRingBand";
+        bandTexture.wrapMode = TextureWrapMode.Clamp;
+        bandTexture.filterMode = FilterMode.Bilinear;
+        Color amber = LookPalette.FromHex(LookPalette.LanternAmber);
+        Color core = LookPalette.FromHex(LookPalette.GlowCore);
+        for (int y = 0; y < height; y++)
+        {
+            float v = (y + 0.5f) / height * 2f - 1f;
+            float edge = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(v)), 1.6f);
+            float heart = Mathf.Pow(Mathf.Clamp01(1f - Mathf.Abs(v) * 2.2f), 2f);
+            Color c = Color.Lerp(amber, core, heart);
+            c.a = Mathf.Clamp01(edge * 0.8f + heart * 0.35f);
+            for (int x = 0; x < 2; x++)
+            {
+                bandTexture.SetPixel(x, y, c);
+            }
+        }
+
+        bandTexture.Apply(false, true);
+        return bandTexture;
     }
 
     static Material SharedMaterial()
@@ -125,39 +194,16 @@ public class BeaconSafeRing : MonoBehaviour
             return sharedMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("LanternKeeper/AdditiveUnlit");
         if (shader == null)
         {
-            shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-        }
-
-        if (shader == null)
-        {
-            shader = Shader.Find("Sprites/Default");
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
         }
 
         sharedMaterial = new Material(shader);
         sharedMaterial.name = "BeaconSafeRing";
-        Color color = new Color(1f, 0.58f, 0.22f, 0.9f);
-        if (sharedMaterial.HasProperty("_BaseColor"))
-        {
-            sharedMaterial.SetColor("_BaseColor", color);
-        }
-
-        if (sharedMaterial.HasProperty("_Color"))
-        {
-            sharedMaterial.SetColor("_Color", color);
-        }
-
-        if (sharedMaterial.HasProperty("_Surface"))
-        {
-            sharedMaterial.SetFloat("_Surface", 1f);
-        }
-
-        sharedMaterial.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-        sharedMaterial.SetInt("_DstBlend", (int)BlendMode.One);
-        sharedMaterial.SetInt("_ZWrite", 0);
-        sharedMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        sharedMaterial.SetTexture("_BaseMap", BandTexture());
+        sharedMaterial.SetColor("_BaseColor", Color.white);
         sharedMaterial.renderQueue = 3000;
         return sharedMaterial;
     }
