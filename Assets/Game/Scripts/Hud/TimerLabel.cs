@@ -3,13 +3,12 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// The run timer, top-right. The coordinator passes GameManager.FormatTime as the formatter (this assembly cannot see GameManager);
-// until then it uses the same mm:ss rule.
+// The run timer, top-right. Formats with HudMath.FormatTime unless the coordinator supplies another formatter.
 public class TimerLabel : MonoBehaviour
 {
     [SerializeField] private ThemedLabel label;
 
-    private Func<float, string> format = DefaultFormat;
+    private Func<float, string> format = HudMath.FormatTime;
 
     public string Text { get { return label.Text.text; } }
 
@@ -20,17 +19,7 @@ public class TimerLabel : MonoBehaviour
 
     public void SetFormatter(Func<float, string> formatter)
     {
-        format = formatter ?? DefaultFormat;
-    }
-
-    public static string DefaultFormat(float seconds)
-    {
-        if (seconds < 0f)
-        {
-            return "--:--";
-        }
-        int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
-        return (total / 60).ToString("00") + ":" + (total % 60).ToString("00");
+        format = formatter ?? HudMath.FormatTime;
     }
 
     public void Show(float seconds)

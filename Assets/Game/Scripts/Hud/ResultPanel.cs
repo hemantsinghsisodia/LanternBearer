@@ -125,8 +125,8 @@ public class ResultPanel : MonoBehaviour
         loseLine.gameObject.SetActive(false);
         timeLabel.gameObject.SetActive(true);
         bestLabel.gameObject.SetActive(true);
-        timeLabel.Text.text = "Time  " + TimerLabel.DefaultFormat(time);
-        bestLabel.Text.text = "Best  " + TimerLabel.DefaultFormat(best);
+        timeLabel.Text.text = "Time  " + HudMath.FormatTime(time);
+        bestLabel.Text.text = "Best  " + HudMath.FormatTime(best);
         newBestLabel.gameObject.SetActive(newBest);
         roofs.gameObject.SetActive(true);
         roofs.Show(total, lit);

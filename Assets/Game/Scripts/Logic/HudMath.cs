@@ -53,8 +53,34 @@ public static class HudMath
         v.Shield = s.InSafeLight;
         v.Ember = s.Sprinting && !s.InSafeLight;
         v.Multiplier = s.DrainRelative > 1.05f && !s.InSafeLight;
-        v.MultiplierText = v.Multiplier ? "×" + s.DrainRelative.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        v.MultiplierText = v.Multiplier ? MultiplierString(s.DrainRelative) : string.Empty;
         return v;
+    }
+
+    static float cachedMultiplier = float.NaN;
+    static string cachedMultiplierText = string.Empty;
+
+    // Rebuilt only when the rounded (one decimal) multiplier changes, so the per-frame HUD update does not allocate.
+    static string MultiplierString(float relative)
+    {
+        float rounded = Mathf.Round(relative * 10f) / 10f;
+        if (rounded != cachedMultiplier)
+        {
+            cachedMultiplier = rounded;
+            cachedMultiplierText = "×" + relative.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return cachedMultiplierText;
+    }
+
+    // mm:ss, or --:-- for a negative (unset) time. The one place the timer / best-time format lives.
+    public static string FormatTime(float seconds)
+    {
+        if (seconds < 0f)
+        {
+            return "--:--";
+        }
+        int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
+        return (total / 60).ToString("00") + ":" + (total % 60).ToString("00");
     }
 
     // Coalesces fuel changes made within 1 s of each other into one running total, shown for 1 s after the last change.
@@ -85,6 +111,12 @@ public static class HudMath
         public bool Visible(float now)
         {
             return now - lastTime < Window;
+        }
+
+        // 1 right after a change, falling to 0 as the window ends.
+        public float Fade(float now)
+        {
+            return Mathf.Clamp01(1f - (now - lastTime) / Window);
         }
 
         public float Total { get { return total; } }

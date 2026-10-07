@@ -75,7 +75,7 @@ public static partial class SceneWiring
         return found ? 0 : Problem(scene + " missing GameHud prefab", quiet);
     }
 
-    // Any text left over from the old code-made readouts (they were built by HUD.MakeRuntimeText) is a problem.
+    // Any text left over from the old code-made readouts (they were made in code at runtime, not baked into the prefab) is a problem.
     static int RequireNoRuntimeHudText(string scene, bool quiet)
     {
         int problems = 0;

@@ -508,9 +508,7 @@ public class GameManager : MonoBehaviour
         }
 
         roundOver = true;
-        float previousBest = GameSettings.GetBestTime(LevelId);
-        NewBest = previousBest < 0f || elapsed < previousBest;
-        GameSettings.TryRecordBest(LevelId, elapsed);
+        NewBest = GameSettings.TryRecordBest(LevelId, elapsed);
         GameSettings.MarkWon(LevelId);
         if (AudioManager.Instance != null)
         {
@@ -540,15 +538,7 @@ public class GameManager : MonoBehaviour
 
     public static string FormatTime(float seconds)
     {
-        if (seconds < 0f)
-        {
-            return "--:--";
-        }
-
-        int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
-        int minutes = total / 60;
-        int secs = total % 60;
-        return minutes.ToString("00") + ":" + secs.ToString("00");
+        return HudMath.FormatTime(seconds);
     }
 
     void ReconcileNearby()

@@ -305,11 +305,7 @@ public class MothSpawner : MonoBehaviour
                 Debug.LogError("MothSpawner has no moth prefab assigned.");
             }
 
-            mothObject = BuildRuntimeMoth(spawnPosition);
-            if (mothObject == null)
-            {
-                return;
-            }
+            return;
         }
 
         mothObject.name = "Moth";
@@ -321,71 +317,6 @@ public class MothSpawner : MonoBehaviour
         }
 
         spawned++;
-    }
-
-    GameObject BuildRuntimeMoth(Vector3 spawnPosition)
-    {
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        if (shader == null)
-        {
-            shader = Shader.Find("Standard");
-        }
-
-        if (shader == null)
-        {
-            Debug.LogError("MothSpawner could not build a runtime moth visual.");
-            return null;
-        }
-
-        GameObject root = new GameObject("Moth");
-        root.transform.SetParent(transform, false);
-        root.transform.position = spawnPosition;
-        root.transform.localScale = Vector3.one * 0.35f;
-
-        GameObject wings = new GameObject("Wings");
-        wings.transform.SetParent(root.transform, false);
-        MeshFilter filter = wings.AddComponent<MeshFilter>();
-        filter.sharedMesh = WingMesh();
-        MeshRenderer renderer = wings.AddComponent<MeshRenderer>();
-        Material material = new Material(shader);
-        Color body = new Color(0.12f, 0.13f, 0.16f, 1f);
-        if (material.HasProperty("_BaseColor"))
-        {
-            material.SetColor("_BaseColor", body);
-        }
-
-        if (material.HasProperty("_Color"))
-        {
-            material.SetColor("_Color", body);
-        }
-
-        renderer.sharedMaterial = material;
-        root.AddComponent<AudioSource>();
-        root.AddComponent<Moth>();
-        return root;
-    }
-
-    static Mesh wingMesh;
-
-    static Mesh WingMesh()
-    {
-        if (wingMesh != null)
-        {
-            return wingMesh;
-        }
-
-        wingMesh = new Mesh();
-        wingMesh.name = "MothWings";
-        wingMesh.vertices = new[]
-        {
-            new Vector3(0f, 0f, 0.22f),
-            new Vector3(-0.42f, 0f, -0.08f),
-            new Vector3(0f, 0.02f, -0.02f),
-            new Vector3(0.42f, 0f, -0.08f)
-        };
-        wingMesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
-        wingMesh.RecalculateNormals();
-        return wingMesh;
     }
 
     void DespawnAll()

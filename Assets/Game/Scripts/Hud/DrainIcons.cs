@@ -13,6 +13,8 @@ public class DrainIcons : MonoBehaviour
     [SerializeField] private ThemedLabel multiplier;
     [SerializeField] private Image backing;
 
+    private int shownMoths = -1;
+
     public bool MothVisible { get { return mothGroup.activeSelf; } }
     public string MothText { get { return mothCount.Text.text; } }
     public bool ShieldVisible { get { return shield.activeSelf; } }
@@ -35,7 +37,11 @@ public class DrainIcons : MonoBehaviour
         mothGroup.SetActive(v.Moth);
         if (v.Moth)
         {
-            mothCount.Text.text = "×" + v.MothCount;
+            if (v.MothCount != shownMoths)
+            {
+                shownMoths = v.MothCount;
+                mothCount.Text.text = "×" + v.MothCount;
+            }
         }
         shield.SetActive(v.Shield);
         ember.SetActive(v.Ember);

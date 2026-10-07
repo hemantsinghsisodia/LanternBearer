@@ -187,21 +187,22 @@ public static class GameSettings
         return PlayerPrefs.GetFloat(key);
     }
 
-    public static void TryRecordBest(string levelId, float seconds)
+    public static bool TryRecordBest(string levelId, float seconds)
     {
         if (seconds < 0f)
         {
-            return;
+            return false;
         }
 
         float previous = GetBestTime(levelId);
         if (previous >= 0f && seconds >= previous)
         {
-            return;
+            return false;
         }
 
         PlayerPrefs.SetFloat(BestTimeKey(levelId), seconds);
         PlayerPrefs.Save();
+        return true;
     }
 
     public static void MarkWon(string levelId)

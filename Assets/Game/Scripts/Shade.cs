@@ -141,7 +141,7 @@ public class Shade : MonoBehaviour
         Subscribe();
     }
 
-    public void Bind(Transform playerBody, Lantern playerLantern, WaterHazard waterHazard, HUD playerHud)
+    public void Bind(Transform playerBody, Lantern playerLantern, WaterHazard waterHazard)
     {
         if (playerBody != null)
         {

@@ -221,6 +221,20 @@ public class HudWidgetTests
     }
 
     [Test]
+    public void FuelChangeFlashesBarAndFadesBack()
+    {
+        FuelGaugeWidget gauge = One<FuelGaugeWidget>();
+        gauge.Show(1f, 100f, false);
+        Color baseColour = gauge.BarColour;
+        gauge.Changed(-10f, 500f);
+        Assert.AreNotEqual(baseColour, gauge.BarColour, "bar is tinted by the change");
+        gauge.ApplyBar(500.5f);
+        Assert.AreNotEqual(baseColour, gauge.BarColour, "still tinted mid-window");
+        gauge.ApplyBar(501.5f);
+        Assert.AreEqual(baseColour, gauge.BarColour, "back to base after the window");
+    }
+
+    [Test]
     public void FuelFlashColourFollowsCoalescedTotalAndHidesAtZero()
     {
         FuelGaugeWidget gauge = One<FuelGaugeWidget>();

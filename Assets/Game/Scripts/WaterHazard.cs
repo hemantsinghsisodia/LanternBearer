@@ -164,7 +164,7 @@ public class WaterHazard : MonoBehaviour
 
         float half = Mathf.Max(0.05f, fadeSeconds * 0.5f);
         yield return Fade(hud, 0f, 1f, half);
-        Teleport(lantern, hud);
+        Teleport(lantern);
         yield return Fade(hud, 1f, 0f, half);
         if (Rescued != null)
         {
@@ -218,7 +218,7 @@ public class WaterHazard : MonoBehaviour
         }
     }
 
-    void Teleport(Lantern lantern, HUD hud)
+    void Teleport(Lantern lantern)
     {
         if (player == null)
         {

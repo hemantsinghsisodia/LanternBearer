@@ -31,6 +31,7 @@ public class HUD : MonoBehaviour
     readonly IntroFeed introFeed = new IntroFeed();
     HudPrompt prompt;
     PlayerController player;
+    bool playerResolved;
     bool bound;
     bool lanternBound;
     bool buttonsBound;
@@ -130,8 +131,9 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        if (player == null)
+        if (!playerResolved)
         {
+            playerResolved = true;
             player = FindAnyObjectByType<PlayerController>();
         }
 

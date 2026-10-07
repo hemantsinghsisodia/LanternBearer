@@ -151,7 +151,6 @@ public static partial class SceneWiring
             assigned += Set(shadeSpawners[i], "lantern", lantern);
             assigned += Set(shadeSpawners[i], "player", body);
             assigned += Set(shadeSpawners[i], "hazard", water.Length > 0 ? water[0] : null);
-            assigned += Set(shadeSpawners[i], "hud", hud);
         }
 
         Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -617,7 +616,6 @@ public static partial class SceneWiring
             nulls += Require(shadeSpawners[i], "lantern", quiet);
             nulls += Require(shadeSpawners[i], "player", quiet);
             nulls += Require(shadeSpawners[i], "hazard", quiet);
-            nulls += Require(shadeSpawners[i], "hud", quiet);
         }
 
         Lightning[] lightnings = Object.FindObjectsByType<Lightning>(FindObjectsInactive.Include, FindObjectsSortMode.None);
