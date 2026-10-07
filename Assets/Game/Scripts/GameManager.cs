@@ -58,6 +58,8 @@ public class GameManager : MonoBehaviour
     public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
+    // True when this win set a new best time for the level (a tie is not a new best).
+    public bool NewBest { get; private set; }
     public string LevelId => string.IsNullOrEmpty(levelId) ? SceneManager.GetActiveScene().name : levelId;
     public string NextLevelScene => nextLevelScene;
     // Em-dash form, e.g. "Island 4 <em dash> The Storm Cape". HUD uses IslandLabels.ToHud for the middle-dot form.
@@ -506,6 +508,8 @@ public class GameManager : MonoBehaviour
         }
 
         roundOver = true;
+        float previousBest = GameSettings.GetBestTime(LevelId);
+        NewBest = previousBest < 0f || elapsed < previousBest;
         GameSettings.TryRecordBest(LevelId, elapsed);
         GameSettings.MarkWon(LevelId);
         if (AudioManager.Instance != null)

@@ -13,6 +13,7 @@ public class BeaconRoofs : MonoBehaviour
     [SerializeField] private UITheme theme;
     [SerializeField] private Image template;
     [SerializeField] private float rowWidth = 272f;
+    [SerializeField] private bool centred;
 
     private readonly List<Image> roofs = new List<Image>();
 
@@ -47,11 +48,12 @@ public class BeaconRoofs : MonoBehaviour
         }
     }
 
-    public void Configure(UITheme newTheme, Image roofTemplate, float width)
+    public void Configure(UITheme newTheme, Image roofTemplate, float width, bool centreRow = false)
     {
         theme = newTheme;
         template = roofTemplate;
         rowWidth = width;
+        centred = centreRow;
     }
 
     public void Show(int total, int lit)
@@ -68,6 +70,7 @@ public class BeaconRoofs : MonoBehaviour
         float pitch = count > 1 ? Mathf.Min(size.x + Gap, (rowWidth - size.x) / (count - 1)) : size.x;
         float width = Mathf.Min(size.x, pitch - 2f);
         float height = size.y * width / size.x;
+        float start = centred && count > 0 ? (rowWidth - ((count - 1) * pitch + width)) * 0.5f : 0f;
         for (int i = 0; i < roofs.Count; i++)
         {
             Image roof = roofs[i];
@@ -79,7 +82,7 @@ public class BeaconRoofs : MonoBehaviour
             }
             RectTransform rect = (RectTransform)roof.transform;
             rect.sizeDelta = new Vector2(width, height);
-            rect.anchoredPosition = new Vector2(i * pitch, 0f);
+            rect.anchoredPosition = new Vector2(start + i * pitch, 0f);
             roof.color = i < litCount ? theme.amber : theme.brassLine;
         }
     }

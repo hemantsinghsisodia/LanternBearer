@@ -91,6 +91,11 @@ public static partial class UIBuilder
         BuildTimer(root.transform, theme);
         BuildFps(root.transform, theme);
 
+        // ---- overlays above the HUD: toasts, the intro card and the win / lose panel ----
+        BuildToasts(root.transform, theme);
+        BuildIntroCard(root.transform, theme);
+        BuildResultPanel(root.transform, theme, icons);
+
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
@@ -106,7 +111,8 @@ public static partial class UIBuilder
     // Code-made readouts the prefab replaces (and the old graphics panel). Removed by name from an island's HUD canvas.
     static readonly string[] LegacyHudChildren =
     {
-        "FuelMeter", "BeaconDots", "TimerText", "StatusText", "FuelPenalty", "GraphicsPanel", "FpsReadout", "IslandLabel", "TideGauge"
+        "FuelMeter", "BeaconDots", "TimerText", "StatusText", "FuelPenalty", "GraphicsPanel", "FpsReadout", "IslandLabel", "TideGauge",
+        "WinPanel", "LosePanel", "TideToast", "LogToastBack", "LogToast"
     };
 
     public static void InstallGameHudInActiveScene()
@@ -174,6 +180,9 @@ public static partial class UIBuilder
         SetObject(so, "islandLabel", existing.GetComponentInChildren<IslandLabel>(true));
         SetObject(so, "tideChip", existing.GetComponentInChildren<TideChip>(true));
         SetObject(so, "stormChip", existing.GetComponentInChildren<StormChip>(true));
+        SetObject(so, "introCard", existing.GetComponentInChildren<IntroCard>(true));
+        SetObject(so, "resultPanel", existing.GetComponentInChildren<ResultPanel>(true));
+        SetObject(so, "toasts", existing.GetComponentInChildren<Toasts>(true));
         so.ApplyModifiedPropertiesWithoutUndo();
 
         BeaconCompass compass = hud.GetComponent<BeaconCompass>();

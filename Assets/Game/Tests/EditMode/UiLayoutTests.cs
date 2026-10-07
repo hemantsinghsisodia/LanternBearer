@@ -21,12 +21,9 @@ public class UiLayoutTests
 
     static readonly Vector2[] CanvasSizes = { new Vector2(1920f, 1080f), new Vector2(1280f, 720f) };
 
-    // HUD texts that are still Phase F's: plain code-made labels whose box is not a layout row. Each entry says why.
-    // (Anything else under the HUD canvas that overflows at 130% fails the test.)
-    static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>
-    {
-        "WinPanel", "LosePanel" // end-of-round panels: restyled in Phase F2 task 4
-    };
+    // HUD texts exempt from the 130% check: plain code-made labels whose box is not a layout row. Each entry says why.
+    // (Anything else under the HUD canvas that overflows at 130% fails the test.) None at present.
+    static readonly HashSet<string> PhaseFHudTexts = new HashSet<string>();
 
     GameObject canvasGo;
     bool hadScale;

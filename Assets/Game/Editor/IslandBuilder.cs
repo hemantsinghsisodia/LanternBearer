@@ -1719,7 +1719,6 @@ public static partial class IslandBuilder
         HUD hud = canvasObject.AddComponent<HUD>();
         canvasObject.AddComponent<BeaconCompass>();
 
-        Color ink = new Color(0.96f, 0.93f, 0.86f, 1f);
         TMP_Text prompt = MakeTmp(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(680f, 56f), new Color(1f, 0.9f, 0.7f, 1f), TextAlignmentOptions.Center);
         prompt.gameObject.SetActive(false);
 
@@ -1744,42 +1743,13 @@ public static partial class IslandBuilder
         markers.offsetMin = Vector2.zero;
         markers.offsetMax = Vector2.zero;
 
-        GameObject win = MakePanel(art, canvasObject.transform, "WinPanel", "The island wakes");
-        MakeTmp(win.transform, "WinDetail", "Time 00:00", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(680f, 90f), ink, TextAlignmentOptions.Center);
-        MakeHudButton(art, win.transform, "RetryButton", "Retry", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 28f), new Vector2(210f, 52f));
-        MakeHudButton(art, win.transform, "NextButton", "Next Island", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(230f, 52f));
-        MakeHudButton(art, win.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
-        win.SetActive(false);
-
-        GameObject lose = MakePanel(art, canvasObject.transform, "LosePanel", "The flame went out");
-        MakeTmp(lose.transform, "LoseDetail", "The lantern went out.", 24, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(680f, 90f), ink, TextAlignmentOptions.Center);
-        MakeHudButton(art, lose.transform, "RetryButton", "Retry", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 28f), new Vector2(210f, 52f));
-        MakeHudButton(art, lose.transform, "NextButton", "Next Island", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(230f, 52f));
-        MakeHudButton(art, lose.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
-        lose.SetActive(false);
-
         SerializedObject hudObject = new SerializedObject(hud);
         hudObject.FindProperty("promptText").objectReferenceValue = prompt;
-        hudObject.FindProperty("winPanel").objectReferenceValue = win;
-        hudObject.FindProperty("losePanel").objectReferenceValue = lose;
-        hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<TMP_Text>();
-        hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
         hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
         UIBuilder.InstallPause(hud);
         UIBuilder.InstallGameHud(hud);
-    }
-
-    static GameObject MakePanel(ArtKit art, Transform parent, string name, string title)
-    {
-        RectTransform rect = MakeRect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820f, 440f));
-        Image image = rect.gameObject.AddComponent<Image>();
-        image.sprite = art.uiSprite;
-        image.type = Image.Type.Sliced;
-        image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-        MakeTmp(rect, "Title", title, 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(720f, 64f), new Color(1f, 0.82f, 0.45f, 1f), TextAlignmentOptions.Center);
-        return rect.gameObject;
     }
 
     static void EnsureEventSystem()
