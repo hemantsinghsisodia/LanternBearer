@@ -1,0 +1,94 @@
+using UnityEngine;
+
+namespace LanternKeeper
+{
+// Pure HUD maths: flame look from fuel, drain icon visibility, fuel change flash. No scene access.
+public static class HudMath
+{
+    public struct FlameLook
+    {
+        public float Scale, Glow, Redness, Pulse;
+    }
+
+    // Scale 0.35..1 from fuel. Redness 0 at 30% and above, 1 at empty. Pulse only below 15%: 2 Hz sine, 1 Hz when reduced.
+    public static FlameLook Flame(float fuel01, float time, bool reduceFlashing)
+    {
+        float fuel = Mathf.Clamp01(fuel01);
+        FlameLook look = new FlameLook();
+        look.Scale = 0.35f + 0.65f * fuel;
+        look.Glow = fuel;
+        look.Redness = Mathf.Clamp01(1f - fuel / 0.30f);
+        if (fuel < 0.15f)
+        {
+            float hz = reduceFlashing ? 1f : 2f;
+            look.Pulse = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * hz * time);
+        }
+
+        return look;
+    }
+
+    public struct DrainState
+    {
+        public int MothsDraining;
+        public bool InSafeLight;
+        public bool Sprinting;
+        public float DrainRelative;
+    }
+
+    public struct DrainIconsView
+    {
+        public bool Moth;
+        public int MothCount;
+        public bool Shield;
+        public bool Ember;
+        public bool Multiplier;
+        public string MultiplierText;
+    }
+
+    public static DrainIconsView DrainIcons(DrainState s)
+    {
+        DrainIconsView v = new DrainIconsView();
+        v.Moth = s.MothsDraining > 0;
+        v.MothCount = s.MothsDraining;
+        v.Shield = s.InSafeLight;
+        v.Ember = s.Sprinting && !s.InSafeLight;
+        v.Multiplier = s.DrainRelative > 1.05f && !s.InSafeLight;
+        v.MultiplierText = v.Multiplier ? "×" + s.DrainRelative.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        return v;
+    }
+
+    // Coalesces fuel changes made within 1 s of each other into one running total, shown for 1 s after the last change.
+    public class FuelFlash
+    {
+        const float Window = 1f;
+
+        float total;
+        float lastTime = float.NegativeInfinity;
+
+        public void Add(float delta, float now)
+        {
+            if (now - lastTime >= Window)
+            {
+                total = 0f;
+            }
+
+            total += delta;
+            lastTime = now;
+        }
+
+        public bool Visible(float now)
+        {
+            return now - lastTime < Window;
+        }
+
+        public string Text
+        {
+            get
+            {
+                int n = Mathf.RoundToInt(total);
+                return n < 0 ? "−" + (-n).ToString() : "+" + n.ToString();
+            }
+        }
+    }
+}
+}
