@@ -20,6 +20,7 @@ public static partial class UIBuilder
         BuildMainMenuScreen();
         BuildLogScreen();
         BuildPauseScreen();
+        BuildGameHud();
     }
 
     // Saves a built screen over its asset path (the GUID stays) with fileIDs kept from the previous build, so rebuilding

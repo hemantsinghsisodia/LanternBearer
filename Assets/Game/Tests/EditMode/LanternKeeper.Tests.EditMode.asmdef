@@ -5,6 +5,7 @@
         "LanternKeeper.Logic",
         "LanternKeeper.Look",
         "LanternKeeper.UI",
+        "LanternKeeper.Hud",
         "LanternKeeper.Editor.KeeperClips",
         "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
