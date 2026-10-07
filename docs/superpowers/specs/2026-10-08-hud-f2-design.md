@@ -72,7 +72,7 @@ Each icon is hidden when its condition doesn't apply.
 
 **Lose panel:**
 - The title "The flame went out".
-- One cause line, using the cause `GameManager` already records: fuel ran out, the sea, or a Shade.
+- One fixed line in Spectral italic: "Your lantern went dark." `GameManager.Lose()` has a single trigger (fuel at 0). The sea and Shades only take fuel, so no per-cause line is needed and no gameplay code changes for this.
 - Buttons: **Retry** (primary), **Main Menu**.
 
 Both panels use the kit buttons with keyboard and gamepad focus. The first button is selected.
