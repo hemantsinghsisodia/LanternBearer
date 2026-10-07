@@ -203,7 +203,8 @@ public static partial class IslandBuilder
         SetEffect(lowpass, mixer, normal, "Resonance", 1f);
         SetEffect(lowpass, mixer, ducked, "Resonance", 1f);
         ExposeVolume(mixer, music, "MusicVol");
-        ExposeVolume(mixer, sfx, "SFXVol");
+        ExposeVolume(mixer, master, "MasterVol");
+        ExposeVolume(mixer, sfx, "SfxVol");
         ExposeVolume(mixer, ambience, "AmbienceVol");
         controllerType.GetProperty("startSnapshot").SetValue(mixer, normal);
 

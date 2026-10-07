@@ -14,6 +14,7 @@ public class LowFuelFX : MonoBehaviour
     bool ready;
     bool resolved;
     float edgePulse;
+    float pulsePhase;
     static bool loggedFallback;
 
     void Awake()
@@ -103,7 +104,9 @@ public class LowFuelFX : MonoBehaviour
         float amount = Mathf.Lerp(0.55f, 0.18f, fuel);
         if (fuel < 0.2f)
         {
-            amount += Mathf.Abs(Mathf.Sin(Time.time * 6f)) * 0.1f;
+            // Reduce flashing halves the pulse rate. The phase is accumulated so a rate change does not jump.
+            pulsePhase += Time.deltaTime * SettingsMath.LowFuelPulseRate(6f, UserSettings.ReduceFlashing);
+            amount += Mathf.Abs(Mathf.Sin(pulsePhase)) * 0.1f;
         }
 
         amount += lantern.ProximityDim * 0.22f;

@@ -10,8 +10,6 @@ namespace LanternKeeper
 public class HUD : MonoBehaviour
 {
     const float PromptShakeDuration = 0.3f;
-    const float PauseButtonTop = 132f;
-    const float PauseButtonPitch = 66f;
 
     static readonly Color PromptColor = new Color(1f, 0.9f, 0.7f, 1f);
     static readonly Color WarningColor = new Color(1f, 0.38f, 0.28f, 1f);
@@ -39,9 +37,8 @@ public class HUD : MonoBehaviour
     [SerializeField] TMP_Text timerText;
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
-    [SerializeField] GameObject pausePanel;
+    [SerializeField] PauseScreen pauseScreen;
     [SerializeField] GraphicsMenu graphicsMenu;
-    [SerializeField] Button graphicsButton;
     [SerializeField] TMP_Text winDetailText;
     [SerializeField] TMP_Text loseDetailText;
     [SerializeField] TMP_Text statusText;
@@ -83,7 +80,6 @@ public class HUD : MonoBehaviour
     float lastNorm = 1f;
     float gainFlash;
     bool panelsAudited;
-    readonly Button[] pauseTab = new Button[5];
     RectTransform tideRoot;
     Image tideFill;
     TMP_Text tideText;
@@ -108,8 +104,6 @@ public class HUD : MonoBehaviour
     TMP_Text introTitle;
     TMP_Text introBody;
     TMP_Text introFooter;
-    bool howToOpen;
-    float howToUnlock;
     string shownCardKey;
 
     public float FadeAlpha => fadeOverlay != null ? fadeOverlay.color.a : 0f;
@@ -117,14 +111,17 @@ public class HUD : MonoBehaviour
     public string StatusLine => statusText != null ? statusText.text : "";
     public string PenaltyLine => penaltyText != null && penaltyText.gameObject.activeInHierarchy ? penaltyText.text : "";
 
+    // Wide enough for "Drain x2.25 · Moths 2/2 • 2 moths on you" at 130% text (about 420 px) with room to spare.
+    public const float StatusBoxWidth = 560f;
+
     void OnEnable()
     {
         Beacon.LightFailed += OnLightFailed;
         BindIfNeeded();
         EnsureFuelGhost();
-        EnsurePausePanel();
-        EnsureWidgets();
+        EnsureGraphicsSurface();
         WireButtons();
+        EnsureWidgets();
         HidePanels();
     }
 
@@ -138,7 +135,8 @@ public class HUD : MonoBehaviour
     {
         BindIfNeeded();
         EnsureFuelGhost();
-        EnsurePausePanel();
+        EnsureGraphicsSurface();
+        WireButtons();
         EnsureWidgets();
     }
 
@@ -187,12 +185,7 @@ public class HUD : MonoBehaviour
         RefreshPrompt(manager);
         UpdateGhost(manager);
         UpdateIntroCard(manager);
-        UpdatePausePanel(manager);
         RefreshStatus();
-        if (pausePanel != null && pausePanel.activeSelf && (graphicsMenu == null || !graphicsMenu.IsOpen))
-        {
-            GraphicsMenu.HandleTab(pauseTab);
-        }
 
         if (manager.Won)
         {
@@ -337,13 +330,9 @@ public class HUD : MonoBehaviour
             }
         }
 
-        if (pausePanel == null)
+        if (pauseScreen == null)
         {
-            Transform panel = FindNamed("PausePanel");
-            if (panel != null)
-            {
-                pausePanel = panel.gameObject;
-            }
+            pauseScreen = GetComponentInChildren<PauseScreen>(true);
         }
 
         if (winDetailText == null)
@@ -444,137 +433,6 @@ public class HUD : MonoBehaviour
         rect.anchoredPosition = Vector2.zero;
     }
 
-    void EnsurePausePanel()
-    {
-        if (pausePanel == null)
-        {
-            Transform existing = FindNamed("PausePanel");
-            if (existing != null)
-            {
-                pausePanel = existing.gameObject;
-            }
-        }
-
-        if (pausePanel == null)
-        {
-            Sprite sprite = PanelSprite();
-            GameObject panel = new GameObject("PausePanel", typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(transform, false);
-            panel.transform.SetAsLastSibling();
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(560f, 540f);
-            Image image = panel.GetComponent<Image>();
-            image.sprite = sprite;
-            image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-            image.color = new Color(0.04f, 0.05f, 0.08f, 0.92f);
-
-            MakeRuntimeText(rect, "Title", "Paused", 36, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 64f), new Color(1f, 0.82f, 0.45f), TextAlignmentOptions.Center);
-            MakeRuntimeButton(rect, "ResumeButton", "Resume", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(300f, 52f));
-            MakeRuntimeButton(rect, "RestartButton", "Restart", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(300f, 52f));
-            MakeRuntimeButton(rect, "GraphicsButton", "Graphics", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-            MakeRuntimeButton(rect, "MenuButton", "Main Menu", sprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -108f), new Vector2(300f, 52f));
-            ReflowPauseButtons();
-            panel.SetActive(false);
-            pausePanel = panel;
-            buttonsWired = false;
-        }
-
-        if (EnsureGraphicsButton())
-        {
-            buttonsWired = false;
-        }
-
-        if (EnsureHowToButton())
-        {
-            buttonsWired = false;
-        }
-
-        if (EnsureGraphicsSurface())
-        {
-            buttonsWired = false;
-        }
-
-        WireButtons();
-    }
-
-    bool EnsureGraphicsButton()
-    {
-        if (pausePanel == null)
-        {
-            return false;
-        }
-
-        Transform existing = pausePanel.transform.Find("GraphicsButton");
-        if (existing != null)
-        {
-            if (graphicsButton == null)
-            {
-                graphicsButton = existing.GetComponent<Button>();
-            }
-
-            return false;
-        }
-
-        RectTransform panelRect = pausePanel.GetComponent<RectTransform>();
-        if (panelRect != null)
-        {
-            panelRect.sizeDelta = new Vector2(560f, 540f);
-        }
-
-        MovePauseButton("ResumeButton", new Vector2(0f, 108f));
-        MovePauseButton("RestartButton", new Vector2(0f, 36f));
-        MovePauseButton("MenuButton", new Vector2(0f, -108f));
-        MakeRuntimeButton(pausePanel.transform, "GraphicsButton", "Graphics", PanelSprite(), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-        graphicsButton = pausePanel.transform.Find("GraphicsButton").GetComponent<Button>();
-        return true;
-    }
-
-    // The scene's pause panel only has four buttons; add How to Play at runtime and respace all five so they sit under the subtitle.
-    bool EnsureHowToButton()
-    {
-        if (pausePanel == null)
-        {
-            return false;
-        }
-
-        if (pausePanel.transform.Find("HowToButton") != null)
-        {
-            ReflowPauseButtons();
-            return false;
-        }
-
-        MakeRuntimeButton(pausePanel.transform, "HowToButton", "How to Play", PanelSprite(), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300f, 52f));
-        ReflowPauseButtons();
-        return true;
-    }
-
-    void ReflowPauseButtons()
-    {
-        string[] order = { "ResumeButton", "RestartButton", "HowToButton", "GraphicsButton", "MenuButton" };
-        for (int i = 0; i < order.Length; i++)
-        {
-            MovePauseButton(order[i], new Vector2(0f, PauseButtonTop - PauseButtonPitch * i));
-        }
-    }
-
-    void MovePauseButton(string buttonName, Vector2 position)
-    {
-        Transform child = pausePanel.transform.Find(buttonName);
-        if (child == null)
-        {
-            return;
-        }
-
-        RectTransform rect = child as RectTransform;
-        if (rect != null)
-        {
-            rect.anchoredPosition = position;
-        }
-    }
-
     bool EnsureGraphicsSurface()
     {
         if (graphicsMenu == null)
@@ -635,80 +493,18 @@ public class HUD : MonoBehaviour
 
     public bool ConsumePauseBack()
     {
-        if (howToOpen)
+        if (graphicsMenu == null)
         {
-            CloseHowTo();
+            graphicsMenu = GetComponent<GraphicsMenu>();
+        }
+
+        if (graphicsMenu != null && graphicsMenu.IsOpen)
+        {
+            graphicsMenu.Close();
             return true;
         }
 
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = GetComponent<GraphicsMenu>();
-        }
-
-        if (graphicsMenu == null || !graphicsMenu.IsOpen)
-        {
-            return false;
-        }
-
-        graphicsMenu.Close();
-        return true;
-    }
-
-    void OpenGraphics()
-    {
-        if (graphicsMenu == null)
-        {
-            graphicsMenu = GetComponent<GraphicsMenu>();
-        }
-
-        if (graphicsMenu == null)
-        {
-            return;
-        }
-
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(false);
-        }
-
-        graphicsMenu.Open(ShowPauseButtons);
-    }
-
-    void OpenHowTo()
-    {
-        GameManager manager = GameManager.Instance;
-        if (manager == null || !manager.IsPaused || manager.IntroShowing)
-        {
-            return;
-        }
-
-        howToOpen = true;
-        howToUnlock = Time.unscaledTime + 0.2f;
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(false);
-        }
-    }
-
-    void CloseHowTo()
-    {
-        howToOpen = false;
-        HideIntroCard();
-        ShowPauseButtons();
-    }
-
-    void ShowPauseButtons()
-    {
-        GameManager manager = GameManager.Instance;
-        if (pausePanel == null || manager == null || !manager.IsPaused)
-        {
-            return;
-        }
-
-        pausePanel.SetActive(true);
-        pausePanel.transform.SetAsLastSibling();
-        GraphicsMenu.Select(FindButton(pausePanel, "ResumeButton"));
+        return pauseScreen != null && pauseScreen.ConsumeBack();
     }
 
     public void EnsureWidgets()
@@ -735,7 +531,7 @@ public class HUD : MonoBehaviour
 
         if (statusText == null)
         {
-            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(360f, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
+            statusText = MakeRuntimeText(transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -150f), new Vector2(StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f), TextAlignmentOptions.TopLeft);
             statusText.rectTransform.pivot = new Vector2(0f, 1f);
         }
 
@@ -779,7 +575,6 @@ public class HUD : MonoBehaviour
         islandLabelText.gameObject.SetActive(!string.IsNullOrEmpty(label));
         SetPanelSubtitle(winPanel, label, 78f);
         SetPanelSubtitle(losePanel, label, 78f);
-        SetPanelSubtitle(pausePanel, label, 80f);
     }
 
     void SetPanelSubtitle(GameObject panel, string label, float drop)
@@ -1228,12 +1023,6 @@ public class HUD : MonoBehaviour
         BindButton(losePanel, "RetryButton", Retry);
         BindButton(losePanel, "NextButton", NextIsland);
         BindButton(losePanel, "MenuButton", GoMenu);
-        BindButton(pausePanel, "ResumeButton", ResumeGame);
-        BindButton(pausePanel, "RestartButton", Retry);
-        BindButton(pausePanel, "HowToButton", OpenHowTo);
-        BindButton(pausePanel, "GraphicsButton", OpenGraphics);
-        BindButton(pausePanel, "MenuButton", GoMenu);
-        CachePauseTab();
         buttonsWired = true;
         AuditPanels();
         RefreshNextButtons(false);
@@ -1249,7 +1038,6 @@ public class HUD : MonoBehaviour
         panelsAudited = true;
         AuditPanel(winPanel);
         AuditPanel(losePanel);
-        AuditPanel(pausePanel);
     }
 
     void AuditPanel(GameObject panel)
@@ -1290,9 +1078,9 @@ public class HUD : MonoBehaviour
             losePanel.SetActive(false);
         }
 
-        if (pausePanel != null)
+        if (pauseScreen != null)
         {
-            pausePanel.SetActive(false);
+            pauseScreen.Hide();
         }
 
         if (graphicsMenu != null)
@@ -1634,56 +1422,10 @@ public class HUD : MonoBehaviour
         }
     }
 
-    void CachePauseTab()
-    {
-        pauseTab[0] = FindButton(pausePanel, "ResumeButton");
-        pauseTab[1] = FindButton(pausePanel, "RestartButton");
-        pauseTab[2] = FindButton(pausePanel, "HowToButton");
-        pauseTab[3] = graphicsButton != null ? graphicsButton : FindButton(pausePanel, "GraphicsButton");
-        pauseTab[4] = FindButton(pausePanel, "MenuButton");
-        LinkPauseTab();
-    }
-
-    void LinkPauseTab()
-    {
-        Button previous = null;
-        for (int i = 0; i < pauseTab.Length; i++)
-        {
-            Button button = pauseTab[i];
-            if (button == null)
-            {
-                continue;
-            }
-
-            ColorBlock colors = button.colors;
-            colors.selectedColor = colors.highlightedColor;
-            button.colors = colors;
-            Navigation navigation = button.navigation;
-            navigation.mode = Navigation.Mode.Explicit;
-            navigation.selectOnUp = previous;
-            navigation.selectOnDown = null;
-            navigation.selectOnLeft = null;
-            navigation.selectOnRight = null;
-            button.navigation = navigation;
-            if (previous != null)
-            {
-                Navigation above = previous.navigation;
-                above.selectOnDown = button;
-                previous.navigation = above;
-            }
-
-            previous = button;
-        }
-    }
-
     // The intro card shows on first visit (the game holds itself paused) and again from the pause menu's How to Play button.
     void UpdateIntroCard(GameManager manager)
     {
-        if (howToOpen && !manager.IsPaused)
-        {
-            howToOpen = false;
-        }
-
+        bool howToOpen = pauseScreen != null && pauseScreen.HowToOpen;
         bool show = manager.IntroShowing || howToOpen;
         if (!show)
         {
@@ -1708,9 +1450,10 @@ public class HUD : MonoBehaviour
             introCard.transform.SetAsLastSibling();
         }
 
-        if (howToOpen && !manager.IntroShowing && Time.unscaledTime >= howToUnlock && DismissInputPressed())
+        if (howToOpen && !manager.IntroShowing && Time.unscaledTime >= pauseScreen.HowToUnlockTime && DismissInputPressed())
         {
-            CloseHowTo();
+            HideIntroCard();
+            pauseScreen.CloseHowTo();
         }
     }
 
@@ -1799,26 +1542,6 @@ public class HUD : MonoBehaviour
         introCard.SetActive(false);
     }
 
-    void UpdatePausePanel(GameManager manager)
-    {
-        if (pausePanel == null)
-        {
-            return;
-        }
-
-        bool graphicsOpen = graphicsMenu != null && graphicsMenu.IsOpen;
-        bool show = manager.IsPaused && !graphicsOpen && !manager.IntroShowing && !howToOpen;
-        if (pausePanel.activeSelf != show)
-        {
-            pausePanel.SetActive(show);
-            if (show)
-            {
-                pausePanel.transform.SetAsLastSibling();
-                GraphicsMenu.Select(pauseTab[0] != null ? pauseTab[0] : FindButton(pausePanel, "ResumeButton"));
-            }
-        }
-    }
-
     void ShowWin()
     {
         if (graphicsMenu != null)
@@ -1836,9 +1559,9 @@ public class HUD : MonoBehaviour
             losePanel.SetActive(false);
         }
 
-        if (pausePanel != null)
+        if (pauseScreen != null)
         {
-            pausePanel.SetActive(false);
+            pauseScreen.Hide();
         }
 
         if (promptText != null)
@@ -1872,9 +1595,9 @@ public class HUD : MonoBehaviour
             losePanel.SetActive(true);
         }
 
-        if (pausePanel != null)
+        if (pauseScreen != null)
         {
-            pausePanel.SetActive(false);
+            pauseScreen.Hide();
         }
 
         if (promptText != null)
@@ -1895,14 +1618,6 @@ public class HUD : MonoBehaviour
         bool show = wonRound && !string.IsNullOrEmpty(next);
         SetButtonActive(winPanel, "NextButton", show);
         SetButtonActive(losePanel, "NextButton", false);
-    }
-
-    void ResumeGame()
-    {
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.Resume();
-        }
     }
 
     void Retry()
@@ -2027,6 +1742,7 @@ public class HUD : MonoBehaviour
         TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
         Style(text, size, color, alignment);
         text.text = value;
+        TextScaler.Notify(text);
         return text;
     }
 

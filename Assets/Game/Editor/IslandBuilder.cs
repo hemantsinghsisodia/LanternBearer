@@ -138,10 +138,16 @@ public static partial class IslandBuilder
 
     public static void BuildMainMenu()
     {
+        BuildMainMenu("MainMenu");
+    }
+
+    // sceneName lets a rebuild go to a scratch scene (Assets/Game/Scenes/<sceneName>.unity) for comparison instead of over MainMenu.
+    public static void BuildMainMenu(string sceneName)
+    {
         LevelConfig preview = ScriptableObject.CreateInstance<LevelConfig>();
         preview.levelId = "menu";
         preview.displayName = "Menu";
-        preview.sceneName = "MainMenu";
+        preview.sceneName = sceneName;
         preview.islandRadius = 20f;
         preview.hillHeight = 7.5f;
         preview.seed = 1101;
@@ -1439,6 +1445,7 @@ public static partial class IslandBuilder
     static void CreateGameplay(LevelConfig config, ArtKit art, Stage stage)
     {
         GameObject systems = new GameObject("Systems");
+        UIBuilder.AddUserSettingsApplier(systems.transform);
         GameManager manager = systems.AddComponent<GameManager>();
         AudioManager audio = systems.AddComponent<AudioManager>();
         AssignMixer(audio);
@@ -1649,27 +1656,15 @@ public static partial class IslandBuilder
         }
 
         menuObject.ApplyModifiedPropertiesWithoutUndo();
-        RectTransform panel = MakeRect(canvasObject.transform, "Panel", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
-        panel.pivot = new Vector2(0f, 0.5f);
-        Image panelImage = panel.gameObject.AddComponent<Image>();
-        panelImage.sprite = art.uiSprite;
-        panelImage.color = new Color(0.03f, 0.04f, 0.07f, 0.72f);
-        MakeText(panel, "Title", "Lantern Keeper", 58, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(480f, 80f), new Color(1f, 0.84f, 0.45f), font, TextAnchor.MiddleCenter);
-        MakeText(panel, "Subtitle", "Light the beacons before the flame dies.", 20, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(460f, 40f), new Color(0.8f, 0.86f, 0.9f), font, TextAnchor.MiddleCenter);
-        MakeButton(art, panel, "PlayButton", "Play", new Vector2(0f, MenuPlayY));
-        MakeButton(art, panel, "DifficultyButton", "Difficulty: Normal", new Vector2(0f, MenuPlayY - 62f));
-        MakeButton(art, panel, "MusicButton", "Music: On", new Vector2(0f, MenuPlayY - 124f));
-        MakeButton(art, panel, "GraphicsButton", "Graphics", new Vector2(0f, MenuPlayY - 186f));
-        MakeButton(art, panel, "LogButton", "Keeper's Log", new Vector2(0f, MenuPlayY - 248f));
-        for (int i = 0; i < levels.Length; i++)
-        {
-            MakeButton(art, panel, levels[i].sceneName + "Button", levels[i].displayName, new Vector2(MenuLevelButtonX, MenuLevelY(i)), new Vector2(MenuLevelButtonWidth, 44f));
-            MakeText(panel, "Best" + levels[i].sceneName, "Best --:--", 18, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(MenuBestX, MenuLevelY(i)), new Vector2(160f, 28f), new Color(0.75f, 0.8f, 0.84f), font, TextAnchor.MiddleCenter);
-        }
-
-        MakeButton(art, panel, "QuitButton", "Quit", new Vector2(0f, MenuQuitY));
+        // The actions and island list live in the MainMenuScreen prefab; the legacy log view and graphics panel stay until later tasks.
+        RectTransform legacyMatch = MakeRect(canvasObject.transform, "LegacyMatch", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(520f, 860f));
+        legacyMatch.pivot = new Vector2(0f, 0.5f);
+        legacyMatch.gameObject.AddComponent<Image>().sprite = art.uiSprite;
         CreateLogPanel(art, canvasObject.transform, font);
-        CreateLegacyGraphics(art, canvasObject.transform, panel);
+        CreateLegacyGraphics(art, canvasObject.transform, legacyMatch);
+        Object.DestroyImmediate(legacyMatch.gameObject);
+        UIBuilder.InstallMainMenuInActiveScene();
+        UIBuilder.InstallSettingsInActiveScene();
     }
 
     const float MenuPlayY = 170f;
@@ -1783,7 +1778,7 @@ public static partial class IslandBuilder
         TMP_Text prompt = MakeTmp(canvasObject.transform, "PromptText", "E  Light beacon (-15)", 28, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(680f, 56f), new Color(1f, 0.9f, 0.7f, 1f), TextAlignmentOptions.Center);
         prompt.gameObject.SetActive(false);
 
-        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(380f, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
+        TMP_Text status = MakeTmp(canvasObject.transform, "StatusText", "Drain x1.00", 20, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(36f, -156f), new Vector2(HUD.StatusBoxWidth, 72f), new Color(1f, 0.86f, 0.55f, 1f), TextAlignmentOptions.TopLeft);
         status.rectTransform.pivot = new Vector2(0f, 1f);
 
         RectTransform fade = MakeRect(canvasObject.transform, "FadeOverlay", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -1825,14 +1820,6 @@ public static partial class IslandBuilder
         MakeHudButton(art, lose.transform, "MenuButton", "Menu", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-36f, 28f), new Vector2(210f, 52f));
         lose.SetActive(false);
 
-        GameObject pause = MakePanel(art, canvasObject.transform, "PausePanel", "Paused");
-        RectTransform pauseRect = pause.GetComponent<RectTransform>();
-        pauseRect.sizeDelta = new Vector2(560f, 540f);
-        MakeHudButton(art, pause.transform, "ResumeButton", "Resume", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 108f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "RestartButton", "Restart", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 36f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-        MakeHudButton(art, pause.transform, "MenuButton", "Main Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -108f), new Vector2(300f, 52f));
-        pause.SetActive(false);
         CreateTmpGraphics(art, canvasObject.transform);
 
         BeaconCompass compassScript = canvasObject.GetComponent<BeaconCompass>();
@@ -1852,14 +1839,13 @@ public static partial class IslandBuilder
         hudObject.FindProperty("winDetailText").objectReferenceValue = win.transform.Find("WinDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("loseDetailText").objectReferenceValue = lose.transform.Find("LoseDetail").GetComponent<TMP_Text>();
         hudObject.FindProperty("fuelCostGhost").objectReferenceValue = ghostImage;
-        hudObject.FindProperty("pausePanel").objectReferenceValue = pause;
         hudObject.FindProperty("graphicsMenu").objectReferenceValue = canvasObject.GetComponent<GraphicsMenu>();
-        hudObject.FindProperty("graphicsButton").objectReferenceValue = pause.transform.Find("GraphicsButton").GetComponent<Button>();
         hudObject.FindProperty("statusText").objectReferenceValue = status;
         hudObject.FindProperty("fadeOverlay").objectReferenceValue = fadeImage;
         hudObject.FindProperty("deathOverlay").objectReferenceValue = deathImage;
         hudObject.FindProperty("penaltyText").objectReferenceValue = penalty;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
+        UIBuilder.InstallPause(hud);
     }
 
     static GameObject MakePanel(ArtKit art, Transform parent, string name, string title)
@@ -2363,7 +2349,7 @@ public static partial class IslandBuilder
     static void PatchActiveSceneGraphics()
     {
         MainMenu menu = Object.FindAnyObjectByType<MainMenu>();
-        if (menu != null)
+        if (menu != null && menu.GetComponentInChildren<MainMenuScreen>(true) == null)
         {
             PatchMainMenu(menu);
         }
@@ -2411,51 +2397,12 @@ public static partial class IslandBuilder
 
     static void PatchHud(HUD hud)
     {
-        Transform pause = hud.transform.Find("PausePanel");
-        if (pause == null)
-        {
-            Transform[] children = hud.GetComponentsInChildren<Transform>(true);
-            for (int i = 0; i < children.Length; i++)
-            {
-                if (children[i].name == "PausePanel")
-                {
-                    pause = children[i];
-                    break;
-                }
-            }
-        }
-
-        if (pause == null)
-        {
-            Debug.LogError("PausePanel is missing.");
-            return;
-        }
-
-        RectTransform pauseRect = pause as RectTransform;
-        if (pauseRect != null)
-        {
-            pauseRect.sizeDelta = new Vector2(560f, 540f);
-        }
-
-        MoveRect(pause, "ResumeButton", new Vector2(0f, 108f));
-        MoveRect(pause, "RestartButton", new Vector2(0f, 36f));
-        MoveRect(pause, "MenuButton", new Vector2(0f, -108f));
-        ArtKit art = KitFrom(pause.Find("ResumeButton"));
-        if (pause.Find("GraphicsButton") == null)
-        {
-            MakeHudButton(art, pause, "GraphicsButton", "Graphics", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -36f), new Vector2(300f, 52f));
-        }
-        else
-        {
-            MoveRect(pause, "GraphicsButton", new Vector2(0f, -36f));
-        }
-
+        ArtKit art = KitFrom(hud.transform.Find("WinPanel") != null ? hud.transform.Find("WinPanel").Find("RetryButton") : null);
         CreateTmpGraphics(art, hud.transform);
         SerializedObject hudObject = new SerializedObject(hud);
         hudObject.FindProperty("graphicsMenu").objectReferenceValue = hud.GetComponent<GraphicsMenu>();
-        Transform graphicsButton = pause.Find("GraphicsButton");
-        hudObject.FindProperty("graphicsButton").objectReferenceValue = graphicsButton != null ? graphicsButton.GetComponent<Button>() : null;
         hudObject.ApplyModifiedPropertiesWithoutUndo();
+        UIBuilder.InstallPause(hud);
     }
 
     static void CreateLegacyGraphics(ArtKit art, Transform canvas, RectTransform match)

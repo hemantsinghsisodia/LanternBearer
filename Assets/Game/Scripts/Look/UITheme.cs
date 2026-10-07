@@ -28,6 +28,20 @@ public class UITheme : ScriptableObject
     public Color textPrimary = LookPalette.FromHex("F3E6CF");
     public Color textMuted = LookPalette.FromHex("C8B9A0");
 
+    [Header("Menu theme")]
+    public Color amberDeep = LookPalette.FromHex("E89A48");        // gradient bottom of the primary button
+    public Color parchment = LookPalette.FromHex("E3D3B0");
+    public Color parchmentEdge = LookPalette.FromHex("B89F72");
+    public Color inkText = LookPalette.FromHex("3A2C1C");          // text on parchment
+    public Color ribbon = LookPalette.FromHex("7A2E22");
+    public Color focusOutline = BrightenedBrass();
+    public Color focusGlow = AmberGlow();
+
+    [Header("Text sizes (px at 1080p, text scale 1.0)")]
+    public int bodyPx = 22;
+    public int labelPx = 20;
+    public int titlePx = 56;
+
     [Header("HUD")]
     public int minHudFontPx = MinReadableHudFontPx;
 
@@ -39,6 +53,21 @@ public class UITheme : ScriptableObject
     public Sprite iconMoth;
     public Sprite iconShield;
     public Sprite iconEmber;
+
+    // brassLine brightened by 1.6x in value, clamped.
+    static Color BrightenedBrass()
+    {
+        float h, sat, v;
+        Color.RGBToHSV(LookPalette.FromHex("6B5A44"), out h, out sat, out v);
+        return Color.HSVToRGB(h, sat, Mathf.Clamp01(v * 1.6f));
+    }
+
+    static Color AmberGlow()
+    {
+        Color c = LookPalette.FromHex(LookPalette.LanternAmber);
+        c.a = 0.35f;
+        return c;
+    }
 
     // Sprites are not checked: Phase A leaves them empty.
     public bool Validate(out string problem)
@@ -66,6 +95,16 @@ public class UITheme : ScriptableObject
         if (minHudFontPx < MinReadableHudFontPx)
         {
             problem = "minHudFontPx " + minHudFontPx + " is below " + MinReadableHudFontPx;
+            return false;
+        }
+        if (bodyPx < MinReadableHudFontPx)
+        {
+            problem = "bodyPx " + bodyPx + " is below " + MinReadableHudFontPx;
+            return false;
+        }
+        if (labelPx < MinReadableHudFontPx)
+        {
+            problem = "labelPx " + labelPx + " is below " + MinReadableHudFontPx;
             return false;
         }
         problem = null;

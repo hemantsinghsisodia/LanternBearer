@@ -32,7 +32,9 @@ public class Lightning : MonoBehaviour
 
     public LightningPhase Phase => schedule != null ? schedule.Phase : LightningPhase.Waiting;
     public float Flash01 => schedule != null ? schedule.Flash01 : 0f;
-    public static float CurrentFlash => Instance != null ? Instance.Flash01 : 0f;
+    // World brightening (stones, beacons, water, rim light) follows this, so Reduce flashing caps it too.
+    public static float CurrentFlash => Instance != null ? Instance.Flash01 * FlashCap : 0f;
+    static float FlashCap => SettingsMath.FlashCap(UserSettings.ReduceFlashing);
 
     void Awake()
     {
@@ -79,6 +81,20 @@ public class Lightning : MonoBehaviour
         {
             color.postExposure.overrideState = false;
             color.postExposure.value = baseExposure;
+        }
+    }
+
+    // Test hook: starts a flash now, skipping the thunder lead.
+    internal void DebugFlash()
+    {
+        if (schedule != null)
+        {
+            schedule.ForceFlash();
+            Action handler = Flashed;
+            if (handler != null)
+            {
+                handler();
+            }
         }
     }
 
@@ -174,7 +190,8 @@ public class Lightning : MonoBehaviour
             }
         }
 
-        float flash = schedule.Flash01;
+        float cap = FlashCap;
+        float flash = schedule.Flash01 * cap;
         thunder.volume = StormAudio.MuteGain;
         if (flashLight != null)
         {
@@ -185,9 +202,10 @@ public class Lightning : MonoBehaviour
         if (exposureReady && color != null)
         {
             // Only the effects volume is written. The override is released between flashes so the look grade shows through.
+            // The pulse rides on the authored base plus the user's brightness, and returns to it afterwards (flash is already capped).
             float pulse = pulseAllowed ? flash * peakExposure : 0f;
             color.postExposure.overrideState = pulse > 0.001f;
-            color.postExposure.value = baseExposure + pulse;
+            color.postExposure.value = baseExposure + UserSettingsApplier.UserEv + pulse;
         }
     }
 }

@@ -44,6 +44,7 @@ public class AudioManager : MonoBehaviour
     int alphaHeight;
 
     public int PoolChildCount => poolRoot != null ? poolRoot.childCount : 0;
+    public AudioMixer Mixer => mixer;
     public AudioMixerGroup MusicGroup { get; private set; }
     public AudioMixerGroup SfxGroup { get; private set; }
     public AudioMixerGroup AmbienceGroup { get; private set; }
@@ -286,6 +287,7 @@ public class AudioManager : MonoBehaviour
         }
 
         mixState = snapshotName;
+        UserSettingsApplier.SetDucked(ducked);
         snapshot.TransitionTo(0.35f);
         Debug.Log("Audio snapshot -> " + snapshotName + " (" + reason + ")");
     }
