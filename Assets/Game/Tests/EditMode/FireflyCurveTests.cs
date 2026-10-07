@@ -112,5 +112,31 @@ public class FireflyCurveTests
         Assert.AreEqual(3.4f, FireflyCurve.Period(1f, false), 1e-5f);
         Assert.AreEqual(2.6f * 1.3f, FireflyCurve.Period(0f, true), 1e-5f);
     }
+
+    [Test]
+    public void LitCountMatchesPerMoteBlinkWithPublicJitter()
+    {
+        foreach (int count in new[] { 6, 4 })
+        {
+            foreach (float seed in new[] { 0.05f, 0.5f, 0.93f })
+            {
+                float period = FireflyCurve.Period(seed, false);
+                for (float t = 0f; t < period * 2f; t += 0.037f)
+                {
+                    int expected = 0;
+                    for (int i = 0; i < count; i++)
+                    {
+                        float offset = FireflyCurve.MoteOffset(i, count, FireflyCurve.MoteJitter01(seed, i));
+                        if (FireflyCurve.Blink(t, period, offset, count, false) >= 0.5f)
+                        {
+                            expected++;
+                        }
+                    }
+
+                    Assert.AreEqual(expected, FireflyCurve.LitCount(t, period, seed, count, false), "count " + count + " seed " + seed + " t " + t);
+                }
+            }
+        }
+    }
 }
 }

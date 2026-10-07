@@ -57,7 +57,7 @@ public static class FireflyCurve
         int lit = 0;
         for (int i = 0; i < count; i++)
         {
-            float offset = MoteOffset(i, count, Jitter01(swarmSeed01, i));
+            float offset = MoteOffset(i, count, MoteJitter01(swarmSeed01, i));
             if (Blink(time, period, offset, count, reduceFlashing) >= LitThreshold)
             {
                 lit++;
@@ -121,7 +121,8 @@ public static class FireflyCurve
         return Mathf.Clamp01((sinceRespawn - start) / 0.2f);
     }
 
-    static float Jitter01(float seed01, int index)
+    // Per-mote jitter 0..1 from the swarm seed. FireflySwarm, the shader mirror and LitCount all use this one hash.
+    public static float MoteJitter01(float seed01, int index)
     {
         float v = Mathf.Sin(seed01 * 127.1f + index * 311.7f) * 43758.5453f;
         return v - Mathf.Floor(v);

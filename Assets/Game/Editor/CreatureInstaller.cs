@@ -33,6 +33,7 @@ public static class CreatureInstaller
         InstallMoth();
         InstallBeacon();
         InstallShade();
+        InstallFirefly();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
@@ -841,6 +842,122 @@ public static class CreatureInstaller
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         renderer.receiveShadows = false;
+    }
+
+    // ---- Firefly ---------------------------------------------------------------------------------------------------
+
+    public const string FireflyPrefabPath = "Assets/Game/Prefabs/Gameplay/Firefly.prefab";
+    public const string FireflyMoteMaterialPath = "Assets/Game/Materials/Generated/FireflyMote.mat";
+    public const string SwarmName = "Swarm";
+
+    // Replaces the placeholder firefly (the Body sphere and the PickupBurst particles) with a Swarm child: the FireflySwarm
+    // controller and six camera-facing mote quads. The Glow light, the collider and the Firefly logic are kept.
+    public static void InstallFirefly()
+    {
+        Shader shader = Shader.Find("LanternKeeper/FireflyMote");
+        if (shader == null)
+        {
+            Debug.LogError("CreatureInstaller: shader LanternKeeper/FireflyMote not found.");
+            return;
+        }
+
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(FireflyMoteMaterialPath);
+        Color halo = LookPalette.FromHex(LookPalette.FireflyGreen);
+        if (material == null)
+        {
+            material = new Material(shader);
+            AssetDatabase.CreateAsset(material, FireflyMoteMaterialPath);
+        }
+
+        if (material.shader != shader || !material.enableInstancing || material.GetColor("_Color") != halo
+            || !Mathf.Approximately(material.GetFloat("_Gain"), FireflyMoteGain))
+        {
+            material.shader = shader;
+            material.name = "FireflyMote";
+            material.SetColor("_Color", halo);
+            material.SetFloat("_Gain", FireflyMoteGain);
+            material.enableInstancing = true;
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+        }
+
+        GameObject root = PrefabUtility.LoadPrefabContents(FireflyPrefabPath);
+        try
+        {
+            if (IsFireflyInstalled(root.transform, material))
+            {
+                return;
+            }
+
+            string[] stale = { "Body", "PickupBurst", SwarmName };
+            for (int i = 0; i < stale.Length; i++)
+            {
+                Transform child = root.transform.Find(stale[i]);
+                while (child != null)
+                {
+                    Object.DestroyImmediate(child.gameObject);
+                    child = root.transform.Find(stale[i]);
+                }
+            }
+
+            GameObject swarm = new GameObject(SwarmName);
+            swarm.transform.SetParent(root.transform, false);
+            swarm.transform.localPosition = Vector3.zero;
+            swarm.AddComponent<FireflySwarm>();
+
+            Mesh quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            for (int i = 0; i < FireflyCurve.Motes; i++)
+            {
+                GameObject mote = new GameObject("Mote" + i);
+                mote.transform.SetParent(swarm.transform, false);
+                mote.transform.localPosition = Vector3.zero;
+                mote.transform.localScale = Vector3.one * FireflyMoteSize;
+                mote.AddComponent<MeshFilter>().sharedMesh = quad;
+                MeshRenderer renderer = mote.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                renderer.lightProbeUsage = LightProbeUsage.Off;
+                renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                renderer.localBounds = new Bounds(Vector3.zero, Vector3.one * 3f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(root, FireflyPrefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    const float FireflyMoteSize = 0.15f;
+    const float FireflyMoteGain = 1f;
+
+    static bool IsFireflyInstalled(Transform root, Material material)
+    {
+        if (root.Find("Body") != null || root.Find("PickupBurst") != null)
+        {
+            return false;
+        }
+
+        Transform swarm = root.Find(SwarmName);
+        if (swarm == null || swarm.GetComponent<FireflySwarm>() == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < FireflyCurve.Motes; i++)
+        {
+            Transform mote = swarm.Find("Mote" + i);
+            MeshRenderer renderer = mote != null ? mote.GetComponent<MeshRenderer>() : null;
+            if (renderer == null || renderer.sharedMaterial != material || renderer.shadowCastingMode != ShadowCastingMode.Off
+                || renderer.receiveShadows || !material.enableInstancing)
+            {
+                return false;
+            }
+        }
+
+        return swarm.childCount == FireflyCurve.Motes;
     }
 }
 }
