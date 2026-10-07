@@ -345,7 +345,7 @@ public class HUD : MonoBehaviour
     {
         if (toasts != null)
         {
-            toasts.Clear();
+            toasts.Clear(true);
         }
 
         if (introCard != null)

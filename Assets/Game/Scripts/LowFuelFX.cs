@@ -99,16 +99,27 @@ public class LowFuelFX : MonoBehaviour
     // A Shade steal darkens the screen edge for a moment on top of the fuel vignette.
     public void PulseEdge(float strength)
     {
-        edgePulse = Mathf.Max(edgePulse, Mathf.Clamp01(strength));
-        tinted = false;
+        float clamped = Mathf.Clamp01(strength);
+        if (clamped >= edgePulse)
+        {
+            tinted = false;
+        }
+
+        edgePulse = Mathf.Max(edgePulse, clamped);
     }
 
     // The same pulse, tinted: the vignette takes this colour until the pulse has faded.
+    // A weaker tint never recolours a stronger pulse that is still decaying.
     public void PulseEdge(float strength, Color colour)
     {
-        edgePulse = Mathf.Max(edgePulse, Mathf.Clamp01(strength));
-        tinted = true;
-        pulseColour = colour;
+        float clamped = Mathf.Clamp01(strength);
+        if (clamped >= edgePulse)
+        {
+            tinted = true;
+            pulseColour = colour;
+        }
+
+        edgePulse = Mathf.Max(edgePulse, clamped);
     }
 
     // While moths drain the lantern the screen edge pulses drain violet, about once a second (every other second with

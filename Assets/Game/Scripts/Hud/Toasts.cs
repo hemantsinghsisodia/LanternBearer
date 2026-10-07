@@ -34,6 +34,7 @@ public class Toasts : MonoBehaviour
 
     private readonly Queue<Item> queue = new Queue<Item>();
     private bool active;
+    private bool closed;
     private Item current;
     private float age;
     private float duration;
@@ -64,9 +65,10 @@ public class Toasts : MonoBehaviour
         SetVisible(active);
     }
 
+    // Once a result panel is up (Clear with close = true) nothing more is queued.
     public void Show(string text, ToastKind kind)
     {
-        if (string.IsNullOrEmpty(text))
+        if (closed || string.IsNullOrEmpty(text))
         {
             return;
         }
@@ -84,8 +86,9 @@ public class Toasts : MonoBehaviour
         }
     }
 
-    public void Clear()
+    public void Clear(bool close = false)
     {
+        closed = close;
         queue.Clear();
         active = false;
         age = 0f;

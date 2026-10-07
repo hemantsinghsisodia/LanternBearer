@@ -99,7 +99,9 @@ sealed class TideFeed
             warned = false;
         }
 
-        if (!warned && Mathf.CeilToInt(tide.SecondsToTurn) <= 5)
+        GameManager manager = GameManager.Instance;
+        bool roundOver = manager != null && (manager.IsRoundOver || manager.Won);
+        if (!warned && !roundOver && Mathf.CeilToInt(tide.SecondsToTurn) <= 5)
         {
             warned = true;
             if (toasts != null)
