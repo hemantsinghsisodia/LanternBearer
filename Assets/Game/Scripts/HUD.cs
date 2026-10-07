@@ -433,6 +433,7 @@ public class HUD : MonoBehaviour
         rect.anchoredPosition = Vector2.zero;
     }
 
+    // Phase F2: remove
     bool EnsureGraphicsSurface()
     {
         if (graphicsMenu == null)
@@ -465,6 +466,7 @@ public class HUD : MonoBehaviour
         return created;
     }
 
+    // Phase F2: remove
     void CreateRuntimeGraphicsPanel()
     {
         Sprite sprite = PanelSprite();
