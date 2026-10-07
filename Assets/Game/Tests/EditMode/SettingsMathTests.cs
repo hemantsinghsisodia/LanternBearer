@@ -42,5 +42,12 @@ public class SettingsMathTests
         Assert.AreEqual(2f, SettingsMath.LowFuelPulseRate(4f, true));
         Assert.AreEqual(4f, SettingsMath.LowFuelPulseRate(4f, false));
     }
+
+    [Test]
+    public void MothPulsePeriodHalvesRateWithReduceFlashing()
+    {
+        Assert.AreEqual(1f, SettingsMath.MothPulsePeriod(false), "about 1 Hz");
+        Assert.AreEqual(2f, SettingsMath.MothPulsePeriod(true), "half the rate with Reduce flashing");
+    }
 }
 }

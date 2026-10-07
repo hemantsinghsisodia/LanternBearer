@@ -23,6 +23,12 @@ public static class SettingsMath
         return reduce ? 0.35f : 1f;
     }
 
+    // Seconds between moth drain pulses on the screen edge: once a second, every other second with Reduce flashing.
+    public static float MothPulsePeriod(bool reduce)
+    {
+        return reduce ? 2f : 1f;
+    }
+
     public static float LowFuelPulseRate(float rate, bool reduce)
     {
         return reduce ? rate * 0.5f : rate;

@@ -15,7 +15,12 @@ public class LowFuelFX : MonoBehaviour
     bool resolved;
     float edgePulse;
     float pulsePhase;
+    float mothClock;
+    bool tinted;
+    Color pulseColour;
     static bool loggedFallback;
+    const float MothPulseStrength = 0.45f;
+    static readonly Color DrainViolet = LookPalette.FromHex(LookPalette.DrainViolet);
 
     void Awake()
     {
@@ -87,10 +92,44 @@ public class LowFuelFX : MonoBehaviour
         ready = vignette != null;
     }
 
+    public float EdgePulseAmount => edgePulse;
+    // How many moth drain pulses have been requested (tests read it).
+    public int MothPulsesRequested { get; private set; }
+
     // A Shade steal darkens the screen edge for a moment on top of the fuel vignette.
     public void PulseEdge(float strength)
     {
         edgePulse = Mathf.Max(edgePulse, Mathf.Clamp01(strength));
+        tinted = false;
+    }
+
+    // The same pulse, tinted: the vignette takes this colour until the pulse has faded.
+    public void PulseEdge(float strength, Color colour)
+    {
+        edgePulse = Mathf.Max(edgePulse, Mathf.Clamp01(strength));
+        tinted = true;
+        pulseColour = colour;
+    }
+
+    // While moths drain the lantern the screen edge pulses drain violet, about once a second (every other second with
+    // Reduce flashing). The Update that follows applies it.
+    void UpdateMothPulse()
+    {
+        if (lantern.MothsDraining <= 0)
+        {
+            mothClock = 0f;
+            return;
+        }
+
+        mothClock -= Time.deltaTime;
+        if (mothClock > 0f)
+        {
+            return;
+        }
+
+        mothClock = SettingsMath.MothPulsePeriod(UserSettings.ReduceFlashing);
+        MothPulsesRequested++;
+        PulseEdge(MothPulseStrength, DrainViolet);
     }
 
     void Update()
@@ -100,6 +139,7 @@ public class LowFuelFX : MonoBehaviour
             return;
         }
 
+        UpdateMothPulse();
         float fuel = lantern.FuelNormalized;
         float amount = Mathf.Lerp(0.55f, 0.18f, fuel);
         if (fuel < 0.2f)
@@ -110,10 +150,18 @@ public class LowFuelFX : MonoBehaviour
         }
 
         amount += lantern.ProximityDim * 0.22f;
+        bool tintNow = edgePulse > 0f && tinted;
         if (edgePulse > 0f)
         {
             amount += edgePulse * 0.4f;
             edgePulse = Mathf.MoveTowards(edgePulse, 0f, Time.deltaTime / 0.8f);
+        }
+
+        // The tint is overridden only while a tinted pulse is on screen; afterwards the look volume's vignette colour shows again.
+        vignette.color.overrideState = tintNow;
+        if (tintNow)
+        {
+            vignette.color.value = pulseColour;
         }
 
         // Released at full fuel so the look volume's vignette shows; otherwise the extra darkening adds to it.
