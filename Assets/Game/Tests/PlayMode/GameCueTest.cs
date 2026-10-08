@@ -229,5 +229,93 @@ public class GameCueTest
         turn.Invoke(log, new object[] { 1 });
         Assert.AreEqual(1, Count(SoundCues.UiPageTurn), "no sound when the page does not change");
     }
+
+    static object Manager()
+    {
+        return GameType("GameManager").GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+    }
+
+    static IEnumerator Frames(int n)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            yield return null;
+        }
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
+    public IEnumerator IntroCardMakesNoPauseCuesButRealPauseDoes()
+    {
+        PlayerPrefs.DeleteKey(IntroKey);
+        yield return Load("Island1");
+        object manager = Manager();
+        Type type = manager.GetType();
+        Assert.IsTrue((bool)type.GetProperty("IntroShowing").GetValue(manager), "the intro card shows on a first visit");
+        yield return Frames(5);
+        Assert.AreEqual(0, Count(SoundCues.UiPauseOpen), "no pause-open cue for the intro card");
+        type.GetMethod("EndIntro").Invoke(manager, null);
+        yield return Frames(5);
+        Assert.AreEqual(0, Count(SoundCues.UiPauseOpen), "still none after the intro");
+        Assert.AreEqual(0, Count(SoundCues.UiPauseClose), "no pause-close cue when the intro card closes");
+
+        type.GetMethod("Pause").Invoke(manager, null);
+        yield return Frames(5);
+        Assert.AreEqual(1, Count(SoundCues.UiPauseOpen), "pause opens with its cue");
+        type.GetMethod("Resume").Invoke(manager, null);
+        yield return Frames(5);
+        Assert.AreEqual(1, Count(SoundCues.UiPauseClose), "resume closes with its cue");
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
+    public IEnumerator ToggleOnlyOnUserChange()
+    {
+        yield return Load("MainMenu");
+        Component menu = (Component)UnityEngine.Object.FindFirstObjectByType(GameType("MainMenuScreen"));
+        Button settingsButton = null;
+        Button[] buttons = menu.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            if (buttons[i].name == "SettingsButton")
+            {
+                settingsButton = buttons[i];
+            }
+        }
+
+        Assert.IsNotNull(settingsButton);
+        played.Clear();
+        settingsButton.onClick.Invoke();
+        yield return Frames(3);
+        Assert.AreEqual(0, Count(SoundCues.UiToggle), "opening settings fills the rows without a toggle sound");
+        SwitchRow row = UnityEngine.Object.FindFirstObjectByType<SwitchRow>(FindObjectsInactive.Include);
+        Assert.IsNotNull(row, "a switch row");
+        row.Cycle(1);
+        Assert.AreEqual(1, Count(SoundCues.UiToggle), "a user change toggles");
+        row.Index = row.Index == 0 ? 1 : 0;
+        Assert.AreEqual(1, Count(SoundCues.UiToggle), "setting the index from code stays silent");
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
+    public IEnumerator AmbienceFollowsScene()
+    {
+        yield return Load("Island1");
+        object manager = GameType("AudioManager").GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+        Assert.AreEqual(SoundCues.AmbienceIsland1, (string)manager.GetType().GetProperty("AmbienceCue").GetValue(manager));
+        yield return Load("MainMenu");
+        manager = GameType("AudioManager").GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+        Assert.IsNull((string)manager.GetType().GetProperty("AmbienceCue").GetValue(manager), "the menu has no island bed");
+    }
+
+    [Test]
+    public void WaterSurfaceMapsToWaterFootstep()
+    {
+        MethodInfo map = GameType("AudioManager").GetMethod("FootstepCueFor", BindingFlags.Public | BindingFlags.Static);
+        Assert.AreEqual(SoundCues.FootstepGrass, map.Invoke(null, new object[] { 0 }));
+        Assert.AreEqual(SoundCues.FootstepDirt, map.Invoke(null, new object[] { 1 }));
+        Assert.AreEqual(SoundCues.FootstepRock, map.Invoke(null, new object[] { 2 }));
+        Assert.AreEqual(SoundCues.FootstepWater, map.Invoke(null, new object[] { 3 }));
+    }
 }
 }

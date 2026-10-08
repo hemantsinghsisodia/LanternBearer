@@ -26,6 +26,7 @@ public static class SoundBankBuilder
         public float pitchMax;
         public float jitterDb;
         public float maxDistance;
+        public bool synthOnly;
     }
 
     static Spec S(string name, SoundGroup group, float volume, bool spatial, SynthFallback fallback)
@@ -48,6 +49,12 @@ public static class SoundBankBuilder
         spec.pitchMin = 0.95f;
         spec.pitchMax = 1.05f;
         spec.jitterDb = 1.5f;
+        return spec;
+    }
+
+    static Spec Synth(Spec spec)
+    {
+        spec.synthOnly = true;
         return spec;
     }
 
@@ -79,26 +86,27 @@ public static class SoundBankBuilder
         t.Add(Step(SoundCues.FootstepRock));
         t.Add(Step(SoundCues.FootstepWater));
 
-        t.Add(Temp(SoundCues.KeeperRoll, SoundGroup.Sfx, true, false));
-        t.Add(Temp(SoundCues.KeeperHit, SoundGroup.Sfx, true, false));
+        // Temporary soft body thud until the real hit sound arrives.
+        t.Add(S(SoundCues.KeeperHit, SoundGroup.Sfx, 0.35f, true, SynthFallback.Footstep));
         t.Add(Temp(SoundCues.KeeperInteract, SoundGroup.Sfx, true, false));
 
         t.Add(S(SoundCues.LanternCrackle, SoundGroup.Sfx, 1f, false, SynthFallback.Crackle));
+        t.Add(Synth(S(SoundCues.LanternHeartbeat, SoundGroup.Sfx, 0.45f, false, SynthFallback.Heartbeat)));
         t.Add(Temp(SoundCues.LanternRefuel, SoundGroup.Sfx, false, false));
         t.Add(Temp(SoundCues.LanternSputter, SoundGroup.Sfx, false, false));
         t.Add(Prio(S(SoundCues.LanternDeathGutter, SoundGroup.Sfx, 0.65f, false, SynthFallback.Dying)));
 
         t.Add(S(SoundCues.FireflyChime, SoundGroup.Sfx, 0.8f, true, SynthFallback.Chime));
-        t.Add(S(SoundCues.FireflyArrive, SoundGroup.Sfx, 0.5f, true, SynthFallback.FireflyArrive));
+        t.Add(Synth(S(SoundCues.FireflyArrive, SoundGroup.Sfx, 0.5f, true, SynthFallback.FireflyArrive)));
 
         t.Add(S(SoundCues.MothFlutter, SoundGroup.Sfx, 1f, true, SynthFallback.MothFlutter));
-        t.Add(S(SoundCues.MothWhisper, SoundGroup.Sfx, 1f, true, SynthFallback.MothWhisper));
+        t.Add(Synth(S(SoundCues.MothWhisper, SoundGroup.Sfx, 1f, true, SynthFallback.MothWhisper)));
 
-        t.Add(S(SoundCues.ShadeDrone, SoundGroup.Sfx, 1f, true, SynthFallback.ShadeDrone));
+        t.Add(Synth(S(SoundCues.ShadeDrone, SoundGroup.Sfx, 1f, true, SynthFallback.ShadeDrone)));
         t.Add(Temp(SoundCues.ShadeSteal, SoundGroup.Sfx, false, true));
 
         t.Add(Prio(S(SoundCues.BeaconIgnite, SoundGroup.Sfx, 0.9f, true, SynthFallback.Whoomp)));
-        t.Add(Dist(Temp(SoundCues.BeaconFire, SoundGroup.Sfx, true, false), 10f));
+        t.Add(Dist(S(SoundCues.BeaconFire, SoundGroup.Sfx, 0.5f, true, SynthFallback.Crackle), 10f));
         t.Add(S(SoundCues.BeaconWhoosh, SoundGroup.Sfx, 0.9f, true, SynthFallback.Beacon));
         t.Add(S(SoundCues.BeaconFizzle, SoundGroup.Sfx, 0.7f, false, SynthFallback.Fizzle));
 
@@ -149,6 +157,7 @@ public static class SoundBankBuilder
             cue.maxDistance = spec.maxDistance;
             cue.rolloff = AudioRolloffMode.Logarithmic;
             cue.priority = spec.priority;
+            cue.synthOnly = spec.synthOnly;
             cue.fallback = spec.fallback;
             List<AudioClip> clips = new List<AudioClip>();
             List<string> paths;

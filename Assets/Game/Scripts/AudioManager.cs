@@ -82,6 +82,8 @@ public class AudioManager : MonoBehaviour
     public AudioMixerGroup UiGroup { get; private set; }
     public AudioMixerGroup TensionGroup { get; private set; }
     public SoundBank Bank => bank;
+    // The ambience cue chosen for the active scene (Ambience.IslandN), or null for the generic bed.
+    public string AmbienceCue { get; private set; }
     public string MixState => mixState;
     public AudioClip LastFootstep { get; private set; }
     public string LastSurface { get; private set; }
@@ -133,7 +135,7 @@ public class AudioManager : MonoBehaviour
         heartbeat.loop = true;
         heartbeat.spatialBlend = 0f;
         heartbeat.volume = 0.45f;
-        heartbeat.clip = ProceduralAudio.Heartbeat();
+        heartbeat.clip = ClipFor(SoundCues.LanternHeartbeat) ?? ProceduralAudio.Heartbeat();
 
         crackle = gameObject.AddComponent<AudioSource>();
         crackle.playOnAwake = false;
@@ -166,10 +168,12 @@ public class AudioManager : MonoBehaviour
                 break;
         }
 
+        AmbienceCue = null;
         SoundCue c = cue != null ? FindCue(cue) : null;
         AudioClip clip = c != null ? ClipFor(cue) : null;
         if (clip != null)
         {
+            AmbienceCue = cue;
             ambience.clip = clip;
             ambience.volume = c.volume;
             return;
@@ -181,6 +185,7 @@ public class AudioManager : MonoBehaviour
     // The next clip of a cue from the live manager, or null when there is none (editor tests, scenes without audio).
     public static AudioClip CueClip(string cue)
     {
+        // No AudioManager (editor tests, scenes without audio): there is no bank, so the caller stays silent.
         return Instance != null ? Instance.ClipFor(cue) : null;
     }
 
@@ -928,10 +933,16 @@ public class AudioManager : MonoBehaviour
         PlayCue(SoundCues.BeaconWhoosh, position);
     }
 
+    // Surface index (0 grass, 1 dirt, 2 rock, 3 sand/shallow water) to its footstep cue.
+    public static string FootstepCueFor(int surface)
+    {
+        return FootstepCues[Mathf.Clamp(surface, 0, FootstepCues.Length - 1)];
+    }
+
     public void PlayFootstep(Vector3 position)
     {
         int surface = SampleSurface(position);
-        string cue = FootstepCues[surface];
+        string cue = FootstepCueFor(surface);
         AudioSource source = PlayCue(cue, position);
         LastSurface = SurfaceNames[surface];
         if (source != null)

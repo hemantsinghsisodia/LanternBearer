@@ -8,12 +8,12 @@ public static class SoundCues
     public const string FootstepRock = "Footstep.Rock";
     public const string FootstepWater = "Footstep.Water";
 
-    public const string KeeperRoll = "Keeper.Roll";
     public const string KeeperHit = "Keeper.Hit";
     public const string KeeperInteract = "Keeper.Interact";
 
     public const string LanternCrackle = "Lantern.Crackle";
     public const string LanternRefuel = "Lantern.Refuel";
+    public const string LanternHeartbeat = "Lantern.Heartbeat";
     public const string LanternSputter = "Lantern.Sputter";
     public const string LanternDeathGutter = "Lantern.DeathGutter";
 

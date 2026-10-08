@@ -26,6 +26,8 @@ public class SoundCue
     public float maxDistance = 500f;
     public AudioRolloffMode rolloff = AudioRolloffMode.Logarithmic;
     public bool priority;
+    // Stays synthesised on purpose: no recording is planned, so validation does not ask for files.
+    public bool synthOnly;
     public SynthFallback fallback;
 }
 

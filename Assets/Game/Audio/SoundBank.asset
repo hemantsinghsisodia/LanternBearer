@@ -24,6 +24,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 5
   - name: Footstep.Dirt
     clips: []
@@ -36,6 +37,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 5
   - name: Footstep.Rock
     clips: []
@@ -48,6 +50,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 5
   - name: Footstep.Water
     clips: []
@@ -60,22 +63,11 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 5
-  - name: Keeper.Roll
-    clips: []
-    volume: 0.4
-    pitch: {x: 1, y: 1}
-    volumeJitterDb: 0
-    group: 1
-    spatial: 1
-    minDistance: 1
-    maxDistance: 500
-    rolloff: 0
-    priority: 0
-    fallback: 1
   - name: Keeper.Hit
     clips: []
-    volume: 0.4
+    volume: 0.35
     pitch: {x: 1, y: 1}
     volumeJitterDb: 0
     group: 1
@@ -84,7 +76,8 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
-    fallback: 1
+    synthOnly: 0
+    fallback: 5
   - name: Keeper.Interact
     clips: []
     volume: 0.4
@@ -96,6 +89,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Lantern.Crackle
     clips: []
@@ -108,7 +102,21 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 8
+  - name: Lantern.Heartbeat
+    clips: []
+    volume: 0.45
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 10
   - name: Lantern.Refuel
     clips: []
     volume: 0.4
@@ -120,6 +128,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Lantern.Sputter
     clips: []
@@ -132,6 +141,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Lantern.DeathGutter
     clips: []
@@ -144,6 +154,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 1
+    synthOnly: 0
     fallback: 9
   - name: Firefly.Chime
     clips: []
@@ -156,6 +167,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Firefly.Arrive
     clips: []
@@ -168,6 +180,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 1
     fallback: 2
   - name: Moth.Flutter
     clips: []
@@ -180,6 +193,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 11
   - name: Moth.Whisper
     clips: []
@@ -192,6 +206,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 1
     fallback: 12
   - name: Shade.Drone
     clips: []
@@ -204,6 +219,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 1
     fallback: 13
   - name: Shade.Steal
     clips: []
@@ -216,6 +232,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 1
+    synthOnly: 0
     fallback: 1
   - name: Beacon.Ignite
     clips: []
@@ -228,10 +245,11 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 1
+    synthOnly: 0
     fallback: 4
   - name: Beacon.Fire
     clips: []
-    volume: 0.4
+    volume: 0.5
     pitch: {x: 1, y: 1}
     volumeJitterDb: 0
     group: 1
@@ -240,7 +258,8 @@ MonoBehaviour:
     maxDistance: 10
     rolloff: 0
     priority: 0
-    fallback: 1
+    synthOnly: 0
+    fallback: 8
   - name: Beacon.Whoosh
     clips: []
     volume: 0.9
@@ -252,6 +271,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 3
   - name: Beacon.Fizzle
     clips: []
@@ -264,6 +284,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 7
   - name: Ambience.Island1
     clips: []
@@ -276,6 +297,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 14
   - name: Ambience.Island2
     clips: []
@@ -288,6 +310,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 14
   - name: Ambience.Island3
     clips: []
@@ -300,6 +323,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 14
   - name: Ambience.Island4
     clips: []
@@ -312,6 +336,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 14
   - name: Ambience.Tide
     clips: []
@@ -324,6 +349,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 15
   - name: Ambience.Rain
     clips: []
@@ -336,6 +362,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 18
   - name: Ambience.WindBed
     clips: []
@@ -348,6 +375,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 16
   - name: Ambience.Gust
     clips: []
@@ -360,6 +388,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 17
   - name: Thunder.Crack
     clips: []
@@ -372,6 +401,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 20
   - name: Thunder.Rumble
     clips: []
@@ -384,6 +414,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 19
   - name: Water.Splash
     clips: []
@@ -396,6 +427,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 6
   - name: UI.Hover
     clips: []
@@ -408,6 +440,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.Click
     clips: []
@@ -420,6 +453,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.Back
     clips: []
@@ -432,6 +466,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.PauseOpen
     clips: []
@@ -444,6 +479,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.PauseClose
     clips: []
@@ -456,6 +492,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.PageTurn
     clips: []
@@ -468,6 +505,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: UI.Toggle
     clips: []
@@ -480,6 +518,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Stinger.BeaconLit
     clips: []
@@ -492,6 +531,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Stinger.Win
     clips: []
@@ -504,6 +544,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
+    synthOnly: 0
     fallback: 1
   - name: Stinger.Lose
     clips: []
@@ -516,4 +557,5 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 1
+    synthOnly: 0
     fallback: 1

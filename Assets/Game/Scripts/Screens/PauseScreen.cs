@@ -108,9 +108,11 @@ public class PauseScreen : MonoBehaviour
         {
             howToOpen = false;
         }
-        if (manager.IsPaused != wasPaused)
+        // The intro card pauses the game too; only a real pause (no intro card) opens or closes the pause screen.
+        bool pauseOpen = manager.IsPaused && !manager.IntroShowing;
+        if (pauseOpen != wasPaused)
         {
-            wasPaused = manager.IsPaused;
+            wasPaused = pauseOpen;
             UiSound.Play(wasPaused ? SoundCues.UiPauseOpen : SoundCues.UiPauseClose);
         }
         bool settingsOpen = settings != null && settings.IsOpen;
