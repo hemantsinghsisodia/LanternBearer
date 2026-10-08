@@ -33,8 +33,13 @@ public class AudioManager : MonoBehaviour
     AudioSource uiSource;
     float[] voiceStart;
     bool[] voicePriority;
-    readonly Dictionary<string, int> lastVariation = new Dictionary<string, int>();
-    readonly HashSet<string> warnedCues = new HashSet<string>();
+    readonly Dictionary<string, int> lastClipVariation = new Dictionary<string, int>();
+    readonly Dictionary<string, int> lastSynthVariation = new Dictionary<string, int>();
+    readonly HashSet<string> warnedUnknown = new HashSet<string>();
+    bool warnedNoBank;
+    // Once per cue per session, shared across AudioManager instances.
+    static readonly HashSet<string> warnedNoClip = new HashSet<string>();
+    static readonly string[] DuckParams = { "MusicDuck", "AmbienceDuck", "TensionDuck" };
     readonly Dictionary<string, DuckState> ducks = new Dictionary<string, DuckState>();
 
     AudioSource oneShots;
@@ -96,6 +101,7 @@ public class AudioManager : MonoBehaviour
         }
 
         Instance = this;
+        ResetDucks();
         oneShots = gameObject.AddComponent<AudioSource>();
         oneShots.playOnAwake = false;
         oneShots.spatialBlend = 0f;
@@ -160,7 +166,23 @@ public class AudioManager : MonoBehaviour
 
         if (Instance == this)
         {
+            ResetDucks();
             Instance = null;
+        }
+    }
+
+    // Ducks live in the mixer, which outlives scenes: start and end every manager at 0 dB so none stick.
+    void ResetDucks()
+    {
+        ducks.Clear();
+        if (mixer == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < DuckParams.Length; i++)
+        {
+            mixer.SetFloat(DuckParams[i], 0f);
         }
     }
 
@@ -572,13 +594,13 @@ public class AudioManager : MonoBehaviour
         if (count > 0)
         {
             int last;
-            if (!lastVariation.TryGetValue(cue, out last))
+            if (!lastClipVariation.TryGetValue(cue, out last))
             {
                 last = -1;
             }
 
             int pick = NextIndex(ref last, count);
-            lastVariation[cue] = last;
+            lastClipVariation[cue] = last;
             int seen = 0;
             for (int i = 0; i < c.clips.Length; i++)
             {
@@ -594,7 +616,7 @@ public class AudioManager : MonoBehaviour
             }
         }
 
-        if (warnedCues.Add("clip:" + cue))
+        if (warnedNoClip.Add(cue))
         {
             Debug.LogWarning("Sound cue has no clip, using " + (c.fallback == SynthFallback.None ? "nothing" : "synth fallback") + ": " + cue, this);
         }
@@ -606,8 +628,9 @@ public class AudioManager : MonoBehaviour
     {
         if (bank == null)
         {
-            if (warnedCues.Add("bank"))
+            if (!warnedNoBank)
             {
+                warnedNoBank = true;
                 Debug.LogWarning("AudioManager has no SoundBank assigned.", this);
             }
 
@@ -615,7 +638,7 @@ public class AudioManager : MonoBehaviour
         }
 
         SoundCue c = bank.Find(cue);
-        if (c == null && warnedCues.Add("cue:" + cue))
+        if (c == null && warnedUnknown.Add(cue))
         {
             Debug.LogWarning("Unknown sound cue: " + cue, this);
         }
@@ -646,13 +669,13 @@ public class AudioManager : MonoBehaviour
     int NextVariant(string cue, int count)
     {
         int last;
-        if (!lastVariation.TryGetValue("synth:" + cue, out last))
+        if (!lastSynthVariation.TryGetValue(cue, out last))
         {
             last = -1;
         }
 
         int index = NextIndex(ref last, count);
-        lastVariation["synth:" + cue] = last;
+        lastSynthVariation[cue] = last;
         return index;
     }
 
@@ -741,7 +764,7 @@ public class AudioManager : MonoBehaviour
             ducks[parameter] = state;
         }
 
-        state.target = db;
+        state.target = Time.unscaledTime < state.until ? Mathf.Min(state.target, db) : db;
         state.until = Mathf.Max(state.until, Time.unscaledTime + seconds);
     }
 

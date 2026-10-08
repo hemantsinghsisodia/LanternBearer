@@ -32,6 +32,13 @@ public class SoundCuePlayTest
             Object.DestroyImmediate(leftover);
         }
 
+        // Fallback warnings are once per cue per session; start each test with a clean slate.
+        ((System.Collections.Generic.HashSet<string>)managerType.GetField("warnedNoClip", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null)).Clear();
+        CreateManager();
+    }
+
+    void CreateManager()
+    {
         host = new GameObject("TestAudioManager");
         host.SetActive(false);
         manager = host.AddComponent(managerType);
@@ -89,6 +96,9 @@ public class SoundCuePlayTest
     public IEnumerator MissingClipFallsBackOnce()
     {
         yield return null;
+        SoundBank clone = Object.Instantiate((SoundBank)managerType.GetField("bank", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(manager));
+        clone.Find(SoundCues.FireflyChime).clips = new AudioClip[0];
+        SetField("bank", clone);
         int warnings = 0;
         Application.LogCallback count = (condition, stack, type) =>
         {
@@ -108,6 +118,7 @@ public class SoundCuePlayTest
         Assert.IsNotNull(source);
         Assert.IsNotNull(source.clip, "synth fallback clip");
         Assert.AreEqual(1, warnings);
+        Object.DestroyImmediate(clone);
     }
 
     [UnityTest]
@@ -150,6 +161,37 @@ public class SoundCuePlayTest
         }
 
         Assert.IsTrue(playing);
+    }
+
+    [UnityTest]
+    public IEnumerator DucksResetWhenManagerIsReplaced()
+    {
+        yield return null;
+        AudioMixer mixer = UnityEditor_Mixer();
+        Cue(SoundCues.ShadeSteal, Vector3.zero);
+        yield return new WaitForSecondsRealtime(0.3f);
+        float ducked;
+        Assert.IsTrue(mixer.GetFloat("TensionDuck", out ducked));
+        Assert.Less(ducked, -1f, "priority cue ducks tension");
+
+        Object.DestroyImmediate(host);
+        CreateManager();
+        string[] names = { "MusicDuck", "AmbienceDuck", "TensionDuck" };
+        for (int i = 0; i < names.Length; i++)
+        {
+            float value;
+            Assert.IsTrue(mixer.GetFloat(names[i], out value), names[i]);
+            Assert.GreaterOrEqual(value, -0.01f, names[i]);
+        }
+    }
+
+    static AudioMixer UnityEditor_Mixer()
+    {
+#if UNITY_EDITOR
+        return UnityEditor.AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerPath);
+#else
+        return null;
+#endif
     }
 }
 }

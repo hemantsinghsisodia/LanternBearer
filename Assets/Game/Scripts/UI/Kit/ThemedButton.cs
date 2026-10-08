@@ -156,8 +156,10 @@ public class ThemedButton : Button
 
     public override void OnPointerClick(PointerEventData eventData)
     {
+        // Decide before the click runs: onClick may hide this very button, which would make the check fail afterwards.
+        bool pressable = IsActive() && IsInteractable();
         base.OnPointerClick(eventData);
-        if (eventData.button == PointerEventData.InputButton.Left)
+        if (pressable && eventData.button == PointerEventData.InputButton.Left)
         {
             PlayPress();
         }
@@ -165,16 +167,17 @@ public class ThemedButton : Button
 
     public override void OnSubmit(BaseEventData eventData)
     {
+        bool pressable = IsActive() && IsInteractable();
         base.OnSubmit(eventData);
-        PlayPress();
+        if (pressable)
+        {
+            PlayPress();
+        }
     }
 
     private void PlayPress()
     {
-        if (IsActive() && IsInteractable())
-        {
-            UiSound.Play(isBack ? SoundCues.UiBack : SoundCues.UiClick);
-        }
+        UiSound.Play(isBack ? SoundCues.UiBack : SoundCues.UiClick);
     }
 
     protected override void DoStateTransition(SelectionState state, bool instant)
