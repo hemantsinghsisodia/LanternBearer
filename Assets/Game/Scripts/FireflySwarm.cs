@@ -18,7 +18,6 @@ public class FireflySwarm : MonoBehaviour
     static readonly int ReduceId = Shader.PropertyToID(ReduceFlashingGlobalName);
     static readonly int PhaseId = Shader.PropertyToID("_Phase");
     static readonly int PeriodId = Shader.PropertyToID("_Period");
-    static readonly int SeedId = Shader.PropertyToID("_Seed");
     static readonly int IndexId = Shader.PropertyToID("_Index");
     static readonly int StreamId = Shader.PropertyToID("_Stream");
     static readonly int FadeId = Shader.PropertyToID("_Fade");
@@ -68,9 +67,19 @@ public class FireflySwarm : MonoBehaviour
         Shader.SetGlobalFloat(LowId, GraphicsQuality.Current == GraphicsLevel.Low ? 1f : 0f);
     }
 
-    static void PublishReduceFlashing()
+    static int lastPublishedReduce = -1;
+
+    // Publishes the Reduce flashing global; skipped while the value is unchanged unless forced (OnEnable).
+    static void PublishReduceFlashing(bool force)
     {
-        Shader.SetGlobalFloat(ReduceId, UserSettings.ReduceFlashing ? 1f : 0f);
+        int value = UserSettings.ReduceFlashing ? 1 : 0;
+        if (!force && value == lastPublishedReduce)
+        {
+            return;
+        }
+
+        lastPublishedReduce = value;
+        Shader.SetGlobalFloat(ReduceId, value);
     }
 
     void Awake()
@@ -91,7 +100,7 @@ public class FireflySwarm : MonoBehaviour
         GraphicsQuality.QualityChanged += OnQuality;
         low = GraphicsQuality.Current == GraphicsLevel.Low;
         PublishQuality();
-        PublishReduceFlashing();
+        PublishReduceFlashing(true);
         CacheLight();
         Apply();
     }
@@ -136,7 +145,13 @@ public class FireflySwarm : MonoBehaviour
 
     void Update()
     {
-        PublishReduceFlashing();
+        PublishReduceFlashing(false);
+        if (!shown && !streaming && !fadingIn)
+        {
+            // Hidden swarm: LightQuality already hides the light, so skip the breathing.
+            return;
+        }
+
         StepStream();
         StepFadeIn();
         smoothedLit += (LitFraction - smoothedLit) * (1f - Mathf.Exp(-Time.deltaTime / LightSmoothing));
@@ -205,7 +220,6 @@ public class FireflySwarm : MonoBehaviour
             renderer.GetPropertyBlock(block);
             block.SetFloat(PhaseId, FireflyCurve.MoteOffset(i, count, FireflyCurve.MoteJitter01(seed01, i)));
             block.SetFloat(PeriodId, period);
-            block.SetFloat(SeedId, seed01);
             block.SetFloat(IndexId, i);
             block.SetFloat(StreamId, streaming ? 1f : 0f);
             block.SetFloat(FadeId, 1f);

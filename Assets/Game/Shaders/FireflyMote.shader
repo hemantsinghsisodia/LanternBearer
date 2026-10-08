@@ -1,7 +1,7 @@
 Shader "LanternKeeper/FireflyMote"
 {
     // One firefly mote: a camera-facing additive quad with a white core fading to _Color at the halo edge.
-    // Per instance (FireflySwarm, MaterialPropertyBlock): _Phase (blink cycle offset, MoteOffset), _Period (s), _Seed (0..1),
+    // Per instance (FireflySwarm, MaterialPropertyBlock): _Phase (blink cycle offset, MoteOffset), _Period (s),
     // _Index (mote number), _Stream (0..1, collect stream: no drift, held lit), _Fade (0..1, overall alpha),
     // _DriftFreq / _DriftPhase (xyz: per-axis drift frequency in Hz and phase in radians, from FireflyCurve.DriftFreq/DriftPhase).
     // Globals: _LKFireflyLow = 1 on Low (motes 4 and up are hidden, 4-mote blink), _LKReduceFlashing = 1 (slower edges, 0.3 floor).
@@ -12,7 +12,6 @@ Shader "LanternKeeper/FireflyMote"
         _Gain ("Gain", Float) = 1.0
         _Phase ("Phase", Float) = 0
         _Period ("Period", Float) = 3
-        _Seed ("Seed", Float) = 0
         _Index ("Index", Float) = 0
         _Stream ("Stream", Float) = 0
         _Fade ("Fade", Float) = 1
@@ -47,7 +46,6 @@ Shader "LanternKeeper/FireflyMote"
             UNITY_INSTANCING_BUFFER_START(FireflyProps)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Phase)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Period)
-                UNITY_DEFINE_INSTANCED_PROP(float, _Seed)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Index)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Stream)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Fade)
