@@ -28,6 +28,7 @@ public class PauseScreen : MonoBehaviour
     private bool howToOpen;
     private float howToUnlock;
     private int settingsClosedFrame = -1;
+    private bool wasPaused;
 
     public bool IsShowing { get { return panel != null && panel.activeSelf; } }
     public bool HowToOpen { get { return howToOpen; } }
@@ -106,6 +107,13 @@ public class PauseScreen : MonoBehaviour
         if (howToOpen && !manager.IsPaused)
         {
             howToOpen = false;
+        }
+        // The intro card pauses the game too; only a real pause (no intro card) opens or closes the pause screen.
+        bool pauseOpen = manager.IsPaused && !manager.IntroShowing;
+        if (pauseOpen != wasPaused)
+        {
+            wasPaused = pauseOpen;
+            UiSound.Play(wasPaused ? SoundCues.UiPauseOpen : SoundCues.UiPauseClose);
         }
         bool settingsOpen = settings != null && settings.IsOpen;
         bool show = manager.IsPaused && !settingsOpen && !manager.IntroShowing && !howToOpen;

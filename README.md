@@ -102,7 +102,6 @@ To reproduce, build a Development player and run it with `-lkperf -lkquality=<0.
 ### Music
 
 - Calm Track by pmiller (CC0, OpenGameArt). https://opengameart.org/content/calm-track
-- Calm Piano 1 / Vaporware by The Cynic Project / cynicmusic.com (CC0). https://opengameart.org/content/calm-piano-1-vaporware
 
 - Keeper character: "Hooded Adventurer" by Quaternius, via Poly Pizza (https://poly.pizza/m/y9KWOVG21R). Licence CC0 1.0. The imported file is `Assets/Game/Models/Keeper/Keeper.fbx`.
 - Poly Haven models (CC0), used on the islands:

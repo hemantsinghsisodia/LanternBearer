@@ -1,0 +1,63 @@
+Mono path[0] = 'C:/Hemant/Prj/Learning/Unity3DPrj/Builds/PhaseG_Release/LanternKeeper_Data/Managed'
+Mono config path = 'C:/Hemant/Prj/Learning/Unity3DPrj/Builds/PhaseG_Release/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.6.3f1 (45d8eee7de74)
+[EntityIdStore] init: VM path (explicit commit), pageSize=4096, blockCount=1048576, entitiesPerBlock=256, slots reserved=4294967296 bytes
+[Subsystems] Discovering subsystems at path C:/Hemant/Prj/Learning/Unity3DPrj/Builds/PhaseG_Release/LanternKeeper_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 4050 Laptop GPU (ID=0x28a1)
+    Vendor:   NVIDIA
+    VRAM:     5920 MB
+    Driver:   32.0.16.1714
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.008 seconds
+[Physics::Module] Selected backend (deferred post-plugins).
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 2.692700 ms
+WaterQuality Low renderer=0 low=True foamReach=8 rippleRange=1 detail=0 probe=off
+HorizonQuality MainMenu Low ranges Range0:1,Range1:0,Range2:0 ridges Ridge0:0,Ridge1:0 hazeActive 1/2 band 1,2 sharedBand 1,2 far Main Camera=700 tris ranges 25920 ridges 15360 haze 384
+WaterQuality Low renderer=0 low=True foamReach=8 rippleRange=1 detail=0 probe=off
+HorizonQuality MainMenu Low ranges Range0:1,Range1:0,Range2:0 ridges Ridge0:0,Ridge1:0 hazeActive 1/2 band 1,2 sharedBand 1,2 far Main Camera=700 tris ranges 25920 ridges 15360 haze 384
+WaterHazard references were not wired. Resolved once.
+LK_PerfProbe start scene=Island4 level=Low view=spawn seconds=20.0 vsync=0 stats=Triangles Count=ok,SetPass Calls Count=ok,Shadow Casters Count=ok,SRP Batcher Draw Calls Count=ok
+Drain multiplier x1.00 full x1.00 difficulty x1.00
+Unloading 8 Unused Serialized files (Serialized files now loaded: 0)
+Shader 'Hidden/Universal Render Pipeline/GaussianDepthOfField' is not supported or has been stripped from the build (in 'DepthOfFieldGaussianPostProcessPass'). PostProcessing render passes will not execute.
+Shader 'Hidden/Universal Render Pipeline/GaussianDepthOfField' is not supported or has been stripped from the build (in 'DepthOfFieldGaussianPostProcessPass'). PostProcessing render passes will not execute.
+Shader 'Hidden/Universal Render Pipeline/BokehDepthOfField' is not supported or has been stripped from the build (in 'DepthOfFieldBokehPostProcessPass'). PostProcessing render passes will not execute.
+Shader 'Hidden/Universal Render Pipeline/PaniniProjection' is not supported or has been stripped from the build (in 'PaniniProjectionPostProcessPass'). PostProcessing render passes will not execute.
+GPU Resident Drawer created.
+UnloadTime: 10.915400 ms
+KeeperQuality Low chestFill=off intensity=1.15 range=2.8 fillShadows=None lanternShadows=None lanternTier=default lanternSoft=False keeperReceives=False culling=AlwaysAnimate | Body_LOD0 cast=Off receive=False KeeperDark (Instance) noRim=True KeeperLeather (Instance) noRim=True KeeperSkin (Instance) noRim=True | Body_LOD1 cast=Off receive=False KeeperDark (Instance) noRim=True KeeperLeather (Instance) noRim=True KeeperSkin (Instance) noRim=True | Cape_LOD0 cast=Off receive=False KeeperCloth (Instance) noRim=True | Cape_LOD1 cast=Off receive=False KeeperCloth (Instance) noRim=True | Iron cast=Off receive=False LanternIron (Instance) noRim=True | Hood_LOD0 cast=Off receive=False KeeperCloth (Instance) noRim=True | Hood_LOD1 cast=Off receive=False KeeperCloth (Instance) noRim=True | Satchel_LOD0 cast=Off receive=False KeeperLeather (Instance) noRim=True | Satchel_LOD1 cast=Off receive=False KeeperLeather (Instance) noRim=True assetNoRim=False
+HorizonQuality Island4 Low ranges Range0:1,Range1:0,Range2:0 ridges Ridge0:0,Ridge1:0 hazeActive 1/2 band 1,2 sharedBand 1,2 far Main Camera=700 tris ranges 25920 ridges 15360 haze 384
+LightQuality Low beaconMode=0 mult=0.5 urp=URP_Low addShadows=False | beacon0 None/off | beacon1 None/off | beacon2 None/off | beacon3 None/off | beacon4 None/off | beacon5 None/off | beacon6 None/off | beacon7 None/off | beacon8 None/off | beacons lit=0 unlit=9 casting=0 | firefly 3/18 | moth 0/0 | enabledLights=11 shadowLights=1 | Sparks@FlameRoot rate=7 max=40 burst=- | Smoke@FlameRoot rate=3 max=40 burst=- | Splash@WaterVolume rate=0 max=24 burst=14 | Dust@Keeper rate=0 max=40 burst=-
+WaterQuality Low renderer=0 low=True foamReach=8 rippleRange=1 detail=0 probe=off
+Audio snapshot -> Normal (resume)
+KeeperQuality Low chestFill=off intensity=1.15 range=2.8 fillShadows=None lanternShadows=None lanternTier=default lanternSoft=False keeperReceives=False culling=AlwaysAnimate | Body_LOD0 cast=Off receive=False KeeperDark (Instance) noRim=True KeeperLeather (Instance) noRim=True KeeperSkin (Instance) noRim=True | Body_LOD1 cast=Off receive=False KeeperDark (Instance) noRim=True KeeperLeather (Instance) noRim=True KeeperSkin (Instance) noRim=True | Cape_LOD0 cast=Off receive=False KeeperCloth (Instance) noRim=True | Cape_LOD1 cast=Off receive=False KeeperCloth (Instance) noRim=True | Iron cast=Off receive=False LanternIron (Instance) noRim=True | Hood_LOD0 cast=Off receive=False KeeperCloth (Instance) noRim=True | Hood_LOD1 cast=Off receive=False KeeperCloth (Instance) noRim=True | Satchel_LOD0 cast=Off receive=False KeeperLeather (Instance) noRim=True | Satchel_LOD1 cast=Off receive=False KeeperLeather (Instance) noRim=True assetNoRim=False
+HorizonQuality Island4 Low ranges Range0:1,Range1:0,Range2:0 ridges Ridge0:0,Ridge1:0 hazeActive 1/2 band 1,2 sharedBand 1,2 far Main Camera=700 tris ranges 25920 ridges 15360 haze 384
+LightQuality Low beaconMode=0 mult=0.5 urp=URP_Low addShadows=False | beacon0 None/off | beacon1 None/off | beacon2 None/off | beacon3 None/off | beacon4 None/off | beacon5 None/off | beacon6 None/off | beacon7 None/off | beacon8 None/off | beacons lit=0 unlit=9 casting=0 | firefly 3/18 | moth 0/0 | enabledLights=11 shadowLights=1 | Sparks@FlameRoot rate=7 max=40 burst=- | Smoke@FlameRoot rate=3 max=40 burst=- | Splash@WaterVolume rate=0 max=24 burst=14 | Dust@Keeper rate=0 max=40 burst=-
+WaterQuality Low renderer=0 low=True foamReach=8 rippleRange=1 detail=0 probe=off
+Unloading 585 unused Assets to reduce memory usage. Loaded Objects now: 10437.
+Total: 2.513700 ms (FindLiveObjects: 0.312700 ms CreateObjectMapping: 0.089300 ms MarkObjects: 1.588000 ms  DeleteObjects: 0.440500 ms)
+
+Drain multiplier x1.00 full x1.00 difficulty x1.00
+LK_PerfProbe scene=Island4 level=Low qualityLevel=0 view=spawn res=1920x1080 fullscreen=True vsync=0 samples=9165 avgMs=2.18 minMs=1.39 maxMs=10.43 p95Ms=3.23 fps=458.2 gcAvgBytes=0 gcMin=n/a gcMax=0 cpuFrameMs=2.18 gpuFrameMs=0.79 gpuFrames=6913 gpuZeroFrames=2252 gpuRecorderMs=0.79 gpuRecorderFrames=6914 triangles=286459 triMedian=128548 applied=shadowDist=40 lodBias=1.00 renderScale=0.50 grassDens=0.15 grassDist=8 pixelErr=12 setPass=65 batches=19 shadowCasters=11 stats=Triangles Count=ok,SetPass Calls Count=ok,Shadow Casters Count=ok,SRP Batcher Draw Calls Count=ok gpuStat=GPU Frame Time note=gpu-frame-timing
+Audio snapshot -> Normal (resume)
+GPU Resident Drawer disposed.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

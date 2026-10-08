@@ -21,7 +21,6 @@ public class BeaconVisual : MonoBehaviour
     public const int EmberCountLow = 15;
     public const float BeamLengthScaleLow = 0.5f;
     public const float BeamIntensityScaleLow = 0.6f;
-    public const float WhoompVolume = 0.9f;
 
     static readonly int GlowId = Shader.PropertyToID("_Glow");
     static readonly int IntensityId = Shader.PropertyToID("_Intensity");
@@ -250,7 +249,7 @@ public class BeaconVisual : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayOneShot(ProceduralAudio.Whoomp(), transform.position, WhoompVolume);
+            AudioManager.Instance.PlayCue(SoundCues.BeaconIgnite, transform.position);
         }
 
         EvaluateMoment();

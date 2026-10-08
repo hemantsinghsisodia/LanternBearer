@@ -71,6 +71,11 @@ public static partial class SceneWiring
         }
 
         AudioManager audio = Object.FindAnyObjectByType<AudioManager>();
+        if (audio != null)
+        {
+            assigned += Set(audio, "bank", SoundBankBuilder.Build());
+        }
+
         if (audio != null && lantern != null)
         {
             assigned += Set(audio, "lantern", lantern);
@@ -655,6 +660,12 @@ public static partial class SceneWiring
             nulls += Require(cameras[i], "target", quiet);
         }
 
+        AudioManager[] banked = Object.FindObjectsByType<AudioManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < banked.Length; i++)
+        {
+            nulls += Require(banked[i], "bank", quiet);
+        }
+
         if (needsLantern)
         {
             AudioManager[] audio = Object.FindObjectsByType<AudioManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
@@ -788,6 +799,7 @@ public static partial class SceneWiring
         nulls += ReportRidgeMaterials(quiet);
         nulls += ReportVolumes(quiet);
         nulls += ReportMoonRim(quiet);
+        nulls += ReportAudio(AssetDatabase.LoadAssetAtPath<SoundBank>(SoundBankBuilder.BankPath), Resources.Load<MusicLibrary>("MusicLibrary"), quiet);
         nulls += ReportTerrainLayers(quiet);
         return nulls;
     }
@@ -807,6 +819,63 @@ public static partial class SceneWiring
     }
 
     // Gameplay islands need LookVolume below EffectsVolume, with LowFuelFX and Lightning writing only to the effects volume.
+    // Island scenes need a MusicDirector, the sound bank and a music library entry for the island. Every cue that is not
+    // synth-only needs at least one clip.
+    public static int ReportAudio(SoundBank cueBank, MusicLibrary library, bool quiet)
+    {
+        int problems = 0;
+        string sceneName = EditorSceneManager.GetActiveScene().name;
+        if (IsIslandScene())
+        {
+            MusicDirector director = Object.FindAnyObjectByType<MusicDirector>(FindObjectsInactive.Include);
+            if (director == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " missing MusicDirector");
+                }
+            }
+            else
+            {
+                AudioManager manager = Object.FindAnyObjectByType<AudioManager>(FindObjectsInactive.Include);
+                bool bankSet = manager != null && GetObject(manager, "bank") != null;
+                if (!bankSet || library == null || library.For(sceneName) == null)
+                {
+                    problems++;
+                    if (!quiet)
+                    {
+                        Debug.LogWarning(sceneName + " MusicDirector has no sound bank or music library");
+                    }
+                }
+            }
+        }
+
+        if (cueBank != null)
+        {
+            for (int i = 0; i < cueBank.Cues.Count; i++)
+            {
+                SoundCue cue = cueBank.Cues[i];
+                bool hasClip = false;
+                for (int c = 0; cue.clips != null && c < cue.clips.Length; c++)
+                {
+                    hasClip |= cue.clips[c] != null;
+                }
+
+                if (!hasClip && !cue.synthOnly)
+                {
+                    problems++;
+                    if (!quiet)
+                    {
+                        Debug.LogWarning("sound cue '" + cue.name + "' has no clips");
+                    }
+                }
+            }
+        }
+
+        return problems;
+    }
+
     static int ReportVolumes(bool quiet)
     {
         LowFuelFX[] fxs = Object.FindObjectsByType<LowFuelFX>(FindObjectsInactive.Include, FindObjectsSortMode.None);

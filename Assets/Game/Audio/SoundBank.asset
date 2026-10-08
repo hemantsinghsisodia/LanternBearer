@@ -1,0 +1,607 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b409019eac90e640ac28e6bd9764b79, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: LanternKeeper.Logic::LanternKeeper.SoundBank
+  cues:
+  - name: Footstep.Grass
+    clips:
+    - {fileID: 8300000, guid: 1aba142d7f9058f4e89535b00cbf971c, type: 3}
+    - {fileID: 8300000, guid: 551fe6779e7accd439497d960948ee48, type: 3}
+    - {fileID: 8300000, guid: 9edcd0f99e7f7724cb068d8c2bee7edd, type: 3}
+    - {fileID: 8300000, guid: b6c8a35b8035dca40a41b24002a00f76, type: 3}
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Footstep.Dirt
+    clips:
+    - {fileID: 8300000, guid: ffbd2c39d9170b149b29d2ca9b9b44f2, type: 3}
+    - {fileID: 8300000, guid: e15e6b10c17cb9549bc055d718fbf829, type: 3}
+    - {fileID: 8300000, guid: 29f1045eb74bf824493d8a649dd8253e, type: 3}
+    - {fileID: 8300000, guid: 09eb90744293947439ec868d03c5db97, type: 3}
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Footstep.Rock
+    clips:
+    - {fileID: 8300000, guid: 040de8d055cf00345a98e3374c5fbaa3, type: 3}
+    - {fileID: 8300000, guid: a2a3e8661fb16904c8def29fe15dbbd6, type: 3}
+    - {fileID: 8300000, guid: 449da70ac7ef6a8418c24d92683b0b6b, type: 3}
+    - {fileID: 8300000, guid: e66f6027e6b9cdb44b0e767db6dbe854, type: 3}
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Footstep.Water
+    clips:
+    - {fileID: 8300000, guid: 67b5fc1883df74644ac1e3198f8b6fe8, type: 3}
+    - {fileID: 8300000, guid: 756c6b3a927e41b4e8408943b2e4dc5a, type: 3}
+    - {fileID: 8300000, guid: 366c12a52e1165e4d9a6298567204165, type: 3}
+    - {fileID: 8300000, guid: 01125901138f1c646b8f0dddae1f490a, type: 3}
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Keeper.Hit
+    clips:
+    - {fileID: 8300000, guid: 9934b8c21d093e5478fcfc1695dc7ca5, type: 3}
+    - {fileID: 8300000, guid: 815da4ecfeaf9624c9004d547094b1d4, type: 3}
+    - {fileID: 8300000, guid: ff5481c8980d7cb4aaa925dafe57557c, type: 3}
+    volume: 0.35
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Keeper.Interact
+    clips:
+    - {fileID: 8300000, guid: e74dcacfba013644790ea834d9ea4484, type: 3}
+    - {fileID: 8300000, guid: 6b49090f4b8858244a9992c690cafd01, type: 3}
+    - {fileID: 8300000, guid: ebec500bb7492594c824b1764ab743f9, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Lantern.Crackle
+    clips:
+    - {fileID: 8300000, guid: d43137844b16f3a499fd04192228546c, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Lantern.Heartbeat
+    clips: []
+    volume: 0.45
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 10
+  - name: Lantern.Refuel
+    clips:
+    - {fileID: 8300000, guid: bbb5c2c5b2b523a4faba869f898ca838, type: 3}
+    - {fileID: 8300000, guid: 3183ee3476fecc745b094fcf7091bcf7, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Lantern.Sputter
+    clips:
+    - {fileID: 8300000, guid: 141f95edd257bee46823001e9e7250f8, type: 3}
+    - {fileID: 8300000, guid: 0af7ddbb734e89a41bbcbaaf7dc97bc7, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Lantern.DeathGutter
+    clips:
+    - {fileID: 8300000, guid: 922cc84a58ae1f14d886585d716f0e1e, type: 3}
+    - {fileID: 8300000, guid: 558268a4dc799524c8738677b04db1d0, type: 3}
+    volume: 0.65
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    synthOnly: 0
+    fallback: 0
+  - name: Firefly.Chime
+    clips:
+    - {fileID: 8300000, guid: 9ac1defc32e36f745b146e8789bac5ba, type: 3}
+    - {fileID: 8300000, guid: f2f5377e0d3eb134b9a524bee5e2065e, type: 3}
+    - {fileID: 8300000, guid: 57bcd8c50f1be534d91375da14dbd676, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Firefly.Arrive
+    clips: []
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 2
+  - name: Moth.Flutter
+    clips:
+    - {fileID: 8300000, guid: 53713776a50002a418da5c6921e884c6, type: 3}
+    - {fileID: 8300000, guid: f692a3f6e3cd2814c9d0596bafe48672, type: 3}
+    - {fileID: 8300000, guid: 34ec98ce16a00794f8b86edb9e7fafe0, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Moth.Whisper
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 12
+  - name: Shade.Drone
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 13
+  - name: Shade.Steal
+    clips:
+    - {fileID: 8300000, guid: 480c5887b5089ea429907b001f4b5164, type: 3}
+    - {fileID: 8300000, guid: f2eb11f522dff2e42aa0244577b6ab23, type: 3}
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    synthOnly: 0
+    fallback: 0
+  - name: Beacon.Ignite
+    clips:
+    - {fileID: 8300000, guid: 6cc319a8f95dfed42a00aa5eca6afa35, type: 3}
+    - {fileID: 8300000, guid: ec2126fafbe9ffa4c927a9ae8211af3c, type: 3}
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    synthOnly: 0
+    fallback: 0
+  - name: Beacon.Fire
+    clips:
+    - {fileID: 8300000, guid: 84e2535a647f7ff4689db3142a076831, type: 3}
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 2
+    maxDistance: 10
+    rolloff: 1
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Beacon.Whoosh
+    clips: []
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 3
+  - name: Beacon.Fizzle
+    clips:
+    - {fileID: 8300000, guid: 073ff62ce34962641a6c7478708ddb3f, type: 3}
+    - {fileID: 8300000, guid: a349929c57b42724a9552c16d130bbae, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Island1
+    clips:
+    - {fileID: 8300000, guid: d0f85e347d9a4b24bb9c4c9f60c433a3, type: 3}
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Island2
+    clips:
+    - {fileID: 8300000, guid: 60c868ec4a77f334aa79675e7550a65b, type: 3}
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Island3
+    clips:
+    - {fileID: 8300000, guid: e09077c2f92a8ec4a92155060078ed1e, type: 3}
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Island4
+    clips:
+    - {fileID: 8300000, guid: ab2ebd1f83de79041b8835d76b8b9019, type: 3}
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Tide
+    clips:
+    - {fileID: 8300000, guid: a3620d932624d3b47befbe597da1d96a, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Rain
+    clips:
+    - {fileID: 8300000, guid: 267c86b4ae044174fa24a82df8dcc9da, type: 3}
+    - {fileID: 8300000, guid: 124bdd02a5cf5b649ad104a596b117bb, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.WindBed
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 1
+    fallback: 16
+  - name: Ambience.Owl
+    clips:
+    - {fileID: 8300000, guid: 2b00c1977e295654fa2de23bfc52c62d, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 1
+    minDistance: 10
+    maxDistance: 45
+    rolloff: 1
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Ambience.Gust
+    clips:
+    - {fileID: 8300000, guid: 51c3d9df50942a243a1419b272263e90, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Thunder.Crack
+    clips:
+    - {fileID: 8300000, guid: 9ac3c4213b9a5d74d9d3bf4c83764ea2, type: 3}
+    - {fileID: 8300000, guid: 9823ca6d79417e0468847eaa483c7505, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Thunder.Rumble
+    clips:
+    - {fileID: 8300000, guid: 843bf065ef4659f419b68fdc3c1e43d5, type: 3}
+    - {fileID: 8300000, guid: aff3f669b25b9544b8b75c5a61bd9fc4, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: Water.Splash
+    clips:
+    - {fileID: 8300000, guid: ef00ea337107694499aa1a9dcdb5eb39, type: 3}
+    - {fileID: 8300000, guid: 3a3dd407f3efcaa438cfa639d38bc70b, type: 3}
+    - {fileID: 8300000, guid: b80ac08de59124c4b97956f4cca6b0de, type: 3}
+    - {fileID: 8300000, guid: 1e743cf697d3a444c8c25539978fa354, type: 3}
+    volume: 0.85
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.Hover
+    clips:
+    - {fileID: 8300000, guid: 49478f5aec58b2d4eb8ec26b908f7034, type: 3}
+    - {fileID: 8300000, guid: 5497327fe03c7a04ea056ab479d6956f, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.Click
+    clips:
+    - {fileID: 8300000, guid: 7f405833c38d06546b65689024b4344a, type: 3}
+    - {fileID: 8300000, guid: 5f52805307fe10340bf7f9bd77daa90f, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.Back
+    clips:
+    - {fileID: 8300000, guid: 7b3b662e88c6e284abc015350b57260b, type: 3}
+    - {fileID: 8300000, guid: 94b6ee086ecad5f4a8cb6cb898787327, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.PauseOpen
+    clips:
+    - {fileID: 8300000, guid: b5979deb562b2224ebf15fecc50b3b4f, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.PauseClose
+    clips:
+    - {fileID: 8300000, guid: 4708c1cefcffa2e4a882664a95aed852, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.PageTurn
+    clips:
+    - {fileID: 8300000, guid: 1b26e92c1f32bbe43829e457a7c3be1c, type: 3}
+    - {fileID: 8300000, guid: 3b2c1aa5576a25948a954484322b440e, type: 3}
+    - {fileID: 8300000, guid: 2b9b4bc68f40f484997ed686ac7d00b9, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0
+  - name: UI.Toggle
+    clips:
+    - {fileID: 8300000, guid: 8ca62773d0ac4f34f8d9e1db8fffbfd9, type: 3}
+    - {fileID: 8300000, guid: 97a9f737568836e4bb10bb06c53690b6, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    synthOnly: 0
+    fallback: 0

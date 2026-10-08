@@ -7,6 +7,8 @@ public static class FireflyCurve
 {
     public const int Motes = 6, MotesLow = 4, Linger = 2, LingerLow = 1;
     public const float StreamTime = 0.5f, LingerEnd = 2.0f, FadeInTime = 1.0f;
+    // World size (m) of one mote quad. The prefab, the swarm and the shader's minimum-size ratio all derive from this.
+    public const float MoteSize = 0.30f;
     public const float ReduceFlashingFloor = 0.3f, LitThreshold = 0.5f;
 
     // Blink cycle length in seconds: 2.6 to 3.4, 1.3x slower on Low.

@@ -21,7 +21,7 @@ public class Rain : MonoBehaviour
 
     void Awake()
     {
-        patter = StormAudio.Make(gameObject, ProceduralAudio.Rain(), true, 0f);
+        patter = StormAudio.Make(gameObject, AudioManager.CueClip(SoundCues.AmbienceRain), true, 0f);
         patter.Play();
     }
 

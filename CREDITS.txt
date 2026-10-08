@@ -4,25 +4,157 @@ Credits and licences for the public build
 Made with Unity. This game was built in Unity 6 (6000.6.3f1) with the Universal Render Pipeline.
 
 ------------------------------------------------------------------------
-Music (CC0)
+Music and stingers (CC0)
 ------------------------------------------------------------------------
 
-Calm Track by pmiller
-CC0, OpenGameArt
-https://opengameart.org/content/calm-track
-File: Assets/Game/Audio/Music/calm_track-loop.ogg
+Edited from the originals: trimmed, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
 
-Calm Piano 1 / Vaporware by The Cynic Project / cynicmusic.com
-CC0
-https://opengameart.org/content/calm-piano-1-vaporware
-File: Assets/Game/Audio/Music/003_Vaporware.mp3
+Assets/Game/Audio/Music/Music_Menu_1.ogg
+  First Light Particles by Yoiyami
+  https://opengameart.org/content/first-light-particles-%E2%80%93-cc0-atmospheric-pianoambient-track
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island1_1.ogg
+  Ambient Relaxing Loop by isaiah658
+  https://opengameart.org/content/ambient-relaxing-loop
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island2_1.ogg
+  Mysterious Ambience (song21) by cynicmusic
+  https://opengameart.org/content/mysterious-ambience-song21
+  Licence: CC0 (one of the licences the page offers)
+
+Assets/Game/Audio/Music/Music_Island3_1.ogg
+  Underwater Theme by Cleyton Kauffman
+  https://opengameart.org/content/underwater-theme
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island4_1.ogg
+  The World Fell Silent (loop version) by Tsorthan Grove
+  https://opengameart.org/content/the-world-fell-silent
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island1_1.ogg
+  Dark Sci-Fi Audio Pack: Airy by SRG774
+  https://opengameart.org/content/dark-sci-fi-audio-pack
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island2_1.ogg  (also the Island4 tension loop)
+  Paranoid Truth by Tsorthan Grove
+  https://opengameart.org/content/paranoid-truth
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island3_1.ogg
+  Horror Atmosphere (Post Apocalyptic Wastelands) by SubspaceAudio (Juhani Junkala)
+  https://opengameart.org/content/horror-atmosphere
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_BeaconLit_1.ogg
+  Win sound effect by Listener
+  https://opengameart.org/content/win-sound-effect
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_Win_1.ogg
+  Victory Fanfare Short by cynicmusic
+  https://opengameart.org/content/victory-fanfare-short
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_Lose_1.ogg
+  Game Over IV by Kistol
+  https://opengameart.org/content/game-over-iv
+  Licence: CC0
 
 ------------------------------------------------------------------------
-Sound effects
+Sound effects and ambience (CC0)
 ------------------------------------------------------------------------
 
-Footsteps, chimes, moths, splash, whisper, and the other effects are
-generated in the project (ProceduralAudio). No third-party sound files.
+Edited from the originals: trimmed, pitched, layered, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
+Synthesised sounds that have no recording (heartbeat, firefly arrival, moth whisper, Shade drone, beacon whoosh, wind bed) are generated in the project (ProceduralAudio).
+
+Assets/Game/Audio/UI/UI_Hover_*, UI_Click_*, UI_Back_*, UI_PauseOpen_1, UI_PauseClose_1, UI_Toggle_*
+  Interface Sounds by Kenney
+  https://opengameart.org/content/interface-sounds  (https://kenney.nl/assets/interface-sounds)
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Keeper_Hit_*
+  Impact Sounds by Kenney
+  https://kenney.nl/assets/impact-sounds
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Dirt_*, Keeper_Interact_*
+  50 RPG sound effects by Kenney
+  https://opengameart.org/content/50-rpg-sound-effects
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Thunder_Crack_*, Thunder_Rumble_*, Beacon_Fizzle_2
+  100 CC0 SFX #2 by rubberduck
+  https://opengameart.org/content/100-cc0-sfx-2
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Moth_Flutter_*, Shade_Steal_*
+  80 CC0 creature SFX by rubberduck
+  https://opengameart.org/content/80-cc0-creature-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Beacon_Ignite_*, Assets/Game/Audio/UI/UI_PageTurn_*
+  80 CC0 RPG SFX by rubberduck
+  https://opengameart.org/content/80-cc0-rpg-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Water_*, Water_Splash_*, Beacon_Fizzle_1
+  40 CC0 water splash and slime SFX by rubberduck
+  https://opengameart.org/content/40-cc0-water-splash-slime-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Grass_*, Footstep_Rock_*
+  Fantozzi's Footsteps (Grass/Sand & Stone) by Fantozzi
+  https://opengameart.org/content/fantozzis-footsteps-grasssand-stone
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Lantern_Crackle_1, Lantern_Sputter_1, Beacon_Fire_1
+  Fire Crackling (fire-1) by AntumDeluge
+  https://opengameart.org/content/fire-crackling
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Firefly_Chime_*
+  Pleasing Bell Sound Effect by Spring Spring
+  https://opengameart.org/content/pleasing-bell-sound-effect
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1, Island2_1, Island3_1, Tide_1 (surf layers)
+  Beach Ocean Waves by jasinski
+  https://opengameart.org/content/beach-ocean-waves
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Rain_1, Ambience_Rain_2
+  Rain (loopable) by Ylmir
+  https://opengameart.org/content/rain-loopable
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1, Island2_1 (insect layer)
+  Crickets Ambient Noise - loopable by Wolfgang_
+  https://opengameart.org/content/crickets-ambient-noise-loopable
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1 (wind layer)
+  Short wind sound by remaxim
+  https://opengameart.org/content/short-wind-sound
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Gust_1
+  wind whoosh loop by SketchMan3
+  https://opengameart.org/content/wind-whoosh-loop
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Ambience_Owl_1
+  Tawny Owl #1 by Joseph SARDIN (BigSoundBank)
+  https://bigsoundbank.com/tawny-owl-1-s1763.html
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island4_1
+  Strong Wind in a Village by Joseph SARDIN (BigSoundBank)
+  https://bigsoundbank.com/strong-wind-in-a-village-s0625.html
+  Licence: CC0
 
 ------------------------------------------------------------------------
 Character (CC0 1.0)

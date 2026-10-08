@@ -39,11 +39,11 @@ public class Wind : MonoBehaviour
     void Awake()
     {
         Instance = this;
-        bed = StormAudio.Make(gameObject, ProceduralAudio.WindBed(), true, 0f);
+        bed = StormAudio.Make(gameObject, AudioManager.CueClip(SoundCues.AmbienceWindBed), true, 0f);
         bed.Play();
         GameObject howlObject = new GameObject("WindHowl");
         howlObject.transform.SetParent(transform, false);
-        howl = StormAudio.Make(howlObject, ProceduralAudio.WindHowl(), true, 1f);
+        howl = StormAudio.Make(howlObject, AudioManager.CueClip(SoundCues.AmbienceGust), true, 1f);
         howl.Play();
     }
 

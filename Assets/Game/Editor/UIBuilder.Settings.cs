@@ -118,6 +118,7 @@ public static partial class UIBuilder
 
         GameObject backGo = MakeButton(panel.transform, "Back", false);
         backGo.name = "BackButton";
+        backGo.GetComponent<ThemedButton>().SetBack(true);
         Anchor(backGo, new Vector2(0, 0), new Vector2(0, 0), new Vector2(60, 40), new Vector2(320, 40 + RowHeight));
 
         SettingsScreen screen = root.AddComponent<SettingsScreen>();

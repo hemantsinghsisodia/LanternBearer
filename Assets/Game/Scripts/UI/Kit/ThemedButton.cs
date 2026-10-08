@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace LanternKeeper
@@ -17,6 +18,10 @@ public class ThemedButton : Button
     [SerializeField] private bool tab;
     [SerializeField] private GameObject markEdge;
     [SerializeField] private GameObject markTint;
+    [SerializeField] private bool isBack;
+    // Frame of the last keyboard/pad navigation move. A button selected in that frame was reached by navigation, so it hovers.
+    // Selection set from code (a screen opening) happens in another frame and stays silent.
+    private static int navigateFrame = -1;
 
     public bool Primary { get { return primary; } }
     public ThemedLabel Label { get { return label; } }
@@ -26,6 +31,12 @@ public class ThemedButton : Button
     public bool Tab { get { return tab; } }
     public GameObject MarkEdge { get { return markEdge; } }
     public GameObject MarkTint { get { return markTint; } }
+    public bool IsBack { get { return isBack; } }
+
+    public void SetBack(bool back)
+    {
+        isBack = back;
+    }
 
     public void Configure(UITheme newTheme, bool isPrimary, ThemedLabel themedLabel, GameObject focus, UIVerticalGradient grad)
     {
@@ -117,6 +128,56 @@ public class ThemedButton : Button
         {
             img.color = Color.white;
         }
+    }
+
+    public override void OnPointerEnter(PointerEventData eventData)
+    {
+        base.OnPointerEnter(eventData);
+        if (IsActive() && IsInteractable())
+        {
+            UiSound.Play(SoundCues.UiHover);
+        }
+    }
+
+    public override void OnMove(AxisEventData eventData)
+    {
+        navigateFrame = Time.frameCount;
+        base.OnMove(eventData);
+    }
+
+    public override void OnSelect(BaseEventData eventData)
+    {
+        base.OnSelect(eventData);
+        if (navigateFrame == Time.frameCount && IsActive() && IsInteractable())
+        {
+            UiSound.Play(SoundCues.UiHover);
+        }
+    }
+
+    public override void OnPointerClick(PointerEventData eventData)
+    {
+        // Decide before the click runs: onClick may hide this very button, which would make the check fail afterwards.
+        bool pressable = IsActive() && IsInteractable();
+        base.OnPointerClick(eventData);
+        if (pressable && eventData.button == PointerEventData.InputButton.Left)
+        {
+            PlayPress();
+        }
+    }
+
+    public override void OnSubmit(BaseEventData eventData)
+    {
+        bool pressable = IsActive() && IsInteractable();
+        base.OnSubmit(eventData);
+        if (pressable)
+        {
+            PlayPress();
+        }
+    }
+
+    private void PlayPress()
+    {
+        UiSound.Play(isBack ? SoundCues.UiBack : SoundCues.UiClick);
     }
 
     protected override void DoStateTransition(SelectionState state, bool instant)

@@ -6,7 +6,7 @@ namespace LanternKeeper
 {
 public class MusicPlayer : MonoBehaviour
 {
-    const float BaseVolume = 0.35f;
+    public const float BaseVolume = 0.35f;
     const float FadeInDuration = 3f;
     const float CrossfadeDuration = 2f;
 
@@ -179,14 +179,17 @@ public class MusicPlayer : MonoBehaviour
             return;
         }
 
+        if (sceneName.StartsWith("Island") && FindAnyObjectByType<MusicDirector>() != null)
+        {
+            // The scene's MusicDirector owns island music; fade the menu track out.
+            HandOver();
+            return;
+        }
+
         AudioClip clip = null;
         if (sceneName == "MainMenu")
         {
             clip = library.menuTrack;
-        }
-        else if (sceneName == "Island1" || sceneName == "Island2")
-        {
-            clip = library.islandTrack;
         }
         else
         {
@@ -204,6 +207,27 @@ public class MusicPlayer : MonoBehaviour
         }
 
         CrossfadeTo(clip);
+    }
+
+    void HandOver()
+    {
+        if (active == null || active.clip == null)
+        {
+            return;
+        }
+
+        if (fadingOut != null && fadingOut != active)
+        {
+            fadingOut.Stop();
+            fadingOut.clip = null;
+            fadingOut.volume = 0f;
+        }
+
+        fadingOut = active;
+        active = null;
+        fadeElapsed = 0f;
+        fadeDuration = CrossfadeDuration;
+        fading = true;
     }
 
     void CrossfadeTo(AudioClip clip)
@@ -269,38 +293,26 @@ public class MusicPlayer : MonoBehaviour
 
     float MoodGain()
     {
+        return Mood(lantern, dawn);
+    }
+
+    // 0 when muted, 0.5 on low fuel, else 1. Shared with the MusicDirector.
+    public static float Mood(Lantern lantern, DawnSequence dawn)
+    {
         if (IsMuted)
         {
             return 0f;
         }
 
-        if (DawnActive())
+        bool dawning = (GameManager.Instance != null && GameManager.Instance.DawnPlaying) || (dawn != null && dawn.IsPlaying);
+        if (dawning)
         {
             return 1f;
         }
 
-        if (LowFuel())
-        {
-            return 0.5f;
-        }
-
-        return 1f;
-    }
-
-    bool DawnActive()
-    {
-        if (GameManager.Instance != null && GameManager.Instance.DawnPlaying)
-        {
-            return true;
-        }
-
-        return dawn != null && dawn.IsPlaying;
-    }
-
-    bool LowFuel()
-    {
-        return lantern != null && lantern.FuelNormalized > 0f && lantern.FuelNormalized < 0.2f
+        bool low = lantern != null && lantern.FuelNormalized > 0f && lantern.FuelNormalized < 0.2f
             && (GameManager.Instance == null || !GameManager.Instance.IsRoundOver);
+        return low ? 0.5f : 1f;
     }
 
     AudioSource AddSource()

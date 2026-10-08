@@ -140,6 +140,10 @@ public class KeepersLogScreen : MonoBehaviour
         int clamped = Mathf.Clamp(index, 0, views.Count - 1);
         bool moved = clamped != spreadIndex;
         spreadIndex = clamped;
+        if (moved)
+        {
+            UiSound.Play(SoundCues.UiPageTurn);
+        }
         Show(moved);
     }
 

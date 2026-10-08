@@ -68,7 +68,12 @@ public class SwitchRow : Selectable, ISubmitHandler, IPointerClickHandler
             return;
         }
         int next = ((index + direction) % options.Length + options.Length) % options.Length;
+        int before = index;
         SetIndex(next, true);
+        if (index != before)
+        {
+            UiSound.Play(SoundCues.UiToggle);
+        }
     }
 
     public override void OnMove(AxisEventData eventData)

@@ -99,7 +99,7 @@ public class Tide : MonoBehaviour
         surf.loop = true;
         surf.spatialBlend = 0f;
         surf.volume = 0f;
-        surf.clip = ProceduralAudio.SurfSwell();
+        surf.clip = AudioManager.CueClip(SoundCues.AmbienceTide);
         surf.Play();
     }
 
