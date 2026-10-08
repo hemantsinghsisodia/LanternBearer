@@ -1480,6 +1480,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.AudioManager
   lantern: {fileID: 1825340310}
   mixer: {fileID: 24100000, guid: 41964b23c91399747b93c10a0bcf67a6, type: 2}
+  bank: {fileID: 11400000, guid: 821c444ea54016c4bb1385ce3150265c, type: 2}
 --- !u!4 &157104535
 Transform:
   m_ObjectHideFlags: 0

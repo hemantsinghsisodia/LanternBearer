@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -17,6 +18,24 @@ public class AudioManager : MonoBehaviour
 
     [SerializeField] Lantern lantern;
     [SerializeField] AudioMixer mixer;
+    [SerializeField] SoundBank bank;
+
+    sealed class DuckState
+    {
+        public float level;
+        public float target;
+        public float until;
+    }
+
+    const float DuckAttackDbPerSecond = 40f;
+    const float DuckReleaseDbPerSecond = 8f;
+
+    AudioSource uiSource;
+    float[] voiceStart;
+    bool[] voicePriority;
+    readonly Dictionary<string, int> lastVariation = new Dictionary<string, int>();
+    readonly HashSet<string> warnedCues = new HashSet<string>();
+    readonly Dictionary<string, DuckState> ducks = new Dictionary<string, DuckState>();
 
     AudioSource oneShots;
     AudioSource ambience;
@@ -48,6 +67,8 @@ public class AudioManager : MonoBehaviour
     public AudioMixerGroup MusicGroup { get; private set; }
     public AudioMixerGroup SfxGroup { get; private set; }
     public AudioMixerGroup AmbienceGroup { get; private set; }
+    public AudioMixerGroup UiGroup { get; private set; }
+    public SoundBank Bank => bank;
     public string MixState => mixState;
     public AudioClip LastFootstep { get; private set; }
     public string LastSurface { get; private set; }
@@ -80,6 +101,11 @@ public class AudioManager : MonoBehaviour
         oneShots.spatialBlend = 0f;
         CreatePool();
 
+        uiSource = gameObject.AddComponent<AudioSource>();
+        uiSource.playOnAwake = false;
+        uiSource.spatialBlend = 0f;
+        uiSource.ignoreListenerPause = true;
+
         ambience = gameObject.AddComponent<AudioSource>();
         ambience.playOnAwake = false;
         ambience.loop = true;
@@ -106,8 +132,27 @@ public class AudioManager : MonoBehaviour
         RouteSources();
     }
 
+    void OnEnable()
+    {
+        UiSound.Requested += OnUiRequested;
+    }
+
+    void OnDisable()
+    {
+        UiSound.Requested -= OnUiRequested;
+    }
+
+    void OnUiRequested(string cue)
+    {
+        if (Instance == this)
+        {
+            PlayCue2D(cue);
+        }
+    }
+
     void OnDestroy()
     {
+        UiSound.Requested -= OnUiRequested;
         if (lantern != null)
         {
             lantern.FuelChanged -= OnFuelForCrackle;
@@ -168,6 +213,8 @@ public class AudioManager : MonoBehaviour
         root.transform.SetParent(transform, false);
         poolRoot = root.transform;
         pool = new AudioSource[PoolSize];
+        voiceStart = new float[PoolSize];
+        voicePriority = new bool[PoolSize];
         for (int i = 0; i < PoolSize; i++)
         {
             GameObject child = new GameObject("PooledSource");
@@ -197,6 +244,7 @@ public class AudioManager : MonoBehaviour
         MusicGroup = FindGroup("Music");
         SfxGroup = FindGroup("SFX");
         AmbienceGroup = FindGroup("Ambience");
+        UiGroup = FindGroup("UI");
         if (MusicGroup == null || SfxGroup == null || AmbienceGroup == null)
         {
             return;
@@ -207,6 +255,7 @@ public class AudioManager : MonoBehaviour
         Assign(oneShots, SfxGroup);
         Assign(heartbeat, SfxGroup);
         Assign(crackle, SfxGroup);
+        Assign(uiSource, UiGroup != null ? UiGroup : SfxGroup);
         for (int i = 0; i < pool.Length; i++)
         {
             Assign(pool[i], SfxGroup);
@@ -248,7 +297,7 @@ public class AudioManager : MonoBehaviour
             }
         }
 
-        return groups.Length > 0 ? groups[0] : null;
+        return groupName == "UI" ? null : (groups.Length > 0 ? groups[0] : null);
     }
 
     static void Assign(AudioSource source, AudioMixerGroup group)
@@ -327,6 +376,7 @@ public class AudioManager : MonoBehaviour
 
     void Update()
     {
+        TickDucks();
         HookCrackle();
         if (!routed)
         {
@@ -394,6 +444,329 @@ public class AudioManager : MonoBehaviour
         }
 
         crackle.volume = level;
+    }
+
+    // ---- Named cues -------------------------------------------------------------------------------------------
+
+    public AudioSource PlayCue(string cue, Vector3 position)
+    {
+        return PlayCueInternal(cue, position, false);
+    }
+
+    public AudioSource PlayCue2D(string cue)
+    {
+        return PlayCueInternal(cue, Vector3.zero, true);
+    }
+
+    AudioSource PlayCueInternal(string cue, Vector3 position, bool flat)
+    {
+        SoundCue c = FindCue(cue);
+        if (c == null)
+        {
+            return null;
+        }
+
+        AudioClip clip = ClipFor(cue);
+        if (clip == null)
+        {
+            return null;
+        }
+
+        float volume = c.volume * Mathf.Pow(10f, (Random.value * 2f - 1f) * c.volumeJitterDb / 20f);
+        float pitch = Mathf.Approximately(c.pitch.x, c.pitch.y) ? c.pitch.x : Random.Range(c.pitch.x, c.pitch.y);
+        if (pitch <= 0f)
+        {
+            pitch = 1f;
+        }
+
+        if (c.priority)
+        {
+            Duck("AmbienceDuck", -4f, 1f);
+            Duck("TensionDuck", -4f, 1f);
+        }
+
+        if (c.group == SoundGroup.UI)
+        {
+            if (uiSource == null)
+            {
+                return null;
+            }
+
+            if (!routed)
+            {
+                RouteSources();
+            }
+
+            uiSource.pitch = pitch;
+            uiSource.PlayOneShot(clip, volume);
+            return uiSource;
+        }
+
+        float blend = c.spatial && !flat ? 1f : 0f;
+        return StartVoice(clip, position, volume, pitch, blend, GroupFor(c.group), c.priority,
+            c.minDistance, c.maxDistance, c.rolloff);
+    }
+
+    public void PlayCueLoop(string cue, AudioSource source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        SoundCue c = FindCue(cue);
+        if (c == null)
+        {
+            return;
+        }
+
+        AudioClip clip = ClipFor(cue);
+        if (clip == null)
+        {
+            return;
+        }
+
+        AudioMixerGroup group = GroupFor(c.group);
+        if (group != null)
+        {
+            source.outputAudioMixerGroup = group;
+        }
+
+        bool changed = source.clip != clip;
+        source.clip = clip;
+        source.loop = true;
+        source.volume = c.volume;
+        source.pitch = Mathf.Approximately(c.pitch.x, c.pitch.y) ? c.pitch.x : Random.Range(c.pitch.x, c.pitch.y);
+        source.spatialBlend = c.spatial ? 1f : 0f;
+        source.rolloffMode = c.rolloff;
+        source.minDistance = c.minDistance;
+        source.maxDistance = c.maxDistance;
+        source.playOnAwake = false;
+        if (changed || !source.isPlaying)
+        {
+            source.Play();
+        }
+    }
+
+    // The next variation of the cue (never the same one twice in a row), or its synthesized fallback.
+    public AudioClip ClipFor(string cue)
+    {
+        SoundCue c = FindCue(cue);
+        if (c == null)
+        {
+            return null;
+        }
+
+        int count = 0;
+        if (c.clips != null)
+        {
+            for (int i = 0; i < c.clips.Length; i++)
+            {
+                if (c.clips[i] != null)
+                {
+                    count++;
+                }
+            }
+        }
+
+        if (count > 0)
+        {
+            int last;
+            if (!lastVariation.TryGetValue(cue, out last))
+            {
+                last = -1;
+            }
+
+            int pick = NextIndex(ref last, count);
+            lastVariation[cue] = last;
+            int seen = 0;
+            for (int i = 0; i < c.clips.Length; i++)
+            {
+                if (c.clips[i] != null)
+                {
+                    if (seen == pick)
+                    {
+                        return c.clips[i];
+                    }
+
+                    seen++;
+                }
+            }
+        }
+
+        if (warnedCues.Add("clip:" + cue))
+        {
+            Debug.LogWarning("Sound cue has no clip, using " + (c.fallback == SynthFallback.None ? "nothing" : "synth fallback") + ": " + cue, this);
+        }
+
+        return SynthClip(c);
+    }
+
+    SoundCue FindCue(string cue)
+    {
+        if (bank == null)
+        {
+            if (warnedCues.Add("bank"))
+            {
+                Debug.LogWarning("AudioManager has no SoundBank assigned.", this);
+            }
+
+            return null;
+        }
+
+        SoundCue c = bank.Find(cue);
+        if (c == null && warnedCues.Add("cue:" + cue))
+        {
+            Debug.LogWarning("Unknown sound cue: " + cue, this);
+        }
+
+        return c;
+    }
+
+    AudioMixerGroup GroupFor(SoundGroup group)
+    {
+        if (!routed)
+        {
+            RouteSources();
+        }
+
+        switch (group)
+        {
+            case SoundGroup.Music:
+                return MusicGroup;
+            case SoundGroup.Ambience:
+                return AmbienceGroup;
+            case SoundGroup.UI:
+                return UiGroup != null ? UiGroup : SfxGroup;
+            default:
+                return SfxGroup;
+        }
+    }
+
+    int NextVariant(string cue, int count)
+    {
+        int last;
+        if (!lastVariation.TryGetValue("synth:" + cue, out last))
+        {
+            last = -1;
+        }
+
+        int index = NextIndex(ref last, count);
+        lastVariation["synth:" + cue] = last;
+        return index;
+    }
+
+    AudioClip SynthClip(SoundCue c)
+    {
+        switch (c.fallback)
+        {
+            case SynthFallback.Chime:
+                return ProceduralAudio.ChimeVariant(NextVariant(c.name, 3));
+            case SynthFallback.FireflyArrive:
+                return ProceduralAudio.FireflyArrive();
+            case SynthFallback.Beacon:
+                return ProceduralAudio.BeaconVariant(NextVariant(c.name, 3));
+            case SynthFallback.Whoomp:
+                return ProceduralAudio.Whoomp();
+            case SynthFallback.Footstep:
+                return ProceduralAudio.FootstepVariant(SurfaceForCue(c.name), NextVariant(c.name, ProceduralAudio.SurfaceVariantCount));
+            case SynthFallback.Splash:
+                return ProceduralAudio.SplashVariant(NextVariant(c.name, 3));
+            case SynthFallback.Fizzle:
+                return ProceduralAudio.FizzleVariant(NextVariant(c.name, 3));
+            case SynthFallback.Crackle:
+                return ProceduralAudio.CrackleLoop();
+            case SynthFallback.Dying:
+                return ProceduralAudio.LanternDying();
+            case SynthFallback.Heartbeat:
+                return ProceduralAudio.Heartbeat();
+            case SynthFallback.MothFlutter:
+                return ProceduralAudio.MothFlutter();
+            case SynthFallback.MothWhisper:
+                return ProceduralAudio.MothWhisper();
+            case SynthFallback.ShadeDrone:
+                return ProceduralAudio.ShadeDrone();
+            case SynthFallback.Ambience:
+                return ProceduralAudio.Ambience();
+            case SynthFallback.Surf:
+                return ProceduralAudio.SurfSwell();
+            case SynthFallback.WindBed:
+                return ProceduralAudio.WindBed();
+            case SynthFallback.WindHowl:
+                return ProceduralAudio.WindHowl();
+            case SynthFallback.Rain:
+                return ProceduralAudio.Rain();
+            case SynthFallback.ThunderRumble:
+                return ProceduralAudio.ThunderRumble();
+            case SynthFallback.ThunderCrack:
+                return ProceduralAudio.ThunderCrack();
+            default:
+                return null;
+        }
+    }
+
+    static int SurfaceForCue(string cueName)
+    {
+        if (cueName.EndsWith("Dirt"))
+        {
+            return Dirt;
+        }
+
+        if (cueName.EndsWith("Rock"))
+        {
+            return Rock;
+        }
+
+        if (cueName.EndsWith("Water"))
+        {
+            return Sand;
+        }
+
+        return Grass;
+    }
+
+    // Lowers a mixer parameter (dB) to `db` for `seconds` of unscaled time, then releases it. Repeats extend the hold and
+    // never go below the target.
+    public void Duck(string parameter, float db, float seconds)
+    {
+        if (mixer == null)
+        {
+            return;
+        }
+
+        DuckState state;
+        if (!ducks.TryGetValue(parameter, out state))
+        {
+            state = new DuckState();
+            ducks[parameter] = state;
+        }
+
+        state.target = db;
+        state.until = Mathf.Max(state.until, Time.unscaledTime + seconds);
+    }
+
+    void TickDucks()
+    {
+        if (ducks.Count == 0 || mixer == null)
+        {
+            return;
+        }
+
+        float dt = Time.unscaledDeltaTime;
+        foreach (KeyValuePair<string, DuckState> pair in ducks)
+        {
+            DuckState state = pair.Value;
+            bool holding = Time.unscaledTime < state.until;
+            float goal = holding ? state.target : 0f;
+            if (Mathf.Approximately(state.level, goal))
+            {
+                continue;
+            }
+
+            float rate = goal < state.level ? DuckAttackDbPerSecond : DuckReleaseDbPerSecond;
+            state.level = Mathf.MoveTowards(state.level, goal, rate * dt);
+            mixer.SetFloat(pair.Key, state.level);
+        }
     }
 
     public void PlayFirefly(Vector3 position)
@@ -479,15 +852,33 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        AudioSource source = NextSource();
+        StartVoice(clip, position, volume, pitch, 1f, SfxGroup, false, 1f, 500f, AudioRolloffMode.Logarithmic);
+    }
+
+    AudioSource StartVoice(AudioClip clip, Vector3 position, float volume, float pitch, float spatialBlend, AudioMixerGroup group,
+        bool priority, float minDistance, float maxDistance, AudioRolloffMode rolloff)
+    {
+        int index = NextVoice();
+        AudioSource source = pool[index];
         source.Stop();
         source.clip = clip;
         source.transform.position = position;
         source.volume = volume;
         source.pitch = pitch;
         source.loop = false;
-        source.spatialBlend = 1f;
+        source.spatialBlend = spatialBlend;
+        source.rolloffMode = rolloff;
+        source.minDistance = minDistance;
+        source.maxDistance = maxDistance;
+        if (group != null)
+        {
+            source.outputAudioMixerGroup = group;
+        }
+
+        voiceStart[index] = Time.unscaledTime;
+        voicePriority[index] = priority;
         source.Play();
+        return source;
     }
 
     static int NextIndex(ref int last, int count)
@@ -516,7 +907,8 @@ public class AudioManager : MonoBehaviour
         return index;
     }
 
-    AudioSource NextSource()
+    // A free voice if there is one; otherwise steals the oldest non-priority voice, and only then the oldest priority one.
+    int NextVoice()
     {
         int count = pool.Length;
         for (int n = 0; n < count; n++)
@@ -525,13 +917,29 @@ public class AudioManager : MonoBehaviour
             if (!pool[index].isPlaying)
             {
                 poolCursor = (index + 1) % count;
-                return pool[index];
+                return index;
             }
         }
 
-        AudioSource stolen = pool[poolCursor];
-        poolCursor = (poolCursor + 1) % count;
-        return stolen;
+        int oldest = -1;
+        int oldestAny = poolCursor;
+        for (int n = 0; n < count; n++)
+        {
+            int index = (poolCursor + n) % count;
+            if (voiceStart[index] < voiceStart[oldestAny])
+            {
+                oldestAny = index;
+            }
+
+            if (!voicePriority[index] && (oldest < 0 || voiceStart[index] < voiceStart[oldest]))
+            {
+                oldest = index;
+            }
+        }
+
+        int chosen = oldest >= 0 ? oldest : oldestAny;
+        poolCursor = (chosen + 1) % count;
+        return chosen;
     }
 
     void CacheTerrain()

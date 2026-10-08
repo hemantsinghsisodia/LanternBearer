@@ -71,6 +71,11 @@ public static partial class SceneWiring
         }
 
         AudioManager audio = Object.FindAnyObjectByType<AudioManager>();
+        if (audio != null)
+        {
+            assigned += Set(audio, "bank", SoundBankBuilder.Build());
+        }
+
         if (audio != null && lantern != null)
         {
             assigned += Set(audio, "lantern", lantern);
@@ -653,6 +658,12 @@ public static partial class SceneWiring
         for (int i = 0; i < cameras.Length; i++)
         {
             nulls += Require(cameras[i], "target", quiet);
+        }
+
+        AudioManager[] banked = Object.FindObjectsByType<AudioManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < banked.Length; i++)
+        {
+            nulls += Require(banked[i], "bank", quiet);
         }
 
         if (needsLantern)

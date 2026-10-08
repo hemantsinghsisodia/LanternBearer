@@ -1,0 +1,495 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b409019eac90e640ac28e6bd9764b79, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: LanternKeeper.Logic::LanternKeeper.SoundBank
+  cues:
+  - name: Footstep.Grass
+    clips: []
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 5
+  - name: Footstep.Dirt
+    clips: []
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 5
+  - name: Footstep.Rock
+    clips: []
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 5
+  - name: Footstep.Water
+    clips: []
+    volume: 0.32
+    pitch: {x: 0.95, y: 1.05}
+    volumeJitterDb: 1.5
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 5
+  - name: Keeper.Roll
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Keeper.Hit
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Keeper.Interact
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Lantern.Crackle
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 8
+  - name: Lantern.Refuel
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Lantern.Sputter
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Lantern.DeathGutter
+    clips: []
+    volume: 0.65
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    fallback: 9
+  - name: Firefly.Chime
+    clips: []
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Firefly.Arrive
+    clips: []
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 2
+  - name: Moth.Flutter
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 11
+  - name: Moth.Whisper
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 12
+  - name: Shade.Drone
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 13
+  - name: Shade.Steal
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    fallback: 1
+  - name: Beacon.Ignite
+    clips: []
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    fallback: 4
+  - name: Beacon.Fire
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Beacon.Fizzle
+    clips: []
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 7
+  - name: Ambience.Island1
+    clips: []
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 14
+  - name: Ambience.Island2
+    clips: []
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 14
+  - name: Ambience.Island3
+    clips: []
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 14
+  - name: Ambience.Island4
+    clips: []
+    volume: 0.22
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 14
+  - name: Ambience.Tide
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 15
+  - name: Ambience.Rain
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 18
+  - name: Ambience.Gust
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 17
+  - name: Thunder.Crack
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 20
+  - name: Thunder.Rumble
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 19
+  - name: Water.Splash
+    clips: []
+    volume: 0.85
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 6
+  - name: UI.Hover
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.Click
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.Back
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.PauseOpen
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.PauseClose
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.PageTurn
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: UI.Toggle
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 3
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Stinger.BeaconLit
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 0
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Stinger.Win
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 0
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 1
+  - name: Stinger.Lose
+    clips: []
+    volume: 0.4
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 0
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 1
+    fallback: 1

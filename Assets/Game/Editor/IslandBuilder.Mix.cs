@@ -154,6 +154,7 @@ public static partial class IslandBuilder
             if (named)
             {
                 existing.updateMode = AudioMixerUpdateMode.UnscaledTime;
+                EnsureMixerExtras(existing);
                 return existing;
             }
 
@@ -209,6 +210,7 @@ public static partial class IslandBuilder
         controllerType.GetProperty("startSnapshot").SetValue(mixer, normal);
 
         AudioMixer asset = AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerPath);
+        EnsureMixerExtras(asset);
         asset.updateMode = AudioMixerUpdateMode.UnscaledTime;
         EditorUtility.SetDirty(asset);
         AssetDatabase.SaveAssets();
@@ -237,9 +239,111 @@ public static partial class IslandBuilder
         set.Invoke(effect, new object[] { mixer, snapshot, parameter, value });
     }
 
+    // Phase G additions, applied to a new or an existing mixer: a UI group under SFX (so it follows the Effects slider),
+    // a Tension group under Music, and exposed duck parameters (dB, default 0): MusicDuck and AmbienceDuck are the volumes of
+    // bus groups above Music and Ambience, TensionDuck is the Tension group's volume.
+    static void EnsureMixerExtras(AudioMixer asset)
+    {
+        object mixer = asset;
+        Type controllerType = mixer.GetType();
+        const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        MethodInfo createGroup = controllerType.GetMethod("CreateNewGroup", all);
+        MethodInfo addChild = controllerType.GetMethod("AddChildToParent", all);
+        Array snapshots = (Array)controllerType.GetProperty("snapshots").GetValue(mixer);
+        bool changed = false;
+
+        object sfx = FindExactGroup(asset, "SFX");
+        object music = FindExactGroup(asset, "Music");
+        object ambience = FindExactGroup(asset, "Ambience");
+
+        if (FindExactGroup(asset, "UI") == null)
+        {
+            object ui = createGroup.Invoke(mixer, new object[] { "UI", false });
+            addChild.Invoke(mixer, new object[] { ui, sfx });
+            for (int i = 0; i < snapshots.Length; i++)
+            {
+                SetVolume(ui, mixer, snapshots.GetValue(i), 0f);
+            }
+
+            changed = true;
+        }
+
+        float probe;
+        if (!asset.GetFloat("TensionDuck", out probe))
+        {
+            object tension = FindExactGroup(asset, "Tension");
+            if (tension == null)
+            {
+                tension = createGroup.Invoke(mixer, new object[] { "Tension", false });
+                addChild.Invoke(mixer, new object[] { tension, music });
+                for (int i = 0; i < snapshots.Length; i++)
+                {
+                    SetVolume(tension, mixer, snapshots.GetValue(i), 0f);
+                }
+            }
+
+            ExposeVolume(mixer, tension, "TensionDuck");
+            changed = true;
+        }
+
+        object master = controllerType.GetProperty("masterGroup").GetValue(mixer);
+        if (!asset.GetFloat("MusicDuck", out probe))
+        {
+            InsertDuckBus(mixer, createGroup, addChild, snapshots, master, music, "MusicBus", "MusicDuck");
+            changed = true;
+        }
+
+        if (!asset.GetFloat("AmbienceDuck", out probe))
+        {
+            InsertDuckBus(mixer, createGroup, addChild, snapshots, master, ambience, "AmbienceBus", "AmbienceDuck");
+            changed = true;
+        }
+
+        if (changed)
+        {
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(MixerPath, ImportAssetOptions.ForceUpdate);
+            Debug.Log("Added UI group and duck parameters to the Lantern mixer.");
+        }
+    }
+
+    static object FindExactGroup(AudioMixer asset, string groupName)
+    {
+        AudioMixerGroup[] groups = asset.FindMatchingGroups(groupName);
+        for (int i = 0; i < groups.Length; i++)
+        {
+            if (groups[i] != null && groups[i].name == groupName)
+            {
+                return groups[i];
+            }
+        }
+
+        return null;
+    }
+
+    // Puts a bus group between Master and `group` and exposes the bus volume, so a duck never fights the user's volume slider.
+    static void InsertDuckBus(object mixer, MethodInfo createGroup, MethodInfo addChild, Array snapshots, object master, object group, string busName, string exposedName)
+    {
+        object bus = createGroup.Invoke(mixer, new object[] { busName, false });
+        addChild.Invoke(mixer, new object[] { bus, master });
+        addChild.Invoke(mixer, new object[] { group, bus });
+        for (int i = 0; i < snapshots.Length; i++)
+        {
+            SetVolume(bus, mixer, snapshots.GetValue(i), 0f);
+        }
+
+        ExposeVolume(mixer, bus, exposedName);
+    }
+
     static void ExposeVolume(object mixer, object group, string exposedName)
     {
         object guid = group.GetType().GetMethod("GetGUIDForVolume").Invoke(group, null);
+        ExposeGuid(mixer, guid, exposedName);
+    }
+
+    static void ExposeGuid(object mixer, object guid, string exposedName)
+    {
         Type exposedType = Type.GetType("UnityEditor.Audio.ExposedAudioParameter, UnityEditor");
         object entry = Activator.CreateInstance(exposedType);
         exposedType.GetField("guid", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).SetValue(entry, guid);
