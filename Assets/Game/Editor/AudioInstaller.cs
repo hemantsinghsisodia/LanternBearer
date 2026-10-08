@@ -6,13 +6,14 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// Adds the MusicDirector to each island's Systems object and fills the MusicLibrary. Idempotent.
+// Adds the MusicDirector to each island's Systems object (and AmbienceExtras to Island2) and fills the MusicLibrary. Idempotent.
 // The scenes are edited as text (two inserted blocks) because a normal scene save reorders children and makes noise.
 public static class AudioInstaller
 {
     const string LibraryPath = "Assets/Game/Resources/MusicLibrary.asset";
     const string PlaceholderTrackPath = "Assets/Game/Audio/Music/003_Vaporware.mp3";
     const string DirectorScriptPath = "Assets/Game/Scripts/MusicDirector.cs";
+    const string ExtrasScriptPath = "Assets/Game/Scripts/AmbienceExtras.cs";
     const string AudioManagerScriptPath = "Assets/Game/Scripts/AudioManager.cs";
     static readonly string[] IslandNames = { "Island1", "Island2", "Island3", "Island4" };
 
@@ -21,11 +22,17 @@ public static class AudioInstaller
     {
         string directorGuid = AssetDatabase.AssetPathToGUID(DirectorScriptPath);
         string managerGuid = AssetDatabase.AssetPathToGUID(AudioManagerScriptPath);
+        string extrasGuid = AssetDatabase.AssetPathToGUID(ExtrasScriptPath);
         for (int i = 0; i < CreatureInstaller.IslandScenePaths.Length; i++)
         {
             string path = CreatureInstaller.IslandScenePaths[i];
             string text = File.ReadAllText(path, new UTF8Encoding(false));
-            string result = Insert(text, directorGuid, managerGuid, path);
+            string result = Insert(text, directorGuid, "MusicDirector", managerGuid, path);
+            if (path.EndsWith("Island2.unity", System.StringComparison.Ordinal))
+            {
+                result = Insert(result, extrasGuid, "AmbienceExtras", managerGuid, path);
+            }
+
             if (result != text)
             {
                 File.WriteAllText(path, result, new UTF8Encoding(false));
@@ -83,9 +90,9 @@ public static class AudioInstaller
         }
     }
 
-    static string Insert(string text, string directorGuid, string managerGuid, string path)
+    static string Insert(string text, string scriptGuid, string className, string managerGuid, string path)
     {
-        if (text.Contains("guid: " + directorGuid))
+        if (text.Contains("guid: " + scriptGuid))
         {
             return text;
         }
@@ -128,8 +135,8 @@ public static class AudioInstaller
         string newId = (max + 1).ToString();
         string block = "--- !u!114 &" + newId + "\nMonoBehaviour:\n  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n"
             + "  m_PrefabInstance: {fileID: 0}\n  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: " + gameObjectId + "}\n"
-            + "  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 11500000, guid: " + directorGuid + ", type: 3}\n"
-            + "  m_Name: \n  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.MusicDirector\n";
+            + "  m_Enabled: 1\n  m_EditorHideFlags: 0\n  m_Script: {fileID: 11500000, guid: " + scriptGuid + ", type: 3}\n"
+            + "  m_Name: \n  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper." + className + "\n";
 
         // New block goes right after the AudioManager block (before the next document).
         int next = text.IndexOf("\n--- !u!", managerStart + 1, System.StringComparison.Ordinal);
