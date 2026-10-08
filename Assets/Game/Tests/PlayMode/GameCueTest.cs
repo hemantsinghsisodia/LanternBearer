@@ -203,6 +203,27 @@ public class GameCueTest
 
     [UnityTest]
     [Timeout(120000)]
+    public IEnumerator BeaconFireLoopIsGoneAfterSceneReload()
+    {
+        yield return Load("Island1");
+        UnityEngine.Object[] found = UnityEngine.Object.FindObjectsByType(GameType("Beacon"), FindObjectsSortMode.None);
+        Component beacon = (Component)found[0];
+        Assert.IsTrue((bool)beacon.GetType().GetMethod("TryLight").Invoke(beacon, null), "the beacon lights");
+        Transform loop = beacon.transform.Find("FireLoop");
+        Assert.IsNotNull(loop, "the lit beacon owns a fire loop");
+        AudioSource source = loop.GetComponent<AudioSource>();
+        Assert.IsTrue(source.isPlaying);
+        yield return Load("Island1");
+        Assert.IsTrue(source == null, "the old fire loop source is destroyed with its scene");
+        UnityEngine.Object[] reloaded = UnityEngine.Object.FindObjectsByType(GameType("Beacon"), FindObjectsSortMode.None);
+        for (int i = 0; i < reloaded.Length; i++)
+        {
+            Assert.IsNull(((Component)reloaded[i]).transform.Find("FireLoop"), "no beacon starts lit after a reload");
+        }
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
     public IEnumerator PageTurnCueOnLogPage()
     {
         yield return Load("MainMenu");
@@ -221,7 +242,9 @@ public class GameCueTest
         }
 
         Assert.IsNotNull(logButton);
+        played.Clear();
         logButton.onClick.Invoke();
+        Assert.AreEqual(0, Count(SoundCues.UiPageTurn), "opening the log plays no page turn");
         played.Clear();
         MethodInfo turn = log.GetType().GetMethod("TurnTo");
         turn.Invoke(log, new object[] { 1 });
