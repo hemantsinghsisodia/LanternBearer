@@ -11,6 +11,7 @@ public class UserSettingsApplier : MonoBehaviour
 {
     public const string MasterParam = "MasterVol";
     public const string MusicParam = "MusicVol";
+    public const string StingerParam = "StingerVol";
     public const string SfxParam = "SfxVol";
     public const string AmbienceParam = "AmbienceVol";
 
@@ -347,7 +348,10 @@ public class UserSettingsApplier : MonoBehaviour
             return;
         }
         bool ok = target.SetFloat(MasterParam, SettingsMath.VolumeToDb(UserSettings.MasterVolume));
-        ok &= target.SetFloat(MusicParam, SettingsMath.VolumeToDb(UserSettings.MusicVolume) + duckOffset);
+        float musicDb = SettingsMath.VolumeToDb(UserSettings.MusicVolume) + duckOffset;
+        ok &= target.SetFloat(MusicParam, musicDb);
+        // The stinger group sits outside MusicBus (so the stinger duck does not lower it) and follows the Music slider here.
+        target.SetFloat(StingerParam, musicDb);
         ok &= target.SetFloat(SfxParam, SettingsMath.VolumeToDb(UserSettings.EffectsVolume));
         ok &= target.SetFloat(AmbienceParam, SettingsMath.VolumeToDb(UserSettings.AmbienceVolume));
         if (!ok && !warnedMixerParam)

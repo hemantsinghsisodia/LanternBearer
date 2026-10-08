@@ -299,6 +299,25 @@ public static partial class IslandBuilder
             changed = true;
         }
 
+        // A Stinger group directly under Master, outside MusicBus, so the music duck never lowers the stinger.
+        // UserSettingsApplier drives StingerVol with the Music slider value.
+        if (!asset.GetFloat("StingerVol", out probe))
+        {
+            object stinger = FindExactGroup(asset, "Stinger");
+            if (stinger == null)
+            {
+                stinger = createGroup.Invoke(mixer, new object[] { "Stinger", false });
+                addChild.Invoke(mixer, new object[] { stinger, master });
+                for (int i = 0; i < snapshots.Length; i++)
+                {
+                    SetVolume(stinger, mixer, snapshots.GetValue(i), 0f);
+                }
+            }
+
+            ExposeVolume(mixer, stinger, "StingerVol");
+            changed = true;
+        }
+
         if (changed)
         {
             EditorUtility.SetDirty(asset);

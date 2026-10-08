@@ -53,8 +53,5 @@ public static class SoundCues
     public const string UiPageTurn = "UI.PageTurn";
     public const string UiToggle = "UI.Toggle";
 
-    public const string StingerBeaconLit = "Stinger.BeaconLit";
-    public const string StingerWin = "Stinger.Win";
-    public const string StingerLose = "Stinger.Lose";
 }
 }

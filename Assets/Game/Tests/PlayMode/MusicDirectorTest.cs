@@ -221,15 +221,24 @@ public class MusicDirectorTest
         Begin(director, MakeLibrary());
         yield return new WaitForSecondsRealtime(0.3f);
         director.GetType().GetMethod("PlayStinger").Invoke(director, new object[] { TestClip(1f) });
+        AudioSource stingerSource = Get<AudioSource>(director, "StingerSource");
         float lowest = 0f;
+        float stingerBase = MixerValue("StingerVol");
+        float stingerLowest = stingerBase;
         float end = Time.realtimeSinceStartup + 1f;
         while (Time.realtimeSinceStartup < end)
         {
             lowest = Mathf.Min(lowest, MixerValue("MusicDuck"));
+            stingerLowest = Mathf.Min(stingerLowest, MixerValue("StingerVol"));
             yield return null;
         }
 
         Assert.LessOrEqual(lowest, -5.9f, "music did not duck");
+        Assert.IsNotNull(stingerSource.outputAudioMixerGroup, "stinger is routed");
+        Assert.AreEqual("Stinger", stingerSource.outputAudioMixerGroup.name, "stinger has its own group");
+        Assert.AreEqual(1, stingerSource.outputAudioMixerGroup.audioMixer.FindMatchingGroups("Master/Stinger").Length,
+            "the Stinger group sits directly under Master, outside MusicBus");
+        Assert.GreaterOrEqual(stingerLowest, stingerBase - 0.01f, "the music duck must not lower the stinger");
         yield return new WaitForSecondsRealtime(0.3f);
         Assert.GreaterOrEqual(MixerValue("MusicDuck"), -0.1f, "music duck did not release");
     }

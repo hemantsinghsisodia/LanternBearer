@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: MusicLibrary
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.MusicLibrary
   menuTrack: {fileID: 8300000, guid: bbb4f61e3b5a15d40b44524428339825, type: 3}
-  islandTrack: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
   islands:
   - scene: Island1
     track: {fileID: 8300000, guid: defbb20c1a1f4e64386c5a4fc4ace866, type: 3}

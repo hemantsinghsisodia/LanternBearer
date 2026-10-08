@@ -16,6 +16,7 @@ public class AmbienceExtras : MonoBehaviour
 
     float countdown;
     AudioListener listener;
+    bool active;
 
     // Test hook: shorter timings, restarts the countdown.
     public void Configure(float first, float min, float max)
@@ -28,12 +29,13 @@ public class AmbienceExtras : MonoBehaviour
 
     void Start()
     {
+        active = gameObject.scene.name == OwlScene;
         countdown = firstDelay;
     }
 
     void Update()
     {
-        if (gameObject.scene.name != OwlScene)
+        if (!active)
         {
             return;
         }

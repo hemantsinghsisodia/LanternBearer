@@ -11,7 +11,7 @@ namespace LanternKeeper
 public static class AudioInstaller
 {
     const string LibraryPath = "Assets/Game/Resources/MusicLibrary.asset";
-    const string PlaceholderTrackPath = "Assets/Game/Audio/Music/003_Vaporware.mp3";
+    const string MusicFolder = "Assets/Game/Audio/Music/";
     const string DirectorScriptPath = "Assets/Game/Scripts/MusicDirector.cs";
     const string ExtrasScriptPath = "Assets/Game/Scripts/AmbienceExtras.cs";
     const string AudioManagerScriptPath = "Assets/Game/Scripts/AudioManager.cs";
@@ -44,14 +44,13 @@ public static class AudioInstaller
         AssetDatabase.Refresh();
     }
 
-    // Every island plays the placeholder track with no tension loop until the real music lands.
+    // Fills any empty island slot from Music_<Island>_1.ogg and Tension_<Island>_1.ogg in the music folder.
     public static void InstallLibrary()
     {
         MusicLibrary library = AssetDatabase.LoadAssetAtPath<MusicLibrary>(LibraryPath);
-        AudioClip placeholder = AssetDatabase.LoadAssetAtPath<AudioClip>(PlaceholderTrackPath);
-        if (library == null || placeholder == null)
+        if (library == null)
         {
-            Debug.LogError("AudioInstaller: missing MusicLibrary or placeholder track.");
+            Debug.LogError("AudioInstaller: missing MusicLibrary.");
             return;
         }
 
@@ -78,8 +77,18 @@ public static class AudioInstaller
 
             if (library.islands[i].track == null)
             {
-                library.islands[i].track = placeholder;
+                library.islands[i].track = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicFolder + "Music_" + IslandNames[i] + "_1.ogg");
                 changed = true;
+            }
+
+            if (library.islands[i].tension == null)
+            {
+                AudioClip tension = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicFolder + "Tension_" + IslandNames[i] + "_1.ogg");
+                if (tension != null)
+                {
+                    library.islands[i].tension = tension;
+                    changed = true;
+                }
             }
         }
 

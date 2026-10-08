@@ -45,7 +45,7 @@ public class SoundBankTests
     {
         SoundBank bank = Bank();
         List<string> names = AllCues();
-        Assert.AreEqual(43, names.Count);
+        Assert.AreEqual(40, names.Count);
         for (int i = 0; i < names.Count; i++)
         {
             Assert.IsNotNull(bank.Find(names[i]), "Missing bank entry: " + names[i]);
@@ -83,7 +83,7 @@ public class SoundBankTests
         SoundBank bank = Bank();
         HashSet<string> expected = new HashSet<string>
         {
-            SoundCues.BeaconIgnite, SoundCues.StingerLose, SoundCues.ShadeSteal, SoundCues.LanternDeathGutter
+            SoundCues.BeaconIgnite, SoundCues.ShadeSteal, SoundCues.LanternDeathGutter
         };
         for (int i = 0; i < bank.Cues.Count; i++)
         {
@@ -102,9 +102,31 @@ public class SoundBankTests
         Assert.IsTrue(mixer.GetFloat("MusicDuck", out value));
         Assert.IsTrue(mixer.GetFloat("AmbienceDuck", out value));
         Assert.IsTrue(mixer.GetFloat("TensionDuck", out value));
+        Assert.IsTrue(mixer.GetFloat("StingerVol", out value));
+        Assert.AreEqual(1, mixer.FindMatchingGroups("Master/Stinger").Length, "Stinger group directly under Master");
         Assert.IsTrue(mixer.GetFloat("MusicVol", out value));
         Assert.IsTrue(mixer.GetFloat("SfxVol", out value));
         Assert.IsNotNull(mixer.FindSnapshot("Ducked"));
+    }
+
+    [Test]
+    public void BeaconFireAndOwlHaveLinearRolloff()
+    {
+        SoundBank bank = Bank();
+        SoundCue fire = null;
+        SoundCue owl = null;
+        for (int i = 0; i < bank.Cues.Count; i++)
+        {
+            if (bank.Cues[i].name == SoundCues.BeaconFire) fire = bank.Cues[i];
+            if (bank.Cues[i].name == SoundCues.AmbienceOwl) owl = bank.Cues[i];
+        }
+
+        Assert.AreEqual(AudioRolloffMode.Linear, fire.rolloff);
+        Assert.AreEqual(2f, fire.minDistance, 1e-5f);
+        Assert.AreEqual(10f, fire.maxDistance, 1e-5f);
+        Assert.AreEqual(AudioRolloffMode.Linear, owl.rolloff);
+        Assert.AreEqual(10f, owl.minDistance, 1e-5f);
+        Assert.AreEqual(45f, owl.maxDistance, 1e-5f);
     }
 }
 }

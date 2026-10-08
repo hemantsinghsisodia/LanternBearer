@@ -92,7 +92,7 @@ public class MusicDirector : MonoBehaviour
         }
 
         MusicLibrary.IslandMusic entry = library.For(gameObject.scene.name);
-        AudioClip trackClip = entry != null ? entry.track : library.islandTrack;
+        AudioClip trackClip = entry != null ? entry.track : null;
         AudioClip tensionClip = entry != null ? entry.tension : null;
         if (trackClip == null)
         {
@@ -169,7 +169,7 @@ public class MusicDirector : MonoBehaviour
 
         routed = true;
         track.outputAudioMixerGroup = audio.MusicGroup;
-        stinger.outputAudioMixerGroup = audio.MusicGroup;
+        stinger.outputAudioMixerGroup = audio.StingerGroup != null ? audio.StingerGroup : audio.MusicGroup;
         tension.outputAudioMixerGroup = audio.TensionGroup != null ? audio.TensionGroup : audio.MusicGroup;
     }
 
@@ -235,7 +235,7 @@ public class MusicDirector : MonoBehaviour
         }
     }
 
-    // A 2D one-shot on the Music group. Ducks the music bus while it plays; silent when music is muted.
+    // A 2D one-shot on the Stinger group (outside the music duck). Ducks the music bus while it plays; silent when music is muted.
     public void PlayStinger(AudioClip clip)
     {
         if (clip == null || MusicPlayer.IsMuted)

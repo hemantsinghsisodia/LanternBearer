@@ -191,10 +191,6 @@ public class MusicPlayer : MonoBehaviour
         {
             clip = library.menuTrack;
         }
-        else if (sceneName == "Island1" || sceneName == "Island2")
-        {
-            clip = library.islandTrack;
-        }
         else
         {
             return;

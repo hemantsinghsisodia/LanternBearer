@@ -15,8 +15,6 @@ public class MusicLibrary : ScriptableObject
     }
 
     public AudioClip menuTrack;
-    // Fallback for an island with no entry in `islands`.
-    public AudioClip islandTrack;
     public IslandMusic[] islands;
     public AudioClip stingerBeaconLit;
     public AudioClip stingerWin;

@@ -25,6 +25,8 @@ public static class SoundBankBuilder
         public float pitchMax;
         public float jitterDb;
         public float maxDistance;
+        public float minDistance;
+        public AudioRolloffMode rolloff;
         public bool synthOnly;
     }
 
@@ -39,6 +41,8 @@ public static class SoundBankBuilder
         spec.pitchMin = 1f;
         spec.pitchMax = 1f;
         spec.maxDistance = 500f;
+        spec.minDistance = 1f;
+        spec.rolloff = AudioRolloffMode.Logarithmic;
         return spec;
     }
 
@@ -65,6 +69,14 @@ public static class SoundBankBuilder
 
     static Spec Dist(Spec spec, float maxDistance)
     {
+        spec.maxDistance = maxDistance;
+        return spec;
+    }
+
+    static Spec Linear(Spec spec, float minDistance, float maxDistance)
+    {
+        spec.rolloff = AudioRolloffMode.Linear;
+        spec.minDistance = minDistance;
         spec.maxDistance = maxDistance;
         return spec;
     }
@@ -105,7 +117,7 @@ public static class SoundBankBuilder
         t.Add(Real(SoundCues.ShadeSteal, SoundGroup.Sfx, 0.9f, false, true));
 
         t.Add(Prio(S(SoundCues.BeaconIgnite, SoundGroup.Sfx, 0.9f, true, SynthFallback.Whoomp)));
-        t.Add(Dist(S(SoundCues.BeaconFire, SoundGroup.Sfx, 0.5f, true, SynthFallback.Crackle), 10f));
+        t.Add(Linear(S(SoundCues.BeaconFire, SoundGroup.Sfx, 0.5f, true, SynthFallback.Crackle), 2f, 10f));
         t.Add(Synth(S(SoundCues.BeaconWhoosh, SoundGroup.Sfx, 0.9f, true, SynthFallback.Beacon)));
         t.Add(S(SoundCues.BeaconFizzle, SoundGroup.Sfx, 0.7f, false, SynthFallback.Fizzle));
 
@@ -117,7 +129,7 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.AmbienceRain, SoundGroup.Ambience, 1f, false, SynthFallback.Rain));
         t.Add(Synth(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed)));
         // One-shot owl call, placed 15-30 m from the listener by AmbienceExtras on Island2.
-        t.Add(Dist(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, true, false), 60f));
+        t.Add(Linear(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, true, false), 10f, 45f));
         t.Add(S(SoundCues.AmbienceGust, SoundGroup.Ambience, 1f, false, SynthFallback.WindHowl));
 
         t.Add(S(SoundCues.ThunderCrack, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderCrack));
@@ -132,9 +144,6 @@ public static class SoundBankBuilder
         t.Add(Real(SoundCues.UiPageTurn, SoundGroup.UI, 0.7f, false, false));
         t.Add(Real(SoundCues.UiToggle, SoundGroup.UI, 0.7f, false, false));
 
-        t.Add(Real(SoundCues.StingerBeaconLit, SoundGroup.Music, 1f, false, false));
-        t.Add(Real(SoundCues.StingerWin, SoundGroup.Music, 1f, false, false));
-        t.Add(Real(SoundCues.StingerLose, SoundGroup.Music, 1f, false, true));
         return t;
     }
 
@@ -154,9 +163,9 @@ public static class SoundBankBuilder
             cue.pitch = new Vector2(spec.pitchMin, spec.pitchMax);
             cue.volumeJitterDb = spec.jitterDb;
             cue.spatial = spec.spatial;
-            cue.minDistance = 1f;
+            cue.minDistance = spec.minDistance;
             cue.maxDistance = spec.maxDistance;
-            cue.rolloff = AudioRolloffMode.Logarithmic;
+            cue.rolloff = spec.rolloff;
             cue.priority = spec.priority;
             cue.synthOnly = spec.synthOnly;
             cue.fallback = spec.fallback;

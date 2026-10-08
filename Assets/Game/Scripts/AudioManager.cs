@@ -81,6 +81,7 @@ public class AudioManager : MonoBehaviour
     public AudioMixerGroup AmbienceGroup { get; private set; }
     public AudioMixerGroup UiGroup { get; private set; }
     public AudioMixerGroup TensionGroup { get; private set; }
+    public AudioMixerGroup StingerGroup { get; private set; }
     public SoundBank Bank => bank;
     // The ambience cue chosen for the active scene (Ambience.IslandN), or null for the generic bed.
     public string AmbienceCue { get; private set; }
@@ -182,7 +183,11 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        ambience.clip = ProceduralAudio.Ambience();
+        // The menu never plays the bed, so do not synthesise the generic one there.
+        if (SceneManager.GetActiveScene().name != "MainMenu")
+        {
+            ambience.clip = ProceduralAudio.Ambience();
+        }
     }
 
     // The next clip of a cue from the live manager, or null when there is none (editor tests, scenes without audio).
@@ -356,6 +361,7 @@ public class AudioManager : MonoBehaviour
         AmbienceGroup = FindGroup("Ambience");
         UiGroup = FindGroup("UI");
         TensionGroup = FindGroup("Tension");
+        StingerGroup = FindGroup("Stinger");
         if (MusicGroup == null || SfxGroup == null || AmbienceGroup == null)
         {
             return;

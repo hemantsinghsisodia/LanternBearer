@@ -171,6 +171,8 @@ AudioMixerController:
     name: MusicDuck
   - guid: d3988ac4826f56b4a94f41e1411762d0
     name: AmbienceDuck
+  - guid: 23f1711b19206aa4d978db7979148997
+    name: StingerVol
   m_AudioMixerGroupViews: []
   m_CurrentViewIndex: 0
   m_TargetSnapshot: {fileID: 2398061805724431738}
@@ -187,6 +189,7 @@ AudioMixerGroupController:
   - {fileID: -5142011567904582241}
   - {fileID: -2617840001091968811}
   - {fileID: 725929339327608055}
+  - {fileID: 8869578188549282667}
   m_Volume: 8c9888212c2075f4a833ad595c416bba
   m_Pitch: 8978e1c3335c5bf47aefd09b92aa70af
   m_Send: 00000000000000000000000000000000
@@ -225,10 +228,25 @@ AudioMixerSnapshotController:
     d89ee0858717fe847a87b957c9692c83: 22000
     026d8b4862c90c84a925f30aed872e3a: 0
     9be694dab5e26e34a8c5c42f1b9afc39: 0
+    23f1711b19206aa4d978db7979148997: 0
     84669d7b8f1672c4f8a7a2f664cfc918: 0
     a4c2c36e79e4e884aa278f09e6589a11: 0
     6d1562bf6b02a1b4d818499a979dc8cf: 0
   m_TransitionOverrides: {}
+--- !u!244 &379358426446146678
+AudioMixerEffectController:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_EffectID: 64e33516b0040e54a9df7b9e5cfa97d8
+  m_EffectName: Attenuation
+  m_MixLevel: 5eafb2cd91b37a640a8f6c427c1ff782
+  m_Parameters: []
+  m_SendTarget: {fileID: 0}
+  m_EnableWetMix: 0
+  m_Bypass: 0
 --- !u!243 &725929339327608055
 AudioMixerGroupController:
   m_ObjectHideFlags: 0
@@ -278,6 +296,7 @@ AudioMixerSnapshotController:
     d89ee0858717fe847a87b957c9692c83: 1400
     026d8b4862c90c84a925f30aed872e3a: 0
     9be694dab5e26e34a8c5c42f1b9afc39: 0
+    23f1711b19206aa4d978db7979148997: 0
     84669d7b8f1672c4f8a7a2f664cfc918: 0
     a4c2c36e79e4e884aa278f09e6589a11: 0
     6d1562bf6b02a1b4d818499a979dc8cf: -8
@@ -343,3 +362,22 @@ AudioMixerEffectController:
   m_SendTarget: {fileID: 0}
   m_EnableWetMix: 0
   m_Bypass: 0
+--- !u!243 &8869578188549282667
+AudioMixerGroupController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Stinger
+  m_AudioMixer: {fileID: 24100000}
+  m_GroupID: 388ec45c6662bcf428de74ac498511af
+  m_Children: []
+  m_Volume: 23f1711b19206aa4d978db7979148997
+  m_Pitch: f3cf58bf30c4b1442aa3d7779da81216
+  m_Send: 00000000000000000000000000000000
+  m_Effects:
+  - {fileID: 379358426446146678}
+  m_UserColorIndex: 0
+  m_Mute: 0
+  m_Solo: 0
+  m_BypassEffects: 0

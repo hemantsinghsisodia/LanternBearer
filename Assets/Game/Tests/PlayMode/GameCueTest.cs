@@ -194,6 +194,11 @@ public class GameCueTest
         Assert.IsTrue(source.loop);
         Assert.AreEqual(1f, source.spatialBlend, 0.001f, "3D");
         Assert.AreEqual(10f, source.maxDistance, 0.001f);
+        Assert.AreEqual(AudioRolloffMode.Linear, source.rolloffMode, "fire loop uses linear rolloff");
+        Assert.AreEqual(2f, source.minDistance, 0.001f);
+        // Linear rolloff: gain falls from 1 at minDistance to 0 at maxDistance and stays 0 beyond it.
+        float atEleven = Mathf.Clamp01(1f - (11f - source.minDistance) / (source.maxDistance - source.minDistance));
+        Assert.AreEqual(0f, atEleven, 1e-6f, "silent at 11 m from the listener");
         Assert.IsTrue(source.isPlaying);
         for (int i = 1; i < found.Length; i++)
         {

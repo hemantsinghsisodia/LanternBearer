@@ -294,9 +294,9 @@ MonoBehaviour:
     volumeJitterDb: 0
     group: 1
     spatial: 1
-    minDistance: 1
+    minDistance: 2
     maxDistance: 10
-    rolloff: 0
+    rolloff: 1
     priority: 0
     synthOnly: 0
     fallback: 0
@@ -434,9 +434,9 @@ MonoBehaviour:
     volumeJitterDb: 0
     group: 2
     spatial: 1
-    minDistance: 1
-    maxDistance: 60
-    rolloff: 0
+    minDistance: 10
+    maxDistance: 45
+    rolloff: 1
     priority: 0
     synthOnly: 0
     fallback: 0
@@ -603,47 +603,5 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
-    synthOnly: 0
-    fallback: 0
-  - name: Stinger.BeaconLit
-    clips:
-    - {fileID: 8300000, guid: e4a5ffaa97ece57429c0f1babf84ecca, type: 3}
-    volume: 1
-    pitch: {x: 1, y: 1}
-    volumeJitterDb: 0
-    group: 0
-    spatial: 0
-    minDistance: 1
-    maxDistance: 500
-    rolloff: 0
-    priority: 0
-    synthOnly: 0
-    fallback: 0
-  - name: Stinger.Win
-    clips:
-    - {fileID: 8300000, guid: 23beb2db81d5ea94ea2bdb0b3ee11b3f, type: 3}
-    volume: 1
-    pitch: {x: 1, y: 1}
-    volumeJitterDb: 0
-    group: 0
-    spatial: 0
-    minDistance: 1
-    maxDistance: 500
-    rolloff: 0
-    priority: 0
-    synthOnly: 0
-    fallback: 0
-  - name: Stinger.Lose
-    clips:
-    - {fileID: 8300000, guid: 1aaf67439d661664b81e6df7c1c6e3be, type: 3}
-    volume: 1
-    pitch: {x: 1, y: 1}
-    volumeJitterDb: 0
-    group: 0
-    spatial: 0
-    minDistance: 1
-    maxDistance: 500
-    rolloff: 0
-    priority: 1
     synthOnly: 0
     fallback: 0
