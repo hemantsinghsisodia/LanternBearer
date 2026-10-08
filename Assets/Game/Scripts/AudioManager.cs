@@ -128,7 +128,11 @@ public class AudioManager : MonoBehaviour
         ambience.spatialBlend = 0f;
         ambience.volume = 0.22f;
         ChooseAmbience();
-        ambience.Play();
+        // The menu (no island bed) is music and UI only; the generic bed is just the fallback for a scene without a cue.
+        if (AmbienceCue != null || SceneManager.GetActiveScene().name != "MainMenu")
+        {
+            ambience.Play();
+        }
 
         heartbeat = gameObject.AddComponent<AudioSource>();
         heartbeat.playOnAwake = false;
@@ -143,7 +147,6 @@ public class AudioManager : MonoBehaviour
         crackle.spatialBlend = 0f;
         crackle.volume = 0f;
         crackle.clip = ClipFor(SoundCues.LanternCrackle) ?? ProceduralAudio.CrackleLoop();
-        crackle.Play();
 
         RouteSources();
     }
@@ -517,7 +520,10 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        float gain = CrackleGainFor(crackleFuel);
+        // The crackle belongs to the lantern in play: with none hooked, or in the menu (a display lantern, no
+        // GameManager), it stays silent and stopped.
+        bool inPlay = crackleHooked && lantern != null && GameManager.Instance != null;
+        float gain = inPlay ? CrackleGainFor(crackleFuel) : 0f;
         if (gain <= 0f)
         {
             if (crackle.volume > 0f)
