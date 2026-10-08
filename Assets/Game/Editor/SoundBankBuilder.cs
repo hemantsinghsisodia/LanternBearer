@@ -12,8 +12,7 @@ public static class SoundBankBuilder
 {
     public const string BankPath = "Assets/Game/Audio/SoundBank.asset";
     const string AudioRoot = "Assets/Game/Audio";
-    const float TempVolume = 0.4f;
-
+    
     struct Spec
     {
         public string name;
@@ -70,10 +69,10 @@ public static class SoundBankBuilder
         return spec;
     }
 
-    // Cues with no synthesis of their own carry a temporary quiet chime until their clips arrive (Task 7 removes it).
-    static Spec Temp(string name, SoundGroup group, bool spatial, bool priority)
+    // Cues fed by real recordings: no synthesis fallback.
+    static Spec Real(string name, SoundGroup group, float volume, bool spatial, bool priority)
     {
-        Spec spec = S(name, group, TempVolume, spatial, SynthFallback.Chime);
+        Spec spec = S(name, group, volume, spatial, SynthFallback.None);
         spec.priority = priority;
         return spec;
     }
@@ -88,12 +87,12 @@ public static class SoundBankBuilder
 
         // Temporary soft body thud until the real hit sound arrives.
         t.Add(S(SoundCues.KeeperHit, SoundGroup.Sfx, 0.35f, true, SynthFallback.Footstep));
-        t.Add(Temp(SoundCues.KeeperInteract, SoundGroup.Sfx, true, false));
+        t.Add(Real(SoundCues.KeeperInteract, SoundGroup.Sfx, 0.6f, true, false));
 
-        t.Add(S(SoundCues.LanternCrackle, SoundGroup.Sfx, 1f, false, SynthFallback.Crackle));
+        t.Add(S(SoundCues.LanternCrackle, SoundGroup.Sfx, 0.35f, false, SynthFallback.Crackle));
         t.Add(Synth(S(SoundCues.LanternHeartbeat, SoundGroup.Sfx, 0.45f, false, SynthFallback.Heartbeat)));
-        t.Add(Temp(SoundCues.LanternRefuel, SoundGroup.Sfx, false, false));
-        t.Add(Temp(SoundCues.LanternSputter, SoundGroup.Sfx, false, false));
+        t.Add(Real(SoundCues.LanternRefuel, SoundGroup.Sfx, 0.7f, false, false));
+        t.Add(Real(SoundCues.LanternSputter, SoundGroup.Sfx, 0.6f, false, false));
         t.Add(Prio(S(SoundCues.LanternDeathGutter, SoundGroup.Sfx, 0.65f, false, SynthFallback.Dying)));
 
         t.Add(S(SoundCues.FireflyChime, SoundGroup.Sfx, 0.8f, true, SynthFallback.Chime));
@@ -103,7 +102,7 @@ public static class SoundBankBuilder
         t.Add(Synth(S(SoundCues.MothWhisper, SoundGroup.Sfx, 1f, true, SynthFallback.MothWhisper)));
 
         t.Add(Synth(S(SoundCues.ShadeDrone, SoundGroup.Sfx, 1f, true, SynthFallback.ShadeDrone)));
-        t.Add(Temp(SoundCues.ShadeSteal, SoundGroup.Sfx, false, true));
+        t.Add(Real(SoundCues.ShadeSteal, SoundGroup.Sfx, 0.9f, false, true));
 
         t.Add(Prio(S(SoundCues.BeaconIgnite, SoundGroup.Sfx, 0.9f, true, SynthFallback.Whoomp)));
         t.Add(Dist(S(SoundCues.BeaconFire, SoundGroup.Sfx, 0.5f, true, SynthFallback.Crackle), 10f));
@@ -117,23 +116,25 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.AmbienceTide, SoundGroup.Ambience, 1f, false, SynthFallback.Surf));
         t.Add(S(SoundCues.AmbienceRain, SoundGroup.Ambience, 1f, false, SynthFallback.Rain));
         t.Add(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed));
+        // One-shot owl call, scheduled at random intervals by the island ambience (Task 7).
+        t.Add(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, false, false));
         t.Add(S(SoundCues.AmbienceGust, SoundGroup.Ambience, 1f, false, SynthFallback.WindHowl));
 
         t.Add(S(SoundCues.ThunderCrack, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderCrack));
         t.Add(S(SoundCues.ThunderRumble, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderRumble));
         t.Add(S(SoundCues.WaterSplash, SoundGroup.Sfx, 0.85f, true, SynthFallback.Splash));
 
-        t.Add(Temp(SoundCues.UiHover, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiClick, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiBack, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiPauseOpen, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiPauseClose, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiPageTurn, SoundGroup.UI, false, false));
-        t.Add(Temp(SoundCues.UiToggle, SoundGroup.UI, false, false));
+        t.Add(Real(SoundCues.UiHover, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiClick, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiBack, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiPauseOpen, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiPauseClose, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiPageTurn, SoundGroup.UI, 0.7f, false, false));
+        t.Add(Real(SoundCues.UiToggle, SoundGroup.UI, 0.7f, false, false));
 
-        t.Add(Temp(SoundCues.StingerBeaconLit, SoundGroup.Music, false, false));
-        t.Add(Temp(SoundCues.StingerWin, SoundGroup.Music, false, false));
-        t.Add(Prio(Temp(SoundCues.StingerLose, SoundGroup.Music, false, false)));
+        t.Add(Real(SoundCues.StingerBeaconLit, SoundGroup.Music, 1f, false, false));
+        t.Add(Real(SoundCues.StingerWin, SoundGroup.Music, 1f, false, false));
+        t.Add(Real(SoundCues.StingerLose, SoundGroup.Music, 1f, false, true));
         return t;
     }
 

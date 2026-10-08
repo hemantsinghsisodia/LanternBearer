@@ -39,6 +39,7 @@ public static class SoundCues
     public const string AmbienceRain = "Ambience.Rain";
     public const string AmbienceGust = "Ambience.Gust";
     public const string AmbienceWindBed = "Ambience.WindBed";
+    public const string AmbienceOwl = "Ambience.Owl";
 
     public const string ThunderCrack = "Thunder.Crack";
     public const string ThunderRumble = "Thunder.Rumble";
