@@ -919,7 +919,7 @@ public static class CreatureInstaller
                 renderer.receiveShadows = false;
                 renderer.lightProbeUsage = LightProbeUsage.Off;
                 renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
-                renderer.localBounds = new Bounds(Vector3.zero, Vector3.one * 3f);
+                // Renderer.localBounds is not serialized; FireflySwarm sets the bounds at runtime.
             }
 
             PrefabUtility.SaveAsPrefabAsset(root, FireflyPrefabPath);

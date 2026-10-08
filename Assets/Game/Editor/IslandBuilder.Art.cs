@@ -315,7 +315,13 @@ public static partial class IslandBuilder
             art.beacon = InstalledPrefab<BeaconVisual>("Assets/Game/Prefabs/Gameplay/Beacon.prefab") ?? art.beacon;
         }
 
-        art.firefly = SavePrefab(BuildFirefly(art), "Assets/Game/Prefabs/Gameplay/Firefly.prefab");
+        art.firefly = InstalledPrefab<FireflySwarm>("Assets/Game/Prefabs/Gameplay/Firefly.prefab");
+        if (art.firefly == null)
+        {
+            art.firefly = SavePrefab(BuildFirefly(art), "Assets/Game/Prefabs/Gameplay/Firefly.prefab");
+            CreatureInstaller.InstallFirefly();
+            art.firefly = InstalledPrefab<FireflySwarm>("Assets/Game/Prefabs/Gameplay/Firefly.prefab") ?? art.firefly;
+        }
         art.moth = InstalledPrefab<MothVisual>("Assets/Game/Prefabs/Gameplay/Moth.prefab");
         if (art.moth == null)
         {
