@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2852fa7e82f6a4e42870942432674588, type: 3}
   m_Name: MusicLibrary
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.MusicLibrary
-  menuTrack: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
-  islandTrack: {fileID: 8300000, guid: 421495bcbc0814d4384ff82ce00c3e6d, type: 3}
+  menuTrack: {fileID: 8300000, guid: bbb4f61e3b5a15d40b44524428339825, type: 3}
+  islandTrack: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
   islands:
   - scene: Island1
-    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
-    tension: {fileID: 0}
+    track: {fileID: 8300000, guid: defbb20c1a1f4e64386c5a4fc4ace866, type: 3}
+    tension: {fileID: 8300000, guid: 5163d98e539bcc242a68c8c421dbb14c, type: 3}
   - scene: Island2
-    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
-    tension: {fileID: 0}
+    track: {fileID: 8300000, guid: 63035a436bde4ab4face70eb0c3f0b2e, type: 3}
+    tension: {fileID: 8300000, guid: 498a80d8521c7314084b01812f92ba27, type: 3}
   - scene: Island3
-    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
-    tension: {fileID: 0}
+    track: {fileID: 8300000, guid: 8ec4a1b173fac5d46982f86c33a3606d, type: 3}
+    tension: {fileID: 8300000, guid: 852e785905eeca340bda475d60692f89, type: 3}
   - scene: Island4
-    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
-    tension: {fileID: 0}
-  stingerBeaconLit: {fileID: 0}
-  stingerWin: {fileID: 0}
-  stingerLose: {fileID: 0}
+    track: {fileID: 8300000, guid: 231120855b4e71a488b24ae3b8ffa1c5, type: 3}
+    tension: {fileID: 8300000, guid: 498a80d8521c7314084b01812f92ba27, type: 3}
+  stingerBeaconLit: {fileID: 8300000, guid: e4a5ffaa97ece57429c0f1babf84ecca, type: 3}
+  stingerWin: {fileID: 8300000, guid: 23beb2db81d5ea94ea2bdb0b3ee11b3f, type: 3}
+  stingerLose: {fileID: 8300000, guid: 1aaf67439d661664b81e6df7c1c6e3be, type: 3}
