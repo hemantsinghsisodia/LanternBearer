@@ -1019,7 +1019,7 @@ public static class CreatureInstaller
         }
     }
 
-    const float FireflyMoteSize = 0.15f;
+    const float FireflyMoteSize = FireflyCurve.MoteSize;
     const float FireflyMoteGain = 1f;
 
     static bool IsFireflyInstalled(Transform root, Material material)
@@ -1040,7 +1040,8 @@ public static class CreatureInstaller
             Transform mote = swarm.Find("Mote" + i);
             MeshRenderer renderer = mote != null ? mote.GetComponent<MeshRenderer>() : null;
             if (renderer == null || renderer.sharedMaterial != material || renderer.shadowCastingMode != ShadowCastingMode.Off
-                || renderer.receiveShadows || !material.enableInstancing)
+                || renderer.receiveShadows || !material.enableInstancing
+                || !Mathf.Approximately(mote.localScale.x, FireflyMoteSize))
             {
                 return false;
             }

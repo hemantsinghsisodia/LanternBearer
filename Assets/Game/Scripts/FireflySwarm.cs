@@ -191,6 +191,7 @@ public class FireflySwarm : MonoBehaviour
         for (int i = 0; i < motes.Length; i++)
         {
             renderers[i] = motes[i].GetComponent<Renderer>();
+            motes[i].localScale = Vector3.one * FireflyCurve.MoteSize;
             moteScales[i] = motes[i].localScale;
             if (renderers[i] != null)
             {

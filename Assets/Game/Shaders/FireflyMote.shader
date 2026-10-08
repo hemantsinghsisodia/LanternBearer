@@ -118,10 +118,10 @@ Shader "LanternKeeper/FireflyMote"
                 float3 centre = TransformObjectToWorld(float3(0.0, 0.0, 0.0)) + drift;
                 // World size of the mote: the length of the object X axis in world space (its uniform scale).
                 float size = length(TransformObjectToWorldDir(float3(1.0, 0.0, 0.0), false));
-                // Minimum on-screen size: never smaller than about 10 px across, so a far mote stays a visible green point.
+                // Minimum on-screen size: never smaller than about 38 px across (its visible glow, above 10% brightness, is about half of that), so a far mote stays a visible green point.
                 float depth = max(TransformWorldToHClip(centre).w, 0.01);
-                float minSize = 10.0 * 2.0 * depth / (abs(UNITY_MATRIX_P._m11) * _ScreenParams.y);
-                minSize *= saturate(size / 0.075); // a mote scaled to nothing (collect stream) still shrinks away
+                float minSize = 38.0 * 2.0 * depth / (abs(UNITY_MATRIX_P._m11) * _ScreenParams.y);
+                minSize *= saturate(size / 0.15); // a mote scaled to nothing (collect stream) still shrinks away
                 size = max(size, minSize);
                 float3 right = UNITY_MATRIX_V[0].xyz;
                 float3 up = UNITY_MATRIX_V[1].xyz;
@@ -137,13 +137,13 @@ Shader "LanternKeeper/FireflyMote"
 
             half4 frag(Varyings input) : SV_Target
             {
-                // rr: 0 at the centre, 0.5 at the quad edge (the quad is 0.15 m, so the core is about 3 cm).
+                // rr: 0 at the centre, 0.5 at the quad edge (the quad is 0.30 m, so the core is about 6 cm).
                 float rr = length(input.uv - 0.5);
                 float core = exp(-(rr * rr) / (0.08 * 0.08));
-                float halo = exp(-(rr * rr) / (0.17 * 0.17)) * (1.0 - smoothstep(0.28, 0.5, rr));
+                float halo = exp(-(rr * rr) / (0.24 * 0.24)) * (1.0 - smoothstep(0.36, 0.5, rr));
                 float3 coreColour = lerp(_Color.rgb, float3(1.0, 1.0, 1.0), 0.4);
-                // Core peak about 1.5 (plus the halo underneath), halo peak 0.55: bloom adds a gentle green glow.
-                float3 colour = coreColour * (core * 1.5) + _Color.rgb * (halo * 0.55);
+                // Core peak about 1.5 (plus the halo underneath), halo peak 0.6 (40% of the core peak): bloom adds a gentle green glow.
+                float3 colour = coreColour * (core * 1.5) + _Color.rgb * (halo * 0.6);
                 return half4(colour * input.alpha * _Gain, 1.0);
             }
             ENDHLSL
