@@ -5,6 +5,9 @@ namespace LanternKeeper
 // Pure maths behind the user settings (no PlayerPrefs, no scene access).
 public static class SettingsMath
 {
+    // The PlayerPrefs switch for the FPS readout. GraphicsMenu (sets it) and Hud/FpsReadout (reads it) both use this one key.
+    public const string FpsPrefsKey = "LanternKeeperFps";
+
     public static readonly float[] TextScales = { 1f, 1.15f, 1.3f };
 
     public static float VolumeToDb(float linear)

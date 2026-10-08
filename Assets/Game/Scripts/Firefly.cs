@@ -23,7 +23,7 @@ public class Firefly : MonoBehaviour
     Vector3 home;
     bool collected;
     bool playerResolved;
-    ParticleSystem burst;
+    FireflySwarm swarm;
     Transform player;
 
     public struct HomeReport
@@ -41,15 +41,9 @@ public class Firefly : MonoBehaviour
     void Awake()
     {
         home = transform.position;
-        Transform burstTransform = transform.Find("PickupBurst");
-        if (burstTransform != null)
-        {
-            burst = burstTransform.GetComponent<ParticleSystem>();
-        }
-
+        swarm = GetComponentInChildren<FireflySwarm>(true);
         if (Application.isPlaying)
         {
-            ParticleQuality.ApplyTo(burst);
             RegisterGlow();
         }
     }
@@ -126,9 +120,19 @@ public class Firefly : MonoBehaviour
             AudioManager.Instance.PlayFirefly(transform.position);
         }
 
-        if (burst != null)
+        if (swarm != null)
         {
-            burst.Play();
+            Transform glowPoint = null;
+            if (lantern != null)
+            {
+                LanternFlame flame = lantern.GetComponent<LanternFlame>();
+                glowPoint = flame != null ? flame.GlowPoint : lantern.transform;
+            }
+
+            if (glowPoint != null)
+            {
+                swarm.Collect(glowPoint);
+            }
         }
 
         collected = true;
@@ -142,6 +146,11 @@ public class Firefly : MonoBehaviour
 
         home = PickHome();
         transform.position = home;
+        if (swarm != null)
+        {
+            swarm.Respawn();
+        }
+
         collected = false;
         SetShown(true);
     }
@@ -489,12 +498,17 @@ public class Firefly : MonoBehaviour
         Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
         for (int i = 0; i < renderers.Length; i++)
         {
-            if (renderers[i] == null || renderers[i].gameObject.name == "PickupBurst")
+            if (renderers[i] == null || renderers[i].GetComponentInParent<FireflySwarm>(true) != null)
             {
                 continue;
             }
 
             renderers[i].enabled = shown;
+        }
+
+        if (swarm != null)
+        {
+            swarm.SetShown(shown);
         }
 
         Light[] lights = GetComponentsInChildren<Light>(true);

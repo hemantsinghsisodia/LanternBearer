@@ -320,6 +320,12 @@ public class KeeperQuality : MonoBehaviour
         }
 
         ResolveRefs();
+        if (!HasRefs())
+        {
+            // A referenced renderer, light or animator was destroyed (scene teardown): nothing to apply to.
+            return;
+        }
+
         CacheBaseline();
         if (!baselineCached)
         {

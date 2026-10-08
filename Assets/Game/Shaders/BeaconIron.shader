@@ -49,6 +49,7 @@ Shader "LanternKeeper/BeaconIron"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "CreatureCommon.hlsl"
 
             struct Attributes
             {
@@ -90,11 +91,7 @@ Shader "LanternKeeper/BeaconIron"
                 float spec = pow(saturate(dot(n, h)), lerp(24.0, 120.0, _Smoothness)) * _Smoothness;
                 color += mainLight.color * spec * mainLight.shadowAttenuation * 0.1;
 
-                InputData inputData = (InputData)0;
-                inputData.positionWS = input.positionWS;
-                inputData.normalWS = n;
-                inputData.viewDirectionWS = v;
-                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                InputData inputData = CreatureInputData(input.positionWS, n, v, input.positionCS);
                 #if defined(_ADDITIONAL_LIGHTS)
                 uint pixelLightCount = GetAdditionalLightsCount();
                 LIGHT_LOOP_BEGIN(pixelLightCount)

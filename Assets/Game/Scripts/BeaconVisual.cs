@@ -32,6 +32,7 @@ public class BeaconVisual : MonoBehaviour
     [SerializeField] Renderer glassRenderer;
     [SerializeField] Renderer beamRenderer;
     [SerializeField] ParticleSystem embers;
+    [SerializeField] Renderer[] cairnRenderers;
 
     Beacon beacon;
     Light beaconLight;
@@ -58,6 +59,7 @@ public class BeaconVisual : MonoBehaviour
     public float RingAlpha => lit ? (playing ? lightFactor : 1f) : 0f;
     public float LightFactor => lightFactor;
     public float Glow => glow;
+    public Renderer[] CairnRenderers => cairnRenderers;
     public float BeamIntensity => beamIntensity;
     public int EmbersEmitted => embersEmitted;
     public Renderer GlassRenderer => glassRenderer;
@@ -144,15 +146,20 @@ public class BeaconVisual : MonoBehaviour
 
         Color tint = profile.rockTint;
         tint.a = 1f;
-        MaterialPropertyBlock tintBlock = new MaterialPropertyBlock();
-        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
+        if (cairnRenderers == null)
         {
-            if (renderers[i].name.StartsWith("BeaconCairn"))
+            return;
+        }
+
+        MaterialPropertyBlock tintBlock = new MaterialPropertyBlock();
+
+        for (int i = 0; i < cairnRenderers.Length; i++)
+        {
+            if (cairnRenderers[i] != null)
             {
-                renderers[i].GetPropertyBlock(tintBlock);
+                cairnRenderers[i].GetPropertyBlock(tintBlock);
                 tintBlock.SetColor(BaseColorId, tint);
-                renderers[i].SetPropertyBlock(tintBlock);
+                cairnRenderers[i].SetPropertyBlock(tintBlock);
             }
         }
     }

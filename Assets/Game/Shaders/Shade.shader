@@ -7,11 +7,12 @@ Shader "LanternKeeper/Shade"
     // _Stunned (0..1, eased by ShadeVisual from ShadeState.Stunned: a stunned Shade keeps a dark cold navy ink and the crisp outline shows it),
     // _Outline (0..1, follows the capped lightning flash), _Burn (0..1 while frozen in the lantern light), _Speed (m/s).
     // Hem breakup: the bottom _HemFrac of the height is eaten by animated noise; the same function runs in every pass so the depth,
-    // depth normals and shadow passes clip exactly like the colour pass.
+    // depth and depth normals passes clip exactly like the colour pass.
     // Burn: the edge of the erosion glows a dim ash ember (_BurnColor). It is deliberately NOT amber: amber means safe warmth.
     // Low: _LKShadeLow = 1 uses one noise octave. The outline and the hem breakup are unchanged. A uniform branch, never a keyword.
     // Stencil bit 8 is written (the writers are KeeperLit, BeaconGlass, BeaconIron and this shader) so the screen-space moon rim skips the Shade: its slope lift washed the ink body pale grey on
     // faces turned to the moon. The Shade keeps a dim moon rim of its own (_RimColor, _RimStrength) so the silhouette still reads at the edges.
+    // No ShadowCaster pass: the Shade body (Shade.prefab) has Cast Shadows Off.
     Properties
     {
         _BaseColor ("Ink And Alpha", Color) = (0.02, 0.02, 0.04, 0.92)
@@ -252,71 +253,6 @@ Shader "LanternKeeper/Shade"
                 color += _BurnColor.rgb * (edge * _BurnGain);
                 color = MixFog(color, input.fogFactor);
                 return half4(color, 1);
-            }
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "ShadowCaster"
-            Tags { "LightMode" = "ShadowCaster" }
-            Cull Back
-            ZWrite On
-            ColorMask 0
-            HLSLPROGRAM
-            #pragma target 3.5
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma multi_compile_instancing
-            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-
-            float3 _LightDirection;
-            float3 _LightPosition;
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-                float3 positionOS : TEXCOORD0;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            Varyings vert(Attributes input)
-            {
-                Varyings output;
-                UNITY_SETUP_INSTANCE_ID(input);
-                UNITY_TRANSFER_INSTANCE_ID(input, output);
-                float speed01 = saturate(UNITY_ACCESS_INSTANCED_PROP(ShadeProps, _Speed) / ShadeMaxSpeed);
-                float3 positionWS = ShadeSway(TransformObjectToWorld(input.positionOS.xyz), input.positionOS.xyz, speed01);
-                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
-                #if _CASTING_PUNCTUAL_LIGHT_SHADOW
-                float3 lightDirectionWS = normalize(_LightPosition - positionWS);
-                #else
-                float3 lightDirectionWS = _LightDirection;
-                #endif
-                output.positionCS = TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
-                output.positionCS = ApplyShadowClamping(output.positionCS);
-                output.positionOS = input.positionOS.xyz;
-                return output;
-            }
-
-            half4 frag(Varyings input) : SV_Target
-            {
-                UNITY_SETUP_INSTANCE_ID(input);
-                float4 baseColor = UNITY_ACCESS_INSTANCED_PROP(ShadeProps, _BaseColor);
-                float burn = UNITY_ACCESS_INSTANCED_PROP(ShadeProps, _Burn);
-                float speed01 = saturate(UNITY_ACCESS_INSTANCED_PROP(ShadeProps, _Speed) / ShadeMaxSpeed);
-                float edge;
-                float vis = ShadeVisibility(input.positionOS, saturate(baseColor.a / _BodyAlphaRef), burn, speed01, edge);
-                clip(vis - ShadeDither(input.positionCS));
-                return 0;
             }
             ENDHLSL
         }
