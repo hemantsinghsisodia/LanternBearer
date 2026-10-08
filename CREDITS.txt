@@ -49,11 +49,6 @@ Assets/Game/Audio/Music/Tension_Island3_1.ogg
   https://opengameart.org/content/horror-atmosphere
   Licence: CC0
 
-Assets/Game/Audio/Music/003_Vaporware.mp3  (fallback island track)
-  Calm Piano 1 / Vaporware by The Cynic Project / cynicmusic.com
-  https://opengameart.org/content/calm-piano-1-vaporware
-  Licence: CC0
-
 Assets/Game/Audio/Stingers/Stinger_BeaconLit_1.ogg
   Win sound effect by Listener
   https://opengameart.org/content/win-sound-effect
