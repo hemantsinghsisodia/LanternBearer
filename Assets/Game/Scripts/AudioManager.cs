@@ -35,11 +35,13 @@ public class AudioManager : MonoBehaviour
         public float target;
         public float until;
         public float floor;
+        public float sent;
         public float releaseRate = DuckReleaseDbPerSecond;
     }
 
     const float DuckAttackDbPerSecond = 40f;
     const float DuckReleaseDbPerSecond = 8f;
+    const float DuckSendStepDb = 0.05f;
 
     AudioSource uiSource;
     float[] voiceStart;
@@ -925,7 +927,12 @@ public class AudioManager : MonoBehaviour
 
             float rate = goal < state.level ? DuckAttackDbPerSecond : state.releaseRate;
             state.level = Mathf.MoveTowards(state.level, goal, rate * dt);
-            mixer.SetFloat(pair.Key, state.level);
+            // Push to the mixer only when it moved audibly (0.05 dB) or has arrived, not every frame of a slow ramp.
+            if (Mathf.Abs(state.level - state.sent) >= DuckSendStepDb || Mathf.Approximately(state.level, goal))
+            {
+                state.sent = state.level;
+                mixer.SetFloat(pair.Key, state.level);
+            }
         }
     }
 

@@ -28,7 +28,7 @@ public class AudioImportTests
         int streamed = 0;
         int decoded = 0;
         Check("Music", AudioClipLoadType.Streaming, ref streamed);
-        Check("Ambience", AudioClipLoadType.Streaming, ref streamed);
+        Check("Ambience", AudioClipLoadType.CompressedInMemory, ref decoded);
         Check("Sfx", AudioClipLoadType.DecompressOnLoad, ref decoded);
         Check("UI", AudioClipLoadType.DecompressOnLoad, ref decoded);
         Check("Stingers", AudioClipLoadType.DecompressOnLoad, ref decoded);

@@ -4,7 +4,8 @@ using UnityEngine;
 namespace LanternKeeper
 {
 // Applies audio import settings by folder under Assets/Game/Audio.
-// Music and Ambience stream (Vorbis q0.5). Sfx, UI and Stingers decompress on load (Vorbis q0.7).
+// Music streams (Vorbis q0.5). Ambience beds and loops stay compressed in memory (Vorbis q0.5): short looping streams cost
+// a stream-thread read and reopen per loop. Sfx, UI and Stingers decompress on load (Vorbis q0.7).
 public class AudioImportRules : AssetPostprocessor
 {
     const string Root = "Assets/Game/Audio/";
@@ -23,9 +24,10 @@ public class AudioImportRules : AssetPostprocessor
             return;
         }
 
-        bool streaming = path.StartsWith(Root + "Music/") || path.StartsWith(Root + "Ambience/");
+        bool streaming = path.StartsWith(Root + "Music/");
+        bool bed = path.StartsWith(Root + "Ambience/");
         bool shortClip = path.StartsWith(Root + "Sfx/") || path.StartsWith(Root + "UI/") || path.StartsWith(Root + "Stingers/");
-        if (!streaming && !shortClip)
+        if (!streaming && !bed && !shortClip)
         {
             return;
         }
@@ -38,6 +40,13 @@ public class AudioImportRules : AssetPostprocessor
             settings.loadType = AudioClipLoadType.Streaming;
             settings.quality = 0.5f;
             settings.preloadAudioData = false;
+        }
+        else if (bed)
+        {
+            importer.loadInBackground = true;
+            settings.loadType = AudioClipLoadType.CompressedInMemory;
+            settings.quality = 0.5f;
+            settings.preloadAudioData = true;
         }
         else
         {
