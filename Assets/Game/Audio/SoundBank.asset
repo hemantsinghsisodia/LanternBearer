@@ -29,7 +29,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 5
+    fallback: 0
   - name: Footstep.Dirt
     clips:
     - {fileID: 8300000, guid: ffbd2c39d9170b149b29d2ca9b9b44f2, type: 3}
@@ -46,7 +46,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 5
+    fallback: 0
   - name: Footstep.Rock
     clips:
     - {fileID: 8300000, guid: 040de8d055cf00345a98e3374c5fbaa3, type: 3}
@@ -63,7 +63,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 5
+    fallback: 0
   - name: Footstep.Water
     clips:
     - {fileID: 8300000, guid: 67b5fc1883df74644ac1e3198f8b6fe8, type: 3}
@@ -80,7 +80,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 5
+    fallback: 0
   - name: Keeper.Hit
     clips:
     - {fileID: 8300000, guid: 9934b8c21d093e5478fcfc1695dc7ca5, type: 3}
@@ -96,7 +96,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 5
+    fallback: 0
   - name: Keeper.Interact
     clips:
     - {fileID: 8300000, guid: e74dcacfba013644790ea834d9ea4484, type: 3}
@@ -126,7 +126,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 8
+    fallback: 0
   - name: Lantern.Heartbeat
     clips: []
     volume: 0.45
@@ -184,7 +184,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 1
     synthOnly: 0
-    fallback: 9
+    fallback: 0
   - name: Firefly.Chime
     clips:
     - {fileID: 8300000, guid: 9ac1defc32e36f745b146e8789bac5ba, type: 3}
@@ -200,7 +200,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 1
+    fallback: 0
   - name: Firefly.Arrive
     clips: []
     volume: 0.5
@@ -229,7 +229,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 11
+    fallback: 0
   - name: Moth.Whisper
     clips: []
     volume: 1
@@ -285,7 +285,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 1
     synthOnly: 0
-    fallback: 4
+    fallback: 0
   - name: Beacon.Fire
     clips:
     - {fileID: 8300000, guid: 84e2535a647f7ff4689db3142a076831, type: 3}
@@ -299,7 +299,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 8
+    fallback: 0
   - name: Beacon.Whoosh
     clips: []
     volume: 0.9
@@ -327,7 +327,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 7
+    fallback: 0
   - name: Ambience.Island1
     clips:
     - {fileID: 8300000, guid: d0f85e347d9a4b24bb9c4c9f60c433a3, type: 3}
@@ -341,7 +341,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 14
+    fallback: 0
   - name: Ambience.Island2
     clips:
     - {fileID: 8300000, guid: 60c868ec4a77f334aa79675e7550a65b, type: 3}
@@ -355,7 +355,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 14
+    fallback: 0
   - name: Ambience.Island3
     clips:
     - {fileID: 8300000, guid: e09077c2f92a8ec4a92155060078ed1e, type: 3}
@@ -369,7 +369,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 14
+    fallback: 0
   - name: Ambience.Island4
     clips:
     - {fileID: 8300000, guid: ab2ebd1f83de79041b8835d76b8b9019, type: 3}
@@ -383,7 +383,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 14
+    fallback: 0
   - name: Ambience.Tide
     clips:
     - {fileID: 8300000, guid: a3620d932624d3b47befbe597da1d96a, type: 3}
@@ -397,7 +397,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 15
+    fallback: 0
   - name: Ambience.Rain
     clips:
     - {fileID: 8300000, guid: 267c86b4ae044174fa24a82df8dcc9da, type: 3}
@@ -412,7 +412,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 18
+    fallback: 0
   - name: Ambience.WindBed
     clips: []
     volume: 1
@@ -433,9 +433,9 @@ MonoBehaviour:
     pitch: {x: 1, y: 1}
     volumeJitterDb: 0
     group: 2
-    spatial: 0
+    spatial: 1
     minDistance: 1
-    maxDistance: 500
+    maxDistance: 60
     rolloff: 0
     priority: 0
     synthOnly: 0
@@ -453,7 +453,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 17
+    fallback: 0
   - name: Thunder.Crack
     clips:
     - {fileID: 8300000, guid: 9ac3c4213b9a5d74d9d3bf4c83764ea2, type: 3}
@@ -468,7 +468,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 20
+    fallback: 0
   - name: Thunder.Rumble
     clips:
     - {fileID: 8300000, guid: 843bf065ef4659f419b68fdc3c1e43d5, type: 3}
@@ -483,7 +483,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 19
+    fallback: 0
   - name: Water.Splash
     clips:
     - {fileID: 8300000, guid: ef00ea337107694499aa1a9dcdb5eb39, type: 3}
@@ -500,7 +500,7 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     synthOnly: 0
-    fallback: 6
+    fallback: 0
   - name: UI.Hover
     clips:
     - {fileID: 8300000, guid: 49478f5aec58b2d4eb8ec26b908f7034, type: 3}

@@ -97,7 +97,9 @@ public class SoundCuePlayTest
     {
         yield return null;
         SoundBank clone = Object.Instantiate((SoundBank)managerType.GetField("bank", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(manager));
+        // Recorded cues have no synth fallback now; give the cloned cue one so the missing-clip path is exercised.
         clone.Find(SoundCues.FireflyChime).clips = new AudioClip[0];
+        clone.Find(SoundCues.FireflyChime).fallback = SynthFallback.Chime;
         SetField("bank", clone);
         int warnings = 0;
         Application.LogCallback count = (condition, stack, type) =>

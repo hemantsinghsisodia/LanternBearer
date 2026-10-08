@@ -719,7 +719,7 @@ public class AudioManager : MonoBehaviour
             }
         }
 
-        if (warnedNoClip.Add(cue))
+        if (!c.synthOnly && warnedNoClip.Add(cue))
         {
             Debug.LogWarning("Sound cue has no clip, using " + (c.fallback == SynthFallback.None ? "nothing" : "synth fallback") + ": " + cue, this);
         }

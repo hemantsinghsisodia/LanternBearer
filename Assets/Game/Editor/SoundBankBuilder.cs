@@ -7,7 +7,7 @@ namespace LanternKeeper
 {
 // Builds Assets/Game/Audio/SoundBank.asset from the cue table below and the clips found under Assets/Game/Audio.
 // A clip belongs to a cue when its file is <Cue>_<n>.ogg with the dot replaced by an underscore (Footstep_Grass_1.ogg).
-// Cues with no files keep their synth fallback. The result is deterministic: clips are sorted by path.
+// Cues with files have no synth fallback; synth-only cues keep theirs. The result is deterministic: clips are sorted by path.
 public static class SoundBankBuilder
 {
     public const string BankPath = "Assets/Game/Audio/SoundBank.asset";
@@ -95,7 +95,7 @@ public static class SoundBankBuilder
         t.Add(Real(SoundCues.LanternSputter, SoundGroup.Sfx, 0.6f, false, false));
         t.Add(Prio(S(SoundCues.LanternDeathGutter, SoundGroup.Sfx, 0.65f, false, SynthFallback.Dying)));
 
-        t.Add(S(SoundCues.FireflyChime, SoundGroup.Sfx, 0.8f, true, SynthFallback.Chime));
+        t.Add(S(SoundCues.FireflyChime, SoundGroup.Sfx, 0.8f, true, SynthFallback.None));
         t.Add(Synth(S(SoundCues.FireflyArrive, SoundGroup.Sfx, 0.5f, true, SynthFallback.FireflyArrive)));
 
         t.Add(S(SoundCues.MothFlutter, SoundGroup.Sfx, 1f, true, SynthFallback.MothFlutter));
@@ -116,8 +116,8 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.AmbienceTide, SoundGroup.Ambience, 1f, false, SynthFallback.Surf));
         t.Add(S(SoundCues.AmbienceRain, SoundGroup.Ambience, 1f, false, SynthFallback.Rain));
         t.Add(Synth(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed)));
-        // One-shot owl call, scheduled at random intervals by the island ambience (Task 7).
-        t.Add(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, false, false));
+        // One-shot owl call, placed 15-30 m from the listener by AmbienceExtras on Island2.
+        t.Add(Dist(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, true, false), 60f));
         t.Add(S(SoundCues.AmbienceGust, SoundGroup.Ambience, 1f, false, SynthFallback.WindHowl));
 
         t.Add(S(SoundCues.ThunderCrack, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderCrack));
@@ -176,6 +176,12 @@ public static class SoundBankBuilder
             }
 
             cue.clips = clips.ToArray();
+            // Recorded cues carry no synthesis fallback; only synth-only cues (and a cue still missing its files) keep one.
+            if (clips.Count > 0 && !spec.synthOnly)
+            {
+                cue.fallback = SynthFallback.None;
+            }
+
             cues.Add(cue);
         }
 
