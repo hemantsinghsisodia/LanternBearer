@@ -6,6 +6,7 @@ public static class ProceduralAudio
 {
     const int Rate = 22050;
 
+    static AudioClip fireflyArrive;
     static AudioClip firefly;
     static AudioClip beacon;
     static AudioClip whoomp;
@@ -45,6 +46,31 @@ public static class ProceduralAudio
 
         firefly = Clip("FireflyChime", data);
         return firefly;
+    }
+
+    // Soft high bell, about 0.4 s: the motes arriving in the lantern.
+    public static AudioClip FireflyArrive()
+    {
+        if (fireflyArrive != null)
+        {
+            return fireflyArrive;
+        }
+
+        int length = (int)(Rate * 0.4f);
+        float[] data = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            float time = i / (float)Rate;
+            float attack = Mathf.Clamp01(time / 0.004f);
+            float envelope = attack * Mathf.Exp(-time * 9f);
+            float tone = 0.6f * Mathf.Sin(2f * Mathf.PI * 1760f * time);
+            tone += 0.25f * Mathf.Sin(2f * Mathf.PI * 2637f * time);
+            tone += 0.1f * Mathf.Sin(2f * Mathf.PI * 3520f * time);
+            data[i] = tone * envelope * 0.6f;
+        }
+
+        fireflyArrive = Clip("FireflyArrive", data);
+        return fireflyArrive;
     }
 
     public static AudioClip BeaconWhoosh()

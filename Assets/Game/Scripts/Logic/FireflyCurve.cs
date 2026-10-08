@@ -128,6 +128,26 @@ public static class FireflyCurve
         return v - Mathf.Floor(v);
     }
 
+    // CPU mirror of the FireflyMote shader drift: a Lissajous offset (world space, metres) added to the mote's own position.
+    // Same formula and inputs as the shader's vert(), with time = _Time.y (Time.timeSinceLevelLoad). Keep the two in step.
+    public static Vector3 Drift(float seed01, int index, float time, float stream)
+    {
+        float k = seed01 * 91.7f + index * 13.3f;
+        float fx = 0.2f + 0.3f * Hash11(k + 1f), fy = 0.2f + 0.3f * Hash11(k + 2f), fz = 0.2f + 0.3f * Hash11(k + 3f);
+        float px = 6.2831853f * Hash11(k + 4f), py = 6.2831853f * Hash11(k + 5f), pz = 6.2831853f * Hash11(k + 6f);
+        float gone = 1f - stream;
+        return new Vector3(
+            Mathf.Sin(time * 6.2831853f * fx + px) * 0.45f,
+            Mathf.Sin(time * 6.2831853f * fy + py) * 0.45f * 0.6f,
+            Mathf.Sin(time * 6.2831853f * fz + pz) * 0.45f) * gone;
+    }
+
+    static float Hash11(float x)
+    {
+        float v = Mathf.Sin(x * 127.1f) * 43758.5453f;
+        return v - Mathf.Floor(v);
+    }
+
     static float Smooth(float x)
     {
         x = Mathf.Clamp01(x);

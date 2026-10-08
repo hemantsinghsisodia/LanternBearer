@@ -401,6 +401,11 @@ public class AudioManager : MonoBehaviour
         PlayOneShot(ProceduralAudio.ChimeVariant(NextIndex(ref lastChime, 3)), position, 0.8f);
     }
 
+    public void PlayFireflyArrive(Vector3 position)
+    {
+        PlayOneShot(ProceduralAudio.FireflyArrive(), position, 0.5f);
+    }
+
     public void PlayBeacon(Vector3 position)
     {
         PlayOneShot(ProceduralAudio.BeaconVariant(NextIndex(ref lastBeacon, 3)), position, 0.9f);

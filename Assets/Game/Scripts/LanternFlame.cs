@@ -24,6 +24,10 @@ public class LanternFlame : MonoBehaviour
     static readonly int CoreId = Shader.PropertyToID("_Core");
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+    const float KickDuration = 0.3f;
+    float kickStrength;
+    float kickStart = -10f;
+
     MaterialPropertyBlock flameBlock;
     MaterialPropertyBlock glassBlock;
     Light sourceLight;
@@ -52,6 +56,26 @@ public class LanternFlame : MonoBehaviour
         Apply(lantern.FuelNormalized, death, FlickerFactor());
     }
 
+    // Where the firefly motes arrive: the flame, or the lantern itself when there is no flame transform.
+    public Transform GlowPoint => flame != null ? flame : transform;
+
+    // Current strength of the arrival boost, 0..1: starts at the Kick strength and falls linearly to 0 over 0.3 s.
+    public float KickLevel
+    {
+        get
+        {
+            float left = 1f - (Time.time - kickStart) / KickDuration;
+            return left <= 0f ? 0f : kickStrength * left;
+        }
+    }
+
+    // A short visual boost (glass glow +80%, flame height +15% at strength 1). Visual only.
+    public void Kick(float strength)
+    {
+        kickStrength = Mathf.Clamp01(strength);
+        kickStart = Time.time;
+    }
+
     public void ApplyFuel(float fuel01)
     {
         Apply(fuel01, 1f, 1f);
@@ -60,6 +84,7 @@ public class LanternFlame : MonoBehaviour
     void Apply(float fuel01, float gutter, float flickerFactor)
     {
         fuel01 = Mathf.Clamp01(fuel01);
+        float kick = KickLevel;
         if (flame != null)
         {
             if (baseScale == Vector3.zero)
@@ -69,7 +94,7 @@ public class LanternFlame : MonoBehaviour
             }
 
             Vector3 scale = baseScale;
-            scale.y *= LanternFlameMapping.Height(fuel01) * gutter;
+            scale.y *= LanternFlameMapping.Height(fuel01) * gutter * (1f + 0.15f * kick);
             flame.localScale = scale;
             // The quad scales about its centre; drop it by half the lost height so the base stays on the wick.
             // The parent frame is hung toward gravity, so local -Y is the lantern's down.
@@ -96,7 +121,7 @@ public class LanternFlame : MonoBehaviour
                 glassBlock = new MaterialPropertyBlock();
             }
 
-            float alpha = Mathf.Clamp01(GlassAlpha * fuel01 * flickerFactor * gutter);
+            float alpha = Mathf.Clamp01(GlassAlpha * fuel01 * flickerFactor * gutter * (1f + 0.8f * kick));
             glassBlock.SetColor(BaseColorId, new Color(glassColor.r, glassColor.g, glassColor.b, alpha));
             glassRenderer.SetPropertyBlock(glassBlock);
         }

@@ -5,7 +5,7 @@ namespace LanternKeeper
 // The firefly: a swarm of six blinking motes (four on Low) drifting around the pickup. The blink and drift run in the
 // FireflyMote shader; this controller feeds each mote its per-instance values through a MaterialPropertyBlock, publishes the
 // Low preset (_LKFireflyLow) and the Reduce flashing setting (_LKReduceFlashing), and breathes the sibling Glow light with
-// the number of lit motes. Collect and Respawn belong to the collect stream (a later task).
+// the number of lit motes. Collect streams the motes into the lantern (two linger and orbit); Respawn fades them back in.
 public class FireflySwarm : MonoBehaviour
 {
     public const string LowGlobalName = "_LKFireflyLow";
@@ -35,10 +35,20 @@ public class FireflySwarm : MonoBehaviour
     float lastAppliedIntensity;
     bool baseCached;
     float smoothedLit = 0.5f;
+    Vector3[] moteScales = new Vector3[0];
+    Vector3[] streamStart = new Vector3[0];
+    bool streaming;
+    bool arrived;
+    float sinceCollect;
+    Transform target;
+    Vector3 lastTargetPosition;
+    LanternFlame targetFlame;
+    bool fadingIn;
+    float sinceRespawn;
 
     public int VisibleMotes => low ? FireflyCurve.MotesLow : FireflyCurve.Motes;
     public Transform[] Motes => motes;
-    public bool Streaming => false;
+    public bool Streaming => streaming;
 
     // CPU mirror of the shader blink: lit motes now over the visible motes.
     public float LitFraction
@@ -113,7 +123,8 @@ public class FireflySwarm : MonoBehaviour
 
         if (baseCached)
         {
-            glow.intensity = baseIntensity;
+            // Already cached: Update adopts any external change (LightQuality) as the new base.
+            return;
         }
 
         baseIntensity = glow.intensity;
@@ -124,6 +135,8 @@ public class FireflySwarm : MonoBehaviour
     void Update()
     {
         PublishReduceFlashing();
+        StepStream();
+        StepFadeIn();
         smoothedLit += (LitFraction - smoothedLit) * (1f - Mathf.Exp(-Time.deltaTime / LightSmoothing));
         if (glow == null)
         {
@@ -156,11 +169,15 @@ public class FireflySwarm : MonoBehaviour
 
         motes = found.ToArray();
         renderers = new Renderer[motes.Length];
+        moteScales = new Vector3[motes.Length];
+        streamStart = new Vector3[motes.Length];
         for (int i = 0; i < motes.Length; i++)
         {
             renderers[i] = motes[i].GetComponent<Renderer>();
+            moteScales[i] = motes[i].localScale;
             if (renderers[i] != null)
             {
+                // Runtime-only: Renderer.localBounds is not serialized.
                 renderers[i].localBounds = new Bounds(Vector3.zero, Vector3.one * 3f);
             }
         }
@@ -188,7 +205,7 @@ public class FireflySwarm : MonoBehaviour
             block.SetFloat(PeriodId, period);
             block.SetFloat(SeedId, seed01);
             block.SetFloat(IndexId, i);
-            block.SetFloat(StreamId, 0f);
+            block.SetFloat(StreamId, streaming ? 1f : 0f);
             block.SetFloat(FadeId, 1f);
             renderer.SetPropertyBlock(block);
         }
@@ -196,11 +213,14 @@ public class FireflySwarm : MonoBehaviour
         ApplyShown();
     }
 
-    // Hides the motes when the firefly is collected (until the collect stream exists, nothing is left to show).
+    // Shows or hides the motes. A collect stream in progress keeps its motes visible; the hide lands when the stream ends.
     public void SetShown(bool value)
     {
         shown = value;
-        ApplyShown();
+        if (!streaming)
+        {
+            ApplyShown();
+        }
     }
 
     void ApplyShown()
@@ -214,12 +234,189 @@ public class FireflySwarm : MonoBehaviour
         }
     }
 
-    public void Collect(Transform target)
+    int LingerCount => low ? FireflyCurve.LingerLow : FireflyCurve.Linger;
+
+    void SetMoteBlock(int i, float stream, float fade)
     {
+        Renderer renderer = renderers[i];
+        if (renderer == null)
+        {
+            return;
+        }
+
+        renderer.GetPropertyBlock(block);
+        block.SetFloat(StreamId, stream);
+        block.SetFloat(FadeId, fade);
+        renderer.SetPropertyBlock(block);
     }
 
+    // The firefly was picked up: the visible motes leave their drifting positions and stream into the target. Two linger and
+    // orbit it, then everything fades out. Scaled time, so pause freezes the stream.
+    public void Collect(Transform lanternTarget)
+    {
+        if (motes.Length == 0)
+        {
+            FindMotes();
+        }
+
+        target = lanternTarget;
+        targetFlame = lanternTarget != null ? lanternTarget.GetComponentInParent<LanternFlame>() : null;
+        lastTargetPosition = lanternTarget != null ? lanternTarget.position : transform.position;
+        fadingIn = false;
+        arrived = false;
+        sinceCollect = 0f;
+        float now = Time.timeSinceLevelLoad;
+        int count = VisibleMotes;
+        for (int i = 0; i < motes.Length; i++)
+        {
+            streamStart[i] = motes[i].position + FireflyCurve.Drift(seed01, i, now, 0f);
+            motes[i].localScale = moteScales[i];
+            SetMoteBlock(i, 1f, 1f);
+            if (renderers[i] != null)
+            {
+                renderers[i].enabled = i < count;
+            }
+        }
+
+        streaming = true;
+        StepStream();
+        // Collect runs in the physics step; the stream clock starts from the next rendered frame.
+        sinceCollect = 0f;
+    }
+
+    void StepStream()
+    {
+        if (!streaming)
+        {
+            return;
+        }
+
+        if (target != null)
+        {
+            lastTargetPosition = target.position;
+        }
+
+        float t = sinceCollect;
+        int count = VisibleMotes;
+        if (t < FireflyCurve.StreamTime)
+        {
+            float eased = FireflyCurve.Stream01(t);
+            for (int i = 0; i < count && i < motes.Length; i++)
+            {
+                motes[i].position = FireflyCurve.StreamPoint(streamStart[i], lastTargetPosition, (i & 1) == 0 ? 1f : -1f, eased);
+                motes[i].localScale = moteScales[i] * FireflyCurve.StreamScale(eased);
+            }
+        }
+        else if (t < FireflyCurve.LingerEnd)
+        {
+            if (!arrived)
+            {
+                arrived = true;
+                OnArrive();
+            }
+
+            int linger = LingerCount;
+            float alpha = FireflyCurve.LingerAlpha(t);
+            for (int i = 0; i < motes.Length; i++)
+            {
+                if (i >= linger || i >= count)
+                {
+                    if (renderers[i] != null)
+                    {
+                        renderers[i].enabled = false;
+                    }
+
+                    continue;
+                }
+
+                motes[i].position = lastTargetPosition + FireflyCurve.LingerOffset(i, t);
+                motes[i].localScale = moteScales[i];
+                SetMoteBlock(i, 1f, alpha);
+            }
+        }
+        else
+        {
+            EndStream();
+            return;
+        }
+
+        sinceCollect += Time.deltaTime;
+    }
+
+    void OnArrive()
+    {
+        if (targetFlame != null)
+        {
+            targetFlame.Kick(UserSettings.ReduceFlashing ? 0.5f : 1f);
+        }
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayFireflyArrive(lastTargetPosition);
+        }
+    }
+
+    void EndStream()
+    {
+        streaming = false;
+        target = null;
+        targetFlame = null;
+        ResetMotes();
+        shown = false;
+        ApplyShown();
+    }
+
+    void ResetMotes()
+    {
+        for (int i = 0; i < motes.Length; i++)
+        {
+            motes[i].localPosition = Vector3.zero;
+            motes[i].localScale = moteScales[i];
+        }
+    }
+
+    // The swarm is back at its new home: motes return to their drift and fade in one after another over a second.
     public void Respawn()
     {
+        if (motes.Length == 0)
+        {
+            FindMotes();
+        }
+
+        streaming = false;
+        target = null;
+        targetFlame = null;
+        ResetMotes();
+        fadingIn = true;
+        sinceRespawn = 0f;
+        for (int i = 0; i < motes.Length; i++)
+        {
+            SetMoteBlock(i, 0f, FireflyCurve.FadeIn(i, VisibleMotes, 0f));
+        }
+
+        shown = true;
+        ApplyShown();
+    }
+
+    void StepFadeIn()
+    {
+        if (!fadingIn)
+        {
+            return;
+        }
+
+        sinceRespawn += Time.deltaTime;
+        bool done = sinceRespawn >= FireflyCurve.FadeInTime;
+        int count = VisibleMotes;
+        for (int i = 0; i < motes.Length; i++)
+        {
+            SetMoteBlock(i, 0f, done ? 1f : FireflyCurve.FadeIn(i, count, sinceRespawn));
+        }
+
+        if (done)
+        {
+            fadingIn = false;
+        }
     }
 }
 }

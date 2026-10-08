@@ -120,6 +120,21 @@ public class Firefly : MonoBehaviour
             AudioManager.Instance.PlayFirefly(transform.position);
         }
 
+        if (swarm != null)
+        {
+            Transform glowPoint = null;
+            if (lantern != null)
+            {
+                LanternFlame flame = lantern.GetComponent<LanternFlame>();
+                glowPoint = flame != null ? flame.GlowPoint : lantern.transform;
+            }
+
+            if (glowPoint != null)
+            {
+                swarm.Collect(glowPoint);
+            }
+        }
+
         collected = true;
         StartCoroutine(RespawnLater());
     }
@@ -131,6 +146,11 @@ public class Firefly : MonoBehaviour
 
         home = PickHome();
         transform.position = home;
+        if (swarm != null)
+        {
+            swarm.Respawn();
+        }
+
         collected = false;
         SetShown(true);
     }
