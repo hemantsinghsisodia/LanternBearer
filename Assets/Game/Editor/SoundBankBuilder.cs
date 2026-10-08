@@ -25,6 +25,7 @@ public static class SoundBankBuilder
         public float pitchMin;
         public float pitchMax;
         public float jitterDb;
+        public float maxDistance;
     }
 
     static Spec S(string name, SoundGroup group, float volume, bool spatial, SynthFallback fallback)
@@ -37,6 +38,7 @@ public static class SoundBankBuilder
         spec.fallback = fallback;
         spec.pitchMin = 1f;
         spec.pitchMax = 1f;
+        spec.maxDistance = 500f;
         return spec;
     }
 
@@ -52,6 +54,12 @@ public static class SoundBankBuilder
     static Spec Prio(Spec spec)
     {
         spec.priority = true;
+        return spec;
+    }
+
+    static Spec Dist(Spec spec, float maxDistance)
+    {
+        spec.maxDistance = maxDistance;
         return spec;
     }
 
@@ -90,7 +98,8 @@ public static class SoundBankBuilder
         t.Add(Temp(SoundCues.ShadeSteal, SoundGroup.Sfx, false, true));
 
         t.Add(Prio(S(SoundCues.BeaconIgnite, SoundGroup.Sfx, 0.9f, true, SynthFallback.Whoomp)));
-        t.Add(Temp(SoundCues.BeaconFire, SoundGroup.Sfx, true, false));
+        t.Add(Dist(Temp(SoundCues.BeaconFire, SoundGroup.Sfx, true, false), 10f));
+        t.Add(S(SoundCues.BeaconWhoosh, SoundGroup.Sfx, 0.9f, true, SynthFallback.Beacon));
         t.Add(S(SoundCues.BeaconFizzle, SoundGroup.Sfx, 0.7f, false, SynthFallback.Fizzle));
 
         t.Add(S(SoundCues.AmbienceIsland1, SoundGroup.Ambience, 0.22f, false, SynthFallback.Ambience));
@@ -99,6 +108,7 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.AmbienceIsland4, SoundGroup.Ambience, 0.22f, false, SynthFallback.Ambience));
         t.Add(S(SoundCues.AmbienceTide, SoundGroup.Ambience, 1f, false, SynthFallback.Surf));
         t.Add(S(SoundCues.AmbienceRain, SoundGroup.Ambience, 1f, false, SynthFallback.Rain));
+        t.Add(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed));
         t.Add(S(SoundCues.AmbienceGust, SoundGroup.Ambience, 1f, false, SynthFallback.WindHowl));
 
         t.Add(S(SoundCues.ThunderCrack, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderCrack));
@@ -136,7 +146,7 @@ public static class SoundBankBuilder
             cue.volumeJitterDb = spec.jitterDb;
             cue.spatial = spec.spatial;
             cue.minDistance = 1f;
-            cue.maxDistance = 500f;
+            cue.maxDistance = spec.maxDistance;
             cue.rolloff = AudioRolloffMode.Logarithmic;
             cue.priority = spec.priority;
             cue.fallback = spec.fallback;

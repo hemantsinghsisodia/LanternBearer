@@ -146,15 +146,23 @@ public class Lightning : MonoBehaviour
 
         if (phase == LightningPhase.Thunder && lastPhase != LightningPhase.Thunder)
         {
-            thunder.PlayOneShot(ProceduralAudio.ThunderRumble(), rumbleVolume);
+            PlayClip(AudioManager.CueClip(SoundCues.ThunderRumble), rumbleVolume);
         }
 
         if (flashed)
         {
-            thunder.PlayOneShot(ProceduralAudio.ThunderCrack(), crackVolume);
+            PlayClip(AudioManager.CueClip(SoundCues.ThunderCrack), crackVolume);
         }
 
         lastPhase = phase;
+    }
+
+    void PlayClip(AudioClip clip, float volume)
+    {
+        if (clip != null)
+        {
+            thunder.PlayOneShot(clip, volume);
+        }
     }
 
     void Update()

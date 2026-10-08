@@ -377,7 +377,7 @@ public class MothSpawner : MonoBehaviour
 
         if (whisper.clip == null)
         {
-            whisper.clip = ProceduralAudio.MothWhisper();
+            whisper.clip = AudioManager.CueClip(SoundCues.MothWhisper);
         }
 
         whisper.volume = closeness * 0.62f;
@@ -413,7 +413,7 @@ public class MothSpawner : MonoBehaviour
         whisper.loop = true;
         whisper.spatialBlend = 0f;
         whisper.volume = 0f;
-        whisper.clip = ProceduralAudio.MothWhisper();
+        whisper.clip = AudioManager.CueClip(SoundCues.MothWhisper);
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.RouteSfx(whisper);

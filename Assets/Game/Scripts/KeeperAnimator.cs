@@ -278,6 +278,8 @@ public class KeeperAnimator : MonoBehaviour
             return;
         }
 
+        PlayCueHere(SoundCues.KeeperHit);
+
         if (sway == null)
         {
             sway = GetComponentInChildren<LanternSway>(true);
@@ -297,6 +299,7 @@ public class KeeperAnimator : MonoBehaviour
         }
 
         Trigger(lightHash);
+        PlayCueHere(SoundCues.KeeperInteract);
         armHoldRemaining = interactLength * 0.8f;
         gestureFrame = Time.frameCount;
     }
@@ -315,6 +318,14 @@ public class KeeperAnimator : MonoBehaviour
     void OnRescued()
     {
         Trigger(shakeOffHash);
+    }
+
+    void PlayCueHere(string cue)
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayCue(cue, transform.position);
+        }
     }
 
     void Trigger(int hash)

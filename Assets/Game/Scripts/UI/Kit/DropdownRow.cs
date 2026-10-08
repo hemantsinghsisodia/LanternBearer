@@ -71,6 +71,7 @@ public class DropdownRow : MonoBehaviour
 
     private void OnDropdownChanged(int value)
     {
+        UiSound.Play(SoundCues.UiToggle);
         Action<int> handler = IndexChanged;
         if (handler != null)
         {

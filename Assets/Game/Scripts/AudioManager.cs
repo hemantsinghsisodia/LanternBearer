@@ -1,12 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
 namespace LanternKeeper
 {
+// Runs before the scene's other scripts so their Awake can ask for cue clips.
+[DefaultExecutionOrder(-200)]
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
+
+    // Test spy: raised with the cue name by PlayCue, PlayCue2D, PlayCueLoop and the UI path.
+    public static event System.Action<string> CuePlayed;
+
+    const float SputterFuel = 0.15f;
 
     const int PoolSize = 12;
     const int Grass = 0;
@@ -15,6 +23,7 @@ public class AudioManager : MonoBehaviour
     const int Sand = 3;
 
     static readonly string[] SurfaceNames = { "grass", "dirt", "rock", "sand" };
+    static readonly string[] FootstepCues = { SoundCues.FootstepGrass, SoundCues.FootstepDirt, SoundCues.FootstepRock, SoundCues.FootstepWater };
 
     [SerializeField] Lantern lantern;
     [SerializeField] AudioMixer mixer;
@@ -55,11 +64,7 @@ public class AudioManager : MonoBehaviour
     bool routed;
     bool crackleHooked;
     float crackleFuel = 1f;
-    int[] lastStep = { -1, -1, -1, -1 };
-    int lastChime = -1;
-    int lastBeacon = -1;
-    int lastSplash = -1;
-    int lastFizzle = -1;
+    bool sputterArmed = true;
     string mixState = "Normal";
 
     Terrain cachedTerrain;
@@ -120,7 +125,7 @@ public class AudioManager : MonoBehaviour
         ambience.loop = true;
         ambience.spatialBlend = 0f;
         ambience.volume = 0.22f;
-        ambience.clip = ProceduralAudio.Ambience();
+        ChooseAmbience();
         ambience.Play();
 
         heartbeat = gameObject.AddComponent<AudioSource>();
@@ -135,20 +140,68 @@ public class AudioManager : MonoBehaviour
         crackle.loop = true;
         crackle.spatialBlend = 0f;
         crackle.volume = 0f;
-        crackle.clip = ProceduralAudio.CrackleLoop();
+        crackle.clip = ClipFor(SoundCues.LanternCrackle) ?? ProceduralAudio.CrackleLoop();
         crackle.Play();
 
         RouteSources();
     }
 
+    // The bed follows the active scene (Island1..4). Anywhere else (the menu) it keeps the generic synthesized bed.
+    void ChooseAmbience()
+    {
+        string cue = null;
+        switch (SceneManager.GetActiveScene().name)
+        {
+            case "Island1":
+                cue = SoundCues.AmbienceIsland1;
+                break;
+            case "Island2":
+                cue = SoundCues.AmbienceIsland2;
+                break;
+            case "Island3":
+                cue = SoundCues.AmbienceIsland3;
+                break;
+            case "Island4":
+                cue = SoundCues.AmbienceIsland4;
+                break;
+        }
+
+        SoundCue c = cue != null ? FindCue(cue) : null;
+        AudioClip clip = c != null ? ClipFor(cue) : null;
+        if (clip != null)
+        {
+            ambience.clip = clip;
+            ambience.volume = c.volume;
+            return;
+        }
+
+        ambience.clip = ProceduralAudio.Ambience();
+    }
+
+    // The next clip of a cue from the live manager, or null when there is none (editor tests, scenes without audio).
+    public static AudioClip CueClip(string cue)
+    {
+        return Instance != null ? Instance.ClipFor(cue) : null;
+    }
+
     void OnEnable()
     {
         UiSound.Requested += OnUiRequested;
+        Shade.Stole += OnShadeStole;
     }
 
     void OnDisable()
     {
         UiSound.Requested -= OnUiRequested;
+        Shade.Stole -= OnShadeStole;
+    }
+
+    void OnShadeStole(float amount)
+    {
+        if (Instance == this)
+        {
+            PlayCue2D(SoundCues.ShadeSteal);
+        }
     }
 
     void OnUiRequested(string cue)
@@ -165,6 +218,7 @@ public class AudioManager : MonoBehaviour
         if (lantern != null)
         {
             lantern.FuelChanged -= OnFuelForCrackle;
+            lantern.FuelAdjusted -= OnFuelAdjusted;
         }
 
         if (Instance == this)
@@ -222,7 +276,9 @@ public class AudioManager : MonoBehaviour
 
         crackleHooked = true;
         crackleFuel = lantern.FuelNormalized;
+        sputterArmed = crackleFuel >= SputterFuel;
         lantern.FuelChanged += OnFuelForCrackle;
+        lantern.FuelAdjusted += OnFuelAdjusted;
         ApplyCrackle(false);
     }
 
@@ -230,6 +286,27 @@ public class AudioManager : MonoBehaviour
     {
         crackleFuel = normalized;
         ApplyCrackle(false);
+        // One sputter per downward crossing of 15%; it re-arms once fuel rises back above.
+        if (normalized < SputterFuel)
+        {
+            if (sputterArmed)
+            {
+                sputterArmed = false;
+                PlayCue2D(SoundCues.LanternSputter);
+            }
+        }
+        else if (normalized > SputterFuel)
+        {
+            sputterArmed = true;
+        }
+    }
+
+    void OnFuelAdjusted(float delta)
+    {
+        if (delta > 0f)
+        {
+            PlayCue2D(SoundCues.LanternRefuel);
+        }
     }
 
     void CreatePool()
@@ -474,6 +551,15 @@ public class AudioManager : MonoBehaviour
 
     // ---- Named cues -------------------------------------------------------------------------------------------
 
+    static void RaiseCuePlayed(string cue)
+    {
+        System.Action<string> handler = CuePlayed;
+        if (handler != null)
+        {
+            handler(cue);
+        }
+    }
+
     public AudioSource PlayCue(string cue, Vector3 position)
     {
         return PlayCueInternal(cue, position, false);
@@ -505,6 +591,7 @@ public class AudioManager : MonoBehaviour
             pitch = 1f;
         }
 
+        RaiseCuePlayed(cue);
         if (c.priority)
         {
             Duck("AmbienceDuck", -4f, 1f);
@@ -552,6 +639,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
+        RaiseCuePlayed(cue);
         AudioMixerGroup group = GroupFor(c.group);
         if (group != null)
         {
@@ -826,54 +914,45 @@ public class AudioManager : MonoBehaviour
 
     public void PlayFirefly(Vector3 position)
     {
-        PlayOneShot(ProceduralAudio.ChimeVariant(NextIndex(ref lastChime, 3)), position, 0.8f);
+        PlayCue(SoundCues.FireflyChime, position);
     }
 
     public void PlayFireflyArrive(Vector3 position)
     {
-        PlayOneShot(ProceduralAudio.FireflyArrive(), position, 0.5f);
+        PlayCue(SoundCues.FireflyArrive, position);
     }
 
+    // The ignition whoosh. The whoomp layer is the Beacon.Ignite cue, played by BeaconVisual.
     public void PlayBeacon(Vector3 position)
     {
-        PlayOneShot(ProceduralAudio.BeaconVariant(NextIndex(ref lastBeacon, 3)), position, 0.9f);
+        PlayCue(SoundCues.BeaconWhoosh, position);
     }
 
     public void PlayFootstep(Vector3 position)
     {
         int surface = SampleSurface(position);
-        int variant = NextIndex(ref lastStep[surface], ProceduralAudio.SurfaceVariantCount);
-        AudioClip clip = ProceduralAudio.FootstepVariant(surface, variant);
-        LastFootstep = clip;
+        string cue = FootstepCues[surface];
+        AudioSource source = PlayCue(cue, position);
         LastSurface = SurfaceNames[surface];
-        float pitch = 1f + (Random.value * 2f - 1f) * 0.08f;
-        float volume = 0.32f * (1f + (Random.value * 2f - 1f) * 0.1f);
-        PlayOneShot(clip, position, volume, pitch);
+        if (source != null)
+        {
+            LastFootstep = source.clip;
+        }
     }
 
     public void PlaySplash(Vector3 position)
     {
-        PlayOneShot(ProceduralAudio.SplashVariant(NextIndex(ref lastSplash, 3)), position, 0.85f);
+        PlayCue(SoundCues.WaterSplash, position);
     }
 
     public void PlayDying()
     {
-        if (oneShots == null)
-        {
-            return;
-        }
-
-        oneShots.PlayOneShot(ProceduralAudio.LanternDying(), 0.65f);
+        PlayCue2D(SoundCues.LanternDeathGutter);
     }
 
     public void PlayFizzle()
     {
-        if (oneShots == null)
-        {
-            return;
-        }
-
-        oneShots.PlayOneShot(ProceduralAudio.FizzleVariant(NextIndex(ref lastFizzle, 3)), 0.7f);
+        PlayCue2D(SoundCues.BeaconFizzle);
     }
 
     public void PlayLoop(AudioSource source, AudioClip clip, float volume)

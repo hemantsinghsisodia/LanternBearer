@@ -32,6 +32,7 @@ public static partial class UIBuilder
 
         GameObject closeGo = MakeButton(book.transform, "Close", true);
         closeGo.name = "CloseButton";
+        closeGo.GetComponent<ThemedButton>().SetBack(true);
         Anchor(closeGo, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-90f, 24f), new Vector2(90f, 24f + RowHeight));
         Button close = closeGo.GetComponent<Button>();
 

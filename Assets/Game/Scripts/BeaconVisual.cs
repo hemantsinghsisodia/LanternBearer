@@ -250,7 +250,7 @@ public class BeaconVisual : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayOneShot(ProceduralAudio.Whoomp(), transform.position, WhoompVolume);
+            AudioManager.Instance.PlayCue(SoundCues.BeaconIgnite, transform.position);
         }
 
         EvaluateMoment();

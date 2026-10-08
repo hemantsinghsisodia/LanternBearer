@@ -114,7 +114,7 @@ public class Moth : MonoBehaviour
         ResolveTargets();
         if (AudioManager.Instance != null && flutter != null)
         {
-            AudioManager.Instance.PlayLoop(flutter, ProceduralAudio.MothFlutter(), 0.18f);
+            AudioManager.Instance.PlayLoop(flutter, AudioManager.Instance.ClipFor(SoundCues.MothFlutter), 0.18f);
         }
     }
 

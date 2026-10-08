@@ -296,6 +296,7 @@ MonoBehaviour:
   tab: 0
   markEdge: {fileID: 0}
   markTint: {fileID: 0}
+  isBack: 0
 --- !u!1 &380336219500354425
 GameObject:
   m_ObjectHideFlags: 0
@@ -765,6 +766,7 @@ MonoBehaviour:
   tab: 0
   markEdge: {fileID: 0}
   markTint: {fileID: 0}
+  isBack: 0
 --- !u!1 &1009953728227236195
 GameObject:
   m_ObjectHideFlags: 0
@@ -936,6 +938,7 @@ MonoBehaviour:
   tab: 0
   markEdge: {fileID: 0}
   markTint: {fileID: 0}
+  isBack: 0
 --- !u!1 &1050523044869567406
 GameObject:
   m_ObjectHideFlags: 0
@@ -3789,6 +3792,7 @@ MonoBehaviour:
   tab: 0
   markEdge: {fileID: 0}
   markTint: {fileID: 0}
+  isBack: 0
 --- !u!1 &5287987844455369968
 GameObject:
   m_ObjectHideFlags: 0
@@ -6319,3 +6323,4 @@ MonoBehaviour:
   tab: 0
   markEdge: {fileID: 0}
   markTint: {fileID: 0}
+  isBack: 0

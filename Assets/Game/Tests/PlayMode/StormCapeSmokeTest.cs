@@ -43,7 +43,8 @@ namespace LanternKeeper.Tests
         // asserts and exceptions, and fail on any of them.
         void OnLog(string message, string stackTrace, LogType type)
         {
-            if (type != LogType.Log)
+            // A cue without a recording falls back to synthesis and says so once; that is not a problem.
+            if (type != LogType.Log && !message.StartsWith("Sound cue has no clip"))
             {
                 problems.Add("[" + type + "] " + message);
             }

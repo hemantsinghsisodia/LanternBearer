@@ -237,10 +237,22 @@ MonoBehaviour:
     group: 1
     spatial: 1
     minDistance: 1
-    maxDistance: 500
+    maxDistance: 10
     rolloff: 0
     priority: 0
     fallback: 1
+  - name: Beacon.Whoosh
+    clips: []
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 1
+    spatial: 1
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 3
   - name: Beacon.Fizzle
     clips: []
     volume: 0.7
@@ -325,6 +337,18 @@ MonoBehaviour:
     rolloff: 0
     priority: 0
     fallback: 18
+  - name: Ambience.WindBed
+    clips: []
+    volume: 1
+    pitch: {x: 1, y: 1}
+    volumeJitterDb: 0
+    group: 2
+    spatial: 0
+    minDistance: 1
+    maxDistance: 500
+    rolloff: 0
+    priority: 0
+    fallback: 16
   - name: Ambience.Gust
     clips: []
     volume: 1

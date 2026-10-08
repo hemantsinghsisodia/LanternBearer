@@ -28,6 +28,7 @@ public static class SoundCues
 
     public const string BeaconIgnite = "Beacon.Ignite";
     public const string BeaconFire = "Beacon.Fire";
+    public const string BeaconWhoosh = "Beacon.Whoosh";
     public const string BeaconFizzle = "Beacon.Fizzle";
 
     public const string AmbienceIsland1 = "Ambience.Island1";
@@ -37,6 +38,7 @@ public static class SoundCues
     public const string AmbienceTide = "Ambience.Tide";
     public const string AmbienceRain = "Ambience.Rain";
     public const string AmbienceGust = "Ambience.Gust";
+    public const string AmbienceWindBed = "Ambience.WindBed";
 
     public const string ThunderCrack = "Thunder.Crack";
     public const string ThunderRumble = "Thunder.Rumble";

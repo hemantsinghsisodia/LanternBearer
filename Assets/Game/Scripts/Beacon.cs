@@ -302,6 +302,7 @@ public class Beacon : MonoBehaviour
         }
 
         IsLit = true;
+        StartFireLoop();
         if (Lit != null)
         {
             Lit.Invoke(this);
@@ -319,6 +320,20 @@ public class Beacon : MonoBehaviour
         }
 
         return true;
+    }
+
+    // A 3D crackle on each lit beacon, audible to about 10 m (the cue sets the range).
+    void StartFireLoop()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        GameObject host = new GameObject("FireLoop");
+        host.transform.SetParent(transform, false);
+        AudioSource source = host.AddComponent<AudioSource>();
+        AudioManager.Instance.PlayCueLoop(SoundCues.BeaconFire, source);
     }
 
     IEnumerator Ignite()

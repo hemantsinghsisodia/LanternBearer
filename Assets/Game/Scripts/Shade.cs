@@ -84,7 +84,7 @@ public class Shade : MonoBehaviour
         }
 
         // A 3D hum that follows the Shade. It goes quiet while the Shade is frozen in the lantern light.
-        drone = StormAudio.Make(gameObject, ProceduralAudio.ShadeDrone(), true, 1f);
+        drone = StormAudio.Make(gameObject, AudioManager.CueClip(SoundCues.ShadeDrone), true, 1f);
         drone.Play();
         block = new MaterialPropertyBlock();
         appear = 0f;
