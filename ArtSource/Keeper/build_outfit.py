@@ -401,7 +401,7 @@ def build_part(name, arm, group_names, slot_index, subdivide, crease_deg):
     return out[0], out[1]
 
 
-def smooth_hand(obj, iterations=2, factor=0.5, inflate=0.0028):
+def smooth_hand(obj, iterations=2, factor=0.5, inflate=0.0088):
     me = obj.data
     bm = bmesh.new()
     bm.from_mesh(me)
@@ -455,6 +455,83 @@ def fold_shaping(obj, kind):
             d += 0.003 * math.sin(5.0 * th + p.z * 9.0) * smoothstep(1.02, 1.12, p.z) * smoothstep(1.4, 1.3, p.z)
         if d != 0.0:
             v.co += v.normal * d
+    bm.to_mesh(me)
+    bm.free()
+
+
+SLEEVE_UPPER = 0.025     # sleeve thickening at the upper arm (m, along the normal)
+SLEEVE_WRIST = 0.020     # ... tapering to this at the wrist
+SLEEVE_FLARE = 0.005     # extra flare over the last SLEEVE_FLARE_LEN before the glove cuff
+SLEEVE_FLARE_LEN = 0.035
+COWL_FIT = 0.3   # share of the sleeve thickening the cowl is fitted against
+RAMP0 = 0.55            # the upper arm stays at 0 over the top 55% (under the cowl), then ramps to the elbow
+SLEEVE_PEAK = 0.030      # widest point, just below the elbow
+SLEEVE_FOLD = 0.003     # gentle fold amplitude
+
+
+def thicken_sleeves(obj, arm, upper=SLEEVE_UPPER, wrist_t=SLEEVE_WRIST):
+    """Push the sleeve (arm part of the tunic) out along its normals: `upper` at the shoulder end tapering to
+    `wrist_t` at the wrist, a soft flare over the last few cm, and gentle folds. The weight comes from the skin
+    weights of the arm bones (upper arm, forearm, wrist), so it blends out smoothly into the torso at the shoulder
+    seam. Skin weights are untouched."""
+    me = obj.data
+    mw = obj.matrix_world
+    amw = arm.matrix_world
+    names = {g.index: g.name for g in obj.vertex_groups}
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.normal_update()
+    dl = bm.verts.layers.deform.verify()
+    black = BODY_SLOTS.index("Black")
+    ends = {}
+    for side in (".L", ".R"):
+        ub = arm.data.bones["UpperArm" + side]
+        lb = arm.data.bones["LowerArm" + side]
+        a = amw @ ub.head_local
+        w = amw @ lb.tail_local
+        ends[side] = (a, w, (amw @ lb.head_local - a).dot((w - a).normalized()) / (w - a).length)
+    for v in bm.verts:
+        wts = {}
+        for gi, wt in v[dl].items():
+            n = names[gi]
+            wts[n] = wt
+        side = None
+        for sd in (".L", ".R"):
+            tot = sum(wts.get(k + sd, 0.0) for k in ("UpperArm", "LowerArm", "Wrist"))
+            if tot > 0.0 and (side is None or tot > side[1]):
+                side = (sd, tot)
+        if side is None:
+            continue
+        sd, mask = side
+        if not v.link_faces or v.link_faces[0].material_index != black:
+            continue
+        a, w, te = ends[sd]
+        axis = w - a
+        length = axis.length
+        axis /= length
+        p = mw @ v.co
+        rel = p - a
+        t = rel.dot(axis) / length                       # 0 at the shoulder joint, 1 at the wrist
+        if t > 1.15:
+            continue
+        m = smoothstep(0.35, 0.95, mask)
+        tt = min(max(t, 0.0), 1.0)
+        if tt < te:                                       # upper arm: 0 over the top 35%, up to `upper` at the elbow
+            d = upper * smoothstep(RAMP0 * te, te, tt) * m
+            d *= 1.0 - 0.85 * smoothstep(0.15, 0.7, v.normal.z)       # the top of the arm is what pokes through the cowl
+        else:                                             # forearm: peak just below the elbow, tapering to the wrist
+            f = (tt - te) / max(1.0 - te, 1e-6)
+            pk = upper + (SLEEVE_PEAK - upper) * smoothstep(0.0, 0.15, f)
+            k = smoothstep(0.15, 1.0, f)
+            d = (pk * (1.0 - k) + wrist_t * k) * m
+        s = (w - p).dot(axis)                            # distance before the wrist (m)
+        if s < SLEEVE_FLARE_LEN:
+            d += SLEEVE_FLARE * smoothstep(SLEEVE_FLARE_LEN, 0.0, max(s, 0.0)) * m
+        radial = rel - axis * rel.dot(axis)
+        th = math.atan2(radial.dot(Vector((0.0, 0.0, 1.0))), radial.dot(axis.cross(Vector((0.0, 0.0, 1.0)))))
+        d += SLEEVE_FOLD * math.sin(4.0 * th + s * 55.0) * smoothstep(0.3, 0.55, t) * smoothstep(1.0, 0.8, t) * m
+        d += SLEEVE_FOLD * 0.8 * math.sin(2.0 * th - s * 30.0) * smoothstep(0.3, 0.6, t) * m
+        v.co += v.normal * d
     bm.to_mesh(me)
     bm.free()
 
@@ -1494,7 +1571,17 @@ def main():
 
     set_pose(arm, "Idle", 1)
     mats = skin_matrices(arm)
+    rest = [v.co.copy() for v in body.data.vertices]
+    thicken_sleeves(body, arm)
+    full = [v.co.copy() for v in body.data.vertices]
+    for v, r, f in zip(body.data.vertices, rest, full):
+        v.co = r.lerp(f, COWL_FIT)       # the cowl is fitted over part of the thickening, so it clears the sleeves
+    body.data.update()
+    bpy.context.view_layer.update()
     body_bvh = evaluated_bvh(body)
+    for v, f in zip(body.data.vertices, full):
+        v.co = f
+    body.data.update()
     cuffs = build_cuffs(arm, [leather, skin, black], mats)
     boots = build_boots_both(arm, [leather, skin, black])
     join_into(body, [cuffs] + boots)
