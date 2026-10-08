@@ -14,3 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.MusicLibrary
   menuTrack: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
   islandTrack: {fileID: 8300000, guid: 421495bcbc0814d4384ff82ce00c3e6d, type: 3}
+  islands:
+  - scene: Island1
+    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
+    tension: {fileID: 0}
+  - scene: Island2
+    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
+    tension: {fileID: 0}
+  - scene: Island3
+    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
+    tension: {fileID: 0}
+  - scene: Island4
+    track: {fileID: 8300000, guid: 15ee63a45288ad34682c5b106e82a74e, type: 3}
+    tension: {fileID: 0}
+  stingerBeaconLit: {fileID: 0}
+  stingerWin: {fileID: 0}
+  stingerLose: {fileID: 0}

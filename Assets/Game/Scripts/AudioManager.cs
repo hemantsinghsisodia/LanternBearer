@@ -25,6 +25,8 @@ public class AudioManager : MonoBehaviour
         public float level;
         public float target;
         public float until;
+        public float floor;
+        public float releaseRate = DuckReleaseDbPerSecond;
     }
 
     const float DuckAttackDbPerSecond = 40f;
@@ -73,6 +75,7 @@ public class AudioManager : MonoBehaviour
     public AudioMixerGroup SfxGroup { get; private set; }
     public AudioMixerGroup AmbienceGroup { get; private set; }
     public AudioMixerGroup UiGroup { get; private set; }
+    public AudioMixerGroup TensionGroup { get; private set; }
     public SoundBank Bank => bank;
     public string MixState => mixState;
     public AudioClip LastFootstep { get; private set; }
@@ -267,6 +270,7 @@ public class AudioManager : MonoBehaviour
         SfxGroup = FindGroup("SFX");
         AmbienceGroup = FindGroup("Ambience");
         UiGroup = FindGroup("UI");
+        TensionGroup = FindGroup("Tension");
         if (MusicGroup == null || SfxGroup == null || AmbienceGroup == null)
         {
             return;
@@ -752,11 +756,37 @@ public class AudioManager : MonoBehaviour
     // never go below the target.
     public void Duck(string parameter, float db, float seconds)
     {
+        Duck(parameter, db, seconds, DuckReleaseDbPerSecond);
+    }
+
+    // Same, with a custom release speed (dB per second) for short, punchy ducks such as stingers.
+    public void Duck(string parameter, float db, float seconds, float releaseDbPerSecond)
+    {
         if (mixer == null)
         {
             return;
         }
 
+        DuckState state = StateFor(parameter);
+        state.target = Time.unscaledTime < state.until ? Mathf.Min(state.target, db) : db;
+        state.until = Mathf.Max(state.until, Time.unscaledTime + seconds);
+        state.releaseRate = Mathf.Max(1f, releaseDbPerSecond);
+    }
+
+    // A continuous floor (dB, 0 or below) for a parameter. It combines with timed ducks by taking the deeper of the two.
+    public void SetDuckFloor(string parameter, float db)
+    {
+        if (mixer == null)
+        {
+            return;
+        }
+
+        DuckState state = StateFor(parameter);
+        state.floor = Mathf.Min(0f, db);
+    }
+
+    DuckState StateFor(string parameter)
+    {
         DuckState state;
         if (!ducks.TryGetValue(parameter, out state))
         {
@@ -764,8 +794,7 @@ public class AudioManager : MonoBehaviour
             ducks[parameter] = state;
         }
 
-        state.target = Time.unscaledTime < state.until ? Mathf.Min(state.target, db) : db;
-        state.until = Mathf.Max(state.until, Time.unscaledTime + seconds);
+        return state;
     }
 
     void TickDucks()
@@ -780,13 +809,13 @@ public class AudioManager : MonoBehaviour
         {
             DuckState state = pair.Value;
             bool holding = Time.unscaledTime < state.until;
-            float goal = holding ? state.target : 0f;
+            float goal = Mathf.Min(holding ? state.target : 0f, state.floor);
             if (Mathf.Approximately(state.level, goal))
             {
                 continue;
             }
 
-            float rate = goal < state.level ? DuckAttackDbPerSecond : DuckReleaseDbPerSecond;
+            float rate = goal < state.level ? DuckAttackDbPerSecond : state.releaseRate;
             state.level = Mathf.MoveTowards(state.level, goal, rate * dt);
             mixer.SetFloat(pair.Key, state.level);
         }

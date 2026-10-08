@@ -21315,6 +21315,7 @@ GameObject:
   - component: {fileID: 816428136}
   - component: {fileID: 816428135}
   - component: {fileID: 816428134}
+  - component: {fileID: 2146392373}
   - component: {fileID: 816428133}
   - component: {fileID: 816428132}
   - component: {fileID: 816428131}
@@ -21391,6 +21392,18 @@ MonoBehaviour:
   lantern: {fileID: 1951116791}
   mixer: {fileID: 24100000, guid: 41964b23c91399747b93c10a0bcf67a6, type: 2}
   bank: {fileID: 11400000, guid: 821c444ea54016c4bb1385ce3150265c, type: 2}
+--- !u!114 &2146392373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816428130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 292c224fc041ae347aafabd1ab64f60b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.MusicDirector
 --- !u!114 &816428135
 MonoBehaviour:
   m_ObjectHideFlags: 0
