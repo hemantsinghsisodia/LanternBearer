@@ -116,7 +116,7 @@ MonoBehaviour:
   - name: Lantern.Crackle
     clips:
     - {fileID: 8300000, guid: d43137844b16f3a499fd04192228546c, type: 3}
-    volume: 0.35
+    volume: 1
     pitch: {x: 1, y: 1}
     volumeJitterDb: 0
     group: 1
@@ -311,7 +311,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
-    synthOnly: 0
+    synthOnly: 1
     fallback: 3
   - name: Beacon.Fizzle
     clips:
@@ -424,7 +424,7 @@ MonoBehaviour:
     maxDistance: 500
     rolloff: 0
     priority: 0
-    synthOnly: 0
+    synthOnly: 1
     fallback: 16
   - name: Ambience.Owl
     clips:

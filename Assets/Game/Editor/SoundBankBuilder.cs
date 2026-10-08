@@ -85,11 +85,11 @@ public static class SoundBankBuilder
         t.Add(Step(SoundCues.FootstepRock));
         t.Add(Step(SoundCues.FootstepWater));
 
-        // Temporary soft body thud until the real hit sound arrives.
+        // Body hit: real clips in the Keeper hit folder, soft synth thud as fallback.
         t.Add(S(SoundCues.KeeperHit, SoundGroup.Sfx, 0.35f, true, SynthFallback.Footstep));
         t.Add(Real(SoundCues.KeeperInteract, SoundGroup.Sfx, 0.6f, true, false));
 
-        t.Add(S(SoundCues.LanternCrackle, SoundGroup.Sfx, 0.35f, false, SynthFallback.Crackle));
+        t.Add(S(SoundCues.LanternCrackle, SoundGroup.Sfx, 1f, false, SynthFallback.Crackle));
         t.Add(Synth(S(SoundCues.LanternHeartbeat, SoundGroup.Sfx, 0.45f, false, SynthFallback.Heartbeat)));
         t.Add(Real(SoundCues.LanternRefuel, SoundGroup.Sfx, 0.7f, false, false));
         t.Add(Real(SoundCues.LanternSputter, SoundGroup.Sfx, 0.6f, false, false));
@@ -106,7 +106,7 @@ public static class SoundBankBuilder
 
         t.Add(Prio(S(SoundCues.BeaconIgnite, SoundGroup.Sfx, 0.9f, true, SynthFallback.Whoomp)));
         t.Add(Dist(S(SoundCues.BeaconFire, SoundGroup.Sfx, 0.5f, true, SynthFallback.Crackle), 10f));
-        t.Add(S(SoundCues.BeaconWhoosh, SoundGroup.Sfx, 0.9f, true, SynthFallback.Beacon));
+        t.Add(Synth(S(SoundCues.BeaconWhoosh, SoundGroup.Sfx, 0.9f, true, SynthFallback.Beacon)));
         t.Add(S(SoundCues.BeaconFizzle, SoundGroup.Sfx, 0.7f, false, SynthFallback.Fizzle));
 
         t.Add(S(SoundCues.AmbienceIsland1, SoundGroup.Ambience, 0.22f, false, SynthFallback.Ambience));
@@ -115,7 +115,7 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.AmbienceIsland4, SoundGroup.Ambience, 0.22f, false, SynthFallback.Ambience));
         t.Add(S(SoundCues.AmbienceTide, SoundGroup.Ambience, 1f, false, SynthFallback.Surf));
         t.Add(S(SoundCues.AmbienceRain, SoundGroup.Ambience, 1f, false, SynthFallback.Rain));
-        t.Add(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed));
+        t.Add(Synth(S(SoundCues.AmbienceWindBed, SoundGroup.Ambience, 1f, false, SynthFallback.WindBed)));
         // One-shot owl call, scheduled at random intervals by the island ambience (Task 7).
         t.Add(Real(SoundCues.AmbienceOwl, SoundGroup.Ambience, 0.8f, false, false));
         t.Add(S(SoundCues.AmbienceGust, SoundGroup.Ambience, 1f, false, SynthFallback.WindHowl));
