@@ -1636,6 +1636,19 @@ public static partial class SceneWiring
                 fail("beacon uses legacy visual");
                 break;
             }
+
+            BeaconVisual beaconVisual = beacons[i].GetComponentInChildren<BeaconVisual>(true);
+            Renderer[] cairn = beaconVisual != null ? beaconVisual.CairnRenderers : null;
+            bool cairnBad = beaconVisual != null && (cairn == null || cairn.Length == 0);
+            for (int c = 0; cairn != null && c < cairn.Length && !cairnBad; c++)
+            {
+                cairnBad = cairn[c] == null;
+            }
+
+            if (cairnBad)
+            {
+                fail("beacon '" + beacons[i].name + "' has no cairn renderers");
+            }
         }
 
         ShadeSpawner[] shadeSpawners = Object.FindObjectsByType<ShadeSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);

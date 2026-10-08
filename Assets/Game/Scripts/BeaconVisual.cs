@@ -146,11 +146,12 @@ public class BeaconVisual : MonoBehaviour
 
         Color tint = profile.rockTint;
         tint.a = 1f;
-        MaterialPropertyBlock tintBlock = new MaterialPropertyBlock();
         if (cairnRenderers == null)
         {
             return;
         }
+
+        MaterialPropertyBlock tintBlock = new MaterialPropertyBlock();
 
         for (int i = 0; i < cairnRenderers.Length; i++)
         {

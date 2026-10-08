@@ -40,6 +40,22 @@ public class BeaconVisualTests
     }
 
     [Test]
+    public void PrefabHasTwoCairnRenderers()
+    {
+        Component visual = Prefab().GetComponentInChildren(VisualType(), true);
+        Assert.IsNotNull(visual, "BeaconVisual");
+        PropertyInfo property = VisualType().GetProperty("CairnRenderers");
+        Assert.IsNotNull(property, "CairnRenderers getter");
+        Renderer[] cairn = property.GetValue(visual) as Renderer[];
+        Assert.IsNotNull(cairn, "cairn renderers");
+        Assert.AreEqual(2, cairn.Length, "cairn renderer count");
+        for (int i = 0; i < cairn.Length; i++)
+        {
+            Assert.IsNotNull(cairn[i], "cairn renderer " + i);
+        }
+    }
+
+    [Test]
     public void PrefabUsesNewBeacon()
     {
         GameObject prefab = Prefab();
