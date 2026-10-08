@@ -65,6 +65,14 @@ public class ThreatMixTests
     }
 
     [Test]
+    public void NonPositiveOrNaNDeltaDoesNotMove()
+    {
+        Assert.AreEqual(0.3f, ThreatMix.Step(0.3f, 1f, 0f));
+        Assert.AreEqual(0.3f, ThreatMix.Step(0.3f, 0f, -1f));
+        Assert.AreEqual(0.3f, ThreatMix.Step(0.3f, 1f, float.NaN));
+    }
+
+    [Test]
     public void ClampedAndNaNSafe()
     {
         Assert.AreEqual(0f, ThreatMix.Target(false, 99f, float.NaN, false), Tol);

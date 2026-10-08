@@ -23,6 +23,7 @@ public class MusicDirector : MonoBehaviour
     GameManager subscribed;
     bool listening;
     bool routed;
+    bool refsResolved;
     bool hasTension;
     float threat;
     float elapsed;
@@ -30,12 +31,15 @@ public class MusicDirector : MonoBehaviour
     public float Threat => threat;
     public AudioSource Track => track;
     public AudioSource Tension => tension;
+    public AudioSource StingerSource => stinger;
 
     void Awake()
     {
         track = NewSource(true);
         tension = NewSource(true);
         stinger = NewSource(false);
+        // The stinger is a one-shot player: it must be audible, unlike the loops whose volume the director drives.
+        stinger.volume = 1f;
     }
 
     void Start()
@@ -96,6 +100,8 @@ public class MusicDirector : MonoBehaviour
         }
 
         track.clip = trackClip;
+        // The tension loop is a separate piece of music and need not match the track's length: both start at the same DSP
+        // time, then each loops on its own.
         double start = AudioSettings.dspTime + StartDelay;
         track.PlayScheduled(start);
         if (tensionClip != null)
@@ -127,13 +133,10 @@ public class MusicDirector : MonoBehaviour
 
     void ResolveRefs()
     {
-        if (lantern == null)
+        if (!refsResolved)
         {
+            refsResolved = true;
             lantern = FindAnyObjectByType<Lantern>();
-        }
-
-        if (dawn == null)
-        {
             dawn = FindAnyObjectByType<DawnSequence>();
         }
 
@@ -200,8 +203,12 @@ public class MusicDirector : MonoBehaviour
     void ApplyVolumes()
     {
         float fade = Mathf.Clamp01(elapsed / FadeInDuration);
+        // Low fuel is itself a threat input, so the mood dip (low fuel, dawn) applies to the track only. The tension layer
+        // follows the base volume, which still respects mute and the fade-in.
+        float mute = MusicPlayer.IsMuted ? 0f : 1f;
+        float baseVolume = MusicPlayer.BaseVolume * mute * fade;
         track.volume = MusicPlayer.BaseVolume * MusicPlayer.Mood(lantern, dawn) * fade;
-        tension.volume = hasTension ? track.volume * TensionGain * threat : 0f;
+        tension.volume = hasTension ? baseVolume * TensionGain * threat : 0f;
     }
 
     void OnBeaconLit(Beacon beacon)
@@ -236,6 +243,7 @@ public class MusicDirector : MonoBehaviour
             return;
         }
 
+        stinger.Stop();
         stinger.PlayOneShot(clip, StingerVolume);
         if (AudioManager.Instance != null)
         {

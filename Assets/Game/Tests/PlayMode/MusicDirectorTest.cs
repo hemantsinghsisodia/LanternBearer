@@ -235,6 +235,20 @@ public class MusicDirectorTest
     }
 
     [UnityTest]
+    public IEnumerator StingerPlaysAudibly()
+    {
+        yield return LoadIsland();
+        Component director = Director();
+        Begin(director, MakeLibrary());
+        yield return new WaitForSecondsRealtime(0.2f);
+        director.GetType().GetMethod("PlayStinger").Invoke(director, new object[] { TestClip(1f) });
+        AudioSource stinger = Get<AudioSource>(director, "StingerSource");
+        yield return null;
+        Assert.IsTrue(stinger.isPlaying, "stinger is not playing");
+        Assert.Greater(stinger.volume, 0f, "stinger source is silent");
+    }
+
+    [UnityTest]
     public IEnumerator StingerRespectsMusicMute()
     {
         yield return LoadIsland();
@@ -247,8 +261,34 @@ public class MusicDirectorTest
         yield return null;
         director.GetType().GetMethod("PlayStinger").Invoke(director, new object[] { TestClip(1f) });
         yield return new WaitForSecondsRealtime(0.3f);
+        Assert.IsFalse(Get<AudioSource>(director, "StingerSource").isPlaying, "stinger played while muted");
         Assert.LessOrEqual(MixerValue("MusicVol") + MixerValue("MusicDuck"), -79f, "music is not muted");
         Assert.AreEqual(0f, Get<AudioSource>(director, "Track").volume);
+    }
+
+    [UnityTest]
+    public IEnumerator LowFuelDoesNotHalveTension()
+    {
+        yield return LoadIsland();
+        Component director = Director();
+        Begin(director, MakeLibrary());
+        Object lantern = Object.FindAnyObjectByType(GameType("Lantern"));
+        GameObject mothHost = new GameObject("TestMoth");
+        mothHost.SetActive(false);
+        Component moth = mothHost.AddComponent(GameType("Moth"));
+        lantern.GetType().GetMethod("SetDrainModifier").Invoke(lantern, new object[] { moth, 2f });
+        float max = (float)lantern.GetType().GetField("maxFuel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(lantern);
+        lantern.GetType().GetMethod("SetFuel", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(lantern, new object[] { max * 0.19f });
+        yield return new WaitForSecondsRealtime(3.4f);
+        float fuel = Get<float>(lantern, "FuelNormalized");
+        Assert.Greater(fuel, 0f);
+        Assert.Less(fuel, 0.2f);
+        AudioSource track = Get<AudioSource>(director, "Track");
+        AudioSource tension = Get<AudioSource>(director, "Tension");
+        Assert.AreEqual(1f, Get<float>(director, "Threat"), 0.01f);
+        Assert.AreEqual(0.35f * 0.5f, track.volume, 0.005f, "track should dip on low fuel");
+        Assert.AreEqual(0.35f * 0.708f, tension.volume, 0.005f, "tension must not be halved by low fuel");
+        Object.Destroy(mothHost);
     }
 }
 }

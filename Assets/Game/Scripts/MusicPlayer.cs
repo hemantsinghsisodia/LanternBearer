@@ -220,6 +220,13 @@ public class MusicPlayer : MonoBehaviour
             return;
         }
 
+        if (fadingOut != null && fadingOut != active)
+        {
+            fadingOut.Stop();
+            fadingOut.clip = null;
+            fadingOut.volume = 0f;
+        }
+
         fadingOut = active;
         active = null;
         fadeElapsed = 0f;

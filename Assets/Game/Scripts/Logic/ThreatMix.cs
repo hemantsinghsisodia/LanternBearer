@@ -29,7 +29,7 @@ public static class ThreatMix
 
     public static float Step(float current, float target, float dt)
     {
-        if (dt <= 0f)
+        if (!(dt > 0f))
         {
             return current;
         }

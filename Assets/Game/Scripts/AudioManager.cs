@@ -768,9 +768,12 @@ public class AudioManager : MonoBehaviour
         }
 
         DuckState state = StateFor(parameter);
-        state.target = Time.unscaledTime < state.until ? Mathf.Min(state.target, db) : db;
+        bool held = Time.unscaledTime < state.until;
+        state.target = held ? Mathf.Min(state.target, db) : db;
         state.until = Mathf.Max(state.until, Time.unscaledTime + seconds);
-        state.releaseRate = Mathf.Max(1f, releaseDbPerSecond);
+        // Per call, and the faster rate wins while a duck is already held, so a default duck can't slow a stinger's recovery.
+        float rate = Mathf.Max(1f, releaseDbPerSecond);
+        state.releaseRate = held ? Mathf.Max(state.releaseRate, rate) : rate;
     }
 
     // A continuous floor (dB, 0 or below) for a parameter. It combines with timed ducks by taking the deeper of the two.
