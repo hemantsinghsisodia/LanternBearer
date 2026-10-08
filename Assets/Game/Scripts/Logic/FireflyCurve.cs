@@ -107,6 +107,14 @@ public static class FireflyCurve
         return 1f - Smooth((sinceCollect - 1.5f) / (LingerEnd - 1.5f));
     }
 
+    // A lingering mote eases from 0 back to full size over 0.15 s after the stream arrives.
+    public const float LingerGrowTime = 0.15f;
+
+    public static float LingerScale(float sinceCollect)
+    {
+        return Smooth((sinceCollect - StreamTime) / LingerGrowTime);
+    }
+
     // Horizontal orbit around the lantern, radius 0.3, about 2 rad/s.
     public static Vector3 LingerOffset(int lingerIndex, float sinceCollect)
     {
@@ -128,18 +136,35 @@ public static class FireflyCurve
         return v - Mathf.Floor(v);
     }
 
-    // CPU mirror of the FireflyMote shader drift: a Lissajous offset (world space, metres) added to the mote's own position.
-    // Same formula and inputs as the shader's vert(), with time = _Time.y (Time.timeSinceLevelLoad). Keep the two in step.
-    public static Vector3 Drift(float seed01, int index, float time, float stream)
+    // Drift frequencies (Hz per axis, 0.2 to 0.5) of a mote. Computed once on the CPU and pushed to the shader as _DriftFreq,
+    // so the GPU never evaluates the hash (GPU sin can differ from Mathf.Sin).
+    public static Vector3 DriftFreq(float seed01, int index)
     {
         float k = seed01 * 91.7f + index * 13.3f;
-        float fx = 0.2f + 0.3f * Hash11(k + 1f), fy = 0.2f + 0.3f * Hash11(k + 2f), fz = 0.2f + 0.3f * Hash11(k + 3f);
-        float px = 6.2831853f * Hash11(k + 4f), py = 6.2831853f * Hash11(k + 5f), pz = 6.2831853f * Hash11(k + 6f);
+        return new Vector3(0.2f + 0.3f * Hash11(k + 1f), 0.2f + 0.3f * Hash11(k + 2f), 0.2f + 0.3f * Hash11(k + 3f));
+    }
+
+    // Drift phases (radians per axis) of a mote, pushed to the shader as _DriftPhase.
+    public static Vector3 DriftPhase(float seed01, int index)
+    {
+        float k = seed01 * 91.7f + index * 13.3f;
+        return new Vector3(6.2831853f * Hash11(k + 4f), 6.2831853f * Hash11(k + 5f), 6.2831853f * Hash11(k + 6f));
+    }
+
+    // CPU mirror of the FireflyMote shader drift: a Lissajous offset (world space, metres) added to the mote's own position.
+    // The shader uses the same DriftFreq and DriftPhase values (per-instance _DriftFreq and _DriftPhase), with time = _Time.y.
+    public static Vector3 Drift(float seed01, int index, float time, float stream)
+    {
+        return Drift(DriftFreq(seed01, index), DriftPhase(seed01, index), time, stream);
+    }
+
+    public static Vector3 Drift(Vector3 freq, Vector3 phase, float time, float stream)
+    {
         float gone = 1f - stream;
         return new Vector3(
-            Mathf.Sin(time * 6.2831853f * fx + px) * 0.45f,
-            Mathf.Sin(time * 6.2831853f * fy + py) * 0.45f * 0.6f,
-            Mathf.Sin(time * 6.2831853f * fz + pz) * 0.45f) * gone;
+            Mathf.Sin(time * 6.2831853f * freq.x + phase.x) * 0.45f,
+            Mathf.Sin(time * 6.2831853f * freq.y + phase.y) * 0.45f * 0.6f,
+            Mathf.Sin(time * 6.2831853f * freq.z + phase.z) * 0.45f) * gone;
     }
 
     static float Hash11(float x)

@@ -5,10 +5,9 @@ using UnityEngine;
 namespace LanternKeeper
 {
 // The FPS counter, top-right under the timer. Sits on an always-active holder and shows or hides its readout child
-// from the LanternKeeperFps PlayerPrefs switch (GraphicsMenu.FpsKey, which the graphics panel sets). Counts frames over half a second.
+// from the LanternKeeperFps PlayerPrefs switch (SettingsMath.FpsPrefsKey, which the graphics panel sets). Counts frames over half a second.
 public class FpsReadout : MonoBehaviour
 {
-    public const string FpsKey = "LanternKeeperFps";
     private const float Window = 0.5f;
     private const float PollInterval = 0.25f;
 
@@ -20,7 +19,7 @@ public class FpsReadout : MonoBehaviour
     private int frames;
     private int shownFps = int.MinValue;
     private float nextPoll;
-    private Func<bool> enabledSource = () => PlayerPrefs.GetInt(FpsKey, 0) == 1;
+    private Func<bool> enabledSource = () => PlayerPrefs.GetInt(SettingsMath.FpsPrefsKey, 0) == 1;
 
     public bool Shown { get { return readout.activeSelf; } }
     public string Text { get { return label.Text.text; } }

@@ -41,14 +41,7 @@ public class FireflyCollectTest
         Application.logMessageReceived -= OnLog;
         Time.timeScale = 1f;
         UserSettings.ReduceFlashing = previousReduce;
-        try
-        {
-            SetQuality(previousGraphics);
-        }
-        catch (TargetInvocationException)
-        {
-            // A test destroyed the lantern; quality listeners may no longer find it. The saved preference is restored below.
-        }
+        SetQuality(previousGraphics);
 
         if (hadIntroKey)
         {
@@ -209,7 +202,14 @@ public class FireflyCollectTest
         Component swarm = SwarmOf(scene.fireflies[0]);
         Collect(scene.fireflies[0], scene.player);
         Assert.IsTrue(Get<bool>(swarm, "Streaming"), "streaming right after collect");
-        yield return Wait(0.55f);
+        // Poll until the streaming motes are hidden (the stream ends at 0.5 s), capped at 0.8 s.
+        float start = Time.time;
+        yield return Wait(0.65f);
+        while (EnabledMotes(swarm).Count > 2 && Time.time - start < 0.8f)
+        {
+            yield return null;
+        }
+
         List<Renderer> lingering = EnabledMotes(swarm);
         Assert.AreEqual(2, lingering.Count, "two motes linger on Ultra, the rest are hidden");
         Vector3 glow = GlowPoint(scene).position;
@@ -219,6 +219,26 @@ public class FireflyCollectTest
         }
 
         Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
+    public IEnumerator OneMoteLingersOnLow()
+    {
+        Scene scene = new Scene();
+        yield return Setup(scene);
+        SetQuality(0);
+        yield return null;
+        Component swarm = SwarmOf(scene.fireflies[0]);
+        Collect(scene.fireflies[0], scene.player);
+        float start = Time.time;
+        yield return Wait(0.65f);
+        while (EnabledMotes(swarm).Count > 1 && Time.time - start < 0.8f)
+        {
+            yield return null;
+        }
+
+        Assert.AreEqual(1, EnabledMotes(swarm).Count, "one mote lingers on Low");
     }
 
     [UnityTest]
@@ -265,7 +285,7 @@ public class FireflyCollectTest
         float start = Time.time;
         yield return Wait(1.9f);
         Assert.IsTrue(Get<bool>(swarm, "Streaming"), "still lingering at 1.9 s");
-        while (Get<bool>(swarm, "Streaming") && Time.time - start < 2.6f)
+        while (Get<bool>(swarm, "Streaming") && Time.time - start < 2.3f)
         {
             yield return null;
         }

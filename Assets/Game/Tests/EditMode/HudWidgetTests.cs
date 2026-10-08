@@ -251,10 +251,12 @@ public class HudWidgetTests
     [Test]
     public void FpsPrefsKeyMatchesGraphicsMenu()
     {
+        // One constant now serves both; GraphicsMenu and FpsReadout no longer declare their own copy.
+        Assert.AreEqual("LanternKeeperFps", SettingsMath.FpsPrefsKey);
         System.Type menu = System.Type.GetType("LanternKeeper.GraphicsMenu, Assembly-CSharp");
         Assert.IsNotNull(menu);
-        object key = menu.GetField("FpsKey").GetRawConstantValue();
-        Assert.AreEqual(FpsReadout.FpsKey, key);
+        Assert.IsNull(menu.GetField("FpsKey"), "GraphicsMenu has no duplicate key");
+        Assert.IsNull(typeof(FpsReadout).GetField("FpsKey"), "FpsReadout has no duplicate key");
     }
 
     [Test]

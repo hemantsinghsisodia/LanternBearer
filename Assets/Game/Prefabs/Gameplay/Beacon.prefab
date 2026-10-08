@@ -7648,6 +7648,9 @@ MonoBehaviour:
   glassRenderer: {fileID: 2039973431977395907}
   beamRenderer: {fileID: 7494302239975209367}
   embers: {fileID: 2453708103786767642}
+  cairnRenderers:
+  - {fileID: 1302074338305631211}
+  - {fileID: 8622989296131969453}
 --- !u!23 &7200568526189609877 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -6641254828768798253, guid: 2f4395c1b93204c4f9790f160b71a4e9, type: 3}

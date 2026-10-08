@@ -1587,7 +1587,7 @@ public static partial class SceneWiring
         return problems;
     }
 
-    // The moth, beacon and Shade prefabs an island uses must carry the modelled visuals (F1), not the placeholder primitives.
+    // The moth, beacon, Shade and firefly prefabs an island uses must carry the modelled visuals (F1), not the placeholder primitives.
     static int RequireCreatureVisuals(bool quiet)
     {
         int problems = 0;
@@ -1645,6 +1645,29 @@ public static partial class SceneWiring
             if (prefab != null && prefab.GetComponent<ShadeVisual>() == null)
             {
                 fail("shade missing ShadeVisual");
+            }
+        }
+
+        if (IsIslandScene())
+        {
+            Firefly[] fireflies = Object.FindObjectsByType<Firefly>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < fireflies.Length; i++)
+            {
+                Transform root = fireflies[i].transform;
+                string name = fireflies[i].name;
+                if (fireflies[i].GetComponentInChildren<FireflySwarm>(true) == null)
+                {
+                    fail("firefly '" + name + "' missing swarm visual");
+                }
+
+                string[] placeholders = { "Body", "PickupBurst" };
+                for (int p = 0; p < placeholders.Length; p++)
+                {
+                    if (root.Find(placeholders[p]) != null)
+                    {
+                        fail("firefly '" + name + "' still has placeholder '" + placeholders[p] + "'");
+                    }
+                }
             }
         }
 

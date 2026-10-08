@@ -20,6 +20,8 @@ public static class CreatureInstaller
     public const string BeaconGlassMaterialPath = "Assets/Game/Art/Beacons/BeaconGlass.mat";
     public const string BeaconBeamMaterialPath = "Assets/Game/Art/Beacons/BeaconBeam.mat";
     public const string BeaconIronMaterialPath = "Assets/Game/Art/Beacons/BeaconIron.mat";
+    // The cold moon rim colour every creature material uses (the ShaderLab property defaults carry the same value).
+    static readonly Color MoonRimColor = new Color(0.58f, 0.72f, 0.95f, 1f);
     public const string BeaconCairnMaterialPath = "Assets/Game/Art/Beacons/BeaconCairn.mat";
     public const string BeaconEmberMaterialPath = "Assets/Game/Art/Beacons/BeaconEmber.mat";
     public const string BeaconPrefabPath = "Assets/Game/Prefabs/Gameplay/Beacon.prefab";
@@ -351,7 +353,7 @@ public static class CreatureInstaller
         material.SetColor("_AmberColor", LookPalette.FromHex(LookPalette.LanternAmber));
         material.SetColor("_CoreColor", LookPalette.FromHex(LookPalette.GlowCore));
         material.SetColor("_GlassColor", new Color(0.008f, 0.01f, 0.016f, 1f));
-        material.SetColor("_ColdColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        material.SetColor("_ColdColor", MoonRimColor);
         material.SetFloat("_EmissionGain", 4f);
         EditorUtility.SetDirty(material);
         return material;
@@ -388,7 +390,7 @@ public static class CreatureInstaller
         material.name = "BeaconIron";
         material.SetColor("_BaseColor", new Color(0.045f, 0.047f, 0.055f, 1f));
         material.SetFloat("_Smoothness", 0.4f);
-        material.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
+        material.SetColor("_RimColor", MoonRimColor);
         material.SetFloat("_RimStrength", 1.6f);
         EditorUtility.SetDirty(material);
         return material;
@@ -435,6 +437,12 @@ public static class CreatureInstaller
         {
             if (BeaconInstalled(root.transform, glass, beam))
             {
+                // Already installed: only fill in the serialized cairn renderers if they are missing.
+                if (SetCairnRenderers(root.transform.Find(VisualName).GetComponent<BeaconVisual>(), cairn))
+                {
+                    PrefabUtility.SaveAsPrefabAsset(root, BeaconPrefabPath);
+                }
+
                 return;
             }
 
@@ -540,6 +548,7 @@ public static class CreatureInstaller
             serialized.FindProperty("beamRenderer").objectReferenceValue = beamRenderer;
             serialized.FindProperty("embers").objectReferenceValue = embers.GetComponent<ParticleSystem>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            SetCairnRenderers(component, cairn);
 
             PrefabUtility.SaveAsPrefabAsset(root, BeaconPrefabPath);
         }
@@ -547,6 +556,42 @@ public static class CreatureInstaller
         {
             PrefabUtility.UnloadPrefabContents(root);
         }
+    }
+
+    // BeaconVisual.cairnRenderers: every renderer under the visual that uses the cairn material (LOD0 and LOD1).
+    // Returns true when the serialized field changed.
+    static bool SetCairnRenderers(BeaconVisual component, Material cairn)
+    {
+        System.Collections.Generic.List<Renderer> found = new System.Collections.Generic.List<Renderer>();
+        foreach (Renderer renderer in component.GetComponentsInChildren<Renderer>(true))
+        {
+            if (renderer.sharedMaterial == cairn)
+            {
+                found.Add(renderer);
+            }
+        }
+
+        SerializedObject serialized = new SerializedObject(component);
+        SerializedProperty property = serialized.FindProperty("cairnRenderers");
+        bool same = property.arraySize == found.Count;
+        for (int i = 0; same && i < found.Count; i++)
+        {
+            same = property.GetArrayElementAtIndex(i).objectReferenceValue == found[i];
+        }
+
+        if (same)
+        {
+            return false;
+        }
+
+        property.arraySize = found.Count;
+        for (int i = 0; i < found.Count; i++)
+        {
+            property.GetArrayElementAtIndex(i).objectReferenceValue = found[i];
+        }
+
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        return true;
     }
 
     // The ember burst: BeaconVisual emits by script (45, or 15 on Low), so the system itself has no rate and no looping.
@@ -669,6 +714,39 @@ public static class CreatureInstaller
     const string ShadeFolder = "Assets/Game/Art/Creatures/Shade";
     const string SmokeSoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
 
+    static bool SetName(Material material, string name)
+    {
+        if (material.name == name)
+        {
+            return false;
+        }
+
+        material.name = name;
+        return true;
+    }
+
+    static bool SetColorIfDifferent(Material material, string property, Color value)
+    {
+        if (material.GetColor(property) == value)
+        {
+            return false;
+        }
+
+        material.SetColor(property, value);
+        return true;
+    }
+
+    static bool SetFloatIfDifferent(Material material, string property, float value)
+    {
+        if (Mathf.Approximately(material.GetFloat(property), value))
+        {
+            return false;
+        }
+
+        material.SetFloat(property, value);
+        return true;
+    }
+
     // Re-materials the existing hollow wraith (the mesh, the Body/Eyes/Smoke children, the colliders and the Shade logic are kept),
     // adds the ShadeVisual controller on the root and turns the existing Smoke child into the speed driven trail.
     // Shade.cs finds Body, Eyes and Smoke by name, so no child is renamed or added.
@@ -688,32 +766,43 @@ public static class CreatureInstaller
             AssetDatabase.CreateFolder("Assets/Game/Art/Creatures", "Shade");
         }
 
+        // Values are written (and the asset dirtied) only when they differ, so a re-run leaves the .mat files untouched.
+        bool changed = false;
         Material bodyMaterial = LoadOrCreate(ShadeBodyMaterialPath, body);
-        bodyMaterial.name = "ShadeWraith";
-        bodyMaterial.SetColor("_BaseColor", new Color(0.02f, 0.02f, 0.04f, 0.92f));
-        bodyMaterial.SetColor("_InkColor", new Color(0.02f, 0.02f, 0.04f, 1f));
-        bodyMaterial.SetColor("_StunInkColor", new Color(0.04f, 0.055f, 0.11f, 1f));
-        bodyMaterial.SetFloat("_BodyAlphaRef", 0.92f);
-        bodyMaterial.SetColor("_OutlineColor", LookPalette.FromHex(LookPalette.LightningBlue));
-        bodyMaterial.SetColor("_BurnColor", LookPalette.FromHex(ShadeVisual.BurnEdgeHex));
-        bodyMaterial.SetColor("_RimColor", new Color(0.58f, 0.72f, 0.95f, 1f));
-        bodyMaterial.SetFloat("_RimStrength", 0.3f);
-        bodyMaterial.SetFloat("_SkyTint", 0.08f);
-        bodyMaterial.SetFloat("_BurnGain", 1f);
-        EditorUtility.SetDirty(bodyMaterial);
+        changed |= SetName(bodyMaterial, "ShadeWraith");
+        changed |= SetColorIfDifferent(bodyMaterial, "_BaseColor", new Color(0.02f, 0.02f, 0.04f, 0.92f));
+        changed |= SetColorIfDifferent(bodyMaterial, "_InkColor", new Color(0.02f, 0.02f, 0.04f, 1f));
+        changed |= SetColorIfDifferent(bodyMaterial, "_StunInkColor", new Color(0.04f, 0.055f, 0.11f, 1f));
+        changed |= SetFloatIfDifferent(bodyMaterial, "_BodyAlphaRef", 0.92f);
+        changed |= SetColorIfDifferent(bodyMaterial, "_OutlineColor", LookPalette.FromHex(LookPalette.LightningBlue));
+        changed |= SetColorIfDifferent(bodyMaterial, "_BurnColor", LookPalette.FromHex(ShadeVisual.BurnEdgeHex));
+        changed |= SetColorIfDifferent(bodyMaterial, "_RimColor", MoonRimColor);
+        changed |= SetFloatIfDifferent(bodyMaterial, "_RimStrength", 0.3f);
+        changed |= SetFloatIfDifferent(bodyMaterial, "_SkyTint", 0.08f);
+        changed |= SetFloatIfDifferent(bodyMaterial, "_BurnGain", 1f);
 
         Material eyeMaterial = LoadOrCreate(ShadeEyeMaterialPath, eye);
-        eyeMaterial.name = "ShadeEyePale";
-        eyeMaterial.SetColor("_Color", new Color(0.78f, 0.88f, 1f, 1f));
-        eyeMaterial.SetFloat("_Gain", 2.4f);
-        EditorUtility.SetDirty(eyeMaterial);
+        changed |= SetName(eyeMaterial, "ShadeEyePale");
+        changed |= SetColorIfDifferent(eyeMaterial, "_Color", new Color(0.78f, 0.88f, 1f, 1f));
+        changed |= SetFloatIfDifferent(eyeMaterial, "_Gain", 2.4f);
 
         Material smokeMaterial = LoadOrCreate(ShadeSmokeMaterialPath, smoke);
-        smokeMaterial.name = "ShadeTrail";
-        smokeMaterial.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(SmokeSoftTexturePath));
-        smokeMaterial.SetColor("_BaseColor", new Color(0.14f, 0.17f, 0.3f, 1f));
-        EditorUtility.SetDirty(smokeMaterial);
-        AssetDatabase.SaveAssets();
+        changed |= SetName(smokeMaterial, "ShadeTrail");
+        Texture2D smokeTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(SmokeSoftTexturePath);
+        if (smokeMaterial.GetTexture("_BaseMap") != smokeTexture)
+        {
+            smokeMaterial.SetTexture("_BaseMap", smokeTexture);
+            changed = true;
+        }
+
+        changed |= SetColorIfDifferent(smokeMaterial, "_BaseColor", new Color(0.14f, 0.17f, 0.3f, 1f));
+        if (changed)
+        {
+            EditorUtility.SetDirty(bodyMaterial);
+            EditorUtility.SetDirty(eyeMaterial);
+            EditorUtility.SetDirty(smokeMaterial);
+            AssetDatabase.SaveAssets();
+        }
 
         GameObject root = PrefabUtility.LoadPrefabContents(ShadePrefabPath);
         try

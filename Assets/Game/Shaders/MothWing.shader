@@ -6,6 +6,7 @@ Shader "LanternKeeper/MothWing"
     // Low preset: _LKMothLow = 1 is a plain sine (no glide), picked by a uniform branch, never a new keyword.
     // Vertex colour R is the span fraction (0 at the root, 1 at the tip); the tips bend a little more than the roots.
     // Lit with wrap lighting and a thin translucency so the lantern warms the wings. No stencil write: bit 8 belongs to the keeper.
+    // No ShadowCaster pass: every MothWings renderer (Moth.prefab, spawned by MothSpawner) has Cast Shadows Off.
     Properties
     {
         _BaseMap ("Wing Texture", 2D) = "white" {}
@@ -123,6 +124,7 @@ Shader "LanternKeeper/MothWing"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "CreatureCommon.hlsl"
 
             struct Attributes
             {
@@ -176,11 +178,7 @@ Shader "LanternKeeper/MothWing"
                 float3 color = albedo * _MoonLift * (ambient + mainLight.color * (wrap * mainLight.shadowAttenuation));
 
                 // The clustered light loop macros read inputData.
-                InputData inputData = (InputData)0;
-                inputData.positionWS = input.positionWS;
-                inputData.normalWS = normalWS;
-                inputData.viewDirectionWS = viewDir;
-                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                InputData inputData = CreatureInputData(input.positionWS, normalWS, viewDir, input.positionCS);
                 #if defined(_ADDITIONAL_LIGHTS)
                 uint pixelLightCount = GetAdditionalLightsCount();
                 LIGHT_LOOP_BEGIN(pixelLightCount)
@@ -194,71 +192,6 @@ Shader "LanternKeeper/MothWing"
                 float fresnel = pow(saturate(1.0 - abs(dot(normalWS, viewDir))), _RimPower);
                 color += _RimColor.rgb * fresnel * _RimStrength;
                 return half4(color, 1);
-            }
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "ShadowCaster"
-            Tags { "LightMode" = "ShadowCaster" }
-            Cull Off
-            ZWrite On
-            ColorMask 0
-            HLSLPROGRAM
-            #pragma target 3.5
-            #pragma vertex vert
-            #pragma fragment frag
-            #pragma multi_compile_instancing
-            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-
-            float3 _LightDirection;
-            float3 _LightPosition;
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-                float2 uv : TEXCOORD0;
-                float4 color : COLOR;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            Varyings vert(Attributes input)
-            {
-                Varyings output;
-                UNITY_SETUP_INSTANCE_ID(input);
-                UNITY_TRANSFER_INSTANCE_ID(input, output);
-                float angle = MothAngle(_Time.y, UNITY_ACCESS_INSTANCED_PROP(MothProps, _Phase), UNITY_ACCESS_INSTANCED_PROP(MothProps, _FlapHz));
-                float3 pos;
-                float3 nrm;
-                MothFlapVertex(input.positionOS.xyz, input.normalOS, input.color.r, angle, pos, nrm);
-                float3 positionWS = TransformObjectToWorld(pos);
-                float3 normalWS = TransformObjectToWorldNormal(nrm);
-                #if _CASTING_PUNCTUAL_LIGHT_SHADOW
-                float3 lightDirectionWS = normalize(_LightPosition - positionWS);
-                #else
-                float3 lightDirectionWS = _LightDirection;
-                #endif
-                output.positionCS = TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
-                output.positionCS = ApplyShadowClamping(output.positionCS);
-                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
-                return output;
-            }
-
-            half4 frag(Varyings input) : SV_Target
-            {
-                UNITY_SETUP_INSTANCE_ID(input);
-                clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a * _BaseColor.a - _Cutoff);
-                return 0;
             }
             ENDHLSL
         }

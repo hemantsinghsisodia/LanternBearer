@@ -2,7 +2,8 @@ Shader "LanternKeeper/FireflyMote"
 {
     // One firefly mote: a camera-facing additive quad with a white core fading to _Color at the halo edge.
     // Per instance (FireflySwarm, MaterialPropertyBlock): _Phase (blink cycle offset, MoteOffset), _Period (s), _Seed (0..1),
-    // _Index (mote number), _Stream (0..1, collect stream: no drift, held lit), _Fade (0..1, overall alpha).
+    // _Index (mote number), _Stream (0..1, collect stream: no drift, held lit), _Fade (0..1, overall alpha),
+    // _DriftFreq / _DriftPhase (xyz: per-axis drift frequency in Hz and phase in radians, from FireflyCurve.DriftFreq/DriftPhase).
     // Globals: _LKFireflyLow = 1 on Low (motes 4 and up are hidden, 4-mote blink), _LKReduceFlashing = 1 (slower edges, 0.3 floor).
     // The blink mirrors FireflyCurve.Blink; keep them in step.
     Properties
@@ -15,6 +16,8 @@ Shader "LanternKeeper/FireflyMote"
         _Index ("Index", Float) = 0
         _Stream ("Stream", Float) = 0
         _Fade ("Fade", Float) = 1
+        _DriftFreq ("Drift Freq", Vector) = (0.35, 0.35, 0.35, 0)
+        _DriftPhase ("Drift Phase", Vector) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -48,6 +51,8 @@ Shader "LanternKeeper/FireflyMote"
                 UNITY_DEFINE_INSTANCED_PROP(float, _Index)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Stream)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Fade)
+                UNITY_DEFINE_INSTANCED_PROP(float4, _DriftFreq)
+                UNITY_DEFINE_INSTANCED_PROP(float4, _DriftPhase)
             UNITY_INSTANCING_BUFFER_END(FireflyProps)
 
             float _LKFireflyLow;
@@ -67,11 +72,6 @@ Shader "LanternKeeper/FireflyMote"
                 float alpha : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
-
-            float Hash11(float x)
-            {
-                return frac(sin(x * 127.1) * 43758.5453);
-            }
 
             // Same envelope as FireflyCurve.Blink: rise, hold, fall, dark.
             float Blink(float time, float period, float offset, float count)
@@ -105,7 +105,6 @@ Shader "LanternKeeper/FireflyMote"
 
                 float phase = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Phase);
                 float period = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Period);
-                float seed = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Seed);
                 float index = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Index);
                 float stream = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Stream);
                 float fade = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _Fade);
@@ -113,10 +112,9 @@ Shader "LanternKeeper/FireflyMote"
                 bool low = _LKFireflyLow > 0.5;
                 float count = low ? 4.0 : 6.0;
 
-                // Lissajous drift (mirrored on the CPU by FireflyCurve.Drift: keep them in step), 0.45 m, 0.2 to 0.5 Hz per axis, gone while streaming.
-                float k = seed * 91.7 + index * 13.3;
-                float3 freq = 0.2 + 0.3 * float3(Hash11(k + 1.0), Hash11(k + 2.0), Hash11(k + 3.0));
-                float3 ph = 6.2831853 * float3(Hash11(k + 4.0), Hash11(k + 5.0), Hash11(k + 6.0));
+                // Lissajous drift (frequencies and phases computed on the CPU by FireflyCurve.DriftFreq/DriftPhase, mirrored by FireflyCurve.Drift), 0.45 m, 0.2 to 0.5 Hz per axis, gone while streaming.
+                float3 freq = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _DriftFreq).xyz;
+                float3 ph = UNITY_ACCESS_INSTANCED_PROP(FireflyProps, _DriftPhase).xyz;
                 float3 drift = sin(_Time.y * 6.2831853 * freq + ph) * 0.45 * float3(1.0, 0.6, 1.0) * (1.0 - stream);
 
                 float3 centre = TransformObjectToWorld(float3(0.0, 0.0, 0.0)) + drift;

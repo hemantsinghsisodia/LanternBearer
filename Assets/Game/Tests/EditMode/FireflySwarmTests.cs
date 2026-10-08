@@ -88,6 +88,35 @@ public class FireflySwarmTests
     }
 
     [Test]
+    public void SwarmPushesTheDriftValuesDriftUses()
+    {
+        Component swarm = Swarm();
+        const float seed = 0.37f;
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        Type type = swarm.GetType();
+        type.GetField("seed01", flags).SetValue(swarm, seed);
+        type.GetField("block", flags).SetValue(swarm, new MaterialPropertyBlock());
+        type.GetMethod("Apply", flags).Invoke(swarm, null);
+        MaterialPropertyBlock read = new MaterialPropertyBlock();
+        for (int i = 0; i < 6; i++)
+        {
+            swarm.transform.Find("Mote" + i).GetComponent<Renderer>().GetPropertyBlock(read);
+            Vector4 freq = read.GetVector("_DriftFreq");
+            Vector4 phase = read.GetVector("_DriftPhase");
+            Vector3 expectedFreq = FireflyCurve.DriftFreq(seed, i);
+            Vector3 expectedPhase = FireflyCurve.DriftPhase(seed, i);
+            Assert.AreEqual(expectedFreq.x, freq.x, 1e-6f, "freq x " + i);
+            Assert.AreEqual(expectedFreq.y, freq.y, 1e-6f, "freq y " + i);
+            Assert.AreEqual(expectedFreq.z, freq.z, 1e-6f, "freq z " + i);
+            Assert.AreEqual(expectedPhase.x, phase.x, 1e-6f, "phase x " + i);
+            Assert.AreEqual(expectedPhase.y, phase.y, 1e-6f, "phase y " + i);
+            Assert.AreEqual(expectedPhase.z, phase.z, 1e-6f, "phase z " + i);
+            Vector3 fromBlock = FireflyCurve.Drift(new Vector3(freq.x, freq.y, freq.z), new Vector3(phase.x, phase.y, phase.z), 1.7f, 0f);
+            Assert.AreEqual(0f, Vector3.Distance(fromBlock, FireflyCurve.Drift(seed, i, 1.7f, 0f)), 1e-5f, "Drift uses the pushed values " + i);
+        }
+    }
+
+    [Test]
     public void InstallFireflyIsIdempotent()
     {
         Type installer = Type.GetType("LanternKeeper.CreatureInstaller, Assembly-CSharp-Editor");

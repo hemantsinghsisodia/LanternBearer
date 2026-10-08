@@ -9,14 +9,12 @@ namespace LanternKeeper
 // and the Tab-key focus helper the pause screen uses.
 public static class GraphicsMenu
 {
-    public const string FpsKey = "LanternKeeperFps";
-
     public static bool FpsEnabled
     {
-        get { return PlayerPrefs.GetInt(FpsKey, 0) == 1; }
+        get { return PlayerPrefs.GetInt(SettingsMath.FpsPrefsKey, 0) == 1; }
         set
         {
-            PlayerPrefs.SetInt(FpsKey, value ? 1 : 0);
+            PlayerPrefs.SetInt(SettingsMath.FpsPrefsKey, value ? 1 : 0);
             PlayerPrefs.Save();
         }
     }

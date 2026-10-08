@@ -22,6 +22,8 @@ public class FireflySwarm : MonoBehaviour
     static readonly int IndexId = Shader.PropertyToID("_Index");
     static readonly int StreamId = Shader.PropertyToID("_Stream");
     static readonly int FadeId = Shader.PropertyToID("_Fade");
+    static readonly int DriftFreqId = Shader.PropertyToID("_DriftFreq");
+    static readonly int DriftPhaseId = Shader.PropertyToID("_DriftPhase");
 
     Transform[] motes = new Transform[0];
     Renderer[] renderers = new Renderer[0];
@@ -207,10 +209,16 @@ public class FireflySwarm : MonoBehaviour
             block.SetFloat(IndexId, i);
             block.SetFloat(StreamId, streaming ? 1f : 0f);
             block.SetFloat(FadeId, 1f);
+            block.SetVector(DriftFreqId, FireflyCurve.DriftFreq(seed01, i));
+            block.SetVector(DriftPhaseId, FireflyCurve.DriftPhase(seed01, i));
             renderer.SetPropertyBlock(block);
         }
 
-        ApplyShown();
+        // A collect stream in progress keeps its motes visible (a quality change must not hide them); the hide lands when it ends.
+        if (!streaming)
+        {
+            ApplyShown();
+        }
     }
 
     // Shows or hides the motes. A collect stream in progress keeps its motes visible; the hide lands when the stream ends.
@@ -330,7 +338,7 @@ public class FireflySwarm : MonoBehaviour
                 }
 
                 motes[i].position = lastTargetPosition + FireflyCurve.LingerOffset(i, t);
-                motes[i].localScale = moteScales[i];
+                motes[i].localScale = moteScales[i] * FireflyCurve.LingerScale(t);
                 SetMoteBlock(i, 1f, alpha);
             }
         }
