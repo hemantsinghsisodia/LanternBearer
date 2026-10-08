@@ -116,7 +116,8 @@ Shader "LanternKeeper/FireflyMote"
                 float3 drift = sin(_Time.y * 6.2831853 * freq + ph) * 0.45 * float3(1.0, 0.6, 1.0) * (1.0 - stream);
 
                 float3 centre = TransformObjectToWorld(float3(0.0, 0.0, 0.0)) + drift;
-                float size = length(float3(unity_ObjectToWorld[0].x, unity_ObjectToWorld[1].x, unity_ObjectToWorld[2].x));
+                // World size of the mote: the length of the object X axis in world space (its uniform scale).
+                float size = length(TransformObjectToWorldDir(float3(1.0, 0.0, 0.0), false));
                 // Minimum on-screen size: never smaller than about 10 px across, so a far mote stays a visible green point.
                 float depth = max(TransformWorldToHClip(centre).w, 0.01);
                 float minSize = 10.0 * 2.0 * depth / (abs(UNITY_MATRIX_P._m11) * _ScreenParams.y);
