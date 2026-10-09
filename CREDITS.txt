@@ -71,7 +71,7 @@ Sound effects and ambience (CC0)
 Edited from the originals: trimmed, pitched, layered, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
 Synthesised sounds that have no recording (heartbeat, firefly arrival, moth whisper, Shade drone, beacon whoosh, wind bed) are generated in the project (ProceduralAudio).
 
-Assets/Game/Audio/UI/UI_Hover_*, UI_Click_*, UI_Back_*, UI_PauseOpen_1, UI_PauseClose_1, UI_Toggle_*
+Assets/Game/Audio/UI/UI_Click_*, UI_Back_*, UI_PauseOpen_1, UI_PauseClose_1, UI_Toggle_*
   Interface Sounds by Kenney
   https://opengameart.org/content/interface-sounds  (https://kenney.nl/assets/interface-sounds)
   Licence: CC0

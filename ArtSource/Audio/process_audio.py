@@ -395,8 +395,6 @@ def jobs():
     one("Ambience_Owl_1", "Ambience.Owl", "ambience", RAW / "N3/1763.mp3", fo=0.15, folder="Sfx", note="N3 Tawny Owl #1, one-shot (Sfx folder, ambience loudness)")
 
     # --- UI
-    for i, n in enumerate(["select_008", "select_007"], 1):
-        one("UI_Hover_%d" % i, "UI.Hover", "ui", K1 / (n + ".ogg"), fo=0.01, max_s=0.2, note="K1 " + n)
     for i, n in enumerate(["click_001", "click_004"], 1):
         one("UI_Click_%d" % i, "UI.Click", "ui", K1 / (n + ".ogg"), fo=0.01, max_s=0.25, note="K1 " + n)
     for i, n in enumerate(["back_001", "back_003"], 1):

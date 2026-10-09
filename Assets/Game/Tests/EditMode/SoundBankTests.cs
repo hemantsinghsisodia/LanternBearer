@@ -45,7 +45,7 @@ public class SoundBankTests
     {
         SoundBank bank = Bank();
         List<string> names = AllCues();
-        Assert.AreEqual(40, names.Count);
+        Assert.AreEqual(39, names.Count);
         for (int i = 0; i < names.Count; i++)
         {
             Assert.IsNotNull(bank.Find(names[i]), "Missing bank entry: " + names[i]);
