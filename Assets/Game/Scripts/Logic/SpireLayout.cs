@@ -18,7 +18,7 @@ public static class SpireLayout
     // Tunables for the terrain task.
     public const float StartRadius = Radius - 4f;      // beach spawn radius at angle 0
     public const float EndRadius = 3f;                 // spiral radius at the summit
-    public const float RadiusPower = 1.5f;             // above 1 tightens the upper turns so shortcuts can span them
+    public const float RadiusPower = 1.2f;             // above 1 tightens the upper loops so shortcuts can span them
     public const float PathBaseHeight = 0.5f;          // height at the beach end of the path
     public const float PathTopHeight = 38.5f;          // height at the summit end of the path
     public const float RequiredGapWidth = 7.5f;        // XZ width of each required gap (6-9 m allowed)
@@ -27,12 +27,13 @@ public static class SpireLayout
     public const float GapCentre2 = 0.42f;             // path u of required gap 2
     public const float GapCentre3 = 0.66f;             // path u of required gap 3 (broken stair)
 
-    // Path u of the 8 beacons, ordered up the spiral and clear of every gap span.
-    static readonly float[] BeaconU = { 0.10f, 0.30f, 0.54f, 0.70f, 0.73f, 0.76f, 0.79f, 0.81f };
+    // Path u of the 8 beacons, two per segment (before gap 1, gaps 1-2, gaps 2-3, gap 3 to gap 4). All clear of every gap span.
+    static readonly float[] BeaconU = { 0.08f, 0.145f, 0.26f, 0.335f, 0.49f, 0.57f, 0.705f, 0.81f };
 
-    // Optional shortcuts as beacon index pairs (lower, higher): span 12 m or less, height difference 6 m or less.
-    static readonly int[] OptionalFrom = { 3, 4 };
-    static readonly int[] OptionalTo = { 6, 7 };
+    // Optional shortcuts across the tight upper loops, as path u pairs: span 12 m or less, height difference 6 m or less.
+    // Each bridge forms when the beacons nearest its two ends are both lit (here beacons 6 and 7).
+    static readonly float[] OptionalNearU = { 0.71f, 0.725f };
+    static readonly float[] OptionalFarU = { 0.82f, 0.84f };
 
     public static Vector2 PathPoint(float u01)
     {
@@ -92,31 +93,30 @@ public static class SpireLayout
                 nearXZ = PathPoint(centres[i] - half),
                 farXZ = PathPoint(centres[i] + half),
                 required = true,
-                nearBeacon = i,
-                farBeacon = i + 1
+                nearBeacon = 1 + 2 * i,
+                farBeacon = -1
             };
         }
 
-        // The summit span starts at the last beacon; its far side is the plateau, so both indices are the last beacon.
+        // Far sides of gaps 1-3 are bridge lanterns and gap 4's is the plateau, so none has a far beacon (-1).
         gaps[3] = new SpireGap
         {
             nearXZ = PathPoint(SummitSpanNearU()),
             farXZ = PathPoint(1f),
             required = true,
             nearBeacon = BeaconU.Length - 1,
-            farBeacon = BeaconU.Length - 1
+            farBeacon = -1
         };
 
-        Vector2[] beacons = BeaconXZ();
         for (int i = 0; i < 2; i++)
         {
             gaps[4 + i] = new SpireGap
             {
-                nearXZ = beacons[OptionalFrom[i]],
-                farXZ = beacons[OptionalTo[i]],
+                nearXZ = PathPoint(OptionalNearU[i]),
+                farXZ = PathPoint(OptionalFarU[i]),
                 required = false,
-                nearBeacon = OptionalFrom[i],
-                farBeacon = OptionalTo[i]
+                nearBeacon = NearestBeacon(OptionalNearU[i]),
+                farBeacon = NearestBeacon(OptionalFarU[i])
             };
         }
 
@@ -134,6 +134,26 @@ public static class SpireLayout
         float centre = requiredIndex == 0 ? GapCentre1 : (requiredIndex == 1 ? GapCentre2 : GapCentre3);
         float half = HalfWidthU(centre);
         return new Vector2(centre - half, centre + half);
+    }
+
+    // Path u of an optional bridge's two ends (x = near, y = far), index 0 or 1.
+    public static Vector2 OptionalSpanU(int optionalIndex)
+    {
+        return new Vector2(OptionalNearU[optionalIndex], OptionalFarU[optionalIndex]);
+    }
+
+    static int NearestBeacon(float u)
+    {
+        int best = 0;
+        for (int i = 1; i < BeaconU.Length; i++)
+        {
+            if (Math.Abs(BeaconU[i] - u) < Math.Abs(BeaconU[best] - u))
+            {
+                best = i;
+            }
+        }
+
+        return best;
     }
 
     public static Vector2 LampXZ()
