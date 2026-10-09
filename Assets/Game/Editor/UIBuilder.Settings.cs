@@ -24,6 +24,21 @@ public static partial class UIBuilder
         "How the keeper answers you."
     };
 
+    // Height reserved for the hint line: two lines at 130% text.
+    public const float HintHeight = 90f;
+
+    // Tags a settings row with its hint id. Rows with no graphic get a clear one so the whole row reports pointer hover.
+    static void AddHintId(GameObject row, string id)
+    {
+        if (row.GetComponent<Graphic>() == null)
+        {
+            Image hit = row.AddComponent<Image>();
+            hit.color = new Color(0f, 0f, 0f, 0f);
+            hit.raycastTarget = true;
+        }
+        row.AddComponent<SettingsHintRow>().Configure(id);
+    }
+
     static void EnsureFolders(string folder)
     {
         string[] parts = folder.Split('/');
@@ -63,13 +78,15 @@ public static partial class UIBuilder
         listRect.anchorMax = new Vector2(0, 1);
         listRect.pivot = new Vector2(0, 1);
         listRect.anchoredPosition = new Vector2(60, -190);
-        listRect.sizeDelta = new Vector2(1240f, 520f);
+        listRect.sizeDelta = new Vector2(1240f, 450f);
         SectionList list = listGo.GetComponent<SectionList>();
         GameObject[] panels = list.SectionPanels;
 
         // Display
         DisplaySection displaySection = panels[0].AddComponent<DisplaySection>();
-        SliderRow brightness = MakeSliderRow(panels[0].transform, "Brightness").GetComponent<SliderRow>();
+        GameObject brightnessGo = MakeSliderRow(panels[0].transform, "Brightness");
+        AddHintId(brightnessGo, SettingsHints.Brightness);
+        SliderRow brightness = brightnessGo.GetComponent<SliderRow>();
         GameObject cardGo = NewUI("TestCard", panels[0].transform);
         ((RectTransform)cardGo.transform).sizeDelta = new Vector2(760f, 130f);
         RawImage card = cardGo.AddComponent<RawImage>();
@@ -80,30 +97,54 @@ public static partial class UIBuilder
             "Raise brightness until the sea is just visible against the cliff.", ThemedLabel.Role.Body, theme.bodyPx, theme);
         caption.Text.color = theme.textMuted;
         ((RectTransform)caption.transform).sizeDelta = new Vector2(900f, 44f);
-        DropdownRow resolution = MakeDropdownRow(panels[0].transform, "Resolution").GetComponent<DropdownRow>();
-        SwitchRow window = MakeSwitchRow(panels[0].transform, "Window mode", new[] { "Fullscreen", "Borderless", "Windowed" }, 1).GetComponent<SwitchRow>();
+        GameObject resolutionGo = MakeDropdownRow(panels[0].transform, "Resolution");
+        AddHintId(resolutionGo, SettingsHints.Resolution);
+        DropdownRow resolution = resolutionGo.GetComponent<DropdownRow>();
+        GameObject windowGo = MakeSwitchRow(panels[0].transform, "Window mode", new[] { "Fullscreen", "Borderless", "Windowed" }, 1);
+        AddHintId(windowGo, SettingsHints.WindowMode);
+        SwitchRow window = windowGo.GetComponent<SwitchRow>();
         displaySection.Configure(brightness, card, resolution, window);
 
         // Graphics
         GraphicsSection graphicsSection = panels[1].AddComponent<GraphicsSection>();
-        SwitchRow preset = MakeSwitchRow(panels[1].transform, "Preset", new[] { "Low", "Medium", "High", "Ultra" }, 1).GetComponent<SwitchRow>();
-        SwitchRow renderScale = MakeSwitchRow(panels[1].transform, "Render scale", SettingsMath.RenderScaleLabels(), 0).GetComponent<SwitchRow>();
-        SwitchRow vsync = MakeSwitchRow(panels[1].transform, "VSync", new[] { "Off", "On" }, 0).GetComponent<SwitchRow>();
-        SwitchRow fps = MakeSwitchRow(panels[1].transform, "FPS counter", new[] { "Off", "On" }, 0).GetComponent<SwitchRow>();
+        GameObject presetGo = MakeSwitchRow(panels[1].transform, "Preset", new[] { "Low", "Medium", "High", "Ultra" }, 1);
+        AddHintId(presetGo, SettingsHints.Preset);
+        SwitchRow preset = presetGo.GetComponent<SwitchRow>();
+        GameObject renderScaleGo = MakeSwitchRow(panels[1].transform, "Render scale", SettingsMath.RenderScaleLabels(), 0);
+        AddHintId(renderScaleGo, SettingsHints.RenderScale);
+        SwitchRow renderScale = renderScaleGo.GetComponent<SwitchRow>();
+        GameObject vsyncGo = MakeSwitchRow(panels[1].transform, "VSync", new[] { "Off", "On" }, 0);
+        AddHintId(vsyncGo, SettingsHints.VSync);
+        SwitchRow vsync = vsyncGo.GetComponent<SwitchRow>();
+        GameObject fpsGo = MakeSwitchRow(panels[1].transform, "FPS counter", new[] { "Off", "On" }, 0);
+        AddHintId(fpsGo, SettingsHints.FpsCounter);
+        SwitchRow fps = fpsGo.GetComponent<SwitchRow>();
         graphicsSection.Configure(preset, renderScale, vsync, fps);
 
         // Audio
         AudioSection audioSection = panels[2].AddComponent<AudioSection>();
-        SliderRow master = MakeSliderRow(panels[2].transform, "Master volume").GetComponent<SliderRow>();
-        SliderRow music = MakeSliderRow(panels[2].transform, "Music volume").GetComponent<SliderRow>();
-        SliderRow effects = MakeSliderRow(panels[2].transform, "Effects volume").GetComponent<SliderRow>();
-        SliderRow ambience = MakeSliderRow(panels[2].transform, "Ambience volume").GetComponent<SliderRow>();
+        GameObject masterGo = MakeSliderRow(panels[2].transform, "Master volume");
+        AddHintId(masterGo, SettingsHints.MasterVolume);
+        SliderRow master = masterGo.GetComponent<SliderRow>();
+        GameObject musicGo = MakeSliderRow(panels[2].transform, "Music volume");
+        AddHintId(musicGo, SettingsHints.MusicVolume);
+        SliderRow music = musicGo.GetComponent<SliderRow>();
+        GameObject effectsGo = MakeSliderRow(panels[2].transform, "Effects volume");
+        AddHintId(effectsGo, SettingsHints.EffectsVolume);
+        SliderRow effects = effectsGo.GetComponent<SliderRow>();
+        GameObject ambienceGo = MakeSliderRow(panels[2].transform, "Ambience volume");
+        AddHintId(ambienceGo, SettingsHints.AmbienceVolume);
+        SliderRow ambience = ambienceGo.GetComponent<SliderRow>();
         audioSection.Configure(master, music, effects, ambience);
 
         // Accessibility
         AccessibilitySection accessibilitySection = panels[3].AddComponent<AccessibilitySection>();
-        SwitchRow textSize = MakeSwitchRow(panels[3].transform, "Text size", new[] { "100%", "115%", "130%" }, 0).GetComponent<SwitchRow>();
-        SwitchRow reduce = MakeSwitchRow(panels[3].transform, "Reduce flashing", new[] { "Off", "On" }, 0).GetComponent<SwitchRow>();
+        GameObject textSizeGo = MakeSwitchRow(panels[3].transform, "Text size", new[] { "100%", "115%", "130%" }, 0);
+        AddHintId(textSizeGo, SettingsHints.TextSize);
+        SwitchRow textSize = textSizeGo.GetComponent<SwitchRow>();
+        GameObject reduceGo = MakeSwitchRow(panels[3].transform, "Reduce flashing", new[] { "Off", "On" }, 0);
+        AddHintId(reduceGo, SettingsHints.ReduceFlashing);
+        SwitchRow reduce = reduceGo.GetComponent<SwitchRow>();
         accessibilitySection.Configure(textSize, reduce);
 
         // Controls
@@ -113,6 +154,8 @@ public static partial class UIBuilder
         {
             ThemedLabel row = AddLabel(panels[4].transform, "Binding" + i, ControlsSection.Bindings[i], ThemedLabel.Role.Body, theme.bodyPx, theme);
             ((RectTransform)row.transform).sizeDelta = new Vector2(760f, 40f);
+            row.Text.raycastTarget = true;
+            row.gameObject.AddComponent<SettingsHintRow>().Configure(SettingsHints.ControlId(i));
             rows[i] = row;
         }
         controlsSection.Configure(rows);
@@ -122,9 +165,17 @@ public static partial class UIBuilder
         backGo.GetComponent<ThemedButton>().SetBack(true);
         Anchor(backGo, new Vector2(0, 0), new Vector2(0, 0), new Vector2(60, 40), new Vector2(320, 40 + RowHeight));
 
+        // One hint line along the bottom, right of Back: up to two lines at 130% text.
+        ThemedLabel hint = AddLabel(panel.transform, "Hint", "", ThemedLabel.Role.Flavour, 20f, theme);
+        hint.Text.textWrappingMode = TextWrappingModes.Normal;
+        hint.Text.overflowMode = TextOverflowModes.Ellipsis;
+        hint.Text.alignment = TextAlignmentOptions.MidlineLeft;
+        Anchor(hint.gameObject, new Vector2(0, 0), new Vector2(1, 0), new Vector2(348, 30), new Vector2(-60, 30 + HintHeight));
+
         SettingsScreen screen = root.AddComponent<SettingsScreen>();
         screen.Configure(list, backGo.GetComponent<Button>(), flavour, SettingsFlavours,
             displaySection, graphicsSection, audioSection, accessibilitySection, controlsSection);
+        screen.ConfigureHint(hint);
         root.AddComponent<TextScaler>();
 
         EnsureFolders("Assets/Game/Prefabs/UI");
