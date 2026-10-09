@@ -50,8 +50,8 @@ Assets/Game/Audio/Music/Tension_Island3_1.ogg
   Licence: CC0
 
 Assets/Game/Audio/Stingers/Stinger_BeaconLit_1.ogg
-  Win sound effect by Listener
-  https://opengameart.org/content/win-sound-effect
+  Telos Strings with French Horn by Tozan
+  https://opengameart.org/content/telos-strings-with-french-horn
   Licence: CC0
 
 Assets/Game/Audio/Stingers/Stinger_Win_1.ogg

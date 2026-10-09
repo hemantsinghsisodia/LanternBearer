@@ -407,7 +407,7 @@ def jobs():
         one("UI_Toggle_%d" % i, "UI.Toggle", "ui", K1 / (n + ".ogg"), fo=0.02, max_s=0.2, note="K1 " + n)
 
     # --- stingers (2-4 s, 150 ms fade-out)
-    one("Stinger_BeaconLit_1", "Stinger.BeaconLit", "stinger", RAW / "Stinger_BeaconLit/Win sound.wav", fo=0.15, max_s=2.5, ch="stereo", note="Listener win sound, first 2.5 s")
+    one("Stinger_BeaconLit_1", "Stinger.BeaconLit", "stinger", RAW / "Stinger_BeaconLit_new/telosstringswithfrenchorn.ogg", fo=0.15, max_s=3.5, t0=60.9, t1=64.4, ch="stereo", note="Tozan Telos Strings with French Horn, 60.9 s to 64.4 s (quiet bed, then the strings and horn swell in)")
     one("Stinger_Win_1", "Stinger.Win", "stinger", RAW / "Stinger_Win/Heavy_ConceptB.wav", fo=0.15, max_s=4.0, ch="stereo", note="cynicmusic fanfare, first 4 s")
     one("Stinger_Lose_1", "Stinger.Lose", "stinger", RAW / "Stinger_Lose/game_over_iv_0.mp3", fo=0.15, max_s=4.0, ch="stereo", note="Kistol Game Over IV, first 4 s")
 
