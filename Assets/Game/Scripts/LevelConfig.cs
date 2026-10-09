@@ -16,6 +16,8 @@ public class LevelConfig : ScriptableObject
     public int fireflyCount = 14;
     public int mothCount = 4;
     public int hiddenPathCount = 1;
+    [Tooltip("Stamp the finale plateau onto beacons that sit on hidden-path islets. Off keeps those islets low enough for the stone path to reach.")]
+    public bool plateauIsletBeacons = true;
     public Color fogColor = new Color(0.4f, 0.52f, 0.56f, 1f);
     public float fogDensity = 0.012f;
     public int grassDetailDensity = 8;

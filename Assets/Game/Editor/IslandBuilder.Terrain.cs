@@ -386,7 +386,7 @@ public static partial class IslandBuilder
             AddIslet(heights, resolution, angle, config.islandRadius);
         }
 
-        StampPlateaus(heights, resolution, worldSize, beacons);
+        StampPlateaus(heights, resolution, worldSize, beacons, config.plateauIsletBeacons ? beacons.Count : Mathf.Max(0, config.beaconCount - Mathf.Max(0, config.hiddenPathCount)));
         if (config.ridges)
         {
             RaiseRidges(heights, resolution, worldSize, beacons, config);
@@ -516,16 +516,22 @@ public static partial class IslandBuilder
         }
     }
 
-    static void StampPlateaus(float[,] heights, int resolution, float worldSize, List<Vector2> beacons)
+    static void StampPlateaus(float[,] heights, int resolution, float worldSize, List<Vector2> beacons, int mainLandCount)
     {
         if (beacons.Count == 0)
         {
             return;
         }
 
+        // The last two beacons get a plateau, except islet beacons when mainLandCount excludes them: those stay on their low islets so the hidden stone path can reach them.
         int count = Mathf.Min(2, beacons.Count);
         for (int i = beacons.Count - count; i < beacons.Count; i++)
         {
+            if (i >= mainLandCount)
+            {
+                continue;
+            }
+
             Vector2 center = beacons[i];
             float radius = 4.2f;
             for (int z = 0; z < resolution; z++)
