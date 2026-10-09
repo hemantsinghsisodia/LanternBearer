@@ -93,45 +93,23 @@ public class SpireLayoutTests
     }
 
     [Test]
-    public void FourRequiredTwoOptionalGaps()
+    public void FourRequiredGaps()
     {
         SpireGap[] gaps = SpireLayout.Gaps();
-        Assert.AreEqual(6, gaps.Length);
+        Assert.AreEqual(4, gaps.Length);
         int required = 0;
         for (int i = 0; i < gaps.Length; i++)
         {
             SpireGap g = gaps[i];
             Assert.IsTrue(g.nearBeacon >= 0 && g.nearBeacon < 8 && g.farBeacon >= -1 && g.farBeacon < 8, "gap " + i);
-            Assert.IsTrue(g.required || g.farBeacon >= 0, "optional gap " + i + " needs a far beacon");
             float span = Vector2.Distance(g.nearXZ, g.farXZ);
-            if (g.required)
-            {
-                required++;
-                Assert.IsTrue(span >= 6f && span <= 9f, "required gap " + i + " width " + span);
-            }
-            else
-            {
-                Assert.LessOrEqual(span, 12f, "optional gap " + i);
-            }
+            Assert.IsTrue(g.required);
+            required++;
+            Assert.IsTrue(span >= 6f && span <= 9f, "required gap " + i + " width " + span);
         }
 
         Assert.AreEqual(4, required);
-        Assert.IsTrue(gaps[0].required && gaps[1].required && gaps[2].required && gaps[3].required);
         Assert.LessOrEqual(Vector2.Distance(gaps[3].farXZ, SpireLayout.LampXZ()), 6f);
-    }
-
-    [Test]
-    public void OptionalGapsAreShortcuts()
-    {
-        SpireGap[] gaps = SpireLayout.Gaps();
-        for (int i = 4; i < 6; i++)
-        {
-            Assert.AreNotEqual(gaps[i].nearBeacon, gaps[i].farBeacon, "optional gap " + i);
-            Assert.LessOrEqual(Vector2.Distance(gaps[i].nearXZ, gaps[i].farXZ), 12f, "optional gap " + i);
-            Vector2 span = SpireLayout.OptionalSpanU(i - 4);
-            float dh = SpireLayout.PathHeight(span.y) - SpireLayout.PathHeight(span.x);
-            Assert.IsTrue(dh > 0f && dh <= 6f, "optional gap " + i + " height difference " + dh);
-        }
     }
 
     [Test]

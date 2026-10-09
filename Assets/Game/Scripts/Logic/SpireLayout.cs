@@ -18,7 +18,7 @@ public static class SpireLayout
     // Tunables for the terrain task.
     public const float StartRadius = Radius - 4f;      // beach spawn radius at angle 0
     public const float EndRadius = 3f;                 // spiral radius at the summit
-    public const float RadiusPower = 1.2f;             // above 1 tightens the upper loops so shortcuts can span them
+    public const float RadiusPower = 1.2f;             // above 1 tightens the upper loops of the spiral
     public const float PathBaseHeight = 0.5f;          // height at the beach end of the path
     public const float PathTopHeight = 38.5f;          // height at the summit end of the path
     public const float RequiredGapWidth = 7.5f;        // XZ width of each required gap (6-9 m allowed)
@@ -29,11 +29,6 @@ public static class SpireLayout
 
     // Path u of the 8 beacons, two per segment (before gap 1, gaps 1-2, gaps 2-3, gap 3 to gap 4). All clear of every gap span.
     static readonly float[] BeaconU = { 0.08f, 0.145f, 0.26f, 0.335f, 0.49f, 0.57f, 0.705f, 0.81f };
-
-    // Optional shortcuts across the tight upper loops, as path u pairs: span 12 m or less, height difference 6 m or less.
-    // Each bridge forms when the beacons nearest its two ends are both lit (here beacons 6 and 7).
-    static readonly float[] OptionalNearU = { 0.71f, 0.725f };
-    static readonly float[] OptionalFarU = { 0.82f, 0.84f };
 
     public static Vector2 PathPoint(float u01)
     {
@@ -80,11 +75,11 @@ public static class SpireLayout
         return result;
     }
 
-    // Required gaps 1..4 in spec order (4 = summit span), then the 2 optional shortcuts.
+    // Required gaps 1..4 in spec order (4 = summit span).
     public static SpireGap[] Gaps()
     {
         float[] centres = { GapCentre1, GapCentre2, GapCentre3 };
-        SpireGap[] gaps = new SpireGap[6];
+        SpireGap[] gaps = new SpireGap[4];
         for (int i = 0; i < 3; i++)
         {
             float half = HalfWidthU(centres[i]);
@@ -108,18 +103,6 @@ public static class SpireLayout
             farBeacon = -1
         };
 
-        for (int i = 0; i < 2; i++)
-        {
-            gaps[4 + i] = new SpireGap
-            {
-                nearXZ = PathPoint(OptionalNearU[i]),
-                farXZ = PathPoint(OptionalFarU[i]),
-                required = false,
-                nearBeacon = NearestBeacon(OptionalNearU[i]),
-                farBeacon = NearestBeacon(OptionalFarU[i])
-            };
-        }
-
         return gaps;
     }
 
@@ -134,26 +117,6 @@ public static class SpireLayout
         float centre = requiredIndex == 0 ? GapCentre1 : (requiredIndex == 1 ? GapCentre2 : GapCentre3);
         float half = HalfWidthU(centre);
         return new Vector2(centre - half, centre + half);
-    }
-
-    // Path u of an optional bridge's two ends (x = near, y = far), index 0 or 1.
-    public static Vector2 OptionalSpanU(int optionalIndex)
-    {
-        return new Vector2(OptionalNearU[optionalIndex], OptionalFarU[optionalIndex]);
-    }
-
-    static int NearestBeacon(float u)
-    {
-        int best = 0;
-        for (int i = 1; i < BeaconU.Length; i++)
-        {
-            if (Math.Abs(BeaconU[i] - u) < Math.Abs(BeaconU[best] - u))
-            {
-                best = i;
-            }
-        }
-
-        return best;
     }
 
     public static Vector2 LampXZ()

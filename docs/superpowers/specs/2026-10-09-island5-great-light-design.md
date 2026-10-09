@@ -47,16 +47,15 @@ Each sub-phase gets its own plan, reviews and playable build. This spec covers b
   2. a tidal chasm (low/mid);
   3. a broken stair (mid/high);
   4. the summit span. It opens only once all 8 beacons are lit, and replaces the usual immediate win.
-- **Optional bridges:** 2 shortcut bridges between beacons on different turns of the spiral.
+- Optional shortcut bridges were dropped during planning (2026-10-09): with ~22 m rise per spiral turn no walkable shortcut saves meaningful distance.
 - **Unlock:** Island 4's `nextLevelScene` becomes Island 5. Island 5 appears in the menu island list and the HUD labels as "Island 5 · The Great Light".
-- **Length:** about 12–18 min on a first play, about 6–8 min using the shortcuts.
+- **Length:** about 12–18 min on a first play.
 - **Story:** 3 new Keeper's Log pages tell the lighthouse's story, plus intro card lines.
 
 ## 2. Mechanics (H1)
 - **Required bridges:**
   1. Lighting the beacon on the near side of a gap sends a beam arc (about 1 s) that kindles the far-side **bridge lantern**.
   2. The bridge then grows from both ends over about 1.5 s. Total time from the beacon lighting to a walkable bridge is 2.5 s or less.
-- **Optional bridges** form when the beacons at both ends are lit.
 - **Bridges as ground and light:**
   - a bridge is solid, walkable ground with invisible side rails, so the keeper cannot fall off;
   - it counts as **safe light**, like a beacon's safe ring: moths do not follow onto it, Shades cannot cross it, and fuel drain is the safe-ring rate;
