@@ -118,7 +118,10 @@ ARM_BONES = ["Shoulder.R", "UpperArm.R", "LowerArm.R", "Wrist.R"] + [
 
 # Fist target relative to the right shoulder joint (world: +X left, -Y forward, Z up). The arm is 0.42 m long,
 # so this is about as far as a nearly straight arm reaches from this height.
-FIST_OFFSET = Vector((-0.17, -0.40, -0.29))
+FIST_OFFSET = Vector((-0.25, -0.40, -0.29))
+HAND_LEN = 0.07        # wrist joint to fist centre
+HAND_TILT_DEG = 12.0   # hand direction off the forearm axis (towards the ground)
+HAND_ROLL_DEG = 35.0   # roll about the forearm: curled fingers face inward, knuckles outward
 
 
 def author_lantern_hold(arm):
@@ -131,15 +134,22 @@ def author_lantern_hold(arm):
     elbow = bone_world_head(arm, "LowerArm.R")
     wrist = bone_world_head(arm, HAND_BONE)
     fist = shoulder + FIST_OFFSET
-    hand_dir = Vector((-0.05, -0.85, -0.45)).normalized()
-    wrist_target = fist - hand_dir * 0.07
-    new_elbow, new_wrist = two_bone_targets(shoulder, elbow, wrist, wrist_target, Vector((-0.4, 0.3, -1.0)))
+    # The wrist stays close to inline with the forearm (HAND_TILT_DEG off it, towards the ground) so the hand reads
+    # as a fist hanging the lantern rather than a cocked wrist. Two passes: the forearm direction depends on the
+    # wrist target, which depends on the hand direction.
+    hand_dir = (fist - shoulder).normalized()
+    for _ in range(3):
+        wrist_target = fist - hand_dir * HAND_LEN
+        new_elbow, new_wrist = two_bone_targets(shoulder, elbow, wrist, wrist_target, Vector((-0.4, 0.3, -1.0)))
+        fore_dir = (new_wrist - new_elbow).normalized()
+        side = fore_dir.cross(Vector((0.0, 0.0, -1.0))).normalized()
+        hand_dir = (Quaternion(side, math.radians(HAND_TILT_DEG)) @ fore_dir).normalized()
     curl_hand(arm)
     aim(arm, "UpperArm.R", "LowerArm.R", new_elbow - shoulder)
     aim(arm, "LowerArm.R", HAND_BONE, new_wrist - bone_world_head(arm, "LowerArm.R"))
     aim(arm, HAND_BONE, "Middle1.R", hand_dir)
     forearm = (bone_world_head(arm, HAND_BONE) - bone_world_head(arm, "LowerArm.R")).normalized()
-    rotate_about_head(arm, HAND_BONE, forearm, math.radians(90.0))
+    rotate_about_head(arm, HAND_BONE, forearm, math.radians(HAND_ROLL_DEG))
     for frame in (1, 2):
         key_bones(arm, ARM_BONES, frame)
     update()

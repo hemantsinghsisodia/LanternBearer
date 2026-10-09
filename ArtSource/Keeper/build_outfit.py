@@ -401,7 +401,7 @@ def build_part(name, arm, group_names, slot_index, subdivide, crease_deg):
     return out[0], out[1]
 
 
-def smooth_hand(obj, iterations=2, factor=0.5, inflate=0.0088):
+def smooth_hand(obj, iterations=2, factor=0.5, inflate=0.005):
     me = obj.data
     bm = bmesh.new()
     bm.from_mesh(me)
@@ -461,7 +461,7 @@ def fold_shaping(obj, kind):
 
 SLEEVE_UPPER = 0.025     # sleeve thickening at the upper arm (m, along the normal)
 SLEEVE_WRIST = 0.020     # ... tapering to this at the wrist
-SLEEVE_FLARE = 0.005     # extra flare over the last SLEEVE_FLARE_LEN before the glove cuff
+SLEEVE_FLARE = 0.004     # extra flare over the last SLEEVE_FLARE_LEN before the glove cuff
 SLEEVE_FLARE_LEN = 0.035
 COWL_FIT = 0.3   # share of the sleeve thickening the cowl is fitted against
 RAMP0 = 0.55            # the upper arm stays at 0 over the top 55% (under the cowl), then ramps to the elbow
