@@ -13,6 +13,8 @@ namespace LanternKeeper.Tests
 // The music director on Island1: sync, threat, scene reset, stinger ducking and the mute rule. Game types are reached by reflection.
 public class MusicDirectorTest
 {
+    // MusicPlayer.BaseVolume: 0.35 raised by 4 dB (x1.585). This assembly can't reference the game code, so it is repeated here.
+    const float MusicPlayerBase = 0.35f * 1.58489f;
     static readonly string[] IntroKeys = { "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4" };
     readonly int[] previousIntro = new int[4];
     float previousMusicVolume;
@@ -224,6 +226,7 @@ public class MusicDirectorTest
         AudioSource stingerSource = Get<AudioSource>(director, "StingerSource");
         float lowest = 0f;
         float stingerBase = MixerValue("StingerVol");
+        Assert.AreEqual(2.06f, stingerBase - MixerValue("MusicVol"), 0.05f, "the Stinger group carries the part of the +4 dB the source volume (capped at 1.0) cannot");
         float stingerLowest = stingerBase;
         float end = Time.realtimeSinceStartup + 1f;
         while (Time.realtimeSinceStartup < end)
@@ -295,8 +298,8 @@ public class MusicDirectorTest
         AudioSource track = Get<AudioSource>(director, "Track");
         AudioSource tension = Get<AudioSource>(director, "Tension");
         Assert.AreEqual(1f, Get<float>(director, "Threat"), 0.01f);
-        Assert.AreEqual(0.35f * 0.5f, track.volume, 0.005f, "track should dip on low fuel");
-        Assert.AreEqual(0.35f * 0.708f, tension.volume, 0.005f, "tension must not be halved by low fuel");
+        Assert.AreEqual(MusicPlayerBase * 0.5f, track.volume, 0.005f, "track should dip on low fuel");
+        Assert.AreEqual(MusicPlayerBase * 0.708f, tension.volume, 0.005f, "tension must not be halved by low fuel");
         Object.Destroy(mothHost);
     }
 }
