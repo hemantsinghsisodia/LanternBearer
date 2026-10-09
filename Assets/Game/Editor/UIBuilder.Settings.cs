@@ -87,9 +87,10 @@ public static partial class UIBuilder
         // Graphics
         GraphicsSection graphicsSection = panels[1].AddComponent<GraphicsSection>();
         SwitchRow preset = MakeSwitchRow(panels[1].transform, "Preset", new[] { "Low", "Medium", "High", "Ultra" }, 1).GetComponent<SwitchRow>();
+        SwitchRow renderScale = MakeSwitchRow(panels[1].transform, "Render scale", SettingsMath.RenderScaleLabels(), 0).GetComponent<SwitchRow>();
         SwitchRow vsync = MakeSwitchRow(panels[1].transform, "VSync", new[] { "Off", "On" }, 0).GetComponent<SwitchRow>();
         SwitchRow fps = MakeSwitchRow(panels[1].transform, "FPS counter", new[] { "Off", "On" }, 0).GetComponent<SwitchRow>();
-        graphicsSection.Configure(preset, vsync, fps);
+        graphicsSection.Configure(preset, renderScale, vsync, fps);
 
         // Audio
         AudioSection audioSection = panels[2].AddComponent<AudioSection>();

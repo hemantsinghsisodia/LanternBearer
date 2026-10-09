@@ -10,6 +10,52 @@ public static class SettingsMath
 
     public static readonly float[] TextScales = { 1f, 1.15f, 1.3f };
 
+    // Render scale (supersampling) choices, multiplied onto the graphics preset's own scale.
+    public static readonly float[] RenderScales = { 1f, 1.25f, 1.5f, 2f };
+    public const float MinEffectiveRenderScale = 0.5f;
+    public const float MaxEffectiveRenderScale = 2f;
+
+    public static int RenderScaleIndex(float scale)
+    {
+        int best = 0;
+        for (int i = 1; i < RenderScales.Length; i++)
+        {
+            if (Mathf.Abs(RenderScales[i] - scale) < Mathf.Abs(RenderScales[best] - scale))
+            {
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    public static float SnapRenderScale(float scale)
+    {
+        return RenderScales[RenderScaleIndex(scale)];
+    }
+
+    public static string RenderScaleLabel(float scale)
+    {
+        float snapped = SnapRenderScale(scale);
+        string text = Mathf.RoundToInt(snapped * 100f) + "%";
+        return snapped >= 2f ? text + " (4K at 1080p)" : text;
+    }
+
+    public static string[] RenderScaleLabels()
+    {
+        string[] labels = new string[RenderScales.Length];
+        for (int i = 0; i < labels.Length; i++)
+        {
+            labels[i] = RenderScaleLabel(RenderScales[i]);
+        }
+        return labels;
+    }
+
+    // What the pipeline asset gets: the preset's scale times the player's, kept within 0.5..2.
+    public static float EffectiveRenderScale(float presetScale, float userScale)
+    {
+        return Mathf.Clamp(presetScale * userScale, MinEffectiveRenderScale, MaxEffectiveRenderScale);
+    }
+
     public static float VolumeToDb(float linear)
     {
         return linear > 0.0001f ? 20f * Mathf.Log10(linear) : -80f;
