@@ -351,7 +351,7 @@ public class UserSettingsApplier : MonoBehaviour
         float musicDb = SettingsMath.VolumeToDb(UserSettings.MusicVolume) + duckOffset;
         ok &= target.SetFloat(MusicParam, musicDb);
         // The stinger group sits outside MusicBus (so the stinger duck does not lower it) and follows the Music slider here.
-        // It also carries the part of the +4 dB music boost that its source volume (capped at 1.0) cannot; mute stays mute.
+        // It also carries the part of the +6 dB music boost that its source volume (capped at 1.0) cannot; mute stays mute.
         target.SetFloat(StingerParam, musicDb + (UserSettings.MusicMuted ? 0f : MusicPlayer.StingerMixerTrimDb));
         ok &= target.SetFloat(SfxParam, SettingsMath.VolumeToDb(UserSettings.EffectsVolume));
         ok &= target.SetFloat(AmbienceParam, SettingsMath.VolumeToDb(UserSettings.AmbienceVolume));
