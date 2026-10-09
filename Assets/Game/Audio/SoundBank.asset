@@ -501,21 +501,6 @@ MonoBehaviour:
     priority: 0
     synthOnly: 0
     fallback: 0
-  - name: UI.Hover
-    clips:
-    - {fileID: 8300000, guid: 49478f5aec58b2d4eb8ec26b908f7034, type: 3}
-    - {fileID: 8300000, guid: 5497327fe03c7a04ea056ab479d6956f, type: 3}
-    volume: 0.7
-    pitch: {x: 1, y: 1}
-    volumeJitterDb: 0
-    group: 3
-    spatial: 0
-    minDistance: 1
-    maxDistance: 500
-    rolloff: 0
-    priority: 0
-    synthOnly: 0
-    fallback: 0
   - name: UI.Click
     clips:
     - {fileID: 8300000, guid: 7f405833c38d06546b65689024b4344a, type: 3}

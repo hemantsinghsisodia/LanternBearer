@@ -61,5 +61,14 @@ public class ThemedButtonSoundTests
         Assert.IsFalse(go.activeSelf);
         CollectionAssert.AreEqual(new[] { SoundCues.UiBack }, cues);
     }
+
+    [Test]
+    public void HoverAndSelectionPlayNoSound()
+    {
+        ThemedButton button = SelfClosing(false);
+        button.OnPointerEnter(new PointerEventData(null));
+        button.OnSelect(null);
+        CollectionAssert.IsEmpty(cues);
+    }
 }
 }

@@ -23,6 +23,7 @@ MonoBehaviour:
   fireflyCount: 18
   mothCount: 5
   hiddenPathCount: 3
+  plateauIsletBeacons: 0
   fogColor: {r: 0.32, g: 0.36, b: 0.42, a: 1}
   fogDensity: 0.016
   grassDetailDensity: 8
@@ -48,6 +49,7 @@ MonoBehaviour:
   - Shades creep in the dark and steal fuel on touch. Your light freezes them.
   - Shades can't steal inside a lit beacon's safe ring.
   - Thunder warns of lightning. The flash stuns Shades and shows hidden stones.
+  - Hidden stone paths lead out to the far islets — they only appear in your lantern light.
   windStrength: 1
   shadeCount: 2
   lightning: 1

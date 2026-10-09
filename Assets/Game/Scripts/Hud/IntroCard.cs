@@ -17,6 +17,10 @@ public class IntroCard : MonoBehaviour
 
     private bool wanted;
 
+    private const int TipsThatFit = 5;
+    private const float ExtraTipHeight = 72f;
+    private float baseHeight = -1f;
+
     public bool IsShowing { get { return wanted; } }
     public float Alpha { get { return group != null ? group.alpha : 0f; } }
     public bool PanelActive { get { return panel.activeSelf; } }
@@ -45,6 +49,7 @@ public class IntroCard : MonoBehaviour
     {
         title.Text.text = titleText ?? "";
         body.Text.text = BuildBody(lines);
+        GrowPanelFor(lines);
         footer.Text.text = footerText ?? "";
         if (!wanted)
         {
@@ -52,6 +57,25 @@ public class IntroCard : MonoBehaviour
             panel.SetActive(true);
             group.alpha = 0f;
         }
+    }
+
+    // The card is sized for five tips. Each extra tip makes the panel taller (the body box stretches with it) so the text
+    // keeps its size instead of shrinking or overflowing at a large text scale.
+    private void GrowPanelFor(string[] lines)
+    {
+        RectTransform rect = panel.transform as RectTransform;
+        if (rect == null)
+        {
+            return;
+        }
+
+        if (baseHeight < 0f)
+        {
+            baseHeight = rect.sizeDelta.y;
+        }
+
+        int extra = lines != null ? Mathf.Max(0, lines.Length - TipsThatFit) : 0;
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, baseHeight + extra * ExtraTipHeight);
     }
 
     public void Hide()

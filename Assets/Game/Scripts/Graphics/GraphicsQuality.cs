@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
@@ -80,7 +81,58 @@ public static class GraphicsQuality
         EnsureCommandLine();
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         SceneManager.sceneLoaded += HandleSceneLoaded;
+        UserSettings.Changed -= ApplyRenderScale;
+        UserSettings.Changed += ApplyRenderScale;
+        Application.quitting -= RestorePresetScales;
+        Application.quitting += RestorePresetScales;
         Apply(Current, true);
+    }
+
+    // Effective render scale of the active preset: preset scale x the player's Render scale setting, clamped to 0.5..2.
+    public static float EffectiveRenderScale
+    {
+        get
+        {
+            GraphicsProfile profile = Profile;
+            return SettingsMath.EffectiveRenderScale(profile != null ? profile.renderScale : 1f, UserSettings.RenderScale);
+        }
+    }
+
+    // Writes the effective scale to the active URP asset (in memory; the .asset on disk is never saved with it, see RestorePresetScales).
+    public static void ApplyRenderScale()
+    {
+        UniversalRenderPipelineAsset asset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+        if (asset == null || Profile == null)
+        {
+            return;
+        }
+
+        float wanted = EffectiveRenderScale;
+        if (!Mathf.Approximately(asset.renderScale, wanted))
+        {
+            asset.renderScale = wanted;
+        }
+    }
+
+    // Puts every quality level's pipeline asset back to its preset's own scale, so the editor never keeps a supersampled
+    // value in a .asset that a later save could write to disk.
+    public static void RestorePresetScales()
+    {
+        GraphicsProfileSet set = Profiles;
+        if (set == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < QualitySettings.names.Length; i++)
+        {
+            UniversalRenderPipelineAsset asset = QualitySettings.GetRenderPipelineAssetAt(i) as UniversalRenderPipelineAsset;
+            GraphicsProfile profile = set.Get(Clamp(i));
+            if (asset != null && profile != null && !Mathf.Approximately(asset.renderScale, profile.renderScale))
+            {
+                asset.renderScale = profile.renderScale;
+            }
+        }
     }
 
     static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -98,6 +150,7 @@ public static class GraphicsQuality
         }
 
         ApplyVSync();
+        ApplyRenderScale();
         ApplyCamera();
         if (raise)
         {

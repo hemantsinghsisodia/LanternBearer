@@ -45,7 +45,6 @@ public static class SoundCues
     public const string ThunderRumble = "Thunder.Rumble";
     public const string WaterSplash = "Water.Splash";
 
-    public const string UiHover = "UI.Hover";
     public const string UiClick = "UI.Click";
     public const string UiBack = "UI.Back";
     public const string UiPauseOpen = "UI.PauseOpen";

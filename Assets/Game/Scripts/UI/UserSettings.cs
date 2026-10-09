@@ -18,6 +18,7 @@ public static class UserSettings
     const string ResWidthKey = Prefix + "ResWidth";
     const string ResHeightKey = Prefix + "ResHeight";
     const string RefreshKey = Prefix + "RefreshHz";
+    const string RenderScaleKey = Prefix + "RenderScale";
 
     // Copied from MusicPlayer.MutePref (Assembly-CSharp, not referenceable from here).
     const string LegacyMusicMutedKey = "LanternKeeperMusicMuted";
@@ -142,6 +143,13 @@ public static class UserSettings
     {
         get { RefreshHot(); return hotReduceFlashing; }
         set { SetInt(ReduceFlashingKey, value ? 1 : 0); }
+    }
+
+    // Supersampling multiplier on top of the graphics preset's render scale: 1, 1.25, 1.5 or 2. Read only when it changes, so no hot cache.
+    public static float RenderScale
+    {
+        get { return SettingsMath.SnapRenderScale(PlayerPrefs.GetFloat(RenderScaleKey, 1f)); }
+        set { SetFloat(RenderScaleKey, SettingsMath.SnapRenderScale(value)); }
     }
 
     public static FullScreenMode WindowMode

@@ -24,20 +24,19 @@ namespace LanternKeeper.Tests
         // Game seconds per frame while the test walks (see captureDeltaTime above).
         const float FixedFrameSeconds = 1f / 120f;
 
-        // Jumps the trails need today, "island:beacon" -> count. They are terrain steps above the 0.4 m step offset that pre-date D2
-        // (and the hidden-path stones on Island 4 beacons 8 and 9). Any other jump, or more jumps than listed, fails the test.
-        // Beacons whose trail ends below a terrain cliff (terrain unchanged since D1, the keeper climbs it in several jumps) may need a taller step than MaxJumpStep.
-        static readonly Dictionary<string, float> StepAllowance = new Dictionary<string, float>
-        {
-            { "Island4:8", 5.5f }, { "Island4:9", 5.5f }
-        };
+        // Jumps the trails need today, "island:beacon" -> count. They are terrain steps above the 0.4 m step offset that pre-date D2.
+        // Any other jump, or more jumps than listed, fails the test.
+        // A beacon listed here may need a taller step than MaxJumpStep (none do now).
+        static readonly Dictionary<string, float> StepAllowance = new Dictionary<string, float>();
+
+        // Island 4's islet beacons are reached only by their lantern-revealed stone paths: no jump, and no step above about 2 m even next to a stone.
+        static readonly HashSet<string> StrictBeacons = new HashSet<string> { "Island4:7", "Island4:8", "Island4:9" };
 
         static readonly Dictionary<string, int> ExpectedJumps = new Dictionary<string, int>
         {
             { "Island1:4", 1 }, { "Island1:5", 1 },
             { "Island2:6", 2 },
-            { "Island3:6", 1 },
-            { "Island4:8", 3 }, { "Island4:9", 5 }
+            { "Island3:6", 1 }
         };
 
         static readonly string[] Islands = { "Island1", "Island2", "Island3", "Island4" };
@@ -213,7 +212,7 @@ namespace LanternKeeper.Tests
                             Vector2 heading = direction.normalized;
                             bool onStones = NearHiddenStone(at);
                             string blocker = PropInTheWay(at, heading, beacon);
-                            float step = onStones ? 0f : StepAhead(at, heading);
+                            float step = onStones && !StrictBeacons.Contains(island + ":" + (b + 1)) ? 0f : StepAhead(at, heading);
                             if (blocker != null)
                             {
                                 failures.Add(island + ": beacon " + (b + 1) + " blocked by prop " + blocker + " at " + at.ToString("F1"));

@@ -9,7 +9,9 @@ public class MusicDirector : MonoBehaviour
     const float TensionGain = 0.708f; // -3 dB
     const float FadeInDuration = 3f;
     const float StartDelay = 0.1f;
-    const float StingerVolume = 0.8f;
+    // 0.8 x MusicPlayer.MusicBoost would be 1.6, above what a source can play, so the source stays at 1.0 and the
+    // Stinger mixer group (UserSettingsApplier adds MusicPlayer.StingerMixerTrimDb, +4.06 dB) carries the rest of the +6 dB.
+    const float StingerVolume = 1f;
     const float StingerDuckDb = -6f;
     const float StingerReleaseDbPerSecond = 30f;
     const float AmbienceDuckDb = -3f;

@@ -45,9 +45,9 @@ public class UiPrefabTests
             Assert.IsNotNull(list.SectionPanels[i]);
         }
 
-        // Display: 1 slider, 1 dropdown, 1 switch. Graphics: 3 switches. Audio: 4 sliders. Accessibility: 2 switches.
+        // Display: 1 slider, 1 dropdown, 1 switch. Graphics: 4 switches. Audio: 4 sliders. Accessibility: 2 switches.
         Assert.AreEqual(5, prefab.GetComponentsInChildren<SliderRow>(true).Length, "slider rows");
-        Assert.AreEqual(6, prefab.GetComponentsInChildren<SwitchRow>(true).Length, "switch rows");
+        Assert.AreEqual(7, prefab.GetComponentsInChildren<SwitchRow>(true).Length, "switch rows");
         Assert.AreEqual(1, prefab.GetComponentsInChildren<DropdownRow>(true).Length, "dropdown rows");
         foreach (SliderRow row in prefab.GetComponentsInChildren<SliderRow>(true))
         {

@@ -136,7 +136,6 @@ public static class SoundBankBuilder
         t.Add(S(SoundCues.ThunderRumble, SoundGroup.Ambience, 1f, false, SynthFallback.ThunderRumble));
         t.Add(S(SoundCues.WaterSplash, SoundGroup.Sfx, 0.85f, true, SynthFallback.Splash));
 
-        t.Add(Real(SoundCues.UiHover, SoundGroup.UI, 0.7f, false, false));
         t.Add(Real(SoundCues.UiClick, SoundGroup.UI, 0.7f, false, false));
         t.Add(Real(SoundCues.UiBack, SoundGroup.UI, 0.7f, false, false));
         t.Add(Real(SoundCues.UiPauseOpen, SoundGroup.UI, 0.7f, false, false));

@@ -83,7 +83,6 @@ Not usable: Strong Wind Blowing and Breeze on OpenGameArt are CC-BY only; Wind L
 | Thunder.Crack | https://opengameart.org/content/100-cc0-sfx-2 | R1 thunder files | CC0 | in R1 | Page lists "Thunder" in the pack; exact files and quality not auditioned. Fallback if poor: https://opengameart.org/content/rain-and-thunders (CC0, 6.8 MB, rain with synthesized thunder). |
 | Thunder.Rumble | https://opengameart.org/content/100-cc0-sfx-2 | R1 thunder files | CC0 | in R1 | Use the longer thunder file. Same fallback. |
 | Water.Splash | https://opengameart.org/content/40-cc0-water-splash-slime-sfx | R4 splashes (15) | CC0 | in R4 | |
-| UI.Hover | https://opengameart.org/content/interface-sounds | K1 | CC0 | in K1 | |
 | UI.Click | https://opengameart.org/content/interface-sounds | K1 | CC0 | in K1 | |
 | UI.Back | https://opengameart.org/content/interface-sounds | K1 | CC0 | in K1 | |
 | UI.PauseOpen | https://opengameart.org/content/interface-sounds | K1 (open/maximize type) | CC0 | in K1 | |

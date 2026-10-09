@@ -19,9 +19,6 @@ public class ThemedButton : Button
     [SerializeField] private GameObject markEdge;
     [SerializeField] private GameObject markTint;
     [SerializeField] private bool isBack;
-    // Frame of the last keyboard/pad navigation move. A button selected in that frame was reached by navigation, so it hovers.
-    // Selection set from code (a screen opening) happens in another frame and stays silent.
-    private static int navigateFrame = -1;
 
     public bool Primary { get { return primary; } }
     public ThemedLabel Label { get { return label; } }
@@ -127,30 +124,6 @@ public class ThemedButton : Button
         if (img != null)
         {
             img.color = Color.white;
-        }
-    }
-
-    public override void OnPointerEnter(PointerEventData eventData)
-    {
-        base.OnPointerEnter(eventData);
-        if (IsActive() && IsInteractable())
-        {
-            UiSound.Play(SoundCues.UiHover);
-        }
-    }
-
-    public override void OnMove(AxisEventData eventData)
-    {
-        navigateFrame = Time.frameCount;
-        base.OnMove(eventData);
-    }
-
-    public override void OnSelect(BaseEventData eventData)
-    {
-        base.OnSelect(eventData);
-        if (navigateFrame == Time.frameCount && IsActive() && IsInteractable())
-        {
-            UiSound.Play(SoundCues.UiHover);
         }
     }
 

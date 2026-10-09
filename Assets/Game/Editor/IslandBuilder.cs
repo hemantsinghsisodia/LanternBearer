@@ -115,6 +115,7 @@ public static partial class IslandBuilder
         island4.shadeCount = 2;
         island4.lightning = true;
         island4.ridges = true;
+        island4.plateauIsletBeacons = false;
         EditorUtility.SetDirty(island1);
         EditorUtility.SetDirty(island2);
         EditorUtility.SetDirty(island3);
@@ -2011,7 +2012,8 @@ public static partial class IslandBuilder
             "A gust can push you off the cliff or into the water. Keep clear of edges during a warning.",
             "Shades creep in the dark and steal fuel on touch. Your light freezes them.",
             "Shades can't steal inside a lit beacon's safe ring.",
-            "Thunder warns of lightning. The flash stuns Shades and shows hidden stones."
+            "Thunder warns of lightning. The flash stuns Shades and shows hidden stones.",
+            "Hidden stone paths lead out to the far islets — they only appear in your lantern light."
         };
     }
 

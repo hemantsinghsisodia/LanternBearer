@@ -6,7 +6,13 @@ namespace LanternKeeper
 {
 public class MusicPlayer : MonoBehaviour
 {
-    public const float BaseVolume = 0.35f;
+    // Music is 6 dB louder than the original 0.35 level (x1.995). One constant lifts the island track, the tension loop
+    // (it follows BaseVolume) and the menu music. Stingers use the same boost: the director caps the source volume at 1.0
+    // and the remainder goes through the Stinger mixer group.
+    public const float MusicBoost = 1.99526f;
+    public const float BaseVolume = 0.35f * MusicBoost;
+    // 20 * log10(0.8 * MusicBoost): what a stinger needs on top of a source volume of 1.0 (it was 0.8).
+    public const float StingerMixerTrimDb = 4.062f;
     const float FadeInDuration = 3f;
     const float CrossfadeDuration = 2f;
 

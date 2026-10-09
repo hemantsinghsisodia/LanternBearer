@@ -22,11 +22,16 @@ public class SettingsScreen : MonoBehaviour
     [SerializeField] private AudioSection audio;
     [SerializeField] private AccessibilitySection accessibility;
     [SerializeField] private ControlsSection controls;
+    [SerializeField] private ThemedLabel hintLabel;
 
     private Selectable opener;
     private Action onClosed;
     private bool dropdownWasExpanded;
     private TMP_Dropdown[] dropdowns;
+    private SettingsHintRow hovered;
+    private bool preferHover;
+    private GameObject lastSelected;
+    private string shownHint;
 
     public bool IsOpen { get { return gameObject.activeInHierarchy; } }
     public SectionList SectionList { get { return sectionList; } }
@@ -39,6 +44,15 @@ public class SettingsScreen : MonoBehaviour
     public AudioSection Audio { get { return audio; } }
     public AccessibilitySection Accessibility { get { return accessibility; } }
     public ControlsSection Controls { get { return controls; } }
+    public ThemedLabel HintLabel { get { return hintLabel; } }
+    // The text the hint line is showing now.
+    public string CurrentHint { get { return shownHint; } }
+
+    // The hint line at the bottom: one sentence about the row that has focus or is under the mouse.
+    public void ConfigureHint(ThemedLabel label)
+    {
+        hintLabel = label;
+    }
 
     public void Configure(SectionList list, Button back, ThemedLabel flavour, string[] flavourLines,
         DisplaySection displaySection, GraphicsSection graphicsSection, AudioSection audioSection,
@@ -68,7 +82,11 @@ public class SettingsScreen : MonoBehaviour
         }
         ShowFlavour(0);
         LinkNavigation();
+        hovered = null;
+        preferHover = false;
         Select(firstSelected);
+        lastSelected = CurrentSelection();
+        RefreshHint();
     }
 
     public void Close()
@@ -108,6 +126,14 @@ public class SettingsScreen : MonoBehaviour
         {
             backButton.onClick.AddListener(Close);
         }
+        SettingsHintRow.HoverChanged += OnHover;
+        if (graphics != null)
+        {
+            // Preset and Render scale hints change with the value.
+            graphics.PresetRow.IndexChanged += OnHintValueChanged;
+            graphics.RenderScaleRow.IndexChanged += OnHintValueChanged;
+        }
+        RefreshHint();
     }
 
     private void OnDisable()
@@ -120,6 +146,14 @@ public class SettingsScreen : MonoBehaviour
         {
             backButton.onClick.RemoveListener(Close);
         }
+        SettingsHintRow.HoverChanged -= OnHover;
+        if (graphics != null)
+        {
+            graphics.PresetRow.IndexChanged -= OnHintValueChanged;
+            graphics.RenderScaleRow.IndexChanged -= OnHintValueChanged;
+        }
+        hovered = null;
+        preferHover = false;
     }
 
     private void Update()
@@ -130,6 +164,99 @@ public class SettingsScreen : MonoBehaviour
             ConsumeBack();
         }
         dropdownWasExpanded = AnyDropdownExpanded();
+
+        // The hint follows focus: only recomputed when the selected object changes.
+        GameObject selected = CurrentSelection();
+        if (selected != lastSelected)
+        {
+            lastSelected = selected;
+            preferHover = false;
+            RefreshHint();
+        }
+    }
+
+    private static GameObject CurrentSelection()
+    {
+        EventSystem system = EventSystem.current;
+        return system != null ? system.currentSelectedGameObject : null;
+    }
+
+    private void OnHover(SettingsHintRow row, bool entered)
+    {
+        if (row == null || !row.transform.IsChildOf(transform))
+        {
+            return;
+        }
+        if (entered)
+        {
+            hovered = row;
+            preferHover = true;
+        }
+        else if (hovered == row)
+        {
+            hovered = null;
+            preferHover = false;
+        }
+        RefreshHint();
+    }
+
+    private void OnHintValueChanged(int index)
+    {
+        RefreshHint();
+    }
+
+    // Picks the row (hovered, else the row that holds focus) and shows its hint. Writes the label only when the text differs.
+    public void RefreshHint()
+    {
+        if (hintLabel == null)
+        {
+            return;
+        }
+        SettingsHintRow row = null;
+        if (preferHover && hovered != null)
+        {
+            row = hovered;
+        }
+        if (row == null && lastSelected != null)
+        {
+            row = lastSelected.GetComponentInParent<SettingsHintRow>();
+            if (row != null && !row.transform.IsChildOf(transform))
+            {
+                row = null;
+            }
+        }
+        if (row == null)
+        {
+            row = hovered;
+        }
+
+        string text;
+        if (row != null)
+        {
+            int value = 0;
+            if (SettingsHints.IsValueDependent(row.HintId))
+            {
+                SwitchRow switchRow = row.GetComponent<SwitchRow>();
+                value = switchRow != null ? switchRow.Index : 0;
+            }
+            text = SettingsHints.Get(row.HintId, value);
+        }
+        else if (sectionList != null && controls != null && sectionList.Current >= 0
+            && sectionList.Current < sectionList.SectionPanels.Length
+            && sectionList.SectionPanels[sectionList.Current] == controls.gameObject)
+        {
+            text = SettingsHints.ControlsTab;
+        }
+        else
+        {
+            text = SettingsHints.Neutral;
+        }
+
+        if (shownHint != text)
+        {
+            shownHint = text;
+            hintLabel.Text.text = text;
+        }
     }
 
     private bool AnyDropdownExpanded()
@@ -199,6 +326,7 @@ public class SettingsScreen : MonoBehaviour
     {
         ShowFlavour(index);
         LinkNavigation();
+        RefreshHint();
     }
 
     private void ShowFlavour(int index)

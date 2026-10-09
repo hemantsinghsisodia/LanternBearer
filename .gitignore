@@ -63,3 +63,7 @@ ArtSource/Blender/*.blend1
 ArtSource/Audio/raw/
 ArtSource/Audio/pages/
 ArtSource/Audio/work/
+
+# Unity scene auto-recovery backups (created after a crash or unclean close)
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta

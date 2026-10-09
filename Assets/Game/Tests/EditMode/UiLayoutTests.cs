@@ -218,6 +218,58 @@ public class UiLayoutTests
             Layout(instance);
             CheckAll(instance, label + " section " + s, minPx, problems, null);
         }
+        CheckHintLine(instance, problems, label);
+    }
+
+    // The hint line shows every possible text in turn: each fits in 2 lines inside its box, with no overflow.
+    static void CheckHintLine(GameObject instance, List<string> problems, string label)
+    {
+        Transform hintTransform = instance.transform.Find("Panel/Hint");
+        Assert.IsNotNull(hintTransform, "the Settings panel has a Hint label");
+        TMP_Text hint = hintTransform.GetComponent<TMP_Text>();
+        List<string> texts = new List<string>();
+        for (int i = 0; i < SettingsHints.SettingRowIds.Length; i++)
+        {
+            string id = SettingsHints.SettingRowIds[i];
+            for (int v = 0; v < SettingsHints.ValueCount(id); v++)
+            {
+                texts.Add(SettingsHints.Get(id, v));
+            }
+        }
+        for (int i = 0; i < SettingsHints.ControlHints.Length; i++)
+        {
+            texts.Add(SettingsHints.ControlHints[i]);
+        }
+        texts.Add(SettingsHints.ControlsTab);
+        // Longest first in the report: find the longest text and make sure the 2-line limit holds for all.
+        string widest = "";
+        for (int i = 0; i < texts.Count; i++)
+        {
+            if (texts[i].Length > widest.Length)
+            {
+                widest = texts[i];
+            }
+        }
+        for (int i = 0; i < texts.Count; i++)
+        {
+            hint.text = texts[i];
+            hint.ForceMeshUpdate();
+            string where = label + " hint '" + Shorten(texts[i]) + "'" + (texts[i] == widest ? " (longest)" : "");
+            if (hint.textInfo.lineCount > 2)
+            {
+                problems.Add(where + " wraps to " + hint.textInfo.lineCount + " lines");
+            }
+            if (hint.isTextOverflowing)
+            {
+                problems.Add(where + " overflows its box");
+            }
+            float height = hint.GetPreferredValues(texts[i], hint.rectTransform.rect.width, 0f).y;
+            if (height > hint.rectTransform.rect.height + 1f)
+            {
+                problems.Add(where + " needs " + height.ToString("F1") + " px, box is " + hint.rectTransform.rect.height.ToString("F1"));
+            }
+        }
+        hint.text = "";
     }
 
     // A MainMenu component stands in for the scene's data source: the real LevelConfig assets, in level order.

@@ -12,13 +12,13 @@ public class UserSettingsTests
         "LanternKeeperMasterVolume", "LanternKeeperMusicVolume", "LanternKeeperEffectsVolume",
         "LanternKeeperAmbienceVolume", "LanternKeeperBrightness", "LanternKeeperTextScale",
         "LanternKeeperReduceFlashing", "LanternKeeperWindowMode", "LanternKeeperResWidth",
-        "LanternKeeperResHeight", "LanternKeeperRefreshHz", "LanternKeeperMusicMuted"
+        "LanternKeeperResHeight", "LanternKeeperRefreshHz", "LanternKeeperMusicMuted", "LanternKeeperRenderScale"
     };
 
     static readonly string[] FloatKeys =
     {
         "LanternKeeperMasterVolume", "LanternKeeperMusicVolume", "LanternKeeperEffectsVolume",
-        "LanternKeeperAmbienceVolume", "LanternKeeperBrightness", "LanternKeeperTextScale"
+        "LanternKeeperAmbienceVolume", "LanternKeeperBrightness", "LanternKeeperTextScale", "LanternKeeperRenderScale"
     };
 
     // The developer's real values, saved in SetUp and restored in TearDown.
@@ -73,6 +73,30 @@ public class UserSettingsTests
             }
         }
         PlayerPrefs.Save();
+    }
+
+    [Test]
+    public void RenderScaleDefaultsToOneAndRoundTrips()
+    {
+        Assert.AreEqual(1f, UserSettings.RenderScale, 0.0001f);
+        int raised = 0;
+        Action handler = () => raised++;
+        UserSettings.Changed += handler;
+        try
+        {
+            UserSettings.RenderScale = 1.5f;
+        }
+        finally
+        {
+            UserSettings.Changed -= handler;
+        }
+        Assert.AreEqual(1, raised, "Changed raised once");
+        Assert.AreEqual(1.5f, UserSettings.RenderScale, 0.0001f);
+        Assert.AreEqual(1.5f, PlayerPrefs.GetFloat("LanternKeeperRenderScale"), 0.0001f);
+        UserSettings.RenderScale = 1.3f;
+        Assert.AreEqual(1.25f, UserSettings.RenderScale, 0.0001f, "snaps to the nearest option");
+        UserSettings.RenderScale = 9f;
+        Assert.AreEqual(2f, UserSettings.RenderScale, 0.0001f);
     }
 
     [Test]
