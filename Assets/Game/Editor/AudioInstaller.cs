@@ -52,6 +52,52 @@ public static class AudioInstaller
         AssetDatabase.Refresh();
     }
 
+    // Island 5's step in IslandBuilder.Island5PostSteps. The build leaves the Island 5 scene open, and InstallIslands skips loaded
+    // scenes (it edits the file as text), so this adds the MusicDirector through EditorSceneManager instead. Idempotent.
+    public static void InstallIsland5()
+    {
+        const string scenePath = "Assets/Game/Scenes/Island5.unity";
+        UnityEngine.SceneManagement.Scene scene = default(UnityEngine.SceneManagement.Scene);
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+        {
+            UnityEngine.SceneManagement.Scene loaded = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+            if (loaded.isLoaded && loaded.path == scenePath)
+            {
+                scene = loaded;
+                break;
+            }
+        }
+
+        if (!scene.IsValid())
+        {
+            scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath, UnityEditor.SceneManagement.OpenSceneMode.Single);
+        }
+
+        AudioManager manager = null;
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            manager = root.GetComponentInChildren<AudioManager>(true);
+            if (manager != null)
+            {
+                break;
+            }
+        }
+
+        if (manager == null)
+        {
+            Debug.LogWarning("AudioInstaller: no AudioManager in " + scenePath);
+        }
+        else if (manager.GetComponent<MusicDirector>() == null)
+        {
+            manager.gameObject.AddComponent<MusicDirector>();
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene);
+            Debug.Log("AudioInstaller: added MusicDirector to " + scenePath);
+        }
+
+        InstallLibrary();
+    }
+
     static bool IsSceneLoaded(string path)
     {
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
@@ -118,9 +164,20 @@ public static class AudioInstaller
                     changed = true;
                 }
             }
+
+            // Island 5 only has a summit hush (Hush_Island5_1.ogg); the other islands have no such file, so their slot stays empty.
+            if (library.islands[i].hush == null)
+            {
+                AudioClip hush = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicFolder + "Hush_" + IslandNames[i] + "_1.ogg");
+                if (hush != null)
+                {
+                    library.islands[i].hush = hush;
+                    changed = true;
+                }
+            }
         }
 
-        // Island 5 has no music of its own yet: it reuses Island 4's track and tension clips until the Island 5 files are added.
+        // Fallback only: Island 5 has its own Music_Island5_1 / Tension_Island5_1 files, but if they are missing it reuses Island 4's clips.
         int island5 = System.Array.IndexOf(IslandNames, "Island5");
         int island4 = System.Array.IndexOf(IslandNames, "Island4");
         if (island5 > 0 && island4 >= 0)

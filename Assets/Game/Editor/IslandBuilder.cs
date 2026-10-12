@@ -86,11 +86,23 @@ public static partial class IslandBuilder
         CreateDefaultConfigs();
         for (int i = 0; i < LevelNames.Length; i++)
         {
-            Build(AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(LevelNames[i])));
+            BuildActionFor(LevelNames[i])();
         }
 
         BuildMainMenu();
         ApplyBuildSettings();
+    }
+
+    // What "Build All Levels" runs for one level. Island 5 goes through BuildIsland5 so its post steps (bridges, gate, lamp, rings,
+    // perf pass, music) run; a plain Build would leave it without them and unwinnable.
+    static System.Action BuildActionFor(string levelName)
+    {
+        if (levelName == "Island5")
+        {
+            return BuildIsland5;
+        }
+
+        return () => Build(AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(levelName)));
     }
 
     public static void CreateDefaultConfigs()
