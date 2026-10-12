@@ -35,7 +35,7 @@ public static class LighthouseInstaller
     const string DoorGlowMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseDoorGlow.mat";
     const string CliffMaterialPath = "Assets/Game/Art/Environment/Cliffs/island5/CliffSkin_island5.mat";
     const string SoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
-    const float GlintLevel = 0.14f;
+    const float GlintLevel = 0.35f;
     const float DoorGlowAlpha = 0.18f;
     const string BeaconPrefabPath ="Assets/Game/Prefabs/Gameplay/Beacon.prefab";
 
