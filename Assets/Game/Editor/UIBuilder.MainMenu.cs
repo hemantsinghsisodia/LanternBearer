@@ -194,7 +194,7 @@ public static partial class UIBuilder
         SwitchRow difficulty = MakeSwitchRow(listGo.transform, "Difficulty", new[] { "Easy", "Normal", "Hard" }, 1).GetComponent<SwitchRow>();
         Anchor(difficulty.gameObject, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -116f), new Vector2(0, -60f));
 
-        IslandRow[] rows = new IslandRow[4];
+        IslandRow[] rows = new IslandRow[5];
         for (int i = 0; i < rows.Length; i++)
         {
             rows[i] = MakeIslandRow(listGo.transform, i, roof, theme);

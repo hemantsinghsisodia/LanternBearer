@@ -249,7 +249,8 @@ public static partial class UIBuilder
             "Assets/Game/Scenes/Island1.unity",
             "Assets/Game/Scenes/Island2.unity",
             "Assets/Game/Scenes/Island3.unity",
-            "Assets/Game/Scenes/Island4.unity"
+            "Assets/Game/Scenes/Island4.unity",
+            "Assets/Game/Scenes/Island5.unity"
         };
         for (int i = 0; i < scenes.Length; i++)
         {

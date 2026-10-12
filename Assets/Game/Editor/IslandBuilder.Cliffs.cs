@@ -189,6 +189,12 @@ public static partial class IslandBuilder
 
     static GameObject[] CladdingPrefabs(string levelId)
     {
+        // Island 5 has no nature-kit variants of its own yet; its cliffs wear Island 4's rock.
+        if (levelId == "island5")
+        {
+            levelId = "island4";
+        }
+
         if (!AssetDatabase.IsValidFolder(CladdingPrefabFolder))
         {
             AssetDatabase.CreateFolder("Assets/Game/Art/Environment/Nature/Prefabs", "Cladding");

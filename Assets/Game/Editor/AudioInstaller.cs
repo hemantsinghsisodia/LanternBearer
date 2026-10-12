@@ -15,7 +15,7 @@ public static class AudioInstaller
     const string DirectorScriptPath = "Assets/Game/Scripts/MusicDirector.cs";
     const string ExtrasScriptPath = "Assets/Game/Scripts/AmbienceExtras.cs";
     const string AudioManagerScriptPath = "Assets/Game/Scripts/AudioManager.cs";
-    static readonly string[] IslandNames = { "Island1", "Island2", "Island3", "Island4" };
+    static readonly string[] IslandNames = { "Island1", "Island2", "Island3", "Island4", "Island5" };
 
     [MenuItem("Lantern Keeper/Install Music Director On Islands")]
     public static void InstallIslands()
@@ -55,9 +55,15 @@ public static class AudioInstaller
         }
 
         bool changed = false;
-        if (library.islands == null || library.islands.Length != IslandNames.Length)
+        if (library.islands == null)
         {
             library.islands = new MusicLibrary.IslandMusic[IslandNames.Length];
+            changed = true;
+        }
+        else if (library.islands.Length != IslandNames.Length)
+        {
+            // Grow or shrink in place so the entries already filled for earlier islands are kept.
+            System.Array.Resize(ref library.islands, IslandNames.Length);
             changed = true;
         }
 
@@ -89,6 +95,24 @@ public static class AudioInstaller
                     library.islands[i].tension = tension;
                     changed = true;
                 }
+            }
+        }
+
+        // Island 5 has no music of its own yet: it reuses Island 4's track and tension clips until the Island 5 files are added.
+        int island5 = System.Array.IndexOf(IslandNames, "Island5");
+        int island4 = System.Array.IndexOf(IslandNames, "Island4");
+        if (island5 > 0 && island4 >= 0)
+        {
+            if (library.islands[island5].track == null && library.islands[island4].track != null)
+            {
+                library.islands[island5].track = library.islands[island4].track;
+                changed = true;
+            }
+
+            if (library.islands[island5].tension == null && library.islands[island4].tension != null)
+            {
+                library.islands[island5].tension = library.islands[island4].tension;
+                changed = true;
             }
         }
 

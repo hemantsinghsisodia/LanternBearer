@@ -97,19 +97,70 @@ public class SpireLayoutTests
     {
         SpireGap[] gaps = SpireLayout.Gaps();
         Assert.AreEqual(4, gaps.Length);
-        int required = 0;
+        float[] beaconU = SpireLayout.BeaconParameters();
         for (int i = 0; i < gaps.Length; i++)
         {
             SpireGap g = gaps[i];
-            Assert.IsTrue(g.nearBeacon >= 0 && g.nearBeacon < 8 && g.farBeacon >= -1 && g.farBeacon < 8, "gap " + i);
+            Assert.IsTrue(g.required, "gap " + i + " required");
+            Assert.IsTrue(g.nearBeacon >= 0 && g.nearBeacon < beaconU.Length && g.farBeacon >= -1 && g.farBeacon < beaconU.Length, "gap " + i);
             float span = Vector2.Distance(g.nearXZ, g.farXZ);
-            Assert.IsTrue(g.required);
-            required++;
             Assert.IsTrue(span >= 6f && span <= 9f, "required gap " + i + " width " + span);
+
+            Vector2 uSpan = SpireLayout.GapSpanU(i);
+            Assert.Less(uSpan.x, uSpan.y, "gap " + i + " near u must come before far u");
+            Assert.LessOrEqual(Vector2.Distance(g.nearXZ, SpireLayout.PathPoint(uSpan.x)), 0.01f, "gap " + i + " near point");
+            Assert.LessOrEqual(Vector2.Distance(g.farXZ, SpireLayout.PathPoint(uSpan.y)), 0.01f, "gap " + i + " far point");
+            Assert.Less(beaconU[g.nearBeacon], uSpan.x, "gap " + i + " near beacon is before the gap");
         }
 
-        Assert.AreEqual(4, required);
+        // Some beacon sits beyond each of gaps 1-3, so every bridge leads to something to light.
+        for (int i = 0; i < 3; i++)
+        {
+            bool follows = false;
+            for (int b = 0; b < beaconU.Length; b++)
+            {
+                follows |= beaconU[b] > SpireLayout.GapSpanU(i).y;
+            }
+
+            Assert.IsTrue(follows, "a beacon follows gap " + i);
+        }
+
         Assert.LessOrEqual(Vector2.Distance(gaps[3].farXZ, SpireLayout.LampXZ()), 6f);
+    }
+
+    [Test]
+    public void PathWidthIsAWalkway()
+    {
+        Assert.GreaterOrEqual(SpireLayout.PathWidth, 3f);
+        Assert.LessOrEqual(SpireLayout.PathWidth, 4f);
+    }
+
+    [Test]
+    public void PathTangentIsUnitAndFollowsTheSpiral()
+    {
+        for (int i = 0; i <= 20; i++)
+        {
+            float u = i / 20f;
+            Vector2 t = SpireLayout.PathTangent(u);
+            Assert.AreEqual(1f, t.magnitude, 0.001f, "unit length at u=" + u);
+            Vector2 ahead = SpireLayout.PathPoint(Mathf.Min(1f, u + 0.0003f)) - SpireLayout.PathPoint(Mathf.Max(0f, u - 0.0003f));
+            Assert.Greater(Vector2.Dot(t, ahead.normalized), 0.995f, "tangent points forward at u=" + u);
+        }
+    }
+
+    [Test]
+    public void NearestUFindsThePathParameter()
+    {
+        for (int i = 0; i <= 40; i++)
+        {
+            float u = i / 40f;
+            Assert.AreEqual(u, SpireLayout.NearestU(SpireLayout.PathPoint(u)), 0.001f, "on the path at u=" + u);
+        }
+
+        // One metre to the side of the path still maps to (about) the same u.
+        float mid = 0.3f;
+        Vector2 side = SpireLayout.PathPoint(mid) + new Vector2(-SpireLayout.PathTangent(mid).y, SpireLayout.PathTangent(mid).x);
+        Assert.AreEqual(mid, SpireLayout.NearestU(side), 0.01f);
     }
 
     [Test]

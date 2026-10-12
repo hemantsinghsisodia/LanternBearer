@@ -23,7 +23,8 @@ public static class SpireLayout
     public const float PathTopHeight = 38.5f;          // height at the summit end of the path
     public const float RequiredGapWidth = 7.5f;        // XZ width of each required gap (6-9 m allowed)
     public const float SummitPlateauRadius = 6f;       // flat summit disc around the lamp
-    public const float GapCentre1 = 0.18f;             // path u of required gap 1
+    public const float PathWidth = 3.5f;               // flattened walkway width
+    public const float GapCentre1 = 0.18f;            // path u of required gap 1
     public const float GapCentre2 = 0.42f;             // path u of required gap 2
     public const float GapCentre3 = 0.66f;             // path u of required gap 3 (broken stair)
 
@@ -36,6 +37,50 @@ public static class SpireLayout
         float r = EndRadius + (StartRadius - EndRadius) * Mathf.Pow(1f - u, RadiusPower);
         float angle = 2f * Mathf.PI * Turns * u;
         return new Vector2(r * Mathf.Cos(angle), r * Mathf.Sin(angle));
+    }
+
+    // Unit direction of travel (increasing u) at u. Central difference; one-sided at the two ends.
+    public static Vector2 PathTangent(float u01)
+    {
+        const float step = 0.0005f;
+        float u = Mathf.Clamp01(u01);
+        Vector2 d = PathPoint(Mathf.Min(1f, u + step)) - PathPoint(Mathf.Max(0f, u - step));
+        return d.sqrMagnitude < 1e-12f ? Vector2.right : d.normalized;
+    }
+
+    // Path parameter u of the point on the spiral closest to xz. Brute force over the samples, then refined between the neighbours.
+    public static float NearestU(Vector2 xz)
+    {
+        const int samples = 4000;
+        int best = 0;
+        float bestSqr = float.MaxValue;
+        for (int i = 0; i <= samples; i++)
+        {
+            float sqr = (PathPoint(i / (float)samples) - xz).sqrMagnitude;
+            if (sqr < bestSqr)
+            {
+                bestSqr = sqr;
+                best = i;
+            }
+        }
+
+        float lo = Mathf.Max(0f, (best - 1) / (float)samples);
+        float hi = Mathf.Min(1f, (best + 1) / (float)samples);
+        for (int i = 0; i < 24; i++)
+        {
+            float a = lo + (hi - lo) / 3f;
+            float b = hi - (hi - lo) / 3f;
+            if ((PathPoint(a) - xz).sqrMagnitude < (PathPoint(b) - xz).sqrMagnitude)
+            {
+                hi = b;
+            }
+            else
+            {
+                lo = a;
+            }
+        }
+
+        return 0.5f * (lo + hi);
     }
 
     public static Vector2[] SpiralPath(int samples)

@@ -48,7 +48,8 @@ public static class CreatureInstaller
         "Assets/Game/Scenes/Island1.unity",
         "Assets/Game/Scenes/Island2.unity",
         "Assets/Game/Scenes/Island3.unity",
-        "Assets/Game/Scenes/Island4.unity"
+        "Assets/Game/Scenes/Island4.unity",
+        "Assets/Game/Scenes/Island5.unity"
     };
 
     [MenuItem("Lantern Keeper/Install Creature Visuals On Every Island")]

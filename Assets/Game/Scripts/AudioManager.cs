@@ -170,6 +170,8 @@ public class AudioManager : MonoBehaviour
                 cue = SoundCues.AmbienceIsland3;
                 break;
             case "Island4":
+            case "Island5":
+                // Island 5 shares Island 4's bed until it gets its own.
                 cue = SoundCues.AmbienceIsland4;
                 break;
         }
