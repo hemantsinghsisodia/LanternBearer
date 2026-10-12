@@ -34,8 +34,32 @@ public class GreatLamp : MonoBehaviour
     int hintCount = -1;
     bool igniting;
     float litScale;
+    float flareStart = -1f;
+    float flarePeak = 1f;
+    float flareSeconds = 1f;
 
     public bool Lit { get; private set; }
+    public Light LampLight => lampLight;
+    public Transform Flame => flameRoot;
+
+    // The finale flare: the lamp light is multiplied by `peak`, falling back to 1 over `seconds` (unscaled).
+    public void Flare(float peak, float seconds)
+    {
+        flarePeak = Mathf.Max(1f, peak);
+        flareSeconds = Mathf.Max(0.01f, seconds);
+        flareStart = Time.unscaledTime;
+    }
+
+    float FlareFactor()
+    {
+        if (flareStart < 0f)
+        {
+            return 1f;
+        }
+
+        float k = Mathf.Clamp01((Time.unscaledTime - flareStart) / flareSeconds);
+        return 1f + (flarePeak - 1f) * (1f - k) * (1f - k);
+    }
 
     public void Configure(SummitGate summitGate)
     {
@@ -222,7 +246,7 @@ public class GreatLamp : MonoBehaviour
             return;
         }
 
-        float glow = Lit ? 1f : ((gate != null && gate.Open) ? 0.3f + 0.15f * Mathf.Sin(Time.time * 2.2f) : 0f);
+        float glow = Lit ? 1f : ((gate != null && gate.Open) ? 0.3f + 0.15f * Mathf.Sin(Time.unscaledTime * 2.2f) : 0f);
         if (block == null)
         {
             block = new MaterialPropertyBlock();
@@ -242,7 +266,7 @@ public class GreatLamp : MonoBehaviour
 
             bool low = GraphicsQuality.Current == GraphicsLevel.Low;
             beams.GetPropertyBlock(beamsBlock);
-            beamsBlock.SetFloat(BeamIntensityId, litScale * Mathf.Lerp(0.8f, 1f, Mathf.PerlinNoise(Time.time * 5f, 0.3f)) * (low ? BeaconVisual.BeamIntensityScaleLow : 1f));
+            beamsBlock.SetFloat(BeamIntensityId, litScale * Mathf.Lerp(0.8f, 1f, Mathf.PerlinNoise(Time.unscaledTime * 5f, 0.3f)) * (low ? BeaconVisual.BeamIntensityScaleLow : 1f));
             beamsBlock.SetFloat(BeamLengthId, low ? BeaconVisual.BeamLengthScaleLow : 1f);
             beams.SetPropertyBlock(beamsBlock);
         }
@@ -261,7 +285,7 @@ public class GreatLamp : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < growTime)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / growTime));
             float flash = Mathf.Sin(Mathf.Clamp01(elapsed / 0.4f) * Mathf.PI);
             litScale = u * (1f + flash * 0.5f * (1f - u));
@@ -272,7 +296,7 @@ public class GreatLamp : MonoBehaviour
 
             if (lampLight != null)
             {
-                lampLight.intensity = Mathf.Lerp(lightIntensity, lightIntensity * 3f, flash * (1f - u)) * u;
+                lampLight.intensity = Mathf.Lerp(lightIntensity, lightIntensity * 3f, flash * (1f - u)) * u * FlareFactor();
             }
 
             yield return null;
@@ -291,13 +315,13 @@ public class GreatLamp : MonoBehaviour
     {
         if (flameRoot != null && !igniting)
         {
-            float sway = Mathf.Sin(Time.time * 1.5f) * 6f;
+            float sway = Mathf.Sin(Time.unscaledTime * 1.5f) * 6f;
             flameRoot.localRotation = Quaternion.Euler(0f, 0f, sway);
         }
 
         if (lampLight != null && !igniting)
         {
-            lampLight.intensity = lightIntensity * Mathf.Lerp(0.85f, 1.12f, Mathf.PerlinNoise(Time.time * 6f, 0.7f));
+            lampLight.intensity = lightIntensity * Mathf.Lerp(0.85f, 1.12f, Mathf.PerlinNoise(Time.unscaledTime * 6f, 0.7f)) * FlareFactor();
         }
     }
 }

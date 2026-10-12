@@ -7,6 +7,7 @@ Shader "LanternKeeper/Silhouette"
         _Band ("Band", Range(0, 1)) = 0
         _RimColor ("Rim", Color) = (0.62, 0.7, 0.82, 1)
         _RimStrength ("Rim Strength", Float) = 0.4
+        _Fade ("Fade", Range(0, 1)) = 1
     }
     SubShader
     {
@@ -33,6 +34,7 @@ Shader "LanternKeeper/Silhouette"
             float _Band;
             float4 _RimColor;
             float _RimStrength;
+            float _Fade;
             float4 _SilhouetteTint;
 
             struct Attributes
@@ -80,7 +82,7 @@ Shader "LanternKeeper/Silhouette"
                 float moon = saturate(dot(normalWS, mainLight.direction));
                 float edge = pow(saturate(1.0 - abs(dot(normalWS, viewDir))), 2.4);
                 color += _RimColor.rgb * moon * edge * _RimStrength * h;
-                return half4(color, h);
+                return half4(color, h * _Fade);
             }
             ENDHLSL
         }

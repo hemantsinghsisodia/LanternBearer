@@ -88,10 +88,22 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete));
+        StartCoroutine(Run(onComplete, duration, false));
     }
 
-    System.Collections.IEnumerator Run(System.Action onComplete)
+    // The Island 5 finale's sunrise: its own length, on unscaled time (the finale keeps running at timeScale 0). The other islands
+    // call Play(Action) above, which is unchanged: the serialized duration on scaled time.
+    public void Play(System.Action onComplete, float durationSeconds, bool unscaled)
+    {
+        if (IsPlaying)
+        {
+            return;
+        }
+
+        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled));
+    }
+
+    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled)
     {
         IsPlaying = true;
         CaptureNight();
@@ -150,10 +162,10 @@ public class DawnSequence : MonoBehaviour
             }
         }
 
-        while (elapsed < duration)
+        while (elapsed < runDuration)
         {
-            elapsed += Time.deltaTime;
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            elapsed += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / runDuration));
             if (sun != null)
             {
                 sun.color = Color.Lerp(nightLightColor, dawnLight, u);

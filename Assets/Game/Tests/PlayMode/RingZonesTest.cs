@@ -270,6 +270,12 @@ public class RingZonesTest
         return ((System.Collections.ICollection)all.GetValue(null)).Count;
     }
 
+    // The Island 5 finale runs 52 s on unscaled time; the test speed makes it 6.5 s (FinaleSequence resets it when the scene unloads).
+    static void FastFinale()
+    {
+        GameType("FinaleSequence").GetField("TestSpeed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, 8f);
+    }
+
     static Component Director()
     {
         return (Component)Find("MusicDirector");
@@ -489,6 +495,7 @@ public class RingZonesTest
         yield return Wait(5f);
         Component gate = (Component)Find("SummitGate");
         Assert.IsTrue((bool)Get(gate, "Open"), "the gate opened");
+        FastFinale();
         Call((Component)Find("GreatLamp"), "Light");
         float waited = 0f;
         while (!(bool)Get(manager, "Won") && waited < 40f)
@@ -544,6 +551,7 @@ public class RingZonesTest
         yield return Wait(5f);
         Component director = Director();
         int stingersBefore = (int)Get(director, "StingerRequests");
+        FastFinale();
         Call((Component)Find("GreatLamp"), "Light");
         waited = 0f;
         while (!(bool)Get(manager, "Won") && waited < 40f)
@@ -556,7 +564,9 @@ public class RingZonesTest
         yield return Wait(0.5f);
         Assert.IsTrue((bool)Get(manager, "Won"), "the second run wins");
         Assert.AreEqual(1, wins, "exactly one WonGame");
-        Assert.AreEqual(1, (int)Get(director, "StingerRequests") - stingersBefore, "exactly one win stinger");
+        // Island 5 plays the finale cue instead of the win stinger (MusicDirector.OnWon skips it when the scene has a finale).
+        Assert.AreEqual(0, (int)Get(director, "StingerRequests") - stingersBefore, "no win stinger: the finale cue plays instead");
+        Assert.IsTrue((bool)Get(director, "FinalePlaying"), "the finale cue started");
         won2.RemoveEventHandler(manager, count2);
     }
 
