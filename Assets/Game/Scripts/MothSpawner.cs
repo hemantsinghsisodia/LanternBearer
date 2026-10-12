@@ -11,6 +11,8 @@ public class MothSpawner : MonoBehaviour
     [SerializeField] GameObject mothPrefab;
     [SerializeField] float extraSpawnDelay = 16f;
     [SerializeField] float islandRadius;
+    // Island 5: spawn only on the walkway, at the keeper's reached ring or below, instead of on the shore ring.
+    [SerializeField] bool walkwayOnly;
     [SerializeField] float minPlayerDistance = 25f;
     [SerializeField] int maxMoths;
     [SerializeField] Lantern lantern;
@@ -200,7 +202,7 @@ public class MothSpawner : MonoBehaviour
 
     bool TryDarkEdge(out Vector3 position)
     {
-        float shore = FindShoreDistance(ResolveRadius());
+        float shore = walkwayOnly ? 0f : FindShoreDistance(ResolveRadius());
         Vector3 playerFlat = PlayerFlat();
         bool hasPlayer = HasPlayer();
         position = Vector3.zero;
@@ -208,10 +210,19 @@ public class MothSpawner : MonoBehaviour
         float farthestDistance = -1f;
         for (int attempt = 0; attempt < 36; attempt++)
         {
-            float angle = Random.Range(0f, Mathf.PI * 2f);
-            float dist = shore * Random.Range(0.78f, 0.94f);
-            Vector3 flat = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-            if (InsideLitZone(flat))
+            Vector3 flat;
+            if (walkwayOnly)
+            {
+                flat = WalkwayCandidate();
+            }
+            else
+            {
+                float angle = Random.Range(0f, Mathf.PI * 2f);
+                float dist = shore * Random.Range(0.78f, 0.94f);
+                flat = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
+            }
+
+            if (flat.y < 0f || InsideLitZone(flat))
             {
                 continue;
             }
@@ -418,6 +429,18 @@ public class MothSpawner : MonoBehaviour
         {
             AudioManager.Instance.RouteSfx(whisper);
         }
+    }
+
+    // A flat point on the walkway at the reached ring or below; y is -1 when the roll missed the path.
+    static Vector3 WalkwayCandidate()
+    {
+        Vector2 point;
+        if (WalkwaySpawn.TryRoll(RingZones.Reached, Random.value, Random.value, out point))
+        {
+            return new Vector3(point.x, 0f, point.y);
+        }
+
+        return new Vector3(0f, -1f, 0f);
     }
 
     float ResolveRadius()

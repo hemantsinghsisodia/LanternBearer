@@ -152,7 +152,8 @@ public class Wind : MonoBehaviour
             }
         }
 
-        return false;
+        // A built light bridge shelters the keeper like a beacon ring does.
+        return LightBridge.AnySafe(position);
     }
 
     // A static, non-trigger collider within 4 m upwind of the player's chest blocks most of the push.

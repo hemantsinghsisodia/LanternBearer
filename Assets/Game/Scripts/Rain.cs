@@ -76,7 +76,8 @@ public class Rain : MonoBehaviour
             }
         }
 
-        return false;
+        // A built light bridge shelters the keeper like a beacon ring does.
+        return LightBridge.AnySafe(position);
     }
 }
 }

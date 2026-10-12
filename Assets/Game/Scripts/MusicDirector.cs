@@ -8,6 +8,7 @@ public class MusicDirector : MonoBehaviour
 {
     const float TensionGain = 0.708f; // -3 dB
     const float FadeInDuration = 3f;
+    const float HushSeconds = 3f;
     const float StartDelay = 0.1f;
     // 0.8 x MusicPlayer.MusicBoost would be 1.6, above what a source can play, so the source stays at 1.0 and the
     // Stinger mixer group (UserSettingsApplier adds MusicPlayer.StingerMixerTrimDb, +4.06 dB) carries the rest of the +6 dB.
@@ -28,9 +29,21 @@ public class MusicDirector : MonoBehaviour
     bool refsResolved;
     bool hasTension;
     float threat;
+    float tensionFloor;
+    bool hushed;
+    float hushElapsed;
+    AudioSource hushSource;
+    MusicLibrary.IslandMusic entryInUse;
     float elapsed;
 
     public float Threat => threat;
+    // Storm tension never drops below this (Island 5 height rings). Zero on the other islands.
+    public float TensionFloor => tensionFloor;
+    public float EffectiveThreat => Mathf.Max(threat, tensionFloor);
+    public bool Hushed => hushed;
+    public AudioSource HushSource => hushSource;
+    // Times a stinger was requested (muted or not); tests use it to prove a win plays exactly one.
+    public int StingerRequests { get; private set; }
     public AudioSource Track => track;
     public AudioSource Tension => tension;
     public AudioSource StingerSource => stinger;
@@ -86,6 +99,15 @@ public class MusicDirector : MonoBehaviour
         track.clip = null;
         tension.clip = null;
         threat = 0f;
+        tensionFloor = 0f;
+        hushed = false;
+        hushElapsed = 0f;
+        entryInUse = null;
+        if (hushSource != null)
+        {
+            hushSource.Stop();
+        }
+
         elapsed = 0f;
         hasTension = false;
         if (library == null)
@@ -94,6 +116,7 @@ public class MusicDirector : MonoBehaviour
         }
 
         MusicLibrary.IslandMusic entry = library.For(gameObject.scene.name);
+        entryInUse = entry;
         AudioClip trackClip = entry != null ? entry.track : null;
         AudioClip tensionClip = entry != null ? entry.tension : null;
         if (trackClip == null)
@@ -126,10 +149,15 @@ public class MusicDirector : MonoBehaviour
         float target = ThreatMix.Target(lantern != null && lantern.MothsDraining > 0, NearestShade(),
             lantern != null ? lantern.FuelNormalized : 1f, lantern != null && lantern.InSafeLight);
         threat = ThreatMix.Step(threat, target, dt);
+        if (hushed)
+        {
+            hushElapsed += dt;
+        }
+
         ApplyVolumes();
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.SetDuckFloor("AmbienceDuck", AmbienceDuckDb * threat);
+            AudioManager.Instance.SetDuckFloor("AmbienceDuck", AmbienceDuckDb * EffectiveThreat * HushScale());
         }
     }
 
@@ -209,8 +237,55 @@ public class MusicDirector : MonoBehaviour
         // follows the base volume, which still respects mute and the fade-in.
         float mute = MusicPlayer.IsMuted ? 0f : 1f;
         float baseVolume = MusicPlayer.BaseVolume * mute * fade;
-        track.volume = MusicPlayer.BaseVolume * MusicPlayer.Mood(lantern, dawn) * fade;
-        tension.volume = hasTension ? baseVolume * TensionGain * threat : 0f;
+        float hush = HushScale();
+        track.volume = MusicPlayer.BaseVolume * MusicPlayer.Mood(lantern, dawn) * fade * hush;
+        tension.volume = hasTension ? baseVolume * TensionGain * EffectiveThreat * hush : 0f;
+        if (hushSource != null)
+        {
+            hushSource.volume = hushed ? baseVolume * Mathf.Clamp01(hushElapsed / HushSeconds) : 0f;
+        }
+    }
+
+    // 1 until the summit hush, then fades to 0 over HushSeconds.
+    float HushScale()
+    {
+        return hushed ? 1f - Mathf.Clamp01(hushElapsed / HushSeconds) : 1f;
+    }
+
+    // Island 5 height rings: the storm never sounds calmer than this once the keeper has climbed.
+    public void SetTensionFloor(float floor)
+    {
+        tensionFloor = Mathf.Clamp01(floor);
+    }
+
+    // The keeper reached the summit: the track and tension fade out over 3 s and the island's hush clip (if any) fades in.
+    public void EnterSummitHush()
+    {
+        if (hushed)
+        {
+            return;
+        }
+
+        hushed = true;
+        hushElapsed = 0f;
+        AudioClip clip = entryInUse != null ? entryInUse.hush : null;
+        if (clip == null)
+        {
+            return;
+        }
+
+        if (hushSource == null)
+        {
+            hushSource = NewSource(true);
+            AudioManager audio = AudioManager.Instance;
+            if (audio != null && audio.MusicGroup != null)
+            {
+                hushSource.outputAudioMixerGroup = audio.MusicGroup;
+            }
+        }
+
+        hushSource.clip = clip;
+        hushSource.Play();
     }
 
     void OnBeaconLit(Beacon beacon)
@@ -240,7 +315,13 @@ public class MusicDirector : MonoBehaviour
     // A 2D one-shot on the Stinger group (outside the music duck). Ducks the music bus while it plays; silent when music is muted.
     public void PlayStinger(AudioClip clip)
     {
-        if (clip == null || MusicPlayer.IsMuted)
+        if (clip == null)
+        {
+            return;
+        }
+
+        StingerRequests++;
+        if (MusicPlayer.IsMuted)
         {
             return;
         }

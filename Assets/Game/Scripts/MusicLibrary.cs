@@ -12,6 +12,8 @@ public class MusicLibrary : ScriptableObject
         public string scene;
         public AudioClip track;
         public AudioClip tension;
+        // Island 5 only: the summit hush plays this once the keeper reaches the top. Null elsewhere.
+        public AudioClip hush;
     }
 
     public AudioClip menuTrack;
