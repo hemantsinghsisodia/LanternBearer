@@ -39,8 +39,8 @@ MonoBehaviour:
   introLines:
   - One path winds up the mountain to the Great Light. Follow it to the summit.
   - Some gaps are too wide to jump. Light the beacon at the edge and a bridge of light carries you across.
-  - At the summit, light all eight beacons. Then the Great Light wakes.
-  - The storm never eases as you climb. Turning back will not slow it.
+  - Light all eight beacons on the climb. Then the summit opens and the Great Light can wake.
+  - The storm only grows as you climb, and turning back will not slow it.
   windStrength: 0
   shadeCount: 0
   lightning: 0
