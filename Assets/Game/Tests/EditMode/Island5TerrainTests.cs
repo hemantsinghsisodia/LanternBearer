@@ -11,6 +11,11 @@ public class Island5TerrainTests
 {
     const string TerrainPath = "Assets/Game/Levels/Island5_Terrain.asset";
     const float WaterFraction = 0.2f;
+    // Near/far walkway cells this close (horizontally) are compared: a margin over the 10.8 m sprint jump so that every gap, including the
+    // 12 m ones, really evaluates pairs.
+    const float PairRadius = 13.5f;
+    const float JumpReach = 10.8f;
+    const float JumpRise = 2.8f;
 
     // Heightmap MD5 (GetHeights, float bytes) of Islands 1-4 recorded before the spire work. SculptHeights must not change for spire == false.
     static readonly string[] ExpectedHashes =
@@ -159,7 +164,8 @@ public class Island5TerrainTests
         }
     }
 
-    // Walking rules of the keeper: climb surfaces up to the 50 degree slope limit (and steps up to 0.7 m), never wade into water, fall freely.
+    // Walking rules of the keeper: climb surfaces up to the 50 degree slope limit (and steps up to 0.7 m), never wade into water, fall freely,
+    // and sprint-jump up to 10.8 m horizontally and 2.8 m up (the jump edge below).
     // From the beach, only the first stretch of walkway (before gap 1) may be reachable: the cliffs and the gaps block everything else.
     [Test]
     public void GapsBlockTheWalkway()
@@ -192,6 +198,8 @@ public class Island5TerrainTests
 
         Func<Vector2, int> index = p => Mathf.Clamp((int)((p.y + half) / cell), 0, n - 1) * n + Mathf.Clamp((int)((p.x + half) / cell), 0, n - 1);
         bool[] seen = new bool[n * n];
+        int[] parent = new int[n * n];
+        bool[] jumped = new bool[n * n];
         System.Collections.Generic.Queue<int> queue = new System.Collections.Generic.Queue<int>();
         int start = index(SpireLayout.PathPoint(0.001f));
         seen[start] = true;
@@ -219,7 +227,34 @@ public class Island5TerrainTests
                 }
 
                 seen[nz * n + nx] = true;
+                parent[nz * n + nx] = cur;
                 queue.Enqueue(nz * n + nx);
+            }
+
+            // Jump edge: a sprint jump covers JumpReach on the flat and rises JumpRise. Any dry cell within reach that is no more than
+            // JumpRise above this one and not steeper than the climb limit can be landed on (walls in between are ignored, which only makes the check stricter).
+            int reach = (int)(JumpReach / cell);
+            for (int jz = -reach; jz <= reach; jz += 2)
+            {
+                for (int jx = -reach; jx <= reach; jx += 2)
+                {
+                    int tx = cx + jx;
+                    int tz = cz + jz;
+                    if (jx * jx + jz * jz > reach * reach || tx < 1 || tz < 1 || tx >= n - 1 || tz >= n - 1 || seen[tz * n + tx])
+                    {
+                        continue;
+                    }
+
+                    if (h[tz, tx] < -0.3f || h[tz, tx] > h[cz, cx] + JumpRise || grade[tz, tx] > climbTan)
+                    {
+                        continue;
+                    }
+
+                    seen[tz * n + tx] = true;
+                    parent[tz * n + tx] = cur;
+                    jumped[tz * n + tx] = true;
+                    queue.Enqueue(tz * n + tx);
+                }
             }
         }
 
@@ -228,12 +263,32 @@ public class Island5TerrainTests
         Assert.IsTrue(seen[index(beacons[1])], "beacon 1 comes before gap 1");
         for (int i = 2; i < beacons.Length; i++)
         {
-            Assert.IsFalse(seen[index(beacons[i])], "beacon " + i + " must be behind a gap");
+            Assert.IsFalse(seen[index(beacons[i])], "beacon " + i + " must be behind a gap. Jumps on the way: " + JumpTrace(parent, jumped, index(beacons[i]), n, cell, half, h));
         }
 
         Assert.IsFalse(seen[index(SpireLayout.LampXZ())], "the great lamp is behind the summit span");
     }
 
+
+    // The jump edges on the way to a cell, "from (x, z, height) to (x, z, height)", for a failure message.
+    static string JumpTrace(int[] parent, bool[] jumped, int cellIndex, int n, float cell, float half, float[,] h)
+    {
+        System.Text.StringBuilder text = new System.Text.StringBuilder();
+        int guard = 0;
+        for (int at = cellIndex; at > 0 && guard < n * n; at = parent[at], guard++)
+        {
+            if (!jumped[at])
+            {
+                continue;
+            }
+
+            int from = parent[at];
+            text.Append("[(" + ((from % n + 0.5f) * cell - half).ToString("F1") + ", " + ((from / n + 0.5f) * cell - half).ToString("F1") + ", h " + h[from / n, from % n].ToString("F1")
+                + ") to (" + ((at % n + 0.5f) * cell - half).ToString("F1") + ", " + ((at / n + 0.5f) * cell - half).ToString("F1") + ", h " + h[at / n, at % n].ToString("F1") + ")] ");
+        }
+
+        return text.ToString();
+    }
 
     // A sprint jump covers about 10.8 m on the flat and rises 2.8 m. Every pair of walkable near-side and far-side cells closer than
     // 11 m must have the far side more than 3 m higher, and the bridge landing itself is at least 11 m wide with a 3 m rise.
@@ -278,20 +333,23 @@ public class Island5TerrainTests
 
             float worstRise = float.MaxValue;
             float closest = float.MaxValue;
+            int evaluated = 0;
             for (int a = 0; a < near.Count; a++)
             {
                 for (int b = 0; b < far.Count; b++)
                 {
                     float d = Vector2.Distance(new Vector2(near[a].x, near[a].z), new Vector2(far[b].x, far[b].z));
                     closest = Mathf.Min(closest, d);
-                    if (d <= 11f)
+                    if (d <= PairRadius)
                     {
+                        evaluated++;
                         worstRise = Mathf.Min(worstRise, far[b].y - near[a].y);
                     }
                 }
             }
 
-            Assert.Greater(worstRise, 3f, "gap " + g + ": a far-side cell within 11 m (closest " + closest + " m) is not 3 m higher than the near side");
+            Assert.Greater(evaluated, 0, "gap " + g + ": no near/far pair within " + PairRadius + " m (closest " + closest + " m): the check would be vacuous");
+            Assert.Greater(worstRise, 3f, "gap " + g + ": a far-side cell within " + PairRadius + " m (closest " + closest + " m) is not 3 m higher than the near side");
         }
     }
 
@@ -360,6 +418,57 @@ public class Island5TerrainTests
             float angle = k * Mathf.PI * 0.125f;
             Vector2 offshore = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 52f;
             Assert.Less(HeightAt(data, offshore), 0f, "open water at angle " + k);
+        }
+    }
+
+    static string Md5(float[,] heights, int res)
+    {
+        byte[] bytes = new byte[res * res * 4];
+        Buffer.BlockCopy(heights, 0, bytes, 0, bytes.Length);
+        using (MD5 md5 = MD5.Create())
+        {
+            return BitConverter.ToString(md5.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        }
+    }
+
+    // Runs the builder's own SculptHeights (private, reached by reflection) for the island 1-4 configs and hashes the result the way the
+    // terrain asset stores it (through a TerrainData, so the 16 bit height quantisation is the same). A change to the sculpt code that
+    // alters the non-spire path fails here even before the terrain assets are rebuilt.
+    [Test]
+    public void Islands1To4SculptHeightsUnchanged()
+    {
+        Type builder = Type.GetType("LanternKeeper.IslandBuilder, Assembly-CSharp-Editor");
+        Assert.IsNotNull(builder, "IslandBuilder type");
+        System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
+        System.Reflection.MethodInfo plan = builder.GetMethod("PlanBeaconXZ", flags);
+        System.Reflection.MethodInfo sculpt = builder.GetMethod("SculptHeights", flags);
+        Assert.IsNotNull(plan, "PlanBeaconXZ");
+        Assert.IsNotNull(sculpt, "SculptHeights");
+        const int res = 513;
+        for (int i = 0; i < 4; i++)
+        {
+            ScriptableObject config = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/Game/Levels/Island" + (i + 1) + ".asset");
+            Assert.IsNotNull(config, "Island" + (i + 1) + " config");
+            Type configType = config.GetType();
+            float radius = (float)configType.GetField("islandRadius").GetValue(config);
+            float hill = (float)configType.GetField("hillHeight").GetValue(config);
+            Assert.IsFalse((bool)configType.GetField("spire").GetValue(config), "Island" + (i + 1) + " is not a spire");
+            object beacons = plan.Invoke(null, new object[] { config, new System.Collections.Generic.List<Vector2>() });
+            object trails = new System.Collections.Generic.List<System.Collections.Generic.List<Vector2>>();
+            float world = radius * 2f;
+            float[,] heights = (float[,])sculpt.Invoke(null, new object[] { config, res, world, beacons, trails });
+            TerrainData data = new TerrainData();
+            try
+            {
+                data.heightmapResolution = res;
+                data.size = new Vector3(world, hill, world);
+                data.SetHeights(0, 0, heights);
+                Assert.AreEqual(ExpectedHashes[i], Md5(data.GetHeights(0, 0, res, res), res), "Island" + (i + 1) + " SculptHeights output changed");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(data);
+            }
         }
     }
 

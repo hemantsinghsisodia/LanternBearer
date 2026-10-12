@@ -26,6 +26,14 @@ public static class AudioInstaller
         for (int i = 0; i < CreatureInstaller.IslandScenePaths.Length; i++)
         {
             string path = CreatureInstaller.IslandScenePaths[i];
+            // The scene files are edited as text, so a scene that is open in the editor would raise Unity's "modified externally"
+            // dialog and could lose edits. Skip it; run the installer again after closing it.
+            if (IsSceneLoaded(path))
+            {
+                Debug.LogWarning("AudioInstaller: skipped " + path + " because it is loaded in the editor. Open another scene and run it again.");
+                continue;
+            }
+
             string text = File.ReadAllText(path, new UTF8Encoding(false));
             string result = Insert(text, directorGuid, "MusicDirector", managerGuid, path);
             if (path.EndsWith("Island2.unity", System.StringComparison.Ordinal))
@@ -42,6 +50,20 @@ public static class AudioInstaller
 
         InstallLibrary();
         AssetDatabase.Refresh();
+    }
+
+    static bool IsSceneLoaded(string path)
+    {
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+        {
+            UnityEngine.SceneManagement.Scene scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+            if (scene.isLoaded && string.Equals(scene.path, path, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Fills any empty island slot from Music_<Island>_1.ogg and Tension_<Island>_1.ogg in the music folder.
