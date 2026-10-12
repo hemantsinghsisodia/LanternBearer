@@ -70,6 +70,8 @@ Each sub-phase gets its own plan, reviews and playable build. This spec covers b
   | High | lightning (Island 4 `Lightning`); **thin air**: lantern light radius −20% and fuel drain +15% |
   | Summit | calm until the great lamp is lit |
 
+  No tide on Island 5 (ruling 2026-10-12): a moving sea would shift the ring heights; the low ring keeps moths and inlet water.
+
 - **Ratchet (the user's choice):** the hazard level is the highest ring reached so far. It never goes down, even if the keeper walks back down. Walking back stays possible, so the keeper can never get stuck: missed beacons and low-ring fireflies stay reachable.
 - **Unchanged rules:** losing (fuel at 0), Retry, fuel costs, safe rings, the compass and fireflies work as on the other islands.
 - **New code:**

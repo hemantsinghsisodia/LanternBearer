@@ -801,6 +801,7 @@ public static partial class SceneWiring
         nulls += ReportMoonRim(quiet);
         nulls += ReportAudio(AssetDatabase.LoadAssetAtPath<SoundBank>(SoundBankBuilder.BankPath), Resources.Load<MusicLibrary>("MusicLibrary"), quiet);
         nulls += ReportTerrainLayers(quiet);
+        nulls += ReportIsland5(quiet);
         return nulls;
     }
 
@@ -1074,6 +1075,64 @@ public static partial class SceneWiring
         }
 
         return 1;
+    }
+
+    // Island 5 (the spire) has light bridges, a great lamp and ring zones on top of the usual island checks. Each light bridge needs its
+    // near beacon (the one that kindles it) and a deck that can have a collider: the colliders are built when the scene starts, so in the
+    // editor a deck needs two or more walkway points and a width; a built "Collision" child counts as is.
+    static int ReportIsland5(bool quiet)
+    {
+        string sceneName = EditorSceneManager.GetActiveScene().name;
+        if (sceneName != "Island5")
+        {
+            return 0;
+        }
+
+        int problems = 0;
+        LightBridge[] bridges = Object.FindObjectsByType<LightBridge>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < bridges.Length; i++)
+        {
+            LightBridge bridge = bridges[i];
+            if (bridge.NearBeacon == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " bridge '" + bridge.name + "' missing near beacon");
+                }
+            }
+
+            bool hasCollider = bridge.GetComponentInChildren<Collider>(true) != null
+                || (bridge.Points != null && bridge.Points.Length >= 2 && bridge.Width > 0f);
+            if (!hasCollider)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " bridge '" + bridge.name + "' has no collider");
+                }
+            }
+        }
+
+        if (Object.FindAnyObjectByType<GreatLamp>(FindObjectsInactive.Include) == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing GreatLamp");
+            }
+        }
+
+        if (Object.FindAnyObjectByType<RingZones>(FindObjectsInactive.Include) == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing RingZones");
+            }
+        }
+
+        return problems;
     }
 
     // Terrain layers are painted, never photographic: no diffuse or normal map may come from the Poly Haven folder.

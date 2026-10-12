@@ -706,7 +706,19 @@ public static partial class IslandBuilder
     {
         LevelConfig config = CreateIsland5Config();
         Build(config);
+        // Build wipes the bridges and rings (they are installed on top of the built scene), so a rebuild runs the installers too.
+        for (int i = 0; i < Island5PostSteps.Length; i++)
+        {
+            Island5PostSteps[i].run();
+        }
     }
+
+    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings.
+    public static readonly (string name, System.Action run)[] Island5PostSteps =
+    {
+        ("BridgeInstaller", BridgeInstaller.Install),
+        ("RingInstaller", RingInstaller.Install)
+    };
 
     public static LevelConfig CreateIsland5Config()
     {
