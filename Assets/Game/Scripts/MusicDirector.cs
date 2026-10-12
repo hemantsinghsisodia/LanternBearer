@@ -9,6 +9,8 @@ public class MusicDirector : MonoBehaviour
     const float TensionGain = 0.708f; // -3 dB
     const float FadeInDuration = 3f;
     const float HushSeconds = 3f;
+    // The hush clip is normalised like the track, so it plays at 0.6x the base music volume (about -4.4 dB) to read as a hush.
+    const float HushLevel = 0.6f;
     const float StartDelay = 0.1f;
     // 0.8 x MusicPlayer.MusicBoost would be 1.6, above what a source can play, so the source stays at 1.0 and the
     // Stinger mixer group (UserSettingsApplier adds MusicPlayer.StingerMixerTrimDb, +4.06 dB) carries the rest of the +6 dB.
@@ -242,7 +244,7 @@ public class MusicDirector : MonoBehaviour
         tension.volume = hasTension ? baseVolume * TensionGain * EffectiveThreat * hush : 0f;
         if (hushSource != null)
         {
-            hushSource.volume = hushed ? baseVolume * Mathf.Clamp01(hushElapsed / HushSeconds) : 0f;
+            hushSource.volume = hushed ? baseVolume * HushLevel * Mathf.Clamp01(hushElapsed / HushSeconds) : 0f;
         }
     }
 
