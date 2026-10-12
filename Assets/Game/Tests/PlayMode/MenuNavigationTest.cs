@@ -19,11 +19,12 @@ public class MenuNavigationTest
     const string Won1Key = "LanternKeeperWon_island1";
     const string Won2Key = "LanternKeeperWon_island2";
     const string Won3Key = "LanternKeeperWon_island3";
+    const string Won4Key = "LanternKeeperWon_island4";
     const string Intro1Key = "LanternKeeperIntro_island1";
 
     int savedGraphics;
-    bool hadDifficulty, hadWon1, hadWon2, hadWon3, hadIntro1;
-    int savedDifficulty, savedWon1, savedWon2, savedWon3, savedIntro1;
+    bool hadDifficulty, hadWon1, hadWon2, hadWon3, hadWon4, hadIntro1;
+    int savedDifficulty, savedWon1, savedWon2, savedWon3, savedWon4, savedIntro1;
 
     [SetUp]
     public void SetUp()
@@ -33,16 +34,19 @@ public class MenuNavigationTest
         hadWon1 = PlayerPrefs.HasKey(Won1Key);
         hadWon2 = PlayerPrefs.HasKey(Won2Key);
         hadWon3 = PlayerPrefs.HasKey(Won3Key);
+        hadWon4 = PlayerPrefs.HasKey(Won4Key);
         hadIntro1 = PlayerPrefs.HasKey(Intro1Key);
         savedWon2 = PlayerPrefs.GetInt(Won2Key, 0);
         savedWon3 = PlayerPrefs.GetInt(Won3Key, 0);
+        savedWon4 = PlayerPrefs.GetInt(Won4Key, 0);
         savedDifficulty = PlayerPrefs.GetInt(DifficultyKey, 1);
         savedWon1 = PlayerPrefs.GetInt(Won1Key, 0);
         savedIntro1 = PlayerPrefs.GetInt(Intro1Key, 0);
-        // Exactly Islands 1 and 2 are open (the second row is the latest), and Island 1's intro card does not pause the game.
+        // Exactly Islands 1 and 2 are open (the second row is the latest; Island 5 opens on winning Island 4, so that key is cleared too), and Island 1's intro card does not pause the game.
         PlayerPrefs.SetInt(Won1Key, 1);
         PlayerPrefs.DeleteKey(Won2Key);
         PlayerPrefs.DeleteKey(Won3Key);
+        PlayerPrefs.DeleteKey(Won4Key);
         PlayerPrefs.SetInt(Intro1Key, 1);
     }
 
@@ -56,6 +60,7 @@ public class MenuNavigationTest
         Restore(Won1Key, hadWon1, savedWon1);
         Restore(Won2Key, hadWon2, savedWon2);
         Restore(Won3Key, hadWon3, savedWon3);
+        Restore(Won4Key, hadWon4, savedWon4);
         Restore(Intro1Key, hadIntro1, savedIntro1);
         PlayerPrefs.Save();
     }

@@ -19,6 +19,7 @@ public class Lantern : MonoBehaviour
     readonly List<UnityEngine.Object> staleModifiers = new List<UnityEngine.Object>();
 
     float fuel;
+    float radiusScale = 1f;
     float difficultyDrain = 1f;
     float escalation = 1f;
     float loggedEscalation = -1f;
@@ -41,6 +42,22 @@ public class Lantern : MonoBehaviour
     public float MaxFuel => maxFuel;
     public float FuelNormalized => maxFuel <= 0f ? 0f : fuel / maxFuel;
     public float Radius => lanternLight != null ? lanternLight.range : maxRange;
+    // Scales the light range (thin air on Island 5). 1 everywhere else; clamped to 0.5-1.
+    public float RadiusScale
+    {
+        get { return radiusScale; }
+        set
+        {
+            float clamped = Mathf.Clamp(value, 0.5f, 1f);
+            if (Mathf.Approximately(clamped, radiusScale))
+            {
+                return;
+            }
+
+            radiusScale = clamped;
+            ApplyLight();
+        }
+    }
     public float BaseIntensity { get; private set; }
     public float BaseDrainPerSecond => drainPerSecond;
     public float DifficultyDrain => difficultyDrain;
@@ -174,7 +191,8 @@ public class Lantern : MonoBehaviour
             }
         }
 
-        return false;
+        // A built light bridge is safe light too.
+        return LightBridge.AnySafe(position);
     }
 
     public void SetDrainModifier(UnityEngine.Object source, float multiplier)
@@ -331,7 +349,7 @@ public class Lantern : MonoBehaviour
         float amount = FuelNormalized;
         BaseIntensity = Mathf.Lerp(minIntensity, maxIntensity, amount);
         lanternLight.intensity = BaseIntensity * ProximityScale;
-        lanternLight.range = Mathf.Lerp(minRange, maxRange, amount);
+        lanternLight.range = Mathf.Lerp(minRange, maxRange, amount) * radiusScale;
         lanternLight.enabled = amount > 0.01f;
         PublishRevealGlobals();
     }

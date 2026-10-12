@@ -141,7 +141,7 @@ public static partial class IslandBuilder
     static float WalkwayHeight(Stage stage, Vector2 p)
     {
         float best = float.NaN;
-        float bestDistance = 1.3f;
+        float bestDistance = stage.walkwayClear;
         for (int i = 0; i < stage.trails.Count; i++)
         {
             List<Vector2> path = stage.trails[i];
@@ -189,6 +189,12 @@ public static partial class IslandBuilder
 
     static GameObject[] CladdingPrefabs(string levelId)
     {
+        // Island 5 has no nature-kit variants of its own yet; its cliffs wear Island 4's rock.
+        if (levelId == "island5")
+        {
+            levelId = "island4";
+        }
+
         if (!AssetDatabase.IsValidFolder(CladdingPrefabFolder))
         {
             AssetDatabase.CreateFolder("Assets/Game/Art/Environment/Nature/Prefabs", "Cladding");

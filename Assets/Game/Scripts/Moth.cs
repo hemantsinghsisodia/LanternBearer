@@ -298,7 +298,8 @@ public class Moth : MonoBehaviour
         desired = AvoidObstacles(desired);
         Commit(desired, flySpeed, dt);
 
-        bool close = distance <= closeDistance && !InsideSafe(transform.position);
+        // Measured after the move: a moth pushed out of a safe zone this frame must not count as close from its old spot.
+        bool close = Vector3.Distance(transform.position, target) <= closeDistance && !InsideSafe(transform.position);
         SetClose(close);
 
         bool sprintingAway = body != null && body.IsSprinting && body.HorizontalSpeed > flySpeed;
@@ -374,6 +375,8 @@ public class Moth : MonoBehaviour
             }
         }
 
+        // A built light bridge is safe light too.
+        desired += LightBridge.Repel(transform.position);
         return desired;
     }
 
@@ -440,7 +443,7 @@ public class Moth : MonoBehaviour
             position = rim;
         }
 
-        return position;
+        return LightBridge.PushOut(position);
     }
 
     void EnforceHeight()
@@ -564,7 +567,7 @@ public class Moth : MonoBehaviour
             }
         }
 
-        return false;
+        return LightBridge.AnySafe(worldPosition);
     }
 
     void SetClose(bool close)

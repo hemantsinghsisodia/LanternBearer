@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6f7f2f2c3a86674384ec2c9b9487ebc, type: 3}
+  m_Name: Island5
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
+  levelId: island5
+  displayName: Island 5
+  islandTitle: The Great Light
+  sceneName: Island5
+  islandRadius: 45
+  hillHeight: 52
+  seed: 5505
+  beaconCount: 8
+  fireflyCount: 26
+  mothCount: 4
+  hiddenPathCount: 0
+  plateauIsletBeacons: 0
+  fogColor: {r: 0.05, g: 0.11, b: 0.13, a: 1}
+  fogDensity: 0.014
+  grassDetailDensity: 8
+  nextLevelScene: 
+  biome: {fileID: 11400000, guid: 47406eb92c6234749ba61c17a357a1ec, type: 2}
+  tideAmplitude: 0
+  tidePeriod: 90
+  tidePhase: 0
+  logEntries:
+  - The lighthouse was raised by keepers long gone, stone by stone, up the mountain's one path. Each left a beacon behind, and a name cut into its foot.
+  - The storm came on the longest night and put the Great Light out. It has not eased since. The keepers who stayed lit what they could, and the dark took the rest.
+  - 'The last keeper''s page is nailed to the lamp-room door: ''I could not relight it alone. I will wait. Whoever climbs this far, finish what I began.'''
+  introLines:
+  - One path winds up the mountain to the Great Light. Follow it to the summit.
+  - Some gaps are too wide to jump. Light the beacon at the edge and a bridge of light carries you across.
+  - Light all eight beacons on the climb. Then the summit opens and the Great Light can wake.
+  - The storm only grows as you climb, and turning back will not slow it.
+  windStrength: 0
+  shadeCount: 0
+  lightning: 0
+  ridges: 0
+  spire: 1
+  lookProfile: {fileID: 11400000, guid: cd2ab6ad31bd59248a4a07c4a169027c, type: 2}

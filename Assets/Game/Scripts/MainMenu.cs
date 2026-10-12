@@ -5,9 +5,9 @@ namespace LanternKeeper
 {
 public class MainMenu : MonoBehaviour
 {
-    static readonly string[] FallbackIds = { "island1", "island2", "island3", "island4" };
-    static readonly string[] FallbackScenes = { "Island1", "Island2", "Island3", "Island4" };
-    static readonly string[] FallbackNames = { "Island 1", "Island 2", "Island 3", "Island 4" };
+    static readonly string[] FallbackIds = { "island1", "island2", "island3", "island4", "island5" };
+    static readonly string[] FallbackScenes = { "Island1", "Island2", "Island3", "Island4", "Island5" };
+    static readonly string[] FallbackNames = { "Island 1", "Island 2", "Island 3", "Island 4", "Island 5" };
 
     [SerializeField] LevelConfig[] levels = new LevelConfig[0];
 

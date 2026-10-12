@@ -17,7 +17,7 @@ public static partial class IslandBuilder
     const string MarshBiomePath = "Assets/Game/Levels/Biomes/Marsh.asset";
     const string HeathBiomePath = "Assets/Game/Levels/Biomes/Heath.asset";
 
-    static readonly string[] LevelNames = { "Island1", "Island2", "Island3", "Island4" };
+    static readonly string[] LevelNames = { "Island1", "Island2", "Island3", "Island4", "Island5" };
 
     static string LevelAssetPath(string levelName)
     {
@@ -86,11 +86,23 @@ public static partial class IslandBuilder
         CreateDefaultConfigs();
         for (int i = 0; i < LevelNames.Length; i++)
         {
-            Build(AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(LevelNames[i])));
+            BuildActionFor(LevelNames[i])();
         }
 
         BuildMainMenu();
         ApplyBuildSettings();
+    }
+
+    // What "Build All Levels" runs for one level. Island 5 goes through BuildIsland5 so its post steps (bridges, gate, lamp, rings,
+    // perf pass, music) run; a plain Build would leave it without them and unwinnable.
+    static System.Action BuildActionFor(string levelName)
+    {
+        if (levelName == "Island5")
+        {
+            return BuildIsland5;
+        }
+
+        return () => Build(AssetDatabase.LoadAssetAtPath<LevelConfig>(LevelAssetPath(levelName)));
     }
 
     public static void CreateDefaultConfigs()
@@ -102,7 +114,7 @@ public static partial class IslandBuilder
         LevelConfig island1 = WriteConfig(LevelAssetPath("Island1"), "island1", "Island 1", "Island1", 28f, 9f, 1101, 5, 14, 4, 1, new Color(0.4f, 0.52f, 0.56f, 1f), 0.011f, "Island2", 0f, 90f, 0f, Island1Log(), "Assets/Game/Levels/Biomes/PineForest.asset");
         LevelConfig island2 = WriteConfig(LevelAssetPath("Island2"), "island2", "Island 2", "Island2", 40f, 12f, 2202, 7, 22, 8, 2, new Color(0.36f, 0.48f, 0.54f, 1f), 0.014f, "Island3", 0f, 90f, 0f, Island2Log(), "Assets/Game/Levels/Biomes/Namaqualand.asset");
         LevelConfig island3 = WriteConfig(LevelAssetPath("Island3"), "island3", "Island 3", "Island3", 46f, 6f, 3303, 9, 24, 8, 4, new Color(0.30f, 0.42f, 0.36f, 1f), 0.018f, "Island4", 0.9f, 90f, -0.9f, Island3Log(), MarshBiomePath);
-        LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "", 0f, 90f, 0f, Island4Log(), HeathBiomePath);
+        LevelConfig island4 = WriteConfig(LevelAssetPath("Island4"), "island4", "Island 4", "Island4", 42f, 14f, 4404, 9, 18, 5, 3, new Color(0.32f, 0.36f, 0.42f, 1f), 0.016f, "Island5", 0f, 90f, 0f, Island4Log(), HeathBiomePath);
         island1.islandTitle = "First Light";
         island2.islandTitle = "The Pine Reach";
         island3.islandTitle = "The Drowned Marsh";
@@ -121,6 +133,7 @@ public static partial class IslandBuilder
         EditorUtility.SetDirty(island3);
         EditorUtility.SetDirty(island4);
         AssetDatabase.SaveAssets();
+        CreateIsland5Config();
     }
 
     public static void ApplyBuildSettings()
@@ -215,11 +228,22 @@ public static partial class IslandBuilder
             Stage stage = new Stage();
             BuildSculptedTerrain(config, art, terrainPath, stage);
             CreateWater(config, art, stage);
+            if (config.spire)
+            {
+                CreateSpireSeaFloor(stage);
+            }
+
             CreateAtmosphere(config, art, stage);
             if (gameplay)
             {
                 PlaceBeacons(config, art, stage);
                 PlacePaths(config, art, stage);
+                if (config.spire)
+                {
+                    PlaceSpireMarkers(stage);
+                    PlaceSpireSetPieces(art, stage);
+                    PlaceSpireCairns(stage);
+                }
             }
             else
             {
@@ -231,6 +255,12 @@ public static partial class IslandBuilder
             if (gameplay)
             {
                 SpawnKeeper(art, stage, true);
+                if (config.spire && stage.player != null)
+                {
+                    Vector2 heading = SpireLayout.PathTangent(0f);
+                    stage.player.transform.rotation = Quaternion.LookRotation(new Vector3(heading.x, 0f, heading.y), Vector3.up);
+                }
+
                 CreateGameplay(config, art, stage);
                 CreateHud(art, stage);
                 EnsureGraphicsAppliers(stage);
@@ -260,6 +290,7 @@ public static partial class IslandBuilder
     {
         public Terrain terrain;
         public float waterY;
+        public float walkwayClear = 1.3f;   // cladding keeps this far from a trail (the spire widens it so the walkway stays visible from below)
         public float highWaterY;
         public float worldSize;
         public Vector3 spawn;
@@ -751,7 +782,7 @@ public static partial class IslandBuilder
         {
             Vector3 spot = planned[i];
             spot.y = GroundY(stage.terrain, spot.x, spot.z);
-            if (spot.y < stage.highWaterY + 0.55f)
+            if (!config.spire && spot.y < stage.highWaterY + 0.55f)
             {
                 Vector3 inward = new Vector3(spot.x, 0f, spot.z);
                 if (inward.sqrMagnitude > 0.01f)
@@ -764,6 +795,11 @@ public static partial class IslandBuilder
             }
 
             GameObject beaconObject = SpawnBeacon(art, parent, spot, true);
+            if (config.spire && beaconObject != null)
+            {
+                beaconObject.name = "Beacon_" + i;
+            }
+
             Beacon placed = beaconObject != null ? beaconObject.GetComponent<Beacon>() : null;
             BeaconSafeRing.Ensure(placed);
             stage.beaconSpots.Add(spot);
@@ -1308,6 +1344,12 @@ public static partial class IslandBuilder
 
     static void PlaceFireflies(LevelConfig config, ArtKit art, Stage stage)
     {
+        if (config.spire)
+        {
+            PlaceSpireFireflies(config, art, stage);
+            return;
+        }
+
         Transform parent = Folder("Fireflies");
         int count = Mathf.Max(0, config.fireflyCount);
         for (int i = 0; i < count; i++)

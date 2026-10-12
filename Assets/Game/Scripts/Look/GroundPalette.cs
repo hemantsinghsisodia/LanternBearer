@@ -18,6 +18,22 @@ public static class GroundPalette
     {
         Color grass = GrassGround(p);
         Color c;
+        if (p.levelId == "island5")
+        {
+            // The Great Light's rings read through the same five layers: wet teal rock, ochre heather ground, black crag and kelp moss.
+            switch (layer)
+            {
+                case "sand":
+                    return new Color(0.3f, 0.4f, 0.4f, 1f);
+                case "dirt":
+                    return new Color(0.82f, 0.76f, 0.64f, 1f);
+                case "rock":
+                    return new Color(0.15f, 0.16f, 0.2f, 1f);
+                case "moss":
+                    return new Color(0.09f, 0.3f, 0.23f, 1f);
+            }
+        }
+
         switch (layer)
         {
             case "sand":

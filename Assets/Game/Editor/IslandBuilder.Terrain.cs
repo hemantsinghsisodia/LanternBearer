@@ -12,8 +12,10 @@ public static partial class IslandBuilder
         TerrainLayer[] paintedLayers = BuildPaintedLayers(config, art);
         const int resolution = 513;
         const int alphaResolution = 512;
-        stage.worldSize = config.islandRadius * 2f;
-        List<Vector2> beaconXZ = PlanBeaconXZ(config, out List<Vector2> isletXZ);
+        stage.worldSize = config.spire ? SpireWorldSize : config.islandRadius * 2f;
+        stage.walkwayClear = config.spire ? 3.2f : 1.3f;
+        List<Vector2> isletXZ = new List<Vector2>();
+        List<Vector2> beaconXZ = config.spire ? new List<Vector2>(SpireLayout.BeaconXZ()) : PlanBeaconXZ(config, out isletXZ);
         for (int i = 0; i < isletXZ.Count; i++)
         {
             stage.islets.Add(new Vector3(isletXZ[i].x, 0f, isletXZ[i].y));
@@ -55,7 +57,7 @@ public static partial class IslandBuilder
         stage.terrain.detailObjectDensity = GraphicsProfileSetup.GrassDensityMedium;
         stage.waterY = WaterFraction * config.hillHeight;
         stage.highWaterY = stage.waterY + Mathf.Max(0f, config.tideAmplitude);
-        stage.spawn = new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
+        stage.spawn = config.spire ? SpireSpawn(stage.terrain) : new Vector3(0f, GroundY(stage.terrain, 0f, 0f) + 0.05f, 0f);
     }
 
     static void EnsureGraphicsAppliers(Stage stage)
@@ -317,6 +319,11 @@ public static partial class IslandBuilder
 
     static float[,] SculptHeights(LevelConfig config, int resolution, float worldSize, List<Vector2> beacons, List<List<Vector2>> trails)
     {
+        if (config.spire)
+        {
+            return SculptSpire(config, resolution, worldSize, beacons, trails);
+        }
+
         float[,] heights = new float[resolution, resolution];
         float ox = (config.seed % 500) * 0.13f;
         float oz = (config.seed % 320) * 0.17f;
@@ -683,6 +690,11 @@ public static partial class IslandBuilder
 
     static float[,,] PaintTerrain(float[,] heights, int heightRes, int alphaRes, LevelConfig config, float worldSize, List<List<Vector2>> trails)
     {
+        if (config.spire)
+        {
+            return PaintSpire(heights, heightRes, alphaRes, config, worldSize);
+        }
+
         float[,,] maps = new float[alphaRes, alphaRes, 5];
         float run = worldSize / (heightRes - 1);
         float ox = config.seed * 0.01f;

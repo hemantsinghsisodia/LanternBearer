@@ -32,6 +32,8 @@ public class LevelConfig : ScriptableObject
     public int shadeCount;
     public bool lightning;
     public bool ridges;
+    [Tooltip("Island 5: sculpt the spiral spire (SculptSpire) instead of the noise island.")]
+    public bool spire;
     public LookProfile lookProfile;
 }
 }

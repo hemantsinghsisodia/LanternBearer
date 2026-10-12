@@ -17,15 +17,23 @@ MonoBehaviour:
   - scene: Island1
     track: {fileID: 8300000, guid: defbb20c1a1f4e64386c5a4fc4ace866, type: 3}
     tension: {fileID: 8300000, guid: 5163d98e539bcc242a68c8c421dbb14c, type: 3}
+    hush: {fileID: 0}
   - scene: Island2
     track: {fileID: 8300000, guid: 63035a436bde4ab4face70eb0c3f0b2e, type: 3}
     tension: {fileID: 8300000, guid: 498a80d8521c7314084b01812f92ba27, type: 3}
+    hush: {fileID: 0}
   - scene: Island3
     track: {fileID: 8300000, guid: 8ec4a1b173fac5d46982f86c33a3606d, type: 3}
     tension: {fileID: 8300000, guid: 852e785905eeca340bda475d60692f89, type: 3}
+    hush: {fileID: 0}
   - scene: Island4
     track: {fileID: 8300000, guid: 231120855b4e71a488b24ae3b8ffa1c5, type: 3}
     tension: {fileID: 8300000, guid: 498a80d8521c7314084b01812f92ba27, type: 3}
+    hush: {fileID: 0}
+  - scene: Island5
+    track: {fileID: 8300000, guid: afa9282ffb39d4b4885102fff7c8cc65, type: 3}
+    tension: {fileID: 8300000, guid: f7e4626139e9da741a73a86af777320c, type: 3}
+    hush: {fileID: 8300000, guid: e6094a4ff928f5e4eb09cf4014dd9802, type: 3}
   stingerBeaconLit: {fileID: 8300000, guid: e4a5ffaa97ece57429c0f1babf84ecca, type: 3}
   stingerWin: {fileID: 8300000, guid: 23beb2db81d5ea94ea2bdb0b3ee11b3f, type: 3}
   stingerLose: {fileID: 8300000, guid: 1aaf67439d661664b81e6df7c1c6e3be, type: 3}

@@ -116,14 +116,16 @@ sealed class TideFeed
 sealed class StormFeed
 {
     Transform cameraTransform;
-    bool searched;
     bool present;
+
+    // True once a Wind or Lightning has been seen. Island 5 enables them late (RingHazards), so a miss is retried every frame.
+    public bool Present => present;
 
     public void Update(StormChip chip, GameObject host)
     {
-        if (!searched)
+        if (!present)
         {
-            searched = true;
+            // Two static null checks per frame until the storm exists; islands without one just keep failing them.
             present = Wind.Instance != null || Lightning.Instance != null;
             if (present && host.GetComponent<StealPulse>() == null)
             {

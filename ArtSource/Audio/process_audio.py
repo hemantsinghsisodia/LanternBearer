@@ -423,6 +423,11 @@ def jobs():
     music("Tension_Island2_1", RAW / "Tension_Island2/x/Paranoid Truth.mp3", "loop", 3.0, "Tsorthan Grove Paranoid Truth; not a loop: 3 s crossfade (Island2 and Island4 share it)")
     music("Tension_Island3_1", RAW / "Tension_Island3/Juhani Junkala - Post Apocalyptic Wastelands [Loop Ready].ogg", "loopready", 0.005, "SubspaceAudio Horror Atmosphere (seamless loop)")
     # the tension track for Island4 is the Island2 file; no separate output
+    # Island 5 (Phase H1): cut to 0.0-83.0 s so the quiet final cadence (from about 85 s) is left out, 2.5 s equal-power seam
+    J.append(Job("Music_Island5_1", "Music.Island5", "music", lambda: seg(read(RAW / "Island5_Track/ChoirChordsBassMaster.wav", 2), 0.0, 83.0), "loop", xf=2.5, ch="stereo",
+                 note="cynicmusic Epic Endgame Cinematic; not a loop: source 0.0-83.0 s, 2.5 s crossfade"))
+    music("Tension_Island5_1", RAW / "Island5_Tension/lost_2.ogg", "loopready", 0.005, "congusbongus Lost in a bad place (loop); zero-crossing fix")
+    music("Hush_Island5_1", RAW / "Island5_Hush/dark_cavern_ambient_002.ogg", "loopready", 0.005, "Paul Wortmann Dark Cavern Ambient, file 002 (continuous loop), whole 120 s")
 
     # --- ambience beds (90 s, stereo, built to loop)
     def waves(*nums):

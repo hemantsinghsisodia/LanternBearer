@@ -48,7 +48,8 @@ sealed class HudPrompt
         }
 
         Beacon nearest = manager.NearestBeacon;
-        bool show = manager.ShowInteractPrompt && nearest != null;
+        string custom = nearest == null ? manager.CustomPrompt : null;
+        bool show = manager.ShowInteractPrompt && (nearest != null || custom != null);
         if (text.gameObject.activeSelf != show)
         {
             text.gameObject.SetActive(show);
@@ -70,6 +71,24 @@ sealed class HudPrompt
         if (rect.sizeDelta.x < 520f)
         {
             rect.sizeDelta = new Vector2(640f, Mathf.Max(52f, rect.sizeDelta.y));
+        }
+
+        if (nearest == null)
+        {
+            // Not a beacon (the great lamp): its own line, no cost.
+            line = null;
+            cost = int.MinValue;
+            if (text.text != custom)
+            {
+                text.text = custom;
+            }
+
+            if (text.color != Normal)
+            {
+                text.color = Normal;
+            }
+
+            return;
         }
 
         int nextCost = Mathf.RoundToInt(nearest.FuelCost);

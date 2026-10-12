@@ -243,6 +243,11 @@ public static class GameSettings
             return HasWon("island3");
         }
 
+        if (levelId == "island5")
+        {
+            return HasWon("island4");
+        }
+
         return true;
     }
 

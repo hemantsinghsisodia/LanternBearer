@@ -34,6 +34,21 @@ Assets/Game/Audio/Music/Music_Island4_1.ogg
   https://opengameart.org/content/the-world-fell-silent
   Licence: CC0
 
+Assets/Game/Audio/Music/Music_Island5_1.ogg
+  Epic Endgame Cinematic by cynicmusic (first 83 s, looped with a 2.5 s crossfade)
+  https://opengameart.org/content/epic-endgame-cinematic
+  Licence: CC0
+
+Assets/Game/Audio/Music/Hush_Island5_1.ogg
+  Dark Cavern Ambient (file 002, continuous loop) by Paul Wortmann
+  https://opengameart.org/content/dark-cavern-ambient
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island5_1.ogg
+  Lost in a bad place (horror ambience loop) by congusbongus
+  https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop
+  Licence: CC0
+
 Assets/Game/Audio/Music/Tension_Island1_1.ogg
   Dark Sci-Fi Audio Pack: Airy by SRG774
   https://opengameart.org/content/dark-sci-fi-audio-pack

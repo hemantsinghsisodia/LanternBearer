@@ -39,7 +39,7 @@ namespace LanternKeeper.Tests
             { "Island3:6", 1 }
         };
 
-        static readonly string[] Islands = { "Island1", "Island2", "Island3", "Island4" };
+        static readonly string[] Islands = { "Island1", "Island2", "Island3", "Island4" }; // Island 5 has its own test
 
         readonly List<string> problems = new List<string>();
         readonly List<string> failures = new List<string>();
@@ -48,8 +48,11 @@ namespace LanternKeeper.Tests
         float previousCaptureDelta;
         bool yawWasExternal;
         // Mirrors GameSettings.IntroKey. A first-visit intro card pauses the game, so the walk would never move: mark every intro seen.
-        static readonly string[] IntroKeys = { "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4" };
-        readonly int[] previousIntro = new int[4];
+        static readonly string[] IntroKeys = { "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4", "LanternKeeperIntro_island5" };
+        readonly int[] previousIntro = new int[5];
+        // Island 5 results written by the walk (win, best time, log): removed afterwards unless they existed before.
+        static readonly string[] Island5ResultKeys = { "LanternKeeperWon_island5", "LanternKeeperBest_island5", "LanternKeeperLog_island5" };
+        readonly bool[] hadResultKey = new bool[3];
 
         static Type GameType(string name)
         {
@@ -76,6 +79,11 @@ namespace LanternKeeper.Tests
                 previousIntro[i] = PlayerPrefs.HasKey(IntroKeys[i]) ? PlayerPrefs.GetInt(IntroKeys[i], 0) : -1;
                 PlayerPrefs.SetInt(IntroKeys[i], 1);
             }
+            for (int i = 0; i < Island5ResultKeys.Length; i++)
+            {
+                hadResultKey[i] = PlayerPrefs.HasKey(Island5ResultKeys[i]);
+            }
+
             Application.logMessageReceived += OnLog;
             previousScale = Time.timeScale;
             previousMaxDelta = Time.maximumDeltaTime;
@@ -98,6 +106,14 @@ namespace LanternKeeper.Tests
                     PlayerPrefs.SetInt(IntroKeys[i], previousIntro[i]);
                 }
             }
+            for (int i = 0; i < Island5ResultKeys.Length; i++)
+            {
+                if (!hadResultKey[i])
+                {
+                    PlayerPrefs.DeleteKey(Island5ResultKeys[i]);
+                }
+            }
+
             PlayerPrefs.Save();
             Time.timeScale = previousScale;
             Time.maximumDeltaTime = previousMaxDelta;
@@ -268,6 +284,312 @@ namespace LanternKeeper.Tests
             }
 
             Assert.IsEmpty(problems, island + ": errors were logged: " + string.Join(" | ", problems));
+        }
+
+        static object Member(object target, string name)
+        {
+            Type type = target.GetType();
+            PropertyInfo property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+            if (property != null)
+            {
+                return property.GetValue(target);
+            }
+
+            FieldInfo field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance);
+            Assert.IsNotNull(field, type.Name + "." + name + " not found");
+            return field.GetValue(target);
+        }
+
+        static object Invoke(object target, string name, params object[] args)
+        {
+            MethodInfo method = target.GetType().GetMethod(name, BindingFlags.Public | BindingFlags.Instance);
+            Assert.IsNotNull(method, target.GetType().Name + "." + name + " not found");
+            return method.Invoke(target, args);
+        }
+
+        // Island 5: one trail (TrailGuide child 0) follows the ground and dips into every gap, so each gap's stretch is replaced by the
+        // bridge's own walkway points. The keeper lights each beacon on arrival (spiral order, so a gap's near beacon is already lit), waits
+        // for the bridge to be Walkable, and never jumps: a stuck keeper fails with the step height in front of it (limit MaxJumpStep).
+        // Every beacon and the great lamp must be reached, and lighting the lamp must win.
+        // The keeper's lantern is topped up during the walk: this test is about reaching things, not about surviving the rings.
+        [UnityTest]
+        [Timeout(600000)]
+        public IEnumerator Island5EveryBeaconAndLampReachable()
+        {
+            const string island = "Island5";
+            AsyncOperation load = SceneManager.LoadSceneAsync(island);
+            while (!load.isDone)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            yield return null;
+
+            Type playerType = GameType("PlayerController");
+            Component player = (Component)UnityEngine.Object.FindFirstObjectByType(playerType);
+            Assert.IsNotNull(player, island + ": PlayerController missing");
+            object lantern = UnityEngine.Object.FindFirstObjectByType(GameType("Lantern"));
+            object manager = UnityEngine.Object.FindFirstObjectByType(GameType("GameManager"));
+            object lamp = UnityEngine.Object.FindFirstObjectByType(GameType("GreatLamp"));
+            Assert.IsNotNull(lantern, island + ": Lantern missing");
+            Assert.IsNotNull(manager, island + ": GameManager missing");
+            Assert.IsNotNull(lamp, island + ": GreatLamp missing");
+            Transform beaconsRoot = GameObject.Find("Beacons").transform;
+            Assert.AreEqual(8, beaconsRoot.childCount, island + ": 8 beacons");
+            GameObject guide = GameObject.Find("TrailGuide");
+            Assert.IsNotNull(guide, island + ": TrailGuide missing (rebuild the level)");
+            Assert.GreaterOrEqual(guide.transform.childCount, 1, island + ": trail missing");
+
+            Component[] bridges = new Component[4];
+            for (int g = 0; g < 4; g++)
+            {
+                GameObject bridgeObject = GameObject.Find("LightBridge_Gap" + g);
+                Assert.IsNotNull(bridgeObject, island + ": LightBridge_Gap" + g + " missing");
+                bridges[g] = bridgeObject.GetComponent(GameType("LightBridge"));
+            }
+
+            List<Vector3> trail = new List<Vector3>();
+            foreach (Transform point in guide.transform.GetChild(0))
+            {
+                trail.Add(point.position);
+            }
+
+            // Route: trail with the gap stretches swapped for the bridge points, then the summit span, then the lamp.
+            List<Vector3> route = new List<Vector3>();
+            int[] bridgeFirst = new int[4];
+            int[] bridgeLast = new int[4];
+            int cursor = 0;
+            for (int g = 0; g < 4; g++)
+            {
+                Vector3[] points = (Vector3[])Member(bridges[g], "Points");
+                if (g < 3)
+                {
+                    int startIndex = NearestOnTrail(trail, points[0], cursor);
+                    int endIndex = NearestOnTrail(trail, points[points.Length - 1], startIndex + 1);
+                    Assert.Greater(endIndex, startIndex, island + ": gap " + g + " is not on the trail");
+                    for (int i = cursor; i < startIndex; i++)
+                    {
+                        route.Add(trail[i]);
+                    }
+
+                    cursor = endIndex + 1;
+                }
+                else
+                {
+                    for (int i = cursor; i < trail.Count; i++)
+                    {
+                        route.Add(trail[i]);
+                    }
+                }
+
+                bridgeFirst[g] = route.Count;
+                route.AddRange(points);
+                bridgeLast[g] = route.Count - 1;
+            }
+
+            Vector3 lampPosition = ((Component)lamp).transform.position;
+            route.Add(lampPosition);
+
+            float length = 0f;
+            for (int i = 1; i < route.Count; i++)
+            {
+                length += Vector3.Distance(route[i - 1], route[i]);
+            }
+
+            SetStatic("CameraFollow", "ExternalYaw", 0f);
+            SetStatic("CameraFollow", "UseExternalYaw", true);
+            Time.maximumDeltaTime = 0.05f;
+            Time.captureDeltaTime = FixedFrameSeconds;
+            Time.timeScale = PlaybackScale;
+
+            float limit = length / (MoveSpeed * 0.5f) + 120f;
+            float elapsed = 0f;
+            int waypoint = 1;
+            bool[] lit = new bool[8];
+            float holdSince = -1f;
+            Vector3 stuckFrom = player.transform.position;
+            float stuckSince = 0f;
+            bool atLamp = false;
+            string error = null;
+            while (elapsed < limit && error == null)
+            {
+                // Keep the lantern alive (reachability, not survival).
+                if ((float)Member(lantern, "Fuel") < (float)Member(lantern, "MaxFuel") * 0.5f)
+                {
+                    Invoke(lantern, "AddFuel", 100f);
+                }
+
+                Vector3 position = player.transform.position;
+                Vector2 flat = new Vector2(position.x, position.z);
+                if ((bool)Member(manager, "IsDying") || (bool)Member(manager, "IsRoundOver"))
+                {
+                    error = "the round ended before the lamp at " + position.ToString("F1") + ". " + GameState();
+                    break;
+                }
+
+                // Light each beacon the keeper walks up to.
+                for (int b = 0; b < 8; b++)
+                {
+                    if (lit[b])
+                    {
+                        continue;
+                    }
+
+                    Transform beacon = beaconsRoot.GetChild(b);
+                    float toBeacon = Vector2.Distance(flat, new Vector2(beacon.position.x, beacon.position.z));
+                    if (toBeacon < ArriveRadius)
+                    {
+                        Assert.LessOrEqual(Mathf.Abs(position.y - beacon.position.y), ArriveHeight, island + ": beacon " + (b + 1) + " reached in plan but " + Mathf.Abs(position.y - beacon.position.y).ToString("F1") + " m off in height");
+                        Component beaconComponent = beacon.GetComponent(GameType("Beacon"));
+                        Invoke(lantern, "AddFuel", 100f);
+                        if (!(bool)Invoke(beaconComponent, "TryLight"))
+                        {
+                            error = "beacon " + (b + 1) + " could not be lit at " + position.ToString("F1") + ". " + GameState();
+                            break;
+                        }
+
+                        lit[b] = true;
+                        Debug.Log("BeaconReachability " + island + " beacon " + (b + 1) + " reached and lit at " + elapsed.ToString("F1") + " s (0 jumps)");
+                    }
+                }
+
+                if (error != null)
+                {
+                    break;
+                }
+
+                // Before a gap, its near beacon must be lit, then wait for the bridge.
+                int gate = -1;
+                for (int g = 0; g < 4; g++)
+                {
+                    if (waypoint >= bridgeFirst[g] && waypoint <= bridgeLast[g] && !(bool)Member(bridges[g], "Walkable"))
+                    {
+                        gate = g;
+                        break;
+                    }
+                }
+
+                if (gate >= 0)
+                {
+                    object near = Member(bridges[gate], "NearBeacon");
+                    if (near != null && !(bool)Member(near, "IsLit"))
+                    {
+                        Invoke(lantern, "AddFuel", 100f);
+                        Invoke(near, "TryLight");
+                    }
+
+                    if (holdSince < 0f)
+                    {
+                        holdSince = elapsed;
+                    }
+
+                    float allowed = gate == 3 ? 45f : 12f;
+                    if (elapsed - holdSince > allowed)
+                    {
+                        error = "bridge " + gate + " did not become walkable within " + allowed + " s (phase " + Member(bridges[gate], "Phase") + ", beacons lit " + CountLit(lit) + "/8)";
+                        break;
+                    }
+
+                    SetStatic("PlayerController", "ExternalMove", Vector2.zero);
+                    stuckFrom = player.transform.position;
+                    stuckSince = elapsed;
+                    yield return null;
+                    elapsed += Time.deltaTime;
+                    continue;
+                }
+
+                holdSince = -1f;
+                if (waypoint == route.Count - 1)
+                {
+                    if (Vector3.Distance(position, lampPosition) <= 3.0f)
+                    {
+                        atLamp = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    while (waypoint < route.Count - 1 && Vector2.Distance(flat, new Vector2(route[waypoint].x, route[waypoint].z)) < WaypointRadius)
+                    {
+                        waypoint++;
+                    }
+                }
+
+                Vector3 target = route[waypoint];
+                Vector2 direction = new Vector2(target.x - position.x, target.z - position.z);
+                SetStatic("PlayerController", "ExternalMove", direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.zero);
+                yield return null;
+                elapsed += Time.deltaTime;
+                if ((player.transform.position - stuckFrom).magnitude > 0.3f)
+                {
+                    stuckFrom = player.transform.position;
+                    stuckSince = elapsed;
+                }
+                else if (elapsed - stuckSince > 0.8f)
+                {
+                    Vector3 at = player.transform.position;
+                    float step = StepAhead(at, direction.normalized);
+                    string blocker = PropInTheWay(at, direction.normalized, beaconsRoot.GetChild(0));
+                    error = "stuck at " + at.ToString("F1") + " (waypoint " + waypoint + "/" + (route.Count - 1) + "), the next step is " + step.ToString("F1") + " m"
+                        + (step > MaxJumpStep ? " (more than " + MaxJumpStep + " m)" : "") + (blocker != null ? ", prop " + blocker + " in the way" : "") + "; strict mode allows no jump";
+                }
+            }
+
+            SetStatic("PlayerController", "ExternalMove", Vector2.zero);
+            Assert.IsNull(error, island + ": " + error);
+            for (int b = 0; b < 8; b++)
+            {
+                Assert.IsTrue(lit[b], island + ": beacon " + (b + 1) + " not reached. Keeper at " + player.transform.position.ToString("F1") + ", waypoint " + waypoint + "/" + (route.Count - 1) + ", " + elapsed.ToString("F1") + " s of " + limit.ToString("F1") + " s. " + GameState());
+            }
+
+            Assert.IsTrue(atLamp, island + ": the great lamp was not reached. Keeper at " + player.transform.position.ToString("F1") + ", waypoint " + waypoint + "/" + (route.Count - 1) + ", " + elapsed.ToString("F1") + " s of " + limit.ToString("F1") + " s. " + GameState());
+            Invoke(lantern, "AddFuel", 100f);
+            Assert.IsTrue((bool)Invoke(lamp, "TryLight"), island + ": the great lamp refused to light. " + GameState());
+            Debug.Log("BeaconReachability " + island + " great lamp reached and lit at " + elapsed.ToString("F1") + " s (path " + length.ToString("F1") + " m, 0 jumps)");
+            float waited = 0f;
+            while (!(bool)Member(manager, "Won") && waited < 40f)
+            {
+                yield return null;
+                waited += Time.unscaledDeltaTime > 0f ? Time.unscaledDeltaTime : FixedFrameSeconds;
+                Invoke(lantern, "AddFuel", 100f);
+            }
+
+            Assert.IsTrue((bool)Member(manager, "Won"), island + ": lighting the great lamp did not win");
+            Assert.IsEmpty(problems, island + ": errors were logged: " + string.Join(" | ", problems));
+        }
+
+        static int CountLit(bool[] lit)
+        {
+            int count = 0;
+            for (int i = 0; i < lit.Length; i++)
+            {
+                if (lit[i])
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        // Index (from `from`) of the point closest in the ground plane to the target; the height difference counts a little to break ties.
+        static int NearestOnTrail(List<Vector3> points, Vector3 target, int from)
+        {
+            int best = -1;
+            float bestScore = float.MaxValue;
+            for (int i = Mathf.Max(0, from); i < points.Count; i++)
+            {
+                float flat = Vector2.Distance(new Vector2(points[i].x, points[i].z), new Vector2(target.x, target.z));
+                float score = flat + Mathf.Abs(points[i].y - target.y) * 0.25f;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = i;
+                }
+            }
+
+            return best;
         }
 
         // A non-terrain collider (prop or rock; the hidden-path stones are the way, not an obstacle) just ahead of the keeper, or null. The beacon itself and the keeper don't count.

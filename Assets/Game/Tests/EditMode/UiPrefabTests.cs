@@ -115,8 +115,8 @@ public class UiPrefabTests
         Assert.IsNotNull(list, "IslandList");
         SerializedObject listObject = new SerializedObject(list);
         SerializedProperty rows = listObject.FindProperty("rows");
-        Assert.AreEqual(4, rows.arraySize, "4 island rows");
-        for (int i = 0; i < 4; i++)
+        Assert.AreEqual(5, rows.arraySize, "5 island rows");
+        for (int i = 0; i < 5; i++)
         {
             Assert.IsNotNull(rows.GetArrayElementAtIndex(i).objectReferenceValue, "row " + i);
         }
@@ -238,7 +238,7 @@ public class UiPrefabTests
         Type rowType = Type.GetType("LanternKeeper.IslandRow, Assembly-CSharp");
         Assert.IsNotNull(rowType);
         Component[] rows = prefab.GetComponentsInChildren(rowType, true);
-        Assert.AreEqual(4, rows.Length);
+        Assert.AreEqual(5, rows.Length);
         foreach (Component row in rows)
         {
             ThemedLabel count = new SerializedObject(row).FindProperty("countLabel").objectReferenceValue as ThemedLabel;

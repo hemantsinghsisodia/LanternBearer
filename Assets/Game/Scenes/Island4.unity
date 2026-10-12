@@ -49286,7 +49286,7 @@ MonoBehaviour:
   lantern: {fileID: 570677579}
   levelId: island4
   islandLabel: "Island 4 \u2014 The Storm Cape"
-  nextLevelScene: 
+  nextLevelScene: Island5
   logEntries:
   - The cape is bare rock and bent heather, and the wind never quite stops. The previous keeper's trail comes ashore here, then thins to a few cairns.
   - The wind comes in gusts, with a long hush before each one. Crouch behind a boulder when you hear the hush and let it pass over you.

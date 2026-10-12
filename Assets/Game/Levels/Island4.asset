@@ -27,7 +27,7 @@ MonoBehaviour:
   fogColor: {r: 0.32, g: 0.36, b: 0.42, a: 1}
   fogDensity: 0.016
   grassDetailDensity: 8
-  nextLevelScene: 
+  nextLevelScene: Island5
   biome: {fileID: 11400000, guid: e80de979f7b6e5d4e9b789c056104bac, type: 2}
   hasCliff: 1
   tideAmplitude: 0
