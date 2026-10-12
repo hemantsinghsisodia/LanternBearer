@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6f7f2f2c3a86674384ec2c9b9487ebc, type: 3}
+  m_Name: Island5
+  m_EditorClassIdentifier: Assembly-CSharp::LanternKeeper.LevelConfig
+  levelId: island5
+  displayName: Island 5
+  islandTitle: The Great Light
+  sceneName: Island5
+  islandRadius: 45
+  hillHeight: 52
+  seed: 5505
+  beaconCount: 8
+  fireflyCount: 26
+  mothCount: 4
+  hiddenPathCount: 0
+  plateauIsletBeacons: 0
+  fogColor: {r: 0.05, g: 0.11, b: 0.13, a: 1}
+  fogDensity: 0.014
+  grassDetailDensity: 8
+  nextLevelScene: 
+  biome: {fileID: 11400000, guid: 47406eb92c6234749ba61c17a357a1ec, type: 2}
+  tideAmplitude: 0
+  tidePeriod: 90
+  tidePhase: 0
+  logEntries:
+  - The keeper's cottage at the foot of the mountain is a ruin. The path starts on the beach and winds up and around, and it never once turns back.
+  - The gaps in the path were not made by the weather. Someone took the stones out on purpose, and crossed them on bridges of light.
+  - At the very top stands the Great Light, dark for as long as anyone remembers. Eight beacons wake it. I have lit none. Not yet.
+  introLines:
+  - One path climbs the mountain, round and round. Follow it to the top.
+  - Some gaps are too wide to cross. Light the beacon at the edge and a bridge of light will carry you over.
+  - The higher you climb, the harder the storm. It never eases again, even if you turn back.
+  - Light all eight beacons. Then the Great Light.
+  windStrength: 0
+  shadeCount: 0
+  lightning: 0
+  ridges: 0
+  spire: 1
+  lookProfile: {fileID: 11400000, guid: cd2ab6ad31bd59248a4a07c4a169027c, type: 2}

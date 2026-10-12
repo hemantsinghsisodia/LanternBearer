@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bf14636485cd2547ac8d56ab1440614, type: 3}
+  m_Name: LookProfile_island5
+  m_EditorClassIdentifier: LanternKeeper.Look::LanternKeeper.LookProfile
+  levelId: island5
+  sky: {r: 0.05, g: 0.09, b: 0.13, a: 1}
+  sea: {r: 0.06, g: 0.12, b: 0.15, a: 1}
+  land: {r: 0.13, g: 0.19, b: 0.22, a: 1}
+  moonRim: {r: 0.55, g: 0.76, b: 0.92, a: 1}
+  extra: {r: 0.78, g: 0.92, b: 1, a: 1}
+  moonOn: 1
+  moon: {r: 0.72, g: 0.86, b: 1, a: 1}
+  fogColour: {r: 0.05, g: 0.11, b: 0.13, a: 1}
+  fogDensity: 0.014
+  moonRimStrength: 0.85
+  skyHorizon: {r: 0.2, g: 0.34, b: 0.4, a: 1}
+  skyGround: {r: 0.03, g: 0.05, b: 0.06, a: 1}
+  moonIntensity: 0.3
+  ambientIntensity: 0.8
+  dawn: {fileID: 11400000, guid: 5794a40a10bd15f40bd3ed41c82d913c, type: 2}
+  mist: 0
+  rain: 0
+  gradeSaturation: 0
+  gradeContrast: 0
+  gradeExposure: 0
+  waterShallow: {r: 0, g: 0, b: 0, a: 0}
+  waterDeep: {r: 0, g: 0, b: 0, a: 0}
+  foamColour: {r: 0, g: 0, b: 0, a: 0}
+  ridgeColour: {r: 0, g: 0, b: 0, a: 0}
+  tideBand: {r: 0, g: 0, b: 0, a: 0}
+  groundTones: []
+  grassRoot: {r: 0.05, g: 0.2, b: 0.17, a: 1}
+  grassTip: {r: 0.22, g: 0.55, b: 0.45, a: 1}
+  foliage: {r: 0.22, g: 0.3, b: 0.32, a: 1}
+  bark: {r: 0.2, g: 0.19, b: 0.2, a: 1}
+  rockTint: {r: 0.3, g: 0.34, b: 0.4, a: 1}
+  treeFoliage: {r: 0.1, g: 0.2, b: 0.17, a: 1}
