@@ -381,5 +381,135 @@ namespace LanternKeeper.Tests
 
             Assert.IsTrue((bool)Get(manager, "Won"));
         }
+
+        static IEnumerator BuildBridge0()
+        {
+            yield return Load("Island5");
+            Assert.IsTrue(LightBeacon(1));
+            yield return Wait(2.8f);
+            Assert.IsTrue((bool)Get(Bridge(0), "Walkable"), "bridge 0 built");
+        }
+
+        [UnityTest]
+        [Timeout(300000)]
+        public IEnumerator SideJumpOffBridgeIsBlocked()
+        {
+            yield return BuildBridge0();
+            Component bridge = Bridge(0);
+            Vector3[] points = (Vector3[])Get(bridge, "Points");
+            Vector3 a = points[0];
+            Vector3 b = points[points.Length - 1];
+            float halfWidth = (float)Get(bridge, "Width") * 0.5f;
+            Vector3 along = b - a;
+            along.y = 0f;
+            along.Normalize();
+            Vector2 side = new Vector2(-along.z, along.x);
+            Teleport(Mid(bridge) + Vector3.up * 0.3f);
+            yield return Wait(0.5f);
+            SetStatic("CameraFollow", "ExternalYaw", 0f);
+            SetStatic("CameraFollow", "UseExternalYaw", true);
+            float highest = 0f;
+            for (int sign = -1; sign <= 1; sign += 2)
+            {
+                Teleport(Mid(bridge) + Vector3.up * 0.3f);
+                yield return Wait(0.3f);
+                float elapsed = 0f;
+                while (elapsed < 1.6f)
+                {
+                    Refuel();
+                    SetStatic("PlayerController", "ExternalMove", side * sign);
+                    SetStatic("PlayerController", "ExternalJump", true);
+                    yield return null;
+                    elapsed += Time.deltaTime;
+                    Vector3 p = ((Component)Find("PlayerController")).transform.position;
+                    float t = Mathf.Clamp01(Vector2.Dot(new Vector2(p.x - a.x, p.z - a.z), new Vector2(along.x, along.z)) / new Vector2(b.x - a.x, b.z - a.z).magnitude);
+                    Vector3 onLine = Vector3.Lerp(a, b, t);
+                    float lateral = Vector2.Distance(new Vector2(p.x, p.z), new Vector2(onLine.x, onLine.z));
+                    highest = Mathf.Max(highest, lateral);
+                    Assert.LessOrEqual(lateral, halfWidth + 0.35f, "the keeper left the deck sideways (side " + sign + ", " + elapsed.ToString("F2") + " s, lateral " + lateral.ToString("F2") + ")");
+                    Assert.GreaterOrEqual(p.y, onLine.y - 0.3f, "the keeper fell below the deck");
+                }
+            }
+
+            SetStatic("PlayerController", "ExternalMove", Vector2.zero);
+            SetStatic("PlayerController", "ExternalJump", false);
+            SetStatic("CameraFollow", "UseExternalYaw", false);
+            Assert.Greater(highest, halfWidth - 0.6f, "the keeper did reach the rail while jumping sideways");
+        }
+
+        static void SetStatic(string typeName, string field, object value)
+        {
+            FieldInfo info = GameType(typeName).GetField(field, BindingFlags.Public | BindingFlags.Static);
+            Assert.IsNotNull(info, typeName + "." + field);
+            info.SetValue(null, value);
+        }
+
+        static string DescribeMoths()
+        {
+            string text = "";
+            foreach (UnityEngine.Object found in UnityEngine.Object.FindObjectsByType(GameType("Moth"), FindObjectsSortMode.None))
+            {
+                Component moth = (Component)found;
+                text += "[moth " + moth.name + " at " + moth.transform.position.ToString("F1") + "] ";
+            }
+
+            return text;
+        }
+
+        static object PrivateCall(object target, string method, params object[] args)
+        {
+            MethodInfo info = target.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(info, target.GetType().Name + "." + method);
+            return info.Invoke(target, args);
+        }
+
+        [UnityTest]
+        [Timeout(300000)]
+        public IEnumerator ShadeInsideBridgeZoneIsPushedOutAndOneBelowIsLeftAlone()
+        {
+            yield return BuildBridge0();
+            Component bridge = Bridge(0);
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Gameplay/Shade.prefab");
+            Vector3 mid = Mid(bridge);
+            GameObject shade = UnityEngine.Object.Instantiate(prefab, mid + Vector3.up * 1.0f, Quaternion.identity);
+            yield return null;
+            Component shadeComponent = shade.GetComponent(GameType("Shade"));
+            Vector3 inside = mid + Vector3.up * 1.0f;
+            Assert.IsTrue((bool)Call(bridge, "ZoneContains", inside), "the test position is inside the zone");
+            Vector3 pushed = (Vector3)PrivateCall(shadeComponent, "PushOutOfSafe", inside);
+            Assert.IsFalse((bool)Call(bridge, "ZoneContains", pushed), "the Shade is pushed out of the bridge zone, ended at " + pushed.ToString("F1"));
+            Assert.IsTrue((bool)PrivateCall(shadeComponent, "InsideSafe", inside), "InsideSafe sees the bridge");
+            Vector3 below = mid + Vector3.down * 5f;
+            Assert.AreEqual(below, (Vector3)PrivateCall(shadeComponent, "PushOutOfSafe", below), "a Shade 5 m below the deck is left alone");
+            Assert.IsFalse((bool)PrivateCall(shadeComponent, "InsideSafe", below));
+            UnityEngine.Object.Destroy(shade);
+        }
+
+        [UnityTest]
+        [Timeout(300000)]
+        public IEnumerator MothNextToKeeperOnBridgeDoesNotDrain()
+        {
+            yield return BuildBridge0();
+            Component bridge = Bridge(0);
+            Component lantern = (Component)Find("Lantern");
+            Vector3 mid = Mid(bridge);
+            Teleport(mid + Vector3.up * 0.3f);
+            yield return Wait(0.5f);
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Gameplay/Moth.prefab");
+            GameObject moth = UnityEngine.Object.Instantiate(prefab, mid + Vector3.up * 1.3f + Vector3.right * 0.8f, Quaternion.identity);
+            Component mothComponent = moth.GetComponent(GameType("Moth"));
+            float elapsed = 0f;
+            while (elapsed < 3f)
+            {
+                Refuel();
+                yield return null;
+                elapsed += Time.deltaTime;
+                Assert.AreEqual(0, (int)Get(lantern, "MothsDraining"), "no moth drains the keeper on the bridge (" + elapsed.ToString("F2") + " s). " + DescribeMoths());
+                Assert.IsFalse((bool)Call(bridge, "ZoneContains", moth.transform.position), "the moth stays out of the bridge zone, at " + moth.transform.position.ToString("F1"));
+            }
+
+            Assert.IsNotNull(mothComponent);
+            UnityEngine.Object.Destroy(moth);
+        }
     }
 }

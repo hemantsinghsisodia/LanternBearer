@@ -34,9 +34,18 @@ public static class BridgeTimings
 }
 
 // The safe-light volume of a built bridge: a capsule round the walkway line (flat distance) with a height band along the ramp.
+// The invisible side rails: tall enough that a sprint jump (PlayerController jumpHeight 2.8 m) cannot clear them from the deck.
+public static class BridgeRails
+{
+    public const float Height = 3.8f;
+    // Rail box centre above the deck surface; the box reaches 0.3 m below the deck.
+    public const float Centre = Height * 0.5f - 0.3f;
+    public const float TopAboveDeck = Height - 0.3f;
+}
+
 public struct BridgeZone
 {
-    public const float Margin = 1.0f;
+    public const float Margin = 1.6f;
     public const float Below = 3.0f;
     public const float Above = 4.0f;
 

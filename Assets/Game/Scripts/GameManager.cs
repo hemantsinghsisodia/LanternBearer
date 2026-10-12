@@ -394,9 +394,16 @@ public class GameManager : MonoBehaviour
     }
 
     // The win of an island whose last step is not a beacon (the great lamp).
-    public void WinNow()
+    // Returns false when the win is refused (round already over, dying, or the lantern is out).
+    public bool WinNow()
     {
+        if (roundOver || dying || won || (lantern != null && lantern.Fuel <= 0f))
+        {
+            return false;
+        }
+
         Win();
+        return roundOver;
     }
 
     public void RegisterBeaconLit(Beacon beacon)

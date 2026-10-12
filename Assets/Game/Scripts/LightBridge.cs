@@ -18,7 +18,6 @@ public class LightBridge : MonoBehaviour
     const float KindleSeconds = 0.6f;
     const float SettleSeconds = 0.5f;
     const float DeckThickness = 0.5f;
-    const float RailHeight = 1.6f;
     const float EndOverlap = 0.1f;
     const float JointOverlap = 0.35f;
 
@@ -35,9 +34,6 @@ public class LightBridge : MonoBehaviour
     public enum BridgePhase { Waiting, Beam, Grow, Done }
 
     public Beacon NearBeacon;
-    // Null for the four required gaps: the far side is a bridge lantern (or the summit plateau).
-    public Beacon FarBeacon;
-    public bool Required = true;
     public bool SummitSpan;
 
     // The walkway line from the near lip to the far lip: two points for a straight span, more for the curved summit span.
@@ -68,6 +64,7 @@ public class LightBridge : MonoBehaviour
     Light lanternLight;
     Transform flameRoot;
     Collider[] colliders = new Collider[0];
+    readonly List<Mesh> meshes = new List<Mesh>();
     Vector3[] beamPoints = new Vector3[24];
     bool igniteCuePlayed;
 
@@ -136,12 +133,32 @@ public class LightBridge : MonoBehaviour
         }
 
         Beacon.Lit += OnBeaconLit;
+        GraphicsQuality.QualityChanged += OnQualityChanged;
     }
 
     void OnDisable()
     {
+        GraphicsQuality.QualityChanged -= OnQualityChanged;
         Beacon.Lit -= OnBeaconLit;
         All.Remove(this);
+    }
+
+    void OnQualityChanged(GraphicsProfile profile)
+    {
+        ParticleQuality.ApplyTo(embers);
+    }
+
+    void OnDestroy()
+    {
+        for (int i = 0; i < meshes.Count; i++)
+        {
+            if (meshes[i] != null)
+            {
+                Destroy(meshes[i]);
+            }
+        }
+
+        meshes.Clear();
     }
 
     void OnBeaconLit(Beacon beacon)
@@ -378,11 +395,6 @@ public class LightBridge : MonoBehaviour
 
     Vector3 BeamTarget()
     {
-        if (FarBeacon != null)
-        {
-            return FarBeacon.transform.position + Vector3.up * 2.4f;
-        }
-
         if (flameRoot != null)
         {
             return flameRoot.position;
@@ -637,6 +649,7 @@ public class LightBridge : MonoBehaviour
 
         Mesh mesh = new Mesh();
         mesh.name = meshName;
+        meshes.Add(mesh);
         mesh.vertices = vertices;
         if (withUv)
         {
@@ -688,8 +701,8 @@ public class LightBridge : MonoBehaviour
         GameObject rail = new GameObject(railName);
         rail.transform.SetParent(segment, false);
         BoxCollider box = rail.AddComponent<BoxCollider>();
-        box.size = new Vector3(0.2f, RailHeight, boxLength);
-        box.center = new Vector3(x, RailHeight * 0.5f - 0.3f, shift);
+        box.size = new Vector3(0.2f, BridgeRails.Height, boxLength);
+        box.center = new Vector3(x, BridgeRails.Centre, shift);
         return box;
     }
 

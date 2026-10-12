@@ -91,6 +91,17 @@ public class LightBridgeTests
     }
 
     [Test]
+    public void RailsAreHigherThanAJumpAndTheZoneCoversAMothsReach()
+    {
+        // PlayerController.jumpHeight is 2.8 m (hard-coded here: the game assembly is not referenced). The invisible rails must stand at least
+        // half a metre above that so a sideways sprint jump cannot clear them, and the safe zone margin must exceed a moth's 1.5 m closeDistance.
+        const float jumpHeight = 2.8f;
+        Assert.GreaterOrEqual(BridgeRails.TopAboveDeck, jumpHeight + 0.5f);
+        Assert.GreaterOrEqual(BridgeRails.TopAboveDeck, 3.4f);
+        Assert.Greater(BridgeZone.Margin, 1.5f);
+    }
+
+    [Test]
     public void InstalledAssetsExist()
     {
         Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Materials/Generated/LightBridge.mat"));

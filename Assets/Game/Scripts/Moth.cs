@@ -298,7 +298,8 @@ public class Moth : MonoBehaviour
         desired = AvoidObstacles(desired);
         Commit(desired, flySpeed, dt);
 
-        bool close = distance <= closeDistance && !InsideSafe(transform.position);
+        // Measured after the move: a moth pushed out of a safe zone this frame must not count as close from its old spot.
+        bool close = Vector3.Distance(transform.position, target) <= closeDistance && !InsideSafe(transform.position);
         SetClose(close);
 
         bool sprintingAway = body != null && body.IsSprinting && body.HorizontalSpeed > flySpeed;

@@ -28,6 +28,8 @@ public class GreatLamp : MonoBehaviour
     MaterialPropertyBlock beamsBlock;
     MaterialPropertyBlock block;
     bool promptShown;
+    string hint;
+    int hintCount = -1;
     bool igniting;
     float litScale;
 
@@ -96,6 +98,11 @@ public class GreatLamp : MonoBehaviour
             return false;
         }
 
+        if (manager != null && !manager.WinNow())
+        {
+            return false;
+        }
+
         Lit = true;
         ClearPrompt();
         igniting = true;
@@ -104,11 +111,6 @@ public class GreatLamp : MonoBehaviour
         {
             AudioManager.Instance.PlayBeacon(transform.position);
             AudioManager.Instance.PlayCue(SoundCues.BeaconIgnite, transform.position);
-        }
-
-        if (manager != null)
-        {
-            manager.WinNow();
         }
 
         return true;
@@ -144,7 +146,7 @@ public class GreatLamp : MonoBehaviour
         }
 
         bool open = gate != null && gate.Open;
-        string line = open ? PromptText : "The great lamp is dark (" + (gate != null ? gate.LitCount : 0) + "/" + (gate != null ? gate.Required : 8) + " beacons)";
+        string line = PromptFor(open);
         manager.SetCustomPrompt(this, line);
         promptShown = true;
         if (open && !manager.IsPaused)
@@ -155,6 +157,24 @@ public class GreatLamp : MonoBehaviour
                 TryLight();
             }
         }
+    }
+
+    // The dark-lamp hint is rebuilt only when the lit count changes.
+    string PromptFor(bool open)
+    {
+        if (open)
+        {
+            return PromptText;
+        }
+
+        int lit = gate != null ? gate.LitCount : 0;
+        if (hint == null || lit != hintCount)
+        {
+            hintCount = lit;
+            hint = "The great lamp is dark (" + lit + "/" + (gate != null ? gate.Required : 8) + " beacons)";
+        }
+
+        return hint;
     }
 
     void ResolvePlayer()

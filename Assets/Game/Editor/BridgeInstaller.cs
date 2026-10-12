@@ -75,8 +75,6 @@ public static class BridgeInstaller
             LightBridge bridge = bridgeObject.AddComponent<LightBridge>();
             Transform beaconTransform = beacons.transform.Find("Beacon_" + gaps[i].nearBeacon);
             bridge.NearBeacon = beaconTransform != null ? beaconTransform.GetComponent<Beacon>() : null;
-            bridge.FarBeacon = null;
-            bridge.Required = gaps[i].required;
             bridge.SummitSpan = i == 3;
             Transform lantern = null;
             if (i < 3 && lanternPrefab != null)
@@ -87,6 +85,8 @@ public static class BridgeInstaller
             bridge.Configure(line, DeckWidth, lantern, deck, ember, beam);
             EditorUtility.SetDirty(bridge);
         }
+
+        ClearSetPieces(scene, terrain, root.GetComponentsInChildren<LightBridge>());
 
         GameObject gateObject = new GameObject(GateName);
         SceneManager.MoveGameObjectToScene(gateObject, scene);
@@ -158,6 +158,80 @@ public static class BridgeInstaller
         line[0] = near;
         line[segments] = far;
         return line;
+    }
+
+    // Keeps the Task 2 set-piece rocks at least ClearGap (1 m) outside every bridge footprint: a rock that overlaps is pushed straight away from the
+    // deck line and put back on the ground there (or removed when the ground there falls away). Idempotent.
+    const float ClearGap = 1.0f;
+
+    static void ClearSetPieces(Scene scene, Terrain terrain, LightBridge[] bridges)
+    {
+        GameObject pieces = FindRoot(scene, "GapSetPieces");
+        if (pieces == null)
+        {
+            return;
+        }
+
+        float offset = terrain.transform.position.y;
+        int moved = 0;
+        Transform[] rocks = pieces.GetComponentsInChildren<Transform>(true);
+        for (int r = 0; r < rocks.Length; r++)
+        {
+            Transform rock = rocks[r];
+            if (rock == null || rock.parent == null || rock.parent.parent != pieces.transform || rock.GetComponentInChildren<Renderer>() == null)
+            {
+                continue;
+            }
+
+            Bounds bounds = new Bounds(rock.position, Vector3.zero);
+            foreach (Renderer renderer in rock.GetComponentsInChildren<Renderer>())
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+
+            float radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+            for (int pass = 0; pass < 3; pass++)
+            {
+                Vector3 p = rock.position;
+                float worst = 0f;
+                Vector2 away = Vector2.zero;
+                foreach (LightBridge bridge in bridges)
+                {
+                    Vector3[] line = bridge.Points;
+                    for (int i = 0; i < line.Length - 1; i++)
+                    {
+                        Vector3 c;
+                        new BridgeZone { start = line[i], end = line[i + 1], halfWidth = 0f }.Closest(p, out c);
+                        Vector2 d = new Vector2(p.x - c.x, p.z - c.z);
+                        float need = bridge.Width * 0.5f + ClearGap + radius;
+                        if (Mathf.Abs(p.y - c.y) < 8f && d.magnitude < need && need - d.magnitude > worst)
+                        {
+                            worst = need - d.magnitude;
+                            away = d.sqrMagnitude > 1e-6f ? d.normalized : Vector2.right;
+                        }
+                    }
+                }
+
+                if (worst <= 0f)
+                {
+                    break;
+                }
+
+                float oldY = p.y;
+                p.x += away.x * (worst + 0.05f);
+                p.z += away.y * (worst + 0.05f);
+                p.y = terrain.SampleHeight(p) + offset;
+                rock.position = p;
+                moved++;
+                if (p.y < oldY - 3f)
+                {
+                    Object.DestroyImmediate(rock.gameObject);
+                    break;
+                }
+            }
+        }
+
+        Debug.Log("BridgeInstaller: moved or removed " + moved + " set-piece rocks to keep " + ClearGap + " m clear of the bridges.");
     }
 
     static Scene OpenScene()

@@ -674,7 +674,7 @@ public static partial class IslandBuilder
             Transform piece = Folder("Gap" + g + "_" + names[g]);
             piece.SetParent(root, false);
             float[] alongs = { -1f, 1f };
-            float[] outs = { 3.7f, -3.7f, 6.5f };
+            float[] outs = { 5.4f, -5.4f, 7.6f };
             for (int a = 0; a < alongs.Length; a++)
             {
                 for (int o = 0; o < outs.Length; o++)
