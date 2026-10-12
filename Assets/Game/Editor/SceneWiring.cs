@@ -1080,6 +1080,35 @@ public static partial class SceneWiring
     // Island 5 (the spire) has light bridges, a great lamp and ring zones on top of the usual island checks. Each light bridge needs its
     // near beacon (the one that kindles it) and a deck that can have a collider: the colliders are built when the scene starts, so in the
     // editor a deck needs two or more walkway points and a width; a built "Collision" child counts as is.
+    const int ExpectedIsland5Bridges = 4;
+
+    // Mirrors what LightBridge.BuildColliders needs in play: at least two finite points, no zero-length segment (its box would have no
+    // direction) and a positive width.
+    static bool DeckCanBuildCollider(LightBridge bridge)
+    {
+        Vector3[] points = bridge.Points;
+        if (points == null || points.Length < 2 || !(bridge.Width > 0f))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            Vector3 p = points[i];
+            if (float.IsNaN(p.x + p.y + p.z) || float.IsInfinity(p.x + p.y + p.z))
+            {
+                return false;
+            }
+
+            if (i > 0 && (p - points[i - 1]).sqrMagnitude < 0.01f)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     static int ReportIsland5(bool quiet)
     {
         string sceneName = EditorSceneManager.GetActiveScene().name;
@@ -1102,8 +1131,7 @@ public static partial class SceneWiring
                 }
             }
 
-            bool hasCollider = bridge.GetComponentInChildren<Collider>(true) != null
-                || (bridge.Points != null && bridge.Points.Length >= 2 && bridge.Width > 0f);
+            bool hasCollider = bridge.GetComponentInChildren<Collider>(true) != null || DeckCanBuildCollider(bridge);
             if (!hasCollider)
             {
                 problems++;
@@ -1111,6 +1139,16 @@ public static partial class SceneWiring
                 {
                     Debug.LogWarning(sceneName + " bridge '" + bridge.name + "' has no collider");
                 }
+            }
+        }
+
+        // The installers place four bridges (LightBridge_Gap0..3); none at all means they never ran.
+        if (bridges.Length < ExpectedIsland5Bridges)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " has " + bridges.Length + " light bridges, expected " + ExpectedIsland5Bridges);
             }
         }
 
