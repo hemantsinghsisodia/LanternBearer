@@ -25,6 +25,7 @@ public class GreatLamp : MonoBehaviour
     Light lampLight;
     Renderer glass;
     Renderer beams;
+    Renderer doorGlow;
     GreatLampBeam lampBeam;
     MaterialPropertyBlock beamsBlock;
     MaterialPropertyBlock block;
@@ -63,6 +64,8 @@ public class GreatLamp : MonoBehaviour
         Transform glassTransform = transform.Find("BeaconGlass");
         glass = glassTransform != null ? glassTransform.GetComponent<Renderer>() : null;
         lampBeam = GetComponentInChildren<GreatLampBeam>(true);
+        Transform doorGlowTransform = transform.Find("LighthouseDoorGlow");
+        doorGlow = doorGlowTransform != null ? doorGlowTransform.GetComponent<Renderer>() : null;
         Transform beamsTransform = transform.Find("BeaconBeams");
         beams = beamsTransform != null ? beamsTransform.GetComponent<Renderer>() : null;
         if (beams != null)
@@ -208,6 +211,12 @@ public class GreatLamp : MonoBehaviour
     // The glass wakes with a slow pulse once the gate is open, and burns steadily when lit.
     void UpdateGlow()
     {
+        // The faint amber at the foot of the door says the lamp is waiting; it goes out when the lamp is lit.
+        if (doorGlow != null)
+        {
+            doorGlow.enabled = !Lit;
+        }
+
         if (glass == null)
         {
             return;

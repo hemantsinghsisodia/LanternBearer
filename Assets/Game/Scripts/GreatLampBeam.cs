@@ -63,13 +63,18 @@ public class GreatLampBeam : MonoBehaviour
 
     void Update()
     {
+        Step(Time.unscaledDeltaTime);
+    }
+
+    // One step of unscaled seconds. A long hitch (a loading frame, a window drag) is clamped so it cannot skip the ramp or jump the sweep.
+    public void Step(float unscaledDt)
+    {
         if (!started)
         {
             return;
         }
 
-        // A long hitch (a loading frame, a window drag) must not skip the ramp or jump the sweep.
-        float dt = Mathf.Min(Time.unscaledDeltaTime, MaxStep);
+        float dt = Mathf.Min(unscaledDt, MaxStep);
         elapsed += dt;
         float step = DegreesPerSecond * dt;
         angle += step;
@@ -77,8 +82,21 @@ public class GreatLampBeam : MonoBehaviour
         Apply();
     }
 
+    // A mild Perlin shimmer, like the beacon beams.
+    static float Shimmer()
+    {
+        return Mathf.Lerp(0.85f, 1f, Mathf.PerlinNoise(Time.unscaledTime * 3f, 0.3f));
+    }
+
+    // The intensity written to the renderer (ramp x peak x shimmer x Low scale), for tests.
+    public float AppliedIntensity { get; private set; }
+    public float AppliedLengthScale { get; private set; }
+
     void Apply()
     {
+        bool low = GraphicsQuality.Current == GraphicsLevel.Low;
+        AppliedIntensity = Intensity01 * peakIntensity * Shimmer() * (low ? BeaconVisual.BeamIntensityScaleLow : 1f);
+        AppliedLengthScale = low ? BeaconVisual.BeamLengthScaleLow : 1f;
         if (beamRenderer == null)
         {
             return;
@@ -89,10 +107,9 @@ public class GreatLampBeam : MonoBehaviour
             block = new MaterialPropertyBlock();
         }
 
-        bool low = GraphicsQuality.Current == GraphicsLevel.Low;
         beamRenderer.GetPropertyBlock(block);
-        block.SetFloat(IntensityId, Intensity01 * peakIntensity * (low ? BeaconVisual.BeamIntensityScaleLow : 1f));
-        block.SetFloat(LenScaleId, low ? BeaconVisual.BeamLengthScaleLow : 1f);
+        block.SetFloat(IntensityId, AppliedIntensity);
+        block.SetFloat(LenScaleId, AppliedLengthScale);
         beamRenderer.SetPropertyBlock(block);
     }
 }

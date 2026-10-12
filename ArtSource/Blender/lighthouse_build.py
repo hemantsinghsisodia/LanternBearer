@@ -12,6 +12,9 @@ Objects (one renderer each; LighthouseInstaller assigns the materials by name):
   LighthouseStone / LighthouseStone_L1   BeaconCairn slot: the tapered tower with its door recess and two slit windows
   LighthouseIron / LighthouseIron_L1     BeaconIron slot: door, slit frames, gallery deck + railing, mullions, cap, vent ball
   BeaconGlass                            BeaconGlass slot: the 8 panes, UV 0..1 per pane (the name GreatLamp looks up)
+  LighthouseDoor                         LighthouseWood slot: five dark planks set in the recess behind the stone face
+  LighthouseDoorIron                     LighthouseStrap slot: three straps, hinge plates and a handle on the planks
+  LighthouseDoorGlow                     BeaconEmber slot: a soft card across the foot of the door (additive amber, lamp waiting)
   FlameRoot                              an empty at the middle of the lantern room (GreatLamp grows it on ignition)
 Heights (m): tower 0..10.5, gallery deck 10.5, railing to 11.6, lantern room 10.6..13.2, cap and vent ball to 14.0. 1 unit = 1 m.
 """
@@ -44,7 +47,7 @@ FLAME_Z = 11.9
 STONE_TILE = 2.0       # metres per texture repeat
 DOOR_HALF = math.radians(15.0)
 DOOR_H = 2.7
-DOOR_DEPTH = 0.45
+DOOR_DEPTH = 0.3
 DOOR_ANGLE = -math.pi / 2          # -Y
 WINDOWS = ((5.0, math.radians(0.0)), (8.0, math.radians(180.0)))   # (height, angle) of the two slits
 WIN_HALF = math.radians(3.5)
@@ -99,7 +102,7 @@ def build_stone(detail):
     rng = random.Random(21)
     segs = 48 if detail else 16
     # Row heights: regular steps, plus rows exactly at the door top and window edges so the recess is crisp.
-    step = 0.3 if detail else 1.3
+    step = 0.35 if detail else 1.5
     rows = set()
     z = 0.0
     while z < TOWER_TOP - 1e-6:
@@ -132,7 +135,7 @@ def build_stone(detail):
         for i in range(segs):
             a = cols[i]
             r = tower_radius(z)
-            if detail:
+            if detail and inset(a, z) == 0.0:
                 r += 0.05 * abs(math.sin(z / 0.5 * math.pi))
                 if z < 0.8:
                     r += 0.25 * (0.8 - z) / 0.8      # plinth flare
@@ -173,21 +176,67 @@ def build_stone(detail):
     return mesh
 
 
-def door_pos(z_centre):
-    r = tower_radius(z_centre) - DOOR_DEPTH + 0.06
-    return Vector((math.cos(DOOR_ANGLE) * r, math.sin(DOOR_ANGLE) * r, z_centre))
+DOOR_W = 0.95          # five 0.19 m planks
+DOOR_PLANK_T = 0.2     # radial thickness; the back sits in the recess wall
+
+
+def door_front_y():
+    """Blender Y of the door front face (the door faces -Y): 0.16 m behind the stone face at mid door height."""
+    return -(tower_radius(DOOR_H / 2) - 0.16)
+
+
+def build_door():
+    """Five dark planks set in the recess just behind the stone face (the straps are in LighthouseIron)."""
+    bm = bmesh.new()
+    y_c = door_front_y() + DOOR_PLANK_T / 2
+    for i in range(5):
+        x = (i - 2) * (DOOR_W / 5)
+        box(bm, (x, y_c, (DOOR_H - 0.05) / 2), (DOOR_W / 5 - 0.012, DOOR_PLANK_T, DOOR_H - 0.05))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("LighthouseDoor")
+    bm.to_mesh(mesh)
+    bm.free()
+    return mesh
+
+
+def build_door_iron():
+    """Three straps with hinge plates and a handle across the planks (its own object and material: plain lit iron, no rim)."""
+    bm = bmesh.new()
+    y = door_front_y()
+    for zz in (0.45, 1.3, 2.15):
+        box(bm, (0.0, y - 0.015, zz), (DOOR_W, 0.03, 0.09))
+        box(bm, (-DOOR_W / 2 + 0.07, y - 0.03, zz), (0.14, 0.03, 0.14))
+    box(bm, (0.32, y - 0.03, 1.3), (0.06, 0.05, 0.06))     # handle
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("LighthouseDoorIron")
+    bm.to_mesh(mesh)
+    bm.free()
+    return mesh
+
+
+def build_door_glow():
+    """A soft card across the foot of the door, UV 0..1 (additive amber, set up by the installer)."""
+    bm = bmesh.new()
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+    y = door_front_y() - 0.045
+    verts = [bm.verts.new((-DOOR_W / 2, y, 0.02)), bm.verts.new((DOOR_W / 2, y, 0.02)),
+             bm.verts.new((DOOR_W / 2, y, 0.42)), bm.verts.new((-DOOR_W / 2, y, 0.42))]
+    face = bm.faces.new(verts)      # normal -Y: out of the door
+    for loop, uv in zip(face.loops, ((0, 0), (1, 0), (1, 1), (0, 1))):
+        loop[uv_layer].uv = uv
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("LighthouseDoorGlow")
+    bm.to_mesh(mesh)
+    bm.free()
+    return mesh
 
 
 def build_iron(detail):
     bm = bmesh.new()
     sides = 24 if detail else 12
-    # Door: a plank slab set in the recess, a lintel above it, cross bands.
-    box(bm, door_pos(DOOR_H / 2), (1.5, 0.12, DOOR_H - 0.1))
-    box(bm, door_pos(DOOR_H + 0.1) + Vector((0, 0.1, 0)), (1.9, 0.6, 0.2))
     if detail:
-        box(bm, door_pos(DOOR_H / 2) + Vector((0.45, -0.1, 0.0)), (0.1, 0.08, 0.1))
-        for zz in (0.6, 1.4, 2.2):
-            box(bm, door_pos(zz) + Vector((0, -0.075, 0)), (1.5, 0.04, 0.08))
         # Slit windows: a dark pane at the back of each recess.
         for wz, wa in WINDOWS:
             r = tower_radius(wz) - WIN_DEPTH + 0.03
@@ -290,12 +339,18 @@ def build_scene():
     stone_mat = make_material("BeaconCairn", (0.35, 0.34, 0.33, 1.0), 0.9)
     iron_mat = make_material("BeaconIron", (0.08, 0.08, 0.09, 1.0), 0.5)
     glass_mat = make_material("BeaconGlass", (0.1, 0.12, 0.16, 1.0), 0.1)
+    wood_mat = make_material("LighthouseWood", (0.09, 0.055, 0.03, 1.0), 0.8)
+    strap_mat = make_material("LighthouseStrap", (0.03, 0.03, 0.035, 1.0), 0.5)
+    glow_mat = make_material("BeaconEmber", (1.0, 0.69, 0.36, 1.0), 1.0)
     objs = {
         "stone": add_object(scene, "LighthouseStone", build_stone(True), stone_mat),
         "iron": add_object(scene, "LighthouseIron", build_iron(True), iron_mat),
         "stone1": add_object(scene, "LighthouseStone_L1", build_stone(False), stone_mat),
         "iron1": add_object(scene, "LighthouseIron_L1", build_iron(False), iron_mat),
         "glass": add_object(scene, "BeaconGlass", build_glass(), glass_mat),
+        "door": add_object(scene, "LighthouseDoor", build_door(), wood_mat),
+        "doorIron": add_object(scene, "LighthouseDoorIron", build_door_iron(), strap_mat),
+        "glow": add_object(scene, "LighthouseDoorGlow", build_door_glow(), glow_mat),
     }
     flame = bpy.data.objects.new("FlameRoot", None)
     flame.empty_display_type = 'PLAIN_AXES'
@@ -327,13 +382,13 @@ def export():
 def main():
     objs = build_scene()
     os.makedirs(OUT_DIR, exist_ok=True)
-    body = [objs["stone"], objs["iron"], objs["glass"]]
+    body = [objs["stone"], objs["iron"], objs["glass"], objs["door"], objs["doorIron"], objs["glow"]]
     lo, hi = bounds(*body)
     print("Height (m):", round(hi[2] - lo[2], 4), "min z", round(lo[2], 4), "max z", round(hi[2], 4))
     print("Width (m): %.3f x %.3f" % (hi[0] - lo[0], hi[1] - lo[1]))
     print("LOD0 triangles:", tri_count(*body), "(stone %d, iron %d, glass %d)" % (
         tri_count(objs["stone"]), tri_count(objs["iron"]), tri_count(objs["glass"])))
-    print("LOD1 triangles:", tri_count(objs["stone1"], objs["iron1"], objs["glass"]))
+    print("LOD1 triangles:", tri_count(objs["stone1"], objs["iron1"], objs["glass"], objs["door"], objs["doorIron"], objs["glow"]))
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_PATH)
     export()
 
