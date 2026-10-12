@@ -17,10 +17,10 @@ public class RingZonesTest
     const float Frame = 1f / 60f;
     static readonly string[] IntKeys =
     {
-        "LanternKeeperIntro_island1", "LanternKeeperIntro_island4", "LanternKeeperIntro_island5",
-        "LanternKeeperWon_island1", "LanternKeeperWon_island4", "LanternKeeperWon_island5"
+        "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4", "LanternKeeperIntro_island5",
+        "LanternKeeperWon_island1", "LanternKeeperWon_island2", "LanternKeeperWon_island3", "LanternKeeperWon_island4", "LanternKeeperWon_island5"
     };
-    static readonly string[] FloatKeys = { "LanternKeeperBest_island1", "LanternKeeperBest_island4", "LanternKeeperBest_island5" };
+    static readonly string[] FloatKeys = { "LanternKeeperBest_island1", "LanternKeeperBest_island2", "LanternKeeperBest_island3", "LanternKeeperBest_island4", "LanternKeeperBest_island5" };
 
     readonly Dictionary<string, int> savedInts = new Dictionary<string, int>();
     readonly Dictionary<string, float> savedFloats = new Dictionary<string, float>();
@@ -104,6 +104,8 @@ public class RingZonesTest
 
         // A first-visit intro card pauses the game.
         PlayerPrefs.SetInt("LanternKeeperIntro_island1", 1);
+        PlayerPrefs.SetInt("LanternKeeperIntro_island2", 1);
+        PlayerPrefs.SetInt("LanternKeeperIntro_island3", 1);
         PlayerPrefs.SetInt("LanternKeeperIntro_island4", 1);
         PlayerPrefs.SetInt("LanternKeeperIntro_island5", 1);
         previousCaptureDelta = Time.captureDeltaTime;
@@ -260,6 +262,12 @@ public class RingZonesTest
         }
 
         Assert.AreEqual(ring, Reached(), "reached " + ring + " within 4 s");
+    }
+
+    static int LightBridgeCount()
+    {
+        FieldInfo all = GameType("LightBridge").GetField("All", BindingFlags.Public | BindingFlags.Static);
+        return ((System.Collections.ICollection)all.GetValue(null)).Count;
     }
 
     static Component Director()
@@ -556,19 +564,28 @@ public class RingZonesTest
     [Timeout(300000)]
     public IEnumerator OtherIslandsUnaffected()
     {
-        yield return Load("Island1");
-        Component lantern = (Component)Find("Lantern");
-        Assert.AreEqual(1f, (float)Get(lantern, "RadiusScale"), 1e-6f, "Island 1 lantern radius is unscaled");
-        Assert.AreEqual(0f, Floor(), 1e-6f, "Island 1 has no tension floor");
-        Assert.IsNull(Find("RingZones"), "Island 1 has no rings");
-        Assert.AreEqual(Ring.Low, Reached());
-        Assert.IsNull(StaticProperty("Wind", "Instance"));
+        string[] calm = { "Island1", "Island2", "Island3" };
+        for (int i = 0; i < calm.Length; i++)
+        {
+            yield return Load(calm[i]);
+            Component lantern = (Component)Find("Lantern");
+            Assert.AreEqual(1f, (float)Get(lantern, "RadiusScale"), 1e-6f, calm[i] + " lantern radius is unscaled");
+            Assert.AreEqual(0f, Floor(), 1e-6f, calm[i] + " has no tension floor");
+            Assert.IsNull(Find("RingZones"), calm[i] + " has no rings");
+            Assert.AreEqual(Ring.Low, Reached());
+            Assert.AreEqual(0, LightBridgeCount(), calm[i] + " has no light bridges");
+            if (i == 0)
+            {
+                Assert.IsNull(StaticProperty("Wind", "Instance"));
+            }
+        }
 
         yield return Load("Island4");
         yield return Wait(2f);
         Assert.IsNotNull(StaticProperty("Wind", "Instance"), "Island 4 wind still starts at once");
         Assert.IsNotNull(StaticProperty("Lightning", "Instance"), "Island 4 lightning still starts at once");
         Assert.IsNull(Find("RingZones"));
+        Assert.AreEqual(0, LightBridgeCount(), "Island 4 has no light bridges");
         Assert.AreEqual(1f, (float)Get(Find("Lantern"), "RadiusScale"), 1e-6f);
         Assert.AreEqual(0f, (float)Get(Director(), "TensionFloor"), 1e-6f);
         Assert.Greater((int)CallStatic("Shade", "LivingCount"), 0, "Island 4 Shades still spawn at once");

@@ -8,6 +8,20 @@ public static class WalkwaySpawn
     // Highest path u whose walkway height is still inside `reached` or a lower ring. Summit allows the whole path.
     public static float MaxU(Ring reached)
     {
+        int index = (int)reached;
+        if (maxU[index] < 0f)
+        {
+            maxU[index] = ComputeMaxU(reached);
+        }
+
+        return maxU[index];
+    }
+
+    // The layout is fixed, so each ring's limit is solved once.
+    static readonly float[] maxU = { -1f, -1f, -1f, -1f };
+
+    static float ComputeMaxU(Ring reached)
+    {
         float top;
         switch (reached)
         {
@@ -56,7 +70,8 @@ public static class WalkwaySpawn
         Vector2 tangent = SpireLayout.PathTangent(u);
         Vector2 normal = new Vector2(-tangent.y, tangent.x);
         xz = centre + normal * ((Mathf.Clamp01(r2) * 2f - 1f) * SpireLayout.PathWidth * 0.5f);
-        return Allowed(xz, reached);
+        // u is already known and capped at the ring, and the side offset is under PathWidth, so the point is on the walkway by construction.
+        return true;
     }
 
     public static bool Allowed(Vector2 xz, Ring reached)

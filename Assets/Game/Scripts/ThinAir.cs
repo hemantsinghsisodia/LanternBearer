@@ -7,6 +7,7 @@ namespace LanternKeeper
 public class ThinAir : MonoBehaviour
 {
     Lantern lantern;
+    bool resolved;
     bool applied;
 
     public bool Applied => applied;
@@ -18,8 +19,9 @@ public class ThinAir : MonoBehaviour
 
     void Update()
     {
-        if (lantern == null)
+        if (!resolved)
         {
+            resolved = true;
             lantern = FindAnyObjectByType<Lantern>();
         }
 

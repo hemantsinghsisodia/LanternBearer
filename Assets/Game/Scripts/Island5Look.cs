@@ -24,13 +24,35 @@ public class Island5Look : MonoBehaviour
     Material[] haze;
     Color[] hazeBase;
     float level;
+    float written = -1f;
+    bool dirty = true;
+    bool recapture;
     bool ready;
 
     public float Level => level;
 
-    void Start()
+    void OnEnable()
     {
-        baseFog = RenderSettings.fogColor;
+        GraphicsQuality.QualityChanged += OnQuality;
+    }
+
+    void OnDisable()
+    {
+        GraphicsQuality.QualityChanged -= OnQuality;
+    }
+
+    // LookApplier re-applies the profile on a graphics preset change (resetting the fog): capture the bases again and write once more.
+    void OnQuality(GraphicsProfile profile)
+    {
+        // Handled in LateUpdate, after every handler (LookApplier's included) has run.
+        recapture = true;
+        dirty = true;
+    }
+
+    void CaptureBases()
+    {
+        LookApplier applier = LookApplier.Current;
+        baseFog = applier != null && applier.Profile != null ? applier.Profile.fogColour : RenderSettings.fogColor;
         sky = RenderSettings.skybox;
         if (sky != null)
         {
@@ -38,6 +60,11 @@ public class Island5Look : MonoBehaviour
             baseHorizon = sky.HasProperty("_Horizon") ? sky.GetColor("_Horizon") : Color.black;
             baseCloud = sky.HasProperty("_CloudColor") ? sky.GetColor("_CloudColor") : Color.black;
         }
+    }
+
+    void Start()
+    {
+        CaptureBases();
 
         GameObject horizon = GameObject.Find("Horizon");
         if (horizon != null)
@@ -79,9 +106,21 @@ public class Island5Look : MonoBehaviour
             return;
         }
 
+        if (recapture)
+        {
+            recapture = false;
+            CaptureBases();
+        }
+
         float target = (float)RingZones.Reached;
         level = Mathf.MoveTowards(level, target, Time.unscaledDeltaTime * 3f / Mathf.Max(0.1f, easeSeconds));
-        Apply(level);
+        // Change-only: write while the level is still moving, or once after a re-apply.
+        if (dirty || !Mathf.Approximately(level, written))
+        {
+            Apply(level);
+            written = level;
+            dirty = false;
+        }
     }
 
     static float Sample(float[] steps, float at)
