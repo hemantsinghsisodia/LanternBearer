@@ -5,35 +5,65 @@ namespace LanternKeeper
 {
 public struct CreditEntry { public string heading; public string title; public string author; public string licence; }
 
-// Reads the text of CREDITS.txt into entries. Paths and URLs are dropped.
+// Reads the text of CREDITS.txt into entries for the credits roll. Paths and URLs are dropped.
+// A section is a heading line between two `---` rules. Its licence comes from the parenthesis in the heading:
+// "(CC0...)" is a CC0 section, "(SIL Open Font License ...)" is a font section. Any other section (made for
+// this project, Unity, editor only) is skipped.
 public static class CreditsFormat
 {
+    class Section { public string heading; public List<string> lines = new List<string>(); }
+
     public static List<CreditEntry> Parse(string raw)
     {
         var result = new List<CreditEntry>();
         if (string.IsNullOrEmpty(raw)) return result;
-        string[] lines = raw.Replace("\r", "").Split('\n');
-        string heading = "";
-        string titleLine = null;
+        foreach (Section s in Split(raw.Replace("\r", "").Split('\n')))
+        {
+            string heading = Before(s.heading, '(').Trim();
+            string inner = Inside(s.heading);
+            if (inner.StartsWith("CC0", StringComparison.Ordinal)) ParseCc0(s, heading, "CC0", result);
+            else if (inner.IndexOf("Open Font License", StringComparison.Ordinal) >= 0)
+                ParseFonts(s, heading, inner.Replace("SIL Open Font License", "SIL OFL"), result);
+        }
+        return result;
+    }
+
+    static List<Section> Split(string[] lines)
+    {
+        var sections = new List<Section>();
+        var cur = new Section { heading = "" };
+        sections.Add(cur);
         for (int i = 0; i < lines.Length; i++)
         {
-            string line = lines[i];
-            string trimmed = line.Trim();
-            if (IsRule(trimmed))
+            string t = lines[i].Trim();
+            if (IsRule(t))
             {
-                // A rule, a heading line and a closing rule.
-                if (i + 2 < lines.Length && !IsRule(lines[i + 1].Trim()) && lines[i + 1].Trim().Length > 0 && IsRule(lines[i + 2].Trim()))
+                if (i + 2 < lines.Length && lines[i + 1].Trim().Length > 0 && !IsRule(lines[i + 1].Trim()) && IsRule(lines[i + 2].Trim()))
                 {
-                    heading = lines[i + 1].Trim();
+                    cur = new Section { heading = lines[i + 1].Trim() };
+                    sections.Add(cur);
                     i += 2;
                 }
-                titleLine = null;
                 continue;
             }
-            if (trimmed.Length == 0) { titleLine = null; continue; }
-            if (trimmed.StartsWith("Licence:", StringComparison.Ordinal))
+            cur.lines.Add(lines[i]);
+        }
+        return sections;
+    }
+
+    static void ParseCc0(Section s, string heading, string sectionLicence, List<CreditEntry> result)
+    {
+        string titleLine = null;       // last indented "Title by Author" line of a block
+        string subHeading = null;      // current subsection of a list, e.g. "Models"
+        var subAuthors = new List<string>();
+        foreach (string line in s.lines)
+        {
+            string t = line.Trim();
+            bool indented = line.Length > 0 && char.IsWhiteSpace(line[0]);
+            if (t.Length == 0) { titleLine = null; continue; }
+            if (t.StartsWith("Licence:", StringComparison.Ordinal))
             {
-                string licence = trimmed.Substring("Licence:".Length).Trim();
+                string licence = t.Substring("Licence:".Length).Trim();
                 if (titleLine != null && licence.Length > 0)
                 {
                     SplitTitle(titleLine, out string title, out string author);
@@ -42,10 +72,124 @@ public static class CreditsFormat
                 titleLine = null;
                 continue;
             }
-            bool indented = line.Length > 0 && char.IsWhiteSpace(line[0]);
-            if (indented && !trimmed.Contains("http") && !trimmed.Contains("Assets/")) titleLine = trimmed;
+            if (indented)
+            {
+                if (!t.Contains("http") && !t.Contains("Assets/")) titleLine = t;
+                continue;
+            }
+            if (t.EndsWith(":", StringComparison.Ordinal))
+            {
+                FlushSub(heading, subHeading, subAuthors, sectionLicence, result);
+                subHeading = Before(t.TrimEnd(':'), '(').Trim();
+                subAuthors = new List<string>();
+                continue;
+            }
+            if (t.StartsWith("- ", StringComparison.Ordinal))
+            {
+                if (subHeading != null) AddAuthors(subAuthors, BulletAuthors(t.Substring(2)));
+                continue;
+            }
+            if (subHeading != null || t.Contains("Assets/")) continue;
+            int dash = t.IndexOf(" — ", StringComparison.Ordinal);
+            string head = dash >= 0 ? t.Substring(0, dash) : t;
+            if (t.StartsWith("\"", StringComparison.Ordinal))
+            {
+                int close = head.IndexOf('"', 1);
+                if (close < 0) continue;
+                string rest = head.Substring(close + 1).Trim();
+                if (!rest.StartsWith("by ", StringComparison.Ordinal)) continue;
+                string author = Before(rest.Substring(3), ',').Trim();
+                result.Add(new CreditEntry { heading = heading, title = head.Substring(1, close - 1), author = author, licence = sectionLicence });
+            }
+            else if (head.Contains(" by ") && !head.Contains("http"))
+            {
+                SplitTitle(head, out string title, out string author);
+                result.Add(new CreditEntry { heading = heading, title = title, author = author, licence = sectionLicence });
+            }
         }
-        return result;
+        FlushSub(heading, subHeading, subAuthors, sectionLicence, result);
+    }
+
+    static void FlushSub(string heading, string sub, List<string> authors, string licence, List<CreditEntry> result)
+    {
+        if (sub == null || authors.Count == 0) return;
+        int cut = heading.IndexOf(" models", StringComparison.Ordinal);
+        string shown = cut > 0 ? heading.Substring(0, cut) : heading;
+        result.Add(new CreditEntry { heading = shown, title = sub, author = string.Join(", ", authors), licence = licence });
+    }
+
+    // "name, name — A, B" or "Title (id) by A and B".
+    static List<string> BulletAuthors(string b)
+    {
+        string names;
+        int dash = b.LastIndexOf(" — ", StringComparison.Ordinal);
+        int by = b.LastIndexOf(" by ", StringComparison.Ordinal);
+        if (dash >= 0) names = b.Substring(dash + 3);
+        else if (by >= 0) names = b.Substring(by + 4);
+        else return new List<string>();
+        var list = new List<string>();
+        foreach (string n in names.Replace(" and ", ", ").Split(','))
+        {
+            string name = n.Trim();
+            if (name.Length > 0 && !name.Contains("http")) list.Add(name);
+        }
+        return list;
+    }
+
+    static void AddAuthors(List<string> into, List<string> more)
+    {
+        foreach (string a in more) if (!into.Contains(a)) into.Add(a);
+    }
+
+    static void ParseFonts(Section s, string heading, string licence, List<CreditEntry> result)
+    {
+        var para = new List<string>();
+        for (int i = 0; i <= s.lines.Count; i++)
+        {
+            string t = i < s.lines.Count ? s.lines[i].Trim() : "";
+            if (t.Length > 0) { para.Add(t); continue; }
+            if (para.Count > 0) FontParagraph(para, heading, licence, result);
+            para.Clear();
+        }
+    }
+
+    static void FontParagraph(List<string> para, string heading, string licence, List<CreditEntry> result)
+    {
+        string first = para[0];
+        if (first.Contains("http") || first.Contains("Assets/")) return;
+        if (first.Contains(" by "))
+        {
+            SplitTitle(first, out string title, out string author);
+            author = author.TrimEnd('.').Trim();
+            if (author.StartsWith("the ", StringComparison.Ordinal)) author = char.ToUpperInvariant(author[4]) + author.Substring(5);
+            result.Add(new CreditEntry { heading = heading, title = title, author = author, licence = licence });
+            return;
+        }
+        var holders = new List<string>();
+        foreach (string l in para)
+        {
+            const string prefix = "Copyright (c) ";
+            if (!l.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            string rest = l.Substring(prefix.Length).Trim();
+            int sp = rest.IndexOf(' ');
+            if (sp > 0 && char.IsDigit(rest[0])) rest = rest.Substring(sp + 1).Trim();
+            if (rest.Length > 0 && !holders.Contains(rest)) holders.Add(rest);
+        }
+        if (holders.Count > 0)
+            result.Add(new CreditEntry { heading = heading, title = first, author = string.Join(", ", holders), licence = licence });
+    }
+
+    static string Before(string s, char c)
+    {
+        int i = s.IndexOf(c);
+        return i < 0 ? s : s.Substring(0, i);
+    }
+
+    static string Inside(string s)
+    {
+        int a = s.IndexOf('(');
+        int b = s.LastIndexOf(')');
+        return a >= 0 && b > a ? s.Substring(a + 1, b - a - 1).Trim() : "";
     }
 
     static bool IsRule(string s)
@@ -61,8 +205,19 @@ public static class CreditsFormat
         if (by < 0) { title = line; author = ""; return; }
         title = line.Substring(0, by).Trim();
         author = line.Substring(by + 4).Trim();
+        // Keep a named person in brackets ("(Rasmus Andersson)"); drop notes such as "(first 83 s, looped ...)".
         int paren = author.IndexOf(" (", StringComparison.Ordinal);
-        if (paren >= 0) author = author.Substring(0, paren).Trim();
+        if (paren >= 0)
+        {
+            string note = author.Substring(paren + 2).TrimEnd(')', '.');
+            bool person = author.TrimEnd('.').EndsWith(")", StringComparison.Ordinal) && IsPersonNote(note);
+            if (!person) author = author.Substring(0, paren).Trim();
+        }
+    }
+
+    static bool IsPersonNote(string s)
+    {
+        return s.Length > 0 && char.IsUpper(s[0]) && s.IndexOf(',') < 0 && !char.IsDigit(s[s.Length - 1]);
     }
 }
 }
