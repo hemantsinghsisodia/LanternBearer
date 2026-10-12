@@ -174,7 +174,8 @@ public class Lantern : MonoBehaviour
             }
         }
 
-        return false;
+        // A built light bridge is safe light too.
+        return LightBridge.AnySafe(position);
     }
 
     public void SetDrainModifier(UnityEngine.Object source, float multiplier)

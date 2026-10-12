@@ -459,7 +459,7 @@ public class MothSpawner : MonoBehaviour
             }
         }
 
-        return false;
+        return LightBridge.AnySafe(point + Vector3.up);
     }
 }
 }

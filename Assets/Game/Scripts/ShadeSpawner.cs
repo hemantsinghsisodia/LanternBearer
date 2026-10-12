@@ -281,7 +281,7 @@ public class ShadeSpawner : MonoBehaviour
             }
         }
 
-        return false;
+        return LightBridge.AnySafe(flat + Vector3.up);
     }
 }
 }

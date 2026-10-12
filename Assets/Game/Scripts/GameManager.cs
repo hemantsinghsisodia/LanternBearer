@@ -22,6 +22,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] float restartGrace = 0.5f;
     [SerializeField] HUD hud;
     [SerializeField] DawnSequence dawn;
+    // Island 5: lighting every beacon does not win; the great lamp's WinNow does.
+    [SerializeField] bool deferWinToGreatLamp;
 
     readonly HashSet<Beacon> nearbyBeacons = new HashSet<Beacon>();
     readonly List<Beacon> nearbyScratch = new List<Beacon>();
@@ -40,11 +42,16 @@ public class GameManager : MonoBehaviour
     float restartUnlockTime = float.PositiveInfinity;
     int raisedSecond = int.MinValue;
     Beacon nearestBeacon;
+    string customPrompt;
+    object customPromptOwner;
 
     public int LitCount => litCount;
     public int BeaconsToWin => beaconsToWin;
     public Beacon NearestBeacon => nearestBeacon;
-    public bool ShowInteractPrompt => nearestBeacon != null && !roundOver && !paused;
+    public bool ShowInteractPrompt => (nearestBeacon != null || customPrompt != null) && !roundOver && !paused;
+    public bool DeferWinToGreatLamp => deferWinToGreatLamp;
+    // A prompt line for something other than a beacon (the great lamp). Shown by HudPrompt when no beacon is in range.
+    public string CustomPrompt => customPrompt;
     public bool IsRoundOver => roundOver;
     public bool IsPaused => paused;
     public bool IsDying => dying;
@@ -365,6 +372,33 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Sets (text) or clears (null) the custom prompt. Only the owner that set it can clear it.
+    public void SetCustomPrompt(object owner, string text)
+    {
+        if (text == null && owner != customPromptOwner)
+        {
+            return;
+        }
+
+        if (text == customPrompt)
+        {
+            return;
+        }
+
+        customPrompt = text;
+        customPromptOwner = text == null ? null : owner;
+        if (PromptChanged != null)
+        {
+            PromptChanged.Invoke();
+        }
+    }
+
+    // The win of an island whose last step is not a beacon (the great lamp).
+    public void WinNow()
+    {
+        Win();
+    }
+
     public void RegisterBeaconLit(Beacon beacon)
     {
         if (beacon == null || roundOver)
@@ -406,6 +440,11 @@ public class GameManager : MonoBehaviour
         }
 
         if (lantern != null && lantern.Fuel <= 0f)
+        {
+            return false;
+        }
+
+        if (deferWinToGreatLamp)
         {
             return false;
         }

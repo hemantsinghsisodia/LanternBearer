@@ -374,6 +374,8 @@ public class Moth : MonoBehaviour
             }
         }
 
+        // A built light bridge is safe light too.
+        desired += LightBridge.Repel(transform.position);
         return desired;
     }
 
@@ -440,7 +442,7 @@ public class Moth : MonoBehaviour
             position = rim;
         }
 
-        return position;
+        return LightBridge.PushOut(position);
     }
 
     void EnforceHeight()
@@ -564,7 +566,7 @@ public class Moth : MonoBehaviour
             }
         }
 
-        return false;
+        return LightBridge.AnySafe(worldPosition);
     }
 
     void SetClose(bool close)

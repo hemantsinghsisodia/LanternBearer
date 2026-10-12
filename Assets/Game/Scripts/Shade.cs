@@ -530,6 +530,8 @@ public class Shade : MonoBehaviour
             }
         }
 
+        // A built light bridge is safe light too.
+        desired += LightBridge.Repel(transform.position);
         return desired;
     }
 
@@ -642,7 +644,7 @@ public class Shade : MonoBehaviour
             position = rim;
         }
 
-        return position;
+        return LightBridge.PushOut(position);
     }
 
     bool InsideSafe(Vector3 worldPosition)
@@ -656,7 +658,7 @@ public class Shade : MonoBehaviour
             }
         }
 
-        return false;
+        return LightBridge.AnySafe(worldPosition);
     }
 
     bool IgnoreObstacle(Collider collider)
