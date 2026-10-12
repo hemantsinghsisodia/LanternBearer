@@ -18,16 +18,17 @@ public class Island5BuildChainTests
     }
 
     [Test]
-    public void BuildIsland5RunsBridgeRingPerfAndAudioInstallers()
+    public void Island5PostStepsOrder()
     {
         FieldInfo field = Builder().GetField("Island5PostSteps", BindingFlags.Public | BindingFlags.Static);
         Assert.IsNotNull(field, "IslandBuilder.Island5PostSteps");
         var steps = (ValueTuple<string, Action>[])field.GetValue(null);
-        Assert.AreEqual(4, steps.Length);
+        Assert.AreEqual(5, steps.Length);
         Assert.AreEqual("BridgeInstaller", steps[0].Item1);
         Assert.AreEqual("RingInstaller", steps[1].Item1);
-        Assert.AreEqual("Island5PerfInstaller", steps[2].Item1);
-        Assert.AreEqual("AudioInstaller", steps[3].Item1);
+        Assert.AreEqual("LighthouseInstaller", steps[2].Item1);
+        Assert.AreEqual("Island5PerfInstaller", steps[3].Item1);
+        Assert.AreEqual("AudioInstaller", steps[4].Item1);
         for (int i = 0; i < steps.Length; i++)
         {
             Assert.IsNotNull(steps[i].Item2, steps[i].Item1);

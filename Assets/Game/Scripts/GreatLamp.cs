@@ -6,13 +6,13 @@ namespace LanternKeeper
 {
 // The great lamp on the summit of Island 5. In H1 it is a large storm lantern; lighting it is the win. It can be lit only once the
 // SummitGate is Open (all beacons lit). Light() starts the win through GameManager.WinNow, whose WonGame event also plays the win
-// stinger (MusicDirector), so the lamp does not play it itself. H2 replaces this with the lighthouse and the finale.
+// stinger (MusicDirector), so the lamp does not play it itself. On Island 5 the visual is the lighthouse (LighthouseInstaller); TryLight also starts its GreatLampBeam.
 public class GreatLamp : MonoBehaviour
 {
     public const string PromptText = "E  Light the great lamp";
 
     [SerializeField] SummitGate gate;
-    [SerializeField] float interactRange = 3.4f;
+    [SerializeField] float interactRange = 4.5f;
     [SerializeField] float lightIntensity = 8f;
     [SerializeField] float lightRange = 34f;
 
@@ -25,6 +25,7 @@ public class GreatLamp : MonoBehaviour
     Light lampLight;
     Renderer glass;
     Renderer beams;
+    GreatLampBeam lampBeam;
     MaterialPropertyBlock beamsBlock;
     MaterialPropertyBlock block;
     bool promptShown;
@@ -61,6 +62,7 @@ public class GreatLamp : MonoBehaviour
 
         Transform glassTransform = transform.Find("BeaconGlass");
         glass = glassTransform != null ? glassTransform.GetComponent<Renderer>() : null;
+        lampBeam = GetComponentInChildren<GreatLampBeam>(true);
         Transform beamsTransform = transform.Find("BeaconBeams");
         beams = beamsTransform != null ? beamsTransform.GetComponent<Renderer>() : null;
         if (beams != null)
@@ -106,6 +108,11 @@ public class GreatLamp : MonoBehaviour
         Lit = true;
         ClearPrompt();
         igniting = true;
+        if (lampBeam != null)
+        {
+            lampBeam.Begin(GreatLampBeam.DefaultRampSeconds);
+        }
+
         StartCoroutine(Ignite());
         if (AudioManager.Instance != null)
         {

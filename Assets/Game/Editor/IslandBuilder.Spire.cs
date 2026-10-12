@@ -713,12 +713,13 @@ public static partial class IslandBuilder
         }
     }
 
-    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the performance pass,
+    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the lighthouse, then the performance pass,
     // then the music director (Build wipes it, like on Islands 1-4).
     public static readonly (string name, System.Action run)[] Island5PostSteps =
     {
         ("BridgeInstaller", BridgeInstaller.Install),
         ("RingInstaller", RingInstaller.Install),
+        ("LighthouseInstaller", LighthouseInstaller.Install),
         ("Island5PerfInstaller", Island5PerfInstaller.Install),
         ("AudioInstaller", AudioInstaller.InstallIsland5)
     };
