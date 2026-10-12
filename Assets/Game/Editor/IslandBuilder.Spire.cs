@@ -713,11 +713,12 @@ public static partial class IslandBuilder
         }
     }
 
-    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings.
+    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the performance pass.
     public static readonly (string name, System.Action run)[] Island5PostSteps =
     {
         ("BridgeInstaller", BridgeInstaller.Install),
-        ("RingInstaller", RingInstaller.Install)
+        ("RingInstaller", RingInstaller.Install),
+        ("Island5PerfInstaller", Island5PerfInstaller.Install)
     };
 
     public static LevelConfig CreateIsland5Config()
