@@ -429,6 +429,11 @@ def jobs():
     music("Tension_Island5_1", RAW / "Island5_Tension/lost_2.ogg", "loopready", 0.005, "congusbongus Lost in a bad place (loop); zero-crossing fix")
     music("Hush_Island5_1", RAW / "Island5_Hush/dark_cavern_ambient_002.ogg", "loopready", 0.005, "Paul Wortmann Dark Cavern Ambient, file 002 (continuous loop), whole 120 s")
 
+    # Finale cue (Phase H2): unlooped. Source is 191.7 s; cut at 81.0 s, the loudness dip after the first full swell, with a 4 s fade-out.
+    J.append(Job("Finale_1", "Music.Finale", "music",
+                 lambda: cap(trim_silence(seg(read(RAW / "Finale_Cue/FantasyOrchestralTheme_1.mp3", 2), 0.0, 81.0)), 99, 4.0), "oneshot", ch="stereo",
+                 note="Joth Fantasy Orchestral Theme; unlooped: source 0.0-81.0 s (leading silence trimmed), 4 s fade-out"))
+
     # --- ambience beds (90 s, stereo, built to loop)
     def waves(*nums):
         return [read(W1 / ("wave_0%d_cc0-18363__jasinski__alkaibeach.flac" % n), 2) for n in nums]

@@ -44,6 +44,11 @@ Assets/Game/Audio/Music/Hush_Island5_1.ogg
   https://opengameart.org/content/dark-cavern-ambient
   Licence: CC0
 
+Assets/Game/Audio/Music/Finale_1.ogg
+  Fantasy Orchestral Theme by Joth (first 81 s, 4 s fade-out)
+  https://opengameart.org/content/fantasy-orchestral-theme
+  Licence: CC0
+
 Assets/Game/Audio/Music/Tension_Island5_1.ogg
   Lost in a bad place (horror ambience loop) by congusbongus
   https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop
