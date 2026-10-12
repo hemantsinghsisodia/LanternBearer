@@ -44,10 +44,40 @@ public class CreditsFormatTests
         Assert.IsTrue(entries.Exists(e => e.heading == "Poly Haven" && e.title == "HDRIs" && e.author.Contains("Greg Zaal")));
         Assert.IsTrue(entries.Exists(e => e.title == "Stylized Nature MegaKit" && e.author == "Quaternius"));
         Assert.IsTrue(entries.Exists(e => e.title == "Inter" && e.licence == "SIL OFL 1.1"));
-        Assert.IsTrue(entries.Exists(e => e.title == "Liberation Sans" && e.author.Contains("Red Hat, Inc.") && e.licence == "SIL OFL 1.1"));
+        Assert.IsTrue(entries.Exists(e => e.title == "Liberation Sans" && e.author == "Google Corporation, Red Hat, Inc." && e.heading == "Fonts" && e.licence == "SIL OFL 1.1"));
         Assert.IsTrue(entries.Exists(e => e.title == "Cormorant Garamond" && e.licence == "SIL OFL 1.1"));
         Assert.IsTrue(entries.Exists(e => e.title == "Spectral" && e.licence == "SIL OFL 1.1"));
         Assert.IsFalse(entries.Exists(e => e.heading.Contains("Made for") || e.heading.Contains("Editor")));
+    }
+
+    [Test]
+    public void ParsedTitlesAreExactlyTheCredits()
+    {
+        var expected = new List<string>
+        {
+            "First Light Particles", "Ambient Relaxing Loop", "Mysterious Ambience (song21)", "Underwater Theme",
+            "The World Fell Silent (loop version)", "Epic Endgame Cinematic", "Dark Cavern Ambient (file 002, continuous loop)",
+            "Fantasy Orchestral Theme", "Lost in a bad place (horror ambience loop)", "Dark Sci-Fi Audio Pack: Airy",
+            "Paranoid Truth", "Horror Atmosphere (Post Apocalyptic Wastelands)", "Telos Strings with French Horn",
+            "Victory Fanfare Short", "Game Over IV",
+            "Interface Sounds", "Impact Sounds", "50 RPG sound effects", "100 CC0 SFX #2", "80 CC0 creature SFX",
+            "80 CC0 RPG SFX", "40 CC0 water splash and slime SFX", "Fantozzi's Footsteps (Grass/Sand & Stone)",
+            "Fire Crackling (fire-1)", "Pleasing Bell Sound Effect", "Beach Ocean Waves", "Rain (loopable)",
+            "Crickets Ambient Noise - loopable", "Short wind sound", "wind whoosh loop", "Tawny Owl #1", "Strong Wind in a Village",
+            "Hooded Adventurer", "Models", "Terrain textures", "HDRIs", "Stylized Nature MegaKit",
+            "Liberation Sans", "Cormorant Garamond", "Spectral", "Inter",
+        };
+        var actual = RepoEntries().ConvertAll(e => e.title);
+        CollectionAssert.AreEqual(expected, actual);
+    }
+
+    [Test]
+    public void ProseLinesAreNotCredits()
+    {
+        const string raw = "---\nCharacter (CC0 1.0)\n---\n\n\"Thing\" by Someone, via Site\nhttps://x.example/a\nAnimations used by the keeper are the clips.\n\nA note made by hand.\n";
+        var entries = CreditsFormat.Parse(raw);
+        Assert.AreEqual(1, entries.Count);
+        Assert.AreEqual("Thing", entries[0].title);
     }
 
     [Test]

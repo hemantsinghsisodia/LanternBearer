@@ -23,7 +23,7 @@ public static class CreditsFormat
             string inner = Inside(s.heading);
             if (inner.StartsWith("CC0", StringComparison.Ordinal)) ParseCc0(s, heading, "CC0", result);
             else if (inner.IndexOf("Open Font License", StringComparison.Ordinal) >= 0)
-                ParseFonts(s, heading, inner.Replace("SIL Open Font License", "SIL OFL"), result);
+                ParseFonts(s, "Fonts", inner.Replace("SIL Open Font License", "SIL OFL"), result);
         }
         return result;
     }
@@ -56,14 +56,15 @@ public static class CreditsFormat
         string titleLine = null;       // last indented "Title by Author" line of a block
         string subHeading = null;      // current subsection of a list, e.g. "Models"
         var subAuthors = new List<string>();
-        foreach (string line in s.lines)
+        for (int li = 0; li < s.lines.Count; li++)
         {
+            string line = s.lines[li];
             string t = line.Trim();
             bool indented = line.Length > 0 && char.IsWhiteSpace(line[0]);
             if (t.Length == 0) { titleLine = null; continue; }
             if (t.StartsWith("Licence:", StringComparison.Ordinal))
             {
-                string licence = t.Substring("Licence:".Length).Trim();
+                string licence = Before(t.Substring("Licence:".Length), '(').Trim();
                 if (titleLine != null && licence.Length > 0)
                 {
                     SplitTitle(titleLine, out string title, out string author);
@@ -101,7 +102,7 @@ public static class CreditsFormat
                 string author = Before(rest.Substring(3), ',').Trim();
                 result.Add(new CreditEntry { heading = heading, title = head.Substring(1, close - 1), author = author, licence = sectionLicence });
             }
-            else if (head.Contains(" by ") && !head.Contains("http"))
+            else if (head.Contains(" by ") && !head.Contains("http") && ParagraphHasSource(s.lines, li))
             {
                 SplitTitle(head, out string title, out string author);
                 result.Add(new CreditEntry { heading = heading, title = title, author = author, licence = sectionLicence });
@@ -113,9 +114,29 @@ public static class CreditsFormat
     static void FlushSub(string heading, string sub, List<string> authors, string licence, List<CreditEntry> result)
     {
         if (sub == null || authors.Count == 0) return;
-        int cut = heading.IndexOf(" models", StringComparison.Ordinal);
-        string shown = cut > 0 ? heading.Substring(0, cut) : heading;
+        string shown = LeadingCapitalWords(heading);
         result.Add(new CreditEntry { heading = shown, title = sub, author = string.Join(", ", authors), licence = licence });
+    }
+
+    // A real credit line has a Licence: line or a URL in its own paragraph (this line to the next blank line).
+    // Prose such as "Animations used by the keeper ..." has neither.
+    static bool ParagraphHasSource(List<string> lines, int index)
+    {
+        for (int i = index; i < lines.Count && lines[i].Trim().Length > 0; i++)
+            if (lines[i].Contains("http") || lines[i].TrimStart().StartsWith("Licence:", StringComparison.Ordinal)) return true;
+        return false;
+    }
+
+    // "Poly Haven models, textures, and HDRIs" -> "Poly Haven": the leading run of capitalised words.
+    static string LeadingCapitalWords(string heading)
+    {
+        var kept = new List<string>();
+        foreach (string w in heading.Split(' '))
+        {
+            if (w.Length == 0 || !char.IsUpper(w[0])) break;
+            kept.Add(w);
+        }
+        return kept.Count > 0 ? string.Join(" ", kept) : heading;
     }
 
     // "name, name — A, B" or "Title (id) by A and B".
@@ -168,9 +189,10 @@ public static class CreditsFormat
         var holders = new List<string>();
         foreach (string l in para)
         {
-            const string prefix = "Copyright (c) ";
-            if (!l.StartsWith(prefix, StringComparison.Ordinal)) continue;
-            string rest = l.Substring(prefix.Length).Trim();
+            const string prefix = "copyright (c) ";
+            int at = l.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (at < 0) continue;
+            string rest = l.Substring(at + prefix.Length).Trim();
             int sp = rest.IndexOf(' ');
             if (sp > 0 && char.IsDigit(rest[0])) rest = rest.Substring(sp + 1).Trim();
             if (rest.Length > 0 && !holders.Contains(rest)) holders.Add(rest);
@@ -205,7 +227,7 @@ public static class CreditsFormat
         if (by < 0) { title = line; author = ""; return; }
         title = line.Substring(0, by).Trim();
         author = line.Substring(by + 4).Trim();
-        // Keep a named person in brackets ("(Rasmus Andersson)"); drop notes such as "(first 83 s, looped ...)".
+        // A note ending in a digit, such as "(CC0)", is dropped. Keep a named person in brackets ("(Rasmus Andersson)"); drop notes such as "(first 83 s, looped ...)".
         int paren = author.IndexOf(" (", StringComparison.Ordinal);
         if (paren >= 0)
         {
