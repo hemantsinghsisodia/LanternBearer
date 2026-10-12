@@ -33,14 +33,14 @@ MonoBehaviour:
   tidePeriod: 90
   tidePhase: 0
   logEntries:
-  - The keeper's cottage at the foot of the mountain is a ruin. The path starts on the beach and winds up and around, and it never once turns back.
-  - The gaps in the path were not made by the weather. Someone took the stones out on purpose, and crossed them on bridges of light.
-  - At the very top stands the Great Light, dark for as long as anyone remembers. Eight beacons wake it. I have lit none. Not yet.
+  - The lighthouse was raised by keepers long gone, stone by stone, up the mountain's one path. Each left a beacon behind, and a name cut into its foot.
+  - The storm came on the longest night and put the Great Light out. It has not eased since. The keepers who stayed lit what they could, and the dark took the rest.
+  - 'The last keeper''s page is nailed to the lamp-room door: ''I could not relight it alone. I will wait. Whoever climbs this far, finish what I began.'''
   introLines:
-  - One path climbs the mountain, round and round. Follow it to the top.
-  - Some gaps are too wide to cross. Light the beacon at the edge and a bridge of light will carry you over.
-  - The higher you climb, the harder the storm. It never eases again, even if you turn back.
-  - Light all eight beacons. Then the Great Light.
+  - One path winds up the mountain to the Great Light. Follow it to the summit.
+  - Some gaps are too wide to jump. Light the beacon at the edge and a bridge of light carries you across.
+  - At the summit, light all eight beacons. Then the Great Light wakes.
+  - The storm never eases as you climb. Turning back will not slow it.
   windStrength: 0
   shadeCount: 0
   lightning: 0
