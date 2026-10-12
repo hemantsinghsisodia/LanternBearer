@@ -10,7 +10,7 @@ public class SpireLayoutTests
     {
         Vector2[] path = SpireLayout.SpiralPath(200);
         Assert.GreaterOrEqual(path[0].magnitude, 40f);
-        Assert.LessOrEqual(Vector2.Distance(path[path.Length - 1], SpireLayout.LampXZ()), 4f);
+        Assert.LessOrEqual(Vector2.Distance(path[path.Length - 1], SpireLayout.LampXZ()), 6.01f);
         Assert.Less(SpireLayout.PathHeight(0f), 1f);
         Assert.Greater(SpireLayout.PathHeight(1f), 38f);
     }
@@ -104,7 +104,7 @@ public class SpireLayoutTests
             Assert.IsTrue(g.required, "gap " + i + " required");
             Assert.IsTrue(g.nearBeacon >= 0 && g.nearBeacon < beaconU.Length && g.farBeacon >= -1 && g.farBeacon < beaconU.Length, "gap " + i);
             float span = Vector2.Distance(g.nearXZ, g.farXZ);
-            Assert.IsTrue(span >= 6f && span <= 9f, "required gap " + i + " width " + span);
+            Assert.IsTrue(span >= 11.5f && span <= 12.5f, "required gap " + i + " width " + span);
 
             Vector2 uSpan = SpireLayout.GapSpanU(i);
             Assert.Less(uSpan.x, uSpan.y, "gap " + i + " near u must come before far u");
@@ -125,9 +125,20 @@ public class SpireLayoutTests
             Assert.IsTrue(follows, "a beacon follows gap " + i);
         }
 
-        Assert.LessOrEqual(Vector2.Distance(gaps[3].farXZ, SpireLayout.LampXZ()), 6f);
+        Assert.LessOrEqual(Vector2.Distance(gaps[3].farXZ, SpireLayout.LampXZ()), 6.01f);
     }
 
+
+    [Test]
+    public void FarSideOfEveryGapIsHigherThanAJumpApex()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            Vector2 span = SpireLayout.GapSpanU(i);
+            float rise = SpireLayout.PathHeight(span.y) - SpireLayout.PathHeight(span.x);
+            Assert.GreaterOrEqual(rise, 3.5f, "gap " + i + " far lip rise");
+        }
+    }
     [Test]
     public void PathWidthIsAWalkway()
     {

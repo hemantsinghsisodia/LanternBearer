@@ -24,8 +24,8 @@ public static partial class IslandBuilder
     const float SpireInletFloor = -1.8f;       // slot floor of gaps 1-3, metres below the sea
     const float SpireSlotLength = 16f;         // how far gaps 2 and 3 run outward from the chord
     const float SpireSeaFloor = -10.2f;
-    const float SpirePedestalRadius = 3.4f;    // summit disc; the moat ring is cut outside it
-    const float SpireMoatOuter = 5.0f;         // the walkway's inner edge at the near end (r 6.84 - 1.75) stays outside this
+    const float SpirePedestalRadius = SpireLayout.SummitPlateauRadius;    // summit disc (the lamp plateau); the moat ring is cut outside it
+    const float SpireMoatOuter = 7.8f;         // the walkway inner edge at the gap 4 near end (about r 9.7 - 1.75) stays outside this
     const float SpireInlet2Angle = 3.75f;      // radians; the second tidal inlet, away from every walkway
 
     // Fast nearest-point lookup on the spiral. A 6 m grid of 2400 samples, refined by projecting onto the two adjacent segments.
@@ -239,7 +239,7 @@ public static partial class IslandBuilder
             }
 
             nodeR[count] = rr;
-            nodeH[count] = SpireLayout.PathHeight(u);
+            nodeH[count] = SpireLayout.PathHeightSmooth(u);
             count++;
         }
 
@@ -330,8 +330,8 @@ public static partial class IslandBuilder
         }
 
         // Summit disc under the great lamp: 40 m at the centre, 38.5 m (the path's end) at its edge.
-        float dome = SpireLayout.SummitHeight - 1.5f * Mathf.SmoothStep(0f, 1f, r / 3f);
-        h = Mathf.Lerp(h, dome, 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SpirePedestalRadius - 0.4f, SpirePedestalRadius, r)));
+        float dome = SpireLayout.SummitHeight - 1.5f * Mathf.SmoothStep(0f, 1f, r / SpirePedestalRadius);
+        h = Mathf.Lerp(h, dome, 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SpirePedestalRadius - 0.4f, SpirePedestalRadius + 0.05f, r)));
 
         // Gaps 1-3: water slots. Each is cut to below the sea (gap 1 runs out to the open sea, gaps 2 and 3 stop short of the walkway
         // below them), so a keeper who steps off lands in the water and is put back by the water hazard instead of being stuck in a pit.
@@ -354,7 +354,7 @@ public static partial class IslandBuilder
 
         // Gap 4: a moat ring round the summit disc plus a trench open to the outside (so it can be left by walking down).
         float trench = 0f;
-        float outsidePedestal = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SpirePedestalRadius - 0.3f, SpirePedestalRadius + 0.05f, r));
+        float outsidePedestal = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SpirePedestalRadius + 0.05f, SpirePedestalRadius + 0.45f, r));
         float ring = outsidePedestal * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(SpireMoatOuter - 0.35f, SpireMoatOuter, r)));
         trench = Mathf.Max(trench, Mathf.Max(ring, GapPitMask(c.frames[3], p) * outsidePedestal));
         h -= SpireTrenchDepth * trench;
@@ -438,8 +438,8 @@ public static partial class IslandBuilder
 
                 float sand = (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.2f, 2.4f, metres))) * 1.2f + low * 0.1f * Mathf.Lerp(0.6f, 1.3f, n);
                 float grass = (low * 0.85f + mid * 0.55f + high * 0.06f) * (1f - cliff) * Mathf.Lerp(0.75f, 1.2f, n2);
-                float dirt = mid * (0.4f + 0.7f * cliff) * Mathf.Lerp(0.8f, 1.15f, n) + walk * 1.8f;
-                float rock = cliff * (low * 0.8f + mid * 0.4f + high * 1.3f) + high * 0.9f + low * 0.12f;
+                float dirt = mid * (0.12f + 0.2f * cliff) * Mathf.Lerp(0.8f, 1.15f, n) + walk * 4f;
+                float rock = cliff * (low * 0.8f + mid * 0.9f + high * 1.3f) + high * 0.9f + low * 0.12f;
                 float moss = low * 0.55f * (1f - cliff * 0.6f) * Mathf.Lerp(0.6f, 1.25f, n2);
                 // The sea floor goes dark so the edge of the terrain does not show through the water.
                 float deep = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-1f, -4.5f, metres));
@@ -468,6 +468,104 @@ public static partial class IslandBuilder
         }
 
         return maps;
+    }
+
+    // Low pale cairns along the outer edge of the walkway every 5 m, so the spiral reads from the sea. No colliders (they sit on
+    // the edge and must never block a step), none at the gaps or the beacons, and every fourth carries a faint cold-blue glint.
+    static void PlaceSpireCairns(Stage stage)
+    {
+        Material pale = EnsureCairnMaterial("Assets/Game/Materials/Generated/PathCairn_island5.mat", false);
+        Material glint = EnsureCairnMaterial("Assets/Game/Materials/Generated/PathCairnGlint_island5.mat", true);
+        Transform root = Folder("PathCairns");
+        const int samples = 1600;
+        float endU = SpireLayout.GapSpanU(3).x - 0.004f;
+        Vector2[] beacons = SpireLayout.BeaconXZ();
+        float travelled = 0f;
+        float nextAt = 3f;
+        int count = 0;
+        Vector2 previous = SpireLayout.PathPoint(0f);
+        for (int i = 1; i <= samples; i++)
+        {
+            float u = endU * i / samples;
+            Vector2 point = SpireLayout.PathPoint(u);
+            travelled += Vector2.Distance(previous, point);
+            previous = point;
+            if (travelled < nextAt)
+            {
+                continue;
+            }
+
+            nextAt += 4.6f + 0.8f * ((count * 7) % 3) * 0.5f;
+            bool skip = false;
+            for (int g = 0; g < 3 && !skip; g++)
+            {
+                Vector2 span = SpireLayout.GapSpanU(g);
+                skip = u > span.x - 0.006f && u < span.y + 0.006f;
+            }
+
+            for (int b = 0; b < beacons.Length && !skip; b++)
+            {
+                skip = Vector2.Distance(point, beacons[b]) < 3.6f;
+            }
+
+            Vector2 outward = point.sqrMagnitude > 0.01f ? point.normalized : Vector2.right;
+            Vector2 spot = point + outward * (SpireLayout.PathWidth * 0.5f - 0.1f);
+            float ground = GroundY(stage.terrain, spot.x, spot.y);
+            if (skip || Mathf.Abs(ground - (stage.waterY + SpireLayout.PathHeight(u))) > 0.7f)
+            {
+                continue;
+            }
+
+
+            GameObject cairn = new GameObject("Cairn_" + count);
+            cairn.transform.SetParent(root, false);
+            cairn.transform.position = new Vector3(spot.x, ground, spot.y);
+            float yaw = (count * 53) % 360;
+            float[] radii = { 0.5f, 0.36f, 0.24f };
+            float y = 0f;
+            for (int s = 0; s < radii.Length; s++)
+            {
+                GameObject stone = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                stone.name = "Stone" + s;
+                Object.DestroyImmediate(stone.GetComponent<Collider>());
+                stone.transform.SetParent(cairn.transform, false);
+                float height = radii[s] * 1.1f;
+                stone.transform.localScale = new Vector3(radii[s] * 2.2f, height, radii[s] * 2f);
+                stone.transform.localPosition = new Vector3(0.04f * s, y + height * 0.4f, 0f);
+                stone.transform.localRotation = Quaternion.Euler(0f, yaw + s * 40f, 0f);
+                y += height * 0.75f;
+                MeshRenderer renderer = stone.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = s == radii.Length - 1 ? glint : pale;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+            }
+
+            count++;
+        }
+
+        Debug.Log("Island5 path cairns: " + count);
+    }
+
+    static Material EnsureCairnMaterial(string path, bool glint)
+    {
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (material == null)
+        {
+            material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            AssetDatabase.CreateAsset(material, path);
+        }
+
+        material.SetColor("_BaseColor", new Color(0.7f, 0.74f, 0.78f, 1f));
+        material.SetFloat("_Smoothness", 0.1f);
+        material.SetFloat("_Metallic", 0f);
+        if (glint)
+        {
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", new Color(0.2f, 0.55f, 1.2f, 1f));
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+        }
+
+        EditorUtility.SetDirty(material);
+        return material;
     }
 
     // The terrain is a square on an endless sea, and its edge shows through the water. A dark floor just under the terrain's lowest

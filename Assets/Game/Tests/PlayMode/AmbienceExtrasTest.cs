@@ -146,6 +146,8 @@ public class AmbienceExtrasTest
     public IEnumerator OwlWaitsWhilePausedAndStopsWhenRoundIsOver()
     {
         yield return Load("Island2");
+        // The previous test's Island2 can still tick for a few frames while the same scene reloads; only owls from now on count.
+        played.Clear();
         Component extras = Extras();
         Assert.IsNotNull(extras);
         object manager = GameType("GameManager").GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);

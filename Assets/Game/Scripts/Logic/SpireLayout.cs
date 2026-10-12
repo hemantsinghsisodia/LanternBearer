@@ -17,19 +17,20 @@ public static class SpireLayout
 
     // Tunables for the terrain task.
     public const float StartRadius = Radius - 4f;      // beach spawn radius at angle 0
-    public const float EndRadius = 3f;                 // spiral radius at the summit
+    public const float EndRadius = 6f;                 // spiral radius at the summit: the edge of the lamp plateau
     public const float RadiusPower = 1.2f;             // above 1 tightens the upper loops of the spiral
     public const float PathBaseHeight = 0.5f;          // height at the beach end of the path
     public const float PathTopHeight = 38.5f;          // height at the summit end of the path
-    public const float RequiredGapWidth = 7.5f;        // XZ width of each required gap (6-9 m allowed)
+    public const float RequiredGapWidth = 12f;         // XZ width of each required gap: wider than a sprint jump (about 10.8 m)
+    public const float GapStep = 3.6f;                 // the far side of each required gap is this much higher (a jump apex is 2.8 m)
     public const float SummitPlateauRadius = 6f;       // flat summit disc around the lamp
     public const float PathWidth = 3.5f;               // flattened walkway width
     public const float GapCentre1 = 0.18f;            // path u of required gap 1
     public const float GapCentre2 = 0.42f;             // path u of required gap 2
-    public const float GapCentre3 = 0.66f;             // path u of required gap 3 (broken stair)
+    public const float GapCentre3 = 0.64f;             // path u of required gap 3 (broken stair)
 
     // Path u of the 8 beacons, two per segment (before gap 1, gaps 1-2, gaps 2-3, gap 3 to gap 4). All clear of every gap span.
-    static readonly float[] BeaconU = { 0.08f, 0.145f, 0.26f, 0.335f, 0.49f, 0.57f, 0.705f, 0.81f };
+    static readonly float[] BeaconU = { 0.08f, 0.145f, 0.26f, 0.335f, 0.49f, 0.57f, 0.689f, 0.825f };
 
     public static Vector2 PathPoint(float u01)
     {
@@ -95,12 +96,58 @@ public static class SpireLayout
         return path;
     }
 
-    // Smootherstep ease from PathBaseHeight to PathTopHeight.
+    // Smootherstep ease from PathBaseHeight to PathTopHeight, less the four gap steps, plus a GapStep rise in the middle of each
+    // required gap: the far side of every gap is a cliff GapStep higher than the near side, so a jump cannot land on it.
     public static float PathHeight(float u01)
     {
         float t = Mathf.Clamp01(u01);
+        int steps = 0;
+        float[] mids = StepMids();
+        for (int i = 0; i < mids.Length; i++)
+        {
+            steps += t >= mids[i] ? 1 : 0;
+        }
+
+        return PathBaseHeight + SmoothRise(t) + GapStep * steps;
+    }
+
+    // The same height with each step eased over about 0.08 of u, for shaping the hillside around the path (never for the walkway).
+    public static float PathHeightSmooth(float u01)
+    {
+        float t = Mathf.Clamp01(u01);
+        float steps = 0f;
+        float[] mids = StepMids();
+        for (int i = 0; i < mids.Length; i++)
+        {
+            steps += Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(mids[i] - 0.04f, mids[i] + 0.04f, t));
+        }
+
+        return PathBaseHeight + SmoothRise(t) + GapStep * steps;
+    }
+
+    static float SmoothRise(float t)
+    {
         float e = t * t * t * (t * (6f * t - 15f) + 10f);
-        return PathBaseHeight + (PathTopHeight - PathBaseHeight) * e;
+        return (PathTopHeight - PathBaseHeight - 4f * GapStep) * e;
+    }
+
+    static float[] stepMids;
+
+    static float[] StepMids()
+    {
+        if (stepMids == null)
+        {
+            float[] mids = new float[4];
+            for (int i = 0; i < 4; i++)
+            {
+                Vector2 span = GapSpanU(i);
+                mids[i] = 0.5f * (span.x + span.y);
+            }
+
+            stepMids = mids;
+        }
+
+        return stepMids;
     }
 
     // Path parameter u of each beacon.

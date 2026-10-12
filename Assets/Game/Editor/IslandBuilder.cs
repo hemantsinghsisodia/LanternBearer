@@ -230,6 +230,7 @@ public static partial class IslandBuilder
                 {
                     PlaceSpireMarkers(stage);
                     PlaceSpireSetPieces(art, stage);
+                    PlaceSpireCairns(stage);
                 }
             }
             else
@@ -277,6 +278,7 @@ public static partial class IslandBuilder
     {
         public Terrain terrain;
         public float waterY;
+        public float walkwayClear = 1.3f;   // cladding keeps this far from a trail (the spire widens it so the walkway stays visible from below)
         public float highWaterY;
         public float worldSize;
         public Vector3 spawn;

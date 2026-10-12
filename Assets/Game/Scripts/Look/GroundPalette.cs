@@ -26,7 +26,7 @@ public static class GroundPalette
                 case "sand":
                     return new Color(0.3f, 0.4f, 0.4f, 1f);
                 case "dirt":
-                    return new Color(0.62f, 0.44f, 0.24f, 1f);
+                    return new Color(0.82f, 0.76f, 0.64f, 1f);
                 case "rock":
                     return new Color(0.15f, 0.16f, 0.2f, 1f);
                 case "moss":

@@ -233,6 +233,84 @@ public class Island5TerrainTests
 
         Assert.IsFalse(seen[index(SpireLayout.LampXZ())], "the great lamp is behind the summit span");
     }
+
+
+    // A sprint jump covers about 10.8 m on the flat and rises 2.8 m. Every pair of walkable near-side and far-side cells closer than
+    // 11 m must have the far side more than 3 m higher, and the bridge landing itself is at least 11 m wide with a 3 m rise.
+    [Test]
+    public void GapsAreNotJumpable()
+    {
+        TerrainData data = Load();
+        SpireGap[] gaps = SpireLayout.Gaps();
+        for (int g = 0; g < gaps.Length; g++)
+        {
+            float width = Vector2.Distance(gaps[g].nearXZ, gaps[g].farXZ);
+            float landingRise = HeightAt(data, gaps[g].farXZ) - HeightAt(data, gaps[g].nearXZ);
+            Assert.GreaterOrEqual(width, 11f, "gap " + g + " width at the bridge landing");
+            Assert.GreaterOrEqual(landingRise, 3f, "gap " + g + " rise at the bridge landing");
+
+            Vector2 span = SpireLayout.GapSpanU(g);
+            System.Collections.Generic.List<Vector3> near = new System.Collections.Generic.List<Vector3>();
+            System.Collections.Generic.List<Vector3> far = new System.Collections.Generic.List<Vector3>();
+            near.Clear();
+            for (int k = 0; k <= 20; k++)
+            {
+                AddWalkwayCells(data, near, span.x - 0.04f * k / 20f, 0);
+                if (g < 3)
+                {
+                    AddWalkwayCells(data, far, span.y + 0.04f * k / 20f, 0);
+                }
+            }
+
+            if (g == 3)
+            {
+                for (float x = -SpireLayout.SummitPlateauRadius; x <= SpireLayout.SummitPlateauRadius; x += 1f)
+                {
+                    for (float z = -SpireLayout.SummitPlateauRadius; z <= SpireLayout.SummitPlateauRadius; z += 1f)
+                    {
+                        if (x * x + z * z <= SpireLayout.SummitPlateauRadius * SpireLayout.SummitPlateauRadius)
+                        {
+                            far.Add(new Vector3(x, HeightAt(data, new Vector2(x, z)), z));
+                        }
+                    }
+                }
+            }
+
+            float worstRise = float.MaxValue;
+            float closest = float.MaxValue;
+            for (int a = 0; a < near.Count; a++)
+            {
+                for (int b = 0; b < far.Count; b++)
+                {
+                    float d = Vector2.Distance(new Vector2(near[a].x, near[a].z), new Vector2(far[b].x, far[b].z));
+                    closest = Mathf.Min(closest, d);
+                    if (d <= 11f)
+                    {
+                        worstRise = Mathf.Min(worstRise, far[b].y - near[a].y);
+                    }
+                }
+            }
+
+            Assert.Greater(worstRise, 3f, "gap " + g + ": a far-side cell within 11 m (closest " + closest + " m) is not 3 m higher than the near side");
+        }
+    }
+
+    static void AddWalkwayCells(TerrainData data, System.Collections.Generic.List<Vector3> cells, float u, int unused)
+    {
+        Vector2 p = SpireLayout.PathPoint(u);
+        Vector2 t = SpireLayout.PathTangent(u);
+        Vector2 side = new Vector2(-t.y, t.x);
+        for (float offset = -1.5f; offset <= 1.51f; offset += 0.75f)
+        {
+            Vector2 q = p + side * offset;
+            float h = HeightAt(data, q);
+            if (Mathf.Abs(h - SpireLayout.PathHeight(u)) <= 1f)
+            {
+                cells.Add(new Vector3(q.x, h, q.y));
+            }
+        }
+    }
+
     [Test]
     public void BeaconTerrainMatchesPathHeight()
     {

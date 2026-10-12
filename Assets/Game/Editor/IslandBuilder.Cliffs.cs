@@ -141,7 +141,7 @@ public static partial class IslandBuilder
     static float WalkwayHeight(Stage stage, Vector2 p)
     {
         float best = float.NaN;
-        float bestDistance = 1.3f;
+        float bestDistance = stage.walkwayClear;
         for (int i = 0; i < stage.trails.Count; i++)
         {
             List<Vector2> path = stage.trails[i];
