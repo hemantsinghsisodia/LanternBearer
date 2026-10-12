@@ -9,7 +9,7 @@ public static class FinaleTimeline
 {
     public const float IgnitionStart = 0f, BeamStart = 6f, IslandsStart = 18f, SunriseStart = 36f, Total = 52f;
     public const float SunriseLength = 16f;
-    public const float CameraStartHeight = 6f, CameraTopHeight = 120f;
+    public const float CameraStartHeight = 6f, CameraTopHeight = 50f;
     const float FlareFirst = 20f, FlareSpacing = 4f;
 
     public static FinalePhase PhaseAt(float t)

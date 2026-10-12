@@ -35,6 +35,8 @@ public class FinaleSequence : MonoBehaviour
     [SerializeField] ParticleSystem embers;
 
     Coroutine running;
+    Material sky;
+    float skyExponent = 1.6f;
     bool sunriseStarted;
     bool stormStarted;
     float gapBearing;
@@ -104,6 +106,41 @@ public class FinaleSequence : MonoBehaviour
             finaleCamera.Begin(this);
         }
 
+        // The finale sunrise is clearer than the island dawns: the fog thins right out, and the warm grade and sea tint are held back,
+        // so the sky keeps its blue-violet to gold gradient and the island its form.
+        if (dawn != null)
+        {
+            dawn.FogDensityScale = 0.08f;
+            dawn.DawnGradeWeight = 0.4f;
+            dawn.WaterWarmth = 0.6f;
+        }
+
+        // The fireflies are big green blobs from the air.
+        GameObject fireflies = GameObject.Find("Fireflies");
+        if (fireflies != null)
+        {
+            fireflies.SetActive(false);
+        }
+
+        // So are the moths (glowing white dots all over the sea): no more spawns, and the living ones go.
+        MothSpawner spawner = FindAnyObjectByType<MothSpawner>();
+        if (spawner != null)
+        {
+            spawner.enabled = false;
+        }
+
+        Moth[] moths = FindObjectsByType<Moth>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < moths.Length; i++)
+        {
+            moths[i].gameObject.SetActive(false);
+        }
+
+        sky = RenderSettings.skybox;
+        if (sky != null && sky.HasProperty("_Exponent"))
+        {
+            skyExponent = sky.GetFloat("_Exponent");
+        }
+
         // The Rain follows the camera; the wall tears open at the end of it.
         Rain rain = FindAnyObjectByType<Rain>();
 
@@ -160,7 +197,7 @@ public class FinaleSequence : MonoBehaviour
             storm.SetOpen(FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm), gapBearing);
             if (islands != null)
             {
-                islands.SinkInnerHorizon(FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm) * 1.6f);
+                islands.SinkInnerHorizon(FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm) * 3f);
             }
 
             if (rain != null && rain.gameObject.activeSelf && t >= FinaleTimeline.BeamStart + 3f)
@@ -172,6 +209,12 @@ public class FinaleSequence : MonoBehaviour
         if (islands != null)
         {
             islands.Tick(t);
+        }
+
+        // The sunrise sky keeps a blue-violet to gold gradient: the exponent drops so the gold does not cover the whole view.
+        if (t >= FinaleTimeline.SunriseStart && sky != null && sky.HasProperty("_Exponent"))
+        {
+            sky.SetFloat("_Exponent", Mathf.Lerp(skyExponent, 0.6f, Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
         }
 
         if (!sunriseStarted && t >= FinaleTimeline.SunriseStart)

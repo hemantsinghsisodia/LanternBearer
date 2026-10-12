@@ -11,7 +11,10 @@ public class FinaleIslands : MonoBehaviour
 {
     public const int IslandCount = 4;
     public const float FadeSeconds = 2.2f;
-    public const float GlowSize = 120f;
+    public const float GlowSize = 70f;
+    public const float ColumnSeconds = 1f;
+    public const float ColumnHeight = 120f;
+    public const float ColumnWidth = 14f;
     const float PopSeconds = 0.4f;
     const float PopPeak = 3f;
     const float SteadyFlare = 1.2f;
@@ -30,14 +33,22 @@ public class FinaleIslands : MonoBehaviour
         public Renderer[] beams;
         public Transform glow;
         public Renderer glowRenderer;
+        public Transform column;
+        public Renderer columnRenderer;
     }
 
     [SerializeField] Entry[] entries = new Entry[0];
     [SerializeField] Color glowColor = new Color(1f, 0.694f, 0.361f, 0.8f);
+    // The sunrise: a glow on the horizon where the sun comes up (bearing FinaleCamera.SunBearing) and a bright path on the sea towards it.
+    [SerializeField] Transform sunGlow;
+    [SerializeField] Renderer sunGlowRenderer;
+    [SerializeField] Renderer sunPathRenderer;
+    [SerializeField] Color sunColor = new Color(1f, 0.74f, 0.38f, 1f);
 
     static MaterialPropertyBlock block;
-    // The Horizon hills nearer than the silhouettes (Range*, Islet*) would hide them, and from the orbit they read as bands of terrain.
-    // They sink flat as the storm opens: SinkInnerHorizon(0..1).
+    // The Horizon hills (Range*, Islet*, Ridge*) hide the silhouettes and read as stepped rings of terrain from the low camera.
+    // They sink flat as the storm opens: SinkInnerHorizon(0..1). Done once they are gone.
+    bool sunk;
     Transform[] inner;
     float[] innerScaleY;
     Camera viewer;
@@ -105,12 +116,17 @@ public class FinaleIslands : MonoBehaviour
 
     static bool IsInnerHorizon(string objectName)
     {
-        return objectName.StartsWith("Range") || objectName.StartsWith("Islet");
+        return objectName.StartsWith("Range") || objectName.StartsWith("Islet") || objectName.StartsWith("Ridge");
     }
 
     // 0 = the hills as built, 1 = flattened into the sea (and switched off).
     public void SinkInnerHorizon(float k)
     {
+        if (sunk)
+        {
+            return;
+        }
+
         k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k));
         for (int i = 0; inner != null && i < inner.Length; i++)
         {
@@ -129,6 +145,8 @@ public class FinaleIslands : MonoBehaviour
             scale.y = Mathf.Max(0.001f, innerScaleY[i] * (1f - k));
             inner[i].localScale = scale;
         }
+
+        sunk = k >= 0.999f;
     }
 
     void OnEnable()
@@ -152,6 +170,8 @@ public class FinaleIslands : MonoBehaviour
 
     void SetAll(bool on)
     {
+        if (sunGlowRenderer != null) sunGlowRenderer.enabled = false;
+        if (sunPathRenderer != null) sunPathRenderer.enabled = false;
         for (int i = 0; entries != null && i < entries.Length; i++)
         {
             Entry e = entries[i];
@@ -162,9 +182,42 @@ public class FinaleIslands : MonoBehaviour
 
             if (e.silhouette != null) e.silhouette.enabled = on;
             if (e.glowRenderer != null) e.glowRenderer.enabled = on;
+            if (e.columnRenderer != null) e.columnRenderer.enabled = on;
             for (int b = 0; e.beams != null && b < e.beams.Length; b++)
             {
                 if (e.beams[b] != null) e.beams[b].enabled = on;
+            }
+        }
+    }
+
+    void TickSun(float t)
+    {
+        float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart + 3f) / (FinaleTimeline.SunriseLength - 2f)));
+        bool on = u > 0.001f;
+        if (sunGlowRenderer != null)
+        {
+            if (sunGlowRenderer.enabled != on) sunGlowRenderer.enabled = on;
+            if (on)
+            {
+                if (viewer != null && sunGlow != null) sunGlow.rotation = viewer.transform.rotation;
+                Color c = sunColor;
+                c.a = 0.95f * u;
+                sunGlowRenderer.GetPropertyBlock(block);
+                block.SetColor(BaseColorId, c);
+                sunGlowRenderer.SetPropertyBlock(block);
+            }
+        }
+
+        if (sunPathRenderer != null)
+        {
+            if (sunPathRenderer.enabled != on) sunPathRenderer.enabled = on;
+            if (on)
+            {
+                Color c = sunColor;
+                c.a = 0.8f * u;
+                sunPathRenderer.GetPropertyBlock(block);
+                block.SetColor(BaseColorId, c);
+                sunPathRenderer.SetPropertyBlock(block);
             }
         }
     }
@@ -241,6 +294,26 @@ public class FinaleIslands : MonoBehaviour
                 }
             }
 
+
+            // The tall amber column rises over ColumnSeconds from the flare and lingers (a little lower once it has settled).
+            if (e.columnRenderer != null && e.column != null)
+            {
+                float age = t - FinaleTimeline.IslandFlareTime(i);
+                bool on = age >= 0f;
+                if (e.columnRenderer.enabled != on)
+                {
+                    e.columnRenderer.enabled = on;
+                }
+
+                if (on)
+                {
+                    float rise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(age / ColumnSeconds));
+                    float settle = Mathf.Lerp(1f, 0.75f, Mathf.SmoothStep(0f, 1f, (age - ColumnSeconds) / 3f));
+                    float parentScale = e.root != null ? e.root.localScale.x : 1f;
+                    e.column.localScale = new Vector3(ColumnWidth / parentScale, Mathf.Max(0.01f, ColumnHeight * rise * settle / parentScale), ColumnWidth / parentScale);
+                }
+            }
+
             if (e.glowRenderer != null)
             {
                 if (e.glowRenderer.enabled != lit)
@@ -250,7 +323,8 @@ public class FinaleIslands : MonoBehaviour
 
                 if (lit && e.glow != null)
                 {
-                    float size = GlowSize * (0.45f + 0.2f * flare) * (low ? 0.7f : 1f);
+                    float parentScale = e.root != null ? e.root.localScale.x : 1f;
+                    float size = GlowSize * (0.45f + 0.2f * flare) * (low ? 0.7f : 1f) / parentScale;
                     e.glow.localScale = new Vector3(size, size, size);
                     if (viewer != null)
                     {
@@ -265,6 +339,8 @@ public class FinaleIslands : MonoBehaviour
                 }
             }
         }
+
+        TickSun(t);
     }
 }
 }

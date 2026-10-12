@@ -21,6 +21,7 @@ public class StormRing : MonoBehaviour
     static readonly int FlashAngleId = Shader.PropertyToID("_FlashAngle");
     static readonly int DensityId = Shader.PropertyToID("_Density");
     static readonly int WarmId = Shader.PropertyToID("_Warm");
+    static readonly int UTimeId = Shader.PropertyToID("_UTime");
 
     [SerializeField] MeshFilter meshFilter;
     [SerializeField] MeshRenderer ringRenderer;
@@ -37,6 +38,8 @@ public class StormRing : MonoBehaviour
     float open;
     float gapCenter;
     float warm;
+    // Last values written to the material (write only on change).
+    float wOpen = -1f, wGap = -1f, wFlash = -1f, wAngle = -1f, wDensity = -1f, wWarm = -1f;
     bool low;
     bool ready;
 
@@ -163,12 +166,23 @@ public class StormRing : MonoBehaviour
         float target = over ? 1f : DensityByRing[Mathf.Clamp((int)RingZones.Reached, 0, 3)];
         density = Mathf.MoveTowards(density, target, dt * 0.25f);
 
-        material.SetFloat(OpenId, open);
-        material.SetFloat(GapCenterId, gapCenter);
-        material.SetFloat(FlashId, schedule.Flash01 * SettingsMath.FlashCap(UserSettings.ReduceFlashing));
-        material.SetFloat(FlashAngleId, flashAngle);
-        material.SetFloat(DensityId, density);
-        material.SetFloat(WarmId, warm);
+        // The clouds drift on unscaled time, like the lightning.
+        material.SetFloat(UTimeId, Time.unscaledTime);
+        Write(OpenId, open, ref wOpen);
+        Write(GapCenterId, gapCenter, ref wGap);
+        Write(FlashId, schedule.Flash01 * SettingsMath.FlashCap(UserSettings.ReduceFlashing), ref wFlash);
+        Write(FlashAngleId, flashAngle, ref wAngle);
+        Write(DensityId, density, ref wDensity);
+        Write(WarmId, warm, ref wWarm);
+    }
+
+    void Write(int id, float value, ref float written)
+    {
+        if (!Mathf.Approximately(value, written))
+        {
+            material.SetFloat(id, value);
+            written = value;
+        }
     }
 }
 }

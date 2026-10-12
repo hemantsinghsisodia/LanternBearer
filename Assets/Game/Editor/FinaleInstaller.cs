@@ -21,8 +21,8 @@ public static class FinaleInstaller
     public const string RootName = "Finale";
     public const int GridCells = 48;
     public const int FlareClusters = 5;
-    // The islands are low (4 to 9 m above their sea); at 520 m they would be a few pixels. The silhouette is stretched vertically by this much.
-    public const float VerticalExaggeration = 4f;
+    // The islands are low (4 to 9 m above their sea) and drawn at 2x at 300 m; the silhouette is stretched a little vertically so they read as hills.
+    public const float VerticalExaggeration = 1.5f;
     const string CloudTexturePath = Folder + "/StormCloud.png";
     const string StormMaterialPath = Folder + "/StormRing.mat";
     const string SilhouetteMaterialPath = Folder + "/FinaleSilhouette.mat";
@@ -30,6 +30,10 @@ public static class FinaleInstaller
     const string StormFullPath = Folder + "/StormRing_Full.asset";
     const string StormLowPath = Folder + "/StormRing_Low.asset";
     const string GlowQuadPath = Folder + "/FinaleGlowQuad.asset";
+    const string SunPathMeshPath = Folder + "/FinaleSunPath.asset";
+    const string SunMaterialPath = Folder + "/FinaleSun.mat";
+    const string ColumnMeshPath = Folder + "/FinaleColumn.asset";
+    const string ColumnMaterialPath = Folder + "/FinaleColumn.mat";
     const string SoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
     // IslandBuilder.WaterFraction: the sea stands at 20% of the terrain height.
     const float WaterFraction = 0.2f;
@@ -116,8 +120,8 @@ public static class FinaleInstaller
         EditorUtility.SetDirty(stormMaterial);
 
         Material silhouetteMaterial = EnsureMaterial(SilhouetteMaterialPath, silhouetteShader, "FinaleSilhouette");
-        silhouetteMaterial.SetColor("_NearColor", new Color(0.30f, 0.36f, 0.50f, 1f));
-        silhouetteMaterial.SetColor("_FarColor", new Color(0.36f, 0.42f, 0.56f, 1f));
+        silhouetteMaterial.SetColor("_NearColor", new Color(0.50f, 0.56f, 0.74f, 1f));
+        silhouetteMaterial.SetColor("_FarColor", new Color(0.55f, 0.62f, 0.80f, 1f));
         silhouetteMaterial.SetFloat("_Band", 0.3f);
         silhouetteMaterial.SetFloat("_RimStrength", 0.35f);
         silhouetteMaterial.SetFloat("_Fade", 1f);
@@ -130,6 +134,16 @@ public static class FinaleInstaller
 
         Mesh stormFull = EnsureMesh(StormFullPath, "StormRing_Full", BuildStormMesh(StormCardsPerLayerFull, 5505));
         Mesh stormLow = EnsureMesh(StormLowPath, "StormRing_Low", BuildStormMesh(StormCardsPerLayerLow, 5505));
+        Material columnMaterial = EnsureMaterial(ColumnMaterialPath, additive, "FinaleColumn");
+        columnMaterial.SetTexture("_BaseMap", soft);
+        columnMaterial.SetColor("_BaseColor", new Color(1f, 0.78f, 0.45f, 0.5f));
+        EditorUtility.SetDirty(columnMaterial);
+        Mesh columnMesh = EnsureMesh(ColumnMeshPath, "FinaleColumn", BuildColumn());
+        Material sunMaterial = EnsureMaterial(SunMaterialPath, additive, "FinaleSun");
+        sunMaterial.SetTexture("_BaseMap", soft);
+        sunMaterial.SetColor("_BaseColor", new Color(1f, 0.74f, 0.38f, 0.9f));
+        EditorUtility.SetDirty(sunMaterial);
+        Mesh sunPathMesh = EnsureMesh(SunPathMeshPath, "FinaleSunPath", BuildSunPath());
         Mesh glowQuad = EnsureMesh(GlowQuadPath, "FinaleGlowQuad", BuildQuad());
 
         Mesh[] silhouettes = new Mesh[4];
@@ -215,7 +229,7 @@ public static class FinaleInstaller
                 cluster.transform.SetParent(island.transform, false);
                 cluster.transform.localPosition = new Vector3(at.x, at.y * VerticalExaggeration + 1.5f, at.z);
                 cluster.transform.localRotation = Quaternion.Euler(0f, b * 180f / FlareClusters, 0f);
-                cluster.transform.localScale = new Vector3(1f, 5f, 1f);
+                cluster.transform.localScale = new Vector3(0.6f, 3f, 0.6f);
                 cluster.AddComponent<MeshFilter>().sharedMesh = beamMesh;
                 MeshRenderer beamRenderer = cluster.AddComponent<MeshRenderer>();
                 ConfigureRenderer(beamRenderer, beamMaterial);
@@ -228,10 +242,40 @@ public static class FinaleInstaller
             glow.AddComponent<MeshFilter>().sharedMesh = glowQuad;
             MeshRenderer glowRenderer = glow.AddComponent<MeshRenderer>();
             ConfigureRenderer(glowRenderer, glowMaterial);
+            GameObject column = new GameObject("Column");
+            column.transform.SetParent(island.transform, false);
+            column.transform.localPosition = new Vector3(clusters[i][0].x, clusters[i][0].y * VerticalExaggeration, clusters[i][0].z);
+            column.transform.localScale = new Vector3(1f, 0.01f, 1f);
+            column.AddComponent<MeshFilter>().sharedMesh = columnMesh;
+            MeshRenderer columnRenderer = column.AddComponent<MeshRenderer>();
+            ConfigureRenderer(columnRenderer, columnMaterial);
+            entry.FindPropertyRelative("column").objectReferenceValue = column.transform;
+            entry.FindPropertyRelative("columnRenderer").objectReferenceValue = columnRenderer;
             entry.FindPropertyRelative("glow").objectReferenceValue = glow.transform;
             entry.FindPropertyRelative("glowRenderer").objectReferenceValue = glowRenderer;
         }
 
+        // The sunrise: a glow where the sun comes up and a path of light on the sea towards it.
+        float sunBearing = FinaleCamera.SunBearing * Mathf.Deg2Rad;
+        Vector3 sunDirection = new Vector3(Mathf.Sin(sunBearing), 0f, Mathf.Cos(sunBearing));
+        GameObject sunGlow = new GameObject("SunGlow");
+        sunGlow.transform.SetParent(islandsObject.transform, false);
+        sunGlow.transform.localPosition = sunDirection * 560f + Vector3.up * 28f;
+        sunGlow.transform.localScale = Vector3.one * 480f;
+        sunGlow.AddComponent<MeshFilter>().sharedMesh = glowQuad;
+        MeshRenderer sunGlowRenderer = sunGlow.AddComponent<MeshRenderer>();
+        ConfigureRenderer(sunGlowRenderer, sunMaterial);
+        GameObject sunPath = new GameObject("SunPath");
+        sunPath.transform.SetParent(islandsObject.transform, false);
+        sunPath.transform.localPosition = sunDirection * 330f + Vector3.up * 0.4f;
+        sunPath.transform.localRotation = Quaternion.LookRotation(sunDirection, Vector3.up);
+        sunPath.transform.localScale = new Vector3(70f, 1f, 520f);
+        sunPath.AddComponent<MeshFilter>().sharedMesh = sunPathMesh;
+        MeshRenderer sunPathRenderer = sunPath.AddComponent<MeshRenderer>();
+        ConfigureRenderer(sunPathRenderer, sunMaterial);
+        islandData.FindProperty("sunGlow").objectReferenceValue = sunGlow.transform;
+        islandData.FindProperty("sunGlowRenderer").objectReferenceValue = sunGlowRenderer;
+        islandData.FindProperty("sunPathRenderer").objectReferenceValue = sunPathRenderer;
         islandData.ApplyModifiedPropertiesWithoutUndo();
 
         // The ember burst at the flame.
@@ -501,6 +545,37 @@ public static class FinaleInstaller
         mesh.SetUVs(0, uv0);
         mesh.SetUVs(1, uv1);
         mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    // Two crossed unit quads, the summit column's look: bright at the foot, fading to nothing at the top (the soft texture's upper half).
+    static Mesh BuildColumn()
+    {
+        Mesh mesh = new Mesh();
+        mesh.SetVertices(new[]
+        {
+            new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f), new Vector3(-0.5f, 1f, 0f), new Vector3(0.5f, 1f, 0f),
+            new Vector3(0f, 0f, -0.5f), new Vector3(0f, 0f, 0.5f), new Vector3(0f, 1f, -0.5f), new Vector3(0f, 1f, 0.5f)
+        });
+        mesh.SetUVs(0, new[]
+        {
+            new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 1f), new Vector2(1f, 1f),
+            new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 1f), new Vector2(1f, 1f)
+        });
+        mesh.SetTriangles(new[] { 0, 2, 1, 1, 2, 3, 4, 6, 5, 5, 6, 7 }, 0);
+        mesh.bounds = new Bounds(new Vector3(0f, 0.5f, 0f), new Vector3(1f, 1f, 1f));
+        return mesh;
+    }
+
+    // A flat unit quad on the XZ plane (x and z from -0.5 to 0.5), uv across: the sun's path on the sea.
+    static Mesh BuildSunPath()
+    {
+        Mesh mesh = new Mesh();
+        mesh.SetVertices(new[] { new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, 0.5f) });
+        mesh.SetUVs(0, new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) });
+        mesh.SetTriangles(new[] { 0, 2, 1, 2, 3, 1 }, 0);
+        mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         return mesh;
     }

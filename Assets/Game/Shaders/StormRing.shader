@@ -18,6 +18,7 @@ Shader "LanternKeeper/StormRing"
         _Flash ("Flash", Range(0, 1)) = 0
         _FlashAngle ("Flash bearing (0..1)", Float) = 0
         _Warm ("Warm", Range(0, 1)) = 0
+        _UTime ("Unscaled time", Float) = 0
     }
     SubShader
     {
@@ -51,6 +52,7 @@ Shader "LanternKeeper/StormRing"
                 float _Flash;
                 float _FlashAngle;
                 float _Warm;
+                float _UTime;
             CBUFFER_END
 
             struct Attributes
@@ -88,7 +90,7 @@ Shader "LanternKeeper/StormRing"
             half4 frag(Varyings input) : SV_Target
             {
                 float2 uv = input.uv;
-                float2 scroll = float2(_Time.y * (0.004 + 0.006 * input.card.x) + input.card.x * 7.0, input.card.x * 3.0);
+                float2 scroll = float2(_UTime * (0.004 + 0.006 * input.card.x) + input.card.x * 7.0, input.card.x * 3.0);
                 float shape = SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, uv * float2(2.0, 1.0) + scroll).r;
                 float edge = smoothstep(0.0, 0.3, uv.x) * smoothstep(1.0, 0.7, uv.x) * smoothstep(0.0, 0.35, uv.y) * smoothstep(1.0, 0.55, uv.y);
                 float body = saturate((shape * 1.5 * edge - 0.22) * 2.2);
@@ -100,7 +102,7 @@ Shader "LanternKeeper/StormRing"
 
                 // Lit from within: a strike lights the clouds near it (the denser the brighter), plus a faint idle flicker.
                 float near = 1.0 - smoothstep(0.0, 0.4, input.dist.y);
-                float idle = 0.5 + 0.5 * sin(_Time.y * 1.7 + input.card.x * 31.0 + shape * 6.0);
+                float idle = 0.5 + 0.5 * sin(_UTime * 1.7 + input.card.x * 31.0 + shape * 6.0);
                 float lit = saturate(_Flash * near * (0.35 + 0.65 * shape) + 0.05 * idle * shape);
                 float3 colour = lerp(_DarkColor.rgb, _LitColor.rgb, lit);
                 colour = lerp(colour, _WarmColor.rgb * (0.4 + 0.6 * shape), _Warm);

@@ -323,12 +323,20 @@ public class FinaleSequenceTest
         Assert.IsNull(Find("FinaleSequence"));
         Subscribe(manager);
         Component dawn = (Component)Find("DawnSequence");
+        Component director = (Component)Find("MusicDirector");
+        int stingers = -1;
         int count = (int)Get(manager, "BeaconsToWin");
         Transform root = GameObject.Find("Beacons").transform;
         for (int i = 0; i < count; i++)
         {
             Refuel();
             Assert.IsTrue((bool)Call(root.GetChild(i).GetComponent(GameType("Beacon")), "TryLight"), "beacon " + i);
+            if (i == count - 1)
+            {
+                // After the last beacon's own stinger: what follows is the win stinger.
+                stingers = (int)Get(director, "StingerRequests");
+            }
+
             if (i < count - 1)
             {
                 yield return null;
@@ -347,6 +355,7 @@ public class FinaleSequenceTest
         }
 
         Assert.AreEqual(1, wonCount, "Island 1 still wins after its 6 s dawn");
+        Assert.AreEqual(1, (int)Get(director, "StingerRequests") - stingers, "the win stinger still plays on Island 1");
         Assert.GreaterOrEqual(waited, 4.5f, "the dawn kept its 6 s length");
     }
 }

@@ -35,6 +35,7 @@ Material:
     - _FlashAngle: 0
     - _GapCenter: 0
     - _Open: 0
+    - _UTime: 0
     - _Warm: 0
     m_Colors:
     - _DarkColor: {r: 0.035, g: 0.04, b: 0.075, a: 1}

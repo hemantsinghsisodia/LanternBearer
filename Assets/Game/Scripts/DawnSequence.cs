@@ -38,6 +38,11 @@ public class DawnSequence : MonoBehaviour
 
     public bool IsPlaying { get; private set; }
 
+    // Finale-only overrides (Island 5). The defaults are the values the dawn always used, so Islands 1-4 are unchanged.
+    [System.NonSerialized] public float FogDensityScale = 0.45f;
+    [System.NonSerialized] public float DawnGradeWeight = 1f;
+    [System.NonSerialized] public float WaterWarmth = 1f;
+
     public static void ApplyNightGlobals()
     {
         Shader.SetGlobalColor("_WaterTint", new Color(0.72f, 0.84f, 1f, 1f));
@@ -174,7 +179,7 @@ public class DawnSequence : MonoBehaviour
             }
 
             RenderSettings.fogColor = Color.Lerp(nightFog, dawnFog, u);
-            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * 0.45f, u);
+            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * FogDensityScale, u);
             RenderSettings.ambientSkyColor = Color.Lerp(nightSky, dawnSky, u);
             RenderSettings.ambientEquatorColor = Color.Lerp(nightEquator, dawnEquator, u);
             RenderSettings.ambientGroundColor = Color.Lerp(nightGround, dawnGround, u);
@@ -225,12 +230,12 @@ public class DawnSequence : MonoBehaviour
 
             if (dawnVolume != null)
             {
-                dawnVolume.weight = u;
+                dawnVolume.weight = u * DawnGradeWeight;
             }
 
             Shader.SetGlobalFloat("_LKMoonRimStrength", Mathf.Lerp(nightRimStrength, 0f, u));
             Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? u : 0f);
-            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, dawnWater, u));
+            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, Color.Lerp(Color.white, dawnWater, WaterWarmth), u));
             if (blendGrass)
             {
                 Shader.SetGlobalColor("_LKGrassRoot", Color.Lerp(nightGrassRoot, dawnGrassRoot, u));

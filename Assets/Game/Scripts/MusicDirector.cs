@@ -328,6 +328,12 @@ public class MusicDirector : MonoBehaviour
             return;
         }
 
+        // Win() ducked the mix (-8 dB) for the short dawn; the finale cue must play at full music level.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.TransitionMix(false, "finale");
+        }
+
         finaleElapsed = 0f;
         AudioClip clip = library != null ? library.finaleCue : null;
         if (clip == null)

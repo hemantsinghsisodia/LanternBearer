@@ -53,8 +53,8 @@ public class FinaleTimelineTests
     public void CameraRisesThenHolds()
     {
         Assert.AreEqual(6f, FinaleTimeline.CameraHeight(0f), 0.001f);
-        Assert.AreEqual(120f, FinaleTimeline.CameraHeight(18f), 0.001f);
-        Assert.AreEqual(120f, FinaleTimeline.CameraHeight(40f), 0.001f);
+        Assert.AreEqual(50f, FinaleTimeline.CameraHeight(18f), 0.001f);
+        Assert.AreEqual(50f, FinaleTimeline.CameraHeight(40f), 0.001f);
         float prev = FinaleTimeline.CameraHeight(0f);
         for (float t = 0.25f; t <= 18f; t += 0.25f)
         {
@@ -76,7 +76,7 @@ public class FinaleTimelineTests
             if (bearing < 0f) bearing += 360f;
             if (i > 0) Assert.AreEqual(45f, bearing - prevBearing, 0.01f);
             prevBearing = bearing;
-            Assert.AreEqual(1f, FinaleLayout.SilhouetteScale(i), 0.0001f);
+            Assert.AreEqual(2f, FinaleLayout.SilhouetteScale(i), 0.0001f);
         }
     }
 }
