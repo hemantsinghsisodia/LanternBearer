@@ -10,6 +10,7 @@ public class GreatLampBeam : MonoBehaviour
 {
     public const float DegreesPerSecond = 24f;
     public const float DefaultRampSeconds = 2f;
+    const float MaxStep = 0.1f;
 
     static readonly int IntensityId = Shader.PropertyToID("_Intensity");
     static readonly int LenScaleId = Shader.PropertyToID("_LenScale");
@@ -67,7 +68,8 @@ public class GreatLampBeam : MonoBehaviour
             return;
         }
 
-        float dt = Time.unscaledDeltaTime;
+        // A long hitch (a loading frame, a window drag) must not skip the ramp or jump the sweep.
+        float dt = Mathf.Min(Time.unscaledDeltaTime, MaxStep);
         elapsed += dt;
         float step = DegreesPerSecond * dt;
         angle += step;

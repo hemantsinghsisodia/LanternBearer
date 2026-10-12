@@ -86,8 +86,8 @@ public static class LighthouseInstaller
         Vector2 toSpan = SpireLayout.PathPoint(1f) - SpireLayout.LampXZ();
         Vector3 doorDirection = toSpan.sqrMagnitude > 1e-6f ? new Vector3(toSpan.x, 0f, toSpan.y).normalized : Vector3.back;
         lampObject.transform.localScale = Vector3.one;
-        // The model door faces its -Z, so its +Z looks away from the span end.
-        lampObject.transform.rotation = Quaternion.LookRotation(-doorDirection, Vector3.up);
+        // The model door faces its +Z (Blender -Y after the axis-baked export), so the door looks at the span end.
+        lampObject.transform.rotation = Quaternion.LookRotation(doorDirection, Vector3.up);
 
         GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(model, scene);
         PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);

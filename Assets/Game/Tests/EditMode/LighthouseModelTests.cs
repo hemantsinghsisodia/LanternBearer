@@ -109,6 +109,28 @@ public class LighthouseModelTests
         Assert.Greater(SpireLayout.SummitPlateauRadius - reach, 3.5f);
     }
 
+    // The installer turns the lighthouse so the model +Z (the door) looks at the end of the summit span.
+    [Test]
+    public void DoorRecessFacesModelPlusZ()
+    {
+        Mesh iron = Find(Model().transform, "LighthouseIron").GetComponent<MeshFilter>().sharedMesh;
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+        foreach (Vector3 v in iron.vertices)
+        {
+            if (v.y < 2.5f)
+            {
+                sum += v;
+                count++;
+            }
+        }
+
+        Assert.Greater(count, 0, "door vertices");
+        Vector3 centre = sum / count;
+        Assert.Greater(centre.z, 1.5f, "the door slab sits on the +Z side of the tower");
+        Assert.Less(Mathf.Abs(centre.x), 0.3f);
+    }
+
     static Transform Find(Transform root, string name)
     {
         foreach (Transform t in root.GetComponentsInChildren<Transform>(true))

@@ -7,7 +7,7 @@ Builds the lighthouse from scratch (the script is the source of truth), saves Ar
 exports Assets/Game/Art/Lighthouse/Lighthouse.fbx.
 
 Blender space: Z up, the origin is the centre of the tower base on the ground; the tower axis is X = Y = 0. The door recess faces
--Y, which is Unity -Z after the export (the FBX export bakes the axis conversion, Y up in Unity, exactly like beacon_build.py).
+-Y, which is Unity +Z after the export (the FBX export bakes the axis conversion, Y up in Unity, exactly like beacon_build.py).
 Objects (one renderer each; LighthouseInstaller assigns the materials by name):
   LighthouseStone / LighthouseStone_L1   BeaconCairn slot: the tapered tower with its door recess and two slit windows
   LighthouseIron / LighthouseIron_L1     BeaconIron slot: door, slit frames, gallery deck + railing, mullions, cap, vent ball
