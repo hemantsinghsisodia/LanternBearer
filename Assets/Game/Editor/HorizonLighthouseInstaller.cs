@@ -11,7 +11,7 @@ namespace LanternKeeper
 // still places the old scenery lighthouse (primitive tower, roof, sweeping beam); this installer turns it into the Great Light:
 //  - Islands 1-4: the tower and roof are replaced by Lighthouse.fbx (stone, iron, the cold glint glass), same islet and base height,
 //    scaled to the old 14.7 m silhouette. The beam, lamp light and lamp are removed.
-//  - Island 5 (it has the real lighthouse): the scenery Lighthouse is removed.
+//  - Island 5 (it has the real lighthouse): the scenery Lighthouse and the islet mound it stood on are removed.
 //  - MainMenu: as Islands 1-4, but the lamp pivot (beam, light, lamp) is kept inactive under the tower and MenuGreatLight lights it
 //    when Island 5 has been won.
 // Idempotent: the model container is rebuilt on each run. Scenes are edited through EditorSceneManager, never as text.
@@ -20,6 +20,7 @@ public static class HorizonLighthouseInstaller
     public const string HouseName = "Lighthouse";
     public const string ContainerName = "GreatLight";
     public const string PivotName = "LampPivot";
+    public const string BeamName = "GreatLightBeam";
     // The old scenery tower plus roof stood about 14.7 m; the model is 14 m.
     public const float ModelHeight = 14f;
     public const float TargetHeight = 14.7f;
@@ -101,16 +102,23 @@ public static class HorizonLighthouseInstaller
     // Edits the open scene in memory (the caller saves). False if there was nothing to do or an asset was missing.
     public static bool Apply(Scene scene)
     {
+        return Apply(scene, scene.name == MenuScene, scene.name == "Island5");
+    }
+
+    // The same for a scene whose name is not the shipped one (a scratch build): the caller says whether it is the menu or the spire.
+    public static bool Apply(Scene scene, bool menu, bool spire)
+    {
         Transform house = FindHouse(scene);
         if (house == null)
         {
-            return false;
+            return spire && RemoveEmptyLighthouseIslet(scene);
         }
 
-        bool spire = scene.name == "Island5";
         if (spire)
         {
-            Object.DestroyImmediate(house.gameObject);
+            // The lighthouse and the islet mound it stood on (the islet's pine goes with it): the horizon has no empty islet on Island 5.
+            Transform islet = house.parent;
+            Object.DestroyImmediate(islet != null ? islet.gameObject : house.gameObject);
             return true;
         }
 
@@ -151,7 +159,6 @@ public static class HorizonLighthouseInstaller
             return false;
         }
 
-        bool menu = scene.name == MenuScene;
         Transform pivot = house.Find(PivotName);
         float lampY = baseY + LighthouseInstaller.FlameHeight * Scale();
         // Remove everything of the old scenery tower; the pivot is kept for the menu only.
@@ -199,13 +206,19 @@ public static class HorizonLighthouseInstaller
         group.fadeMode = LODFadeMode.None;
 
         MenuGreatLight existing = house.GetComponent<MenuGreatLight>();
-        if (menu && pivot != null)
+        if (menu && pivot == null)
+        {
+            Debug.LogError("HorizonLighthouseInstaller: the menu Lighthouse has no " + PivotName + "; the menu Great Light stays dark. Rebuild the menu (IslandBuilder.BuildMainMenu).");
+        }
+        else if (menu)
         {
             pivot.localPosition = new Vector3(0f, lampY, 0f);
+            GreatLampBeam beam = ConvertToAmberBeam(pivot);
             pivot.gameObject.SetActive(false);
             MenuGreatLight light = existing != null ? existing : house.gameObject.AddComponent<MenuGreatLight>();
             SerializedObject data = new SerializedObject(light);
             data.FindProperty("litRoot").objectReferenceValue = pivot.gameObject;
+            data.FindProperty("beam").objectReferenceValue = beam;
             data.ApplyModifiedPropertiesWithoutUndo();
         }
         else if (existing != null)
@@ -214,6 +227,76 @@ public static class HorizonLighthouseInstaller
         }
 
         return true;
+    }
+
+    // The lit menu Great Light looks like the finale's: the pale sweeping cards of the old scenery beam are replaced by the lighthouse's own
+    // amber BeaconBeam cards (GreatLampBeam, which turns itself), at twice the plateau lamp's size for the 170 m distance. The pivot keeps the
+    // lamp and its light. Idempotent.
+    static GreatLampBeam ConvertToAmberBeam(Transform pivot)
+    {
+        for (int i = pivot.childCount - 1; i >= 0; i--)
+        {
+            Transform child = pivot.GetChild(i);
+            if (child.name == "BeamCore" || child.name == "BeamSoft" || child.name == BeamName)
+            {
+                Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
+        LighthouseBeam old = pivot.GetComponent<LighthouseBeam>();
+        if (old != null)
+        {
+            Object.DestroyImmediate(old);
+        }
+
+        Material material = AssetDatabase.LoadAssetAtPath<Material>(CreatureInstaller.BeaconBeamMaterialPath);
+        if (material == null)
+        {
+            Debug.LogError("HorizonLighthouseInstaller: BeaconBeam.mat is missing.");
+            return null;
+        }
+
+        GameObject beamObject = new GameObject(BeamName);
+        beamObject.transform.SetParent(pivot, false);
+        beamObject.transform.localPosition = Vector3.zero;
+        beamObject.transform.localRotation = Quaternion.identity;
+        beamObject.transform.localScale = Vector3.one * 2f;
+        beamObject.AddComponent<MeshFilter>().sharedMesh = LighthouseInstaller.EnsureBeamMesh();
+        MeshRenderer renderer = beamObject.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = material;
+        renderer.shadowCastingMode = ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        renderer.enabled = false;
+        GreatLampBeam beam = beamObject.AddComponent<GreatLampBeam>();
+        SerializedObject data = new SerializedObject(beam);
+        data.FindProperty("beamRenderer").objectReferenceValue = renderer;
+        data.ApplyModifiedPropertiesWithoutUndo();
+        return beam;
+    }
+
+    // Island 5 scenes saved before the islet was removed with the tower keep an islet that has no lighthouse. The lighthouse's islet is the one
+    // with a single pine (a Pine and a PineTip child; the others have two or three pines), under the Horizon root. Nothing is found once it is gone.
+    static bool RemoveEmptyLighthouseIslet(Scene scene)
+    {
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            if (root.name != "Horizon")
+            {
+                continue;
+            }
+
+            for (int i = 0; i < root.transform.childCount; i++)
+            {
+                Transform child = root.transform.GetChild(i);
+                if (child.name.StartsWith("Islet") && child.childCount == 2 && child.Find(HouseName) == null)
+                {
+                    Object.DestroyImmediate(child.gameObject);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     static float Scale()

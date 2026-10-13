@@ -60,8 +60,24 @@ public static class StormSurgeLogic
             return "In the storm! Climb!";
         }
 
-        return "Storm rising: " + Mathf.CeilToInt(gap) + " m below";
+        int metres = Mathf.CeilToInt(gap);
+        if (metres >= ChipCache.Length)
+        {
+            return "Storm rising: " + metres + " m below";
+        }
+
+        // Cached per whole metre so the chip never allocates a string per frame.
+        string text = ChipCache[metres];
+        if (text == null)
+        {
+            text = "Storm rising: " + metres + " m below";
+            ChipCache[metres] = text;
+        }
+
+        return text;
     }
+
+    static readonly string[] ChipCache = new string[64];
 
     // The music tension floor: the ring floor, raised from 0.6 to 0.9 as the gap closes from MusicGap to 0. Never below the ring floor.
     public static float MusicFloor(float gap, float ringFloor)

@@ -290,8 +290,8 @@ public static class GameSettings
             return;
         }
 
+        // Set only: the win, a loss, pause and quit save it, so igniting a beacon never writes the registry.
         PlayerPrefs.SetInt(LitKey(levelId), count);
-        PlayerPrefs.Save();
     }
 
     static string LitKey(string levelId)

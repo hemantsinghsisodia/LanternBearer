@@ -7,7 +7,7 @@ namespace LanternKeeper
 {
 // Installs Island 5's hunting lightning and scarce fuel (BuildIsland5 runs it after the storm surge, before the audio):
 //  - the material Assets/Game/Art/Strike/StrikeWarning.mat (shader LanternKeeper/StrikeWarning);
-//  - the "LightningHunter" object under the "Rings" root, switched off, wired into RingHazards (which switches it on in the High ring);
+//  - the "LightningHunter" object under the "Rings" root, switched off, wired into RingHazards (which switches it on in the Mid ring and above);
 //  - the "LevelTuning" object (beacon refund and lantern drain multiplier, copied from Island5.asset);
 //  - half the firefly swarms: every second pickup under "Fireflies" (by sibling order) is switched off.
 // Idempotent: the object is rebuilt, the swarms are all switched on first and then every second one off. The scene is edited through

@@ -395,7 +395,7 @@ public class HUD : MonoBehaviour
         }
 
         BeginResult(manager);
-        if (manager.HasFinale && credits != null)
+        if (manager.FinaleRuns && credits != null)
         {
             // Island 5: the credits roll over the dawn instead of the result panel, then the main menu.
             HideGameHud();

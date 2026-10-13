@@ -53,6 +53,8 @@ public class GameManager : MonoBehaviour
     public bool ShowInteractPrompt => (nearestBeacon != null || customPrompt != null) && !roundOver && !paused;
     public bool DeferWinToGreatLamp => deferWinToGreatLamp;
     public bool HasFinale => finale != null;
+    // The finale is what ends the round (credits, no R). Win uses the same test, so an inactive finale falls back to the dawn path and R.
+    public bool FinaleRuns => finale != null && finale.isActiveAndEnabled;
     // A prompt line for something other than a beacon (the great lamp). Shown by HudPrompt when no beacon is in range.
     public string CustomPrompt => customPrompt;
     public bool IsRoundOver => roundOver;
@@ -65,7 +67,7 @@ public class GameManager : MonoBehaviour
     public float DeathStartedUnscaled { get; private set; }
     public float LoseShownUnscaled { get; private set; }
     // On a finale island the only way out after the win is the credits -> menu, so R never restarts once won.
-    public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && !(HasFinale && won) && Time.unscaledTime >= restartUnlockTime;
+    public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && !(FinaleRuns && won) && Time.unscaledTime >= restartUnlockTime;
     public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
@@ -153,6 +155,11 @@ public class GameManager : MonoBehaviour
 
         Gamepad pad = Gamepad.current;
         return pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
+    }
+
+    void OnApplicationQuit()
+    {
+        PlayerPrefs.Save();
     }
 
     void OnDestroy()
@@ -272,6 +279,7 @@ public class GameManager : MonoBehaviour
         }
 
         paused = true;
+        PlayerPrefs.Save();
         Time.timeScale = 0f;
         if (AudioManager.Instance != null)
         {
@@ -477,6 +485,7 @@ public class GameManager : MonoBehaviour
         }
 
         dying = true;
+        PlayerPrefs.Save();
         if (DeathStarted != null)
         {
             DeathStarted.Invoke();

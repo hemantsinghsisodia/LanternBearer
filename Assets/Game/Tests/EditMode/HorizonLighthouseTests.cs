@@ -166,7 +166,7 @@ public class HorizonLighthouseTests
     [TestCase("MainMenu")]
     public void InstallerIsIdempotent(string name)
     {
-        MethodInfo apply = Installer().GetMethod("Apply", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo apply = Installer().GetMethod("Apply", new[] { typeof(Scene) });
         Assert.IsNotNull(apply, "HorizonLighthouseInstaller.Apply(Scene)");
         Scene scene = EditorSceneManager.OpenScene(ScenePath(name), OpenSceneMode.Additive);
         try
@@ -177,11 +177,113 @@ public class HorizonLighthouseTests
             apply.Invoke(null, new object[] { scene });
             string twice = Signature(scene);
             Assert.AreEqual(once, twice, "the second run changed the scene");
-            Assert.AreEqual(before, once, "the saved scene is not what the installer makes");
+            Assert.AreEqual(before, once, name + ": the saved scene is not what the installer makes (run Lantern Keeper > Install Horizon Lighthouse and save)");
         }
         finally
         {
             EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+
+    [Test]
+    public void IslandFiveHasNoEmptyHorizonIslet()
+    {
+        Scene scene = EditorSceneManager.OpenScene(ScenePath("Island5"), OpenSceneMode.Additive);
+        try
+        {
+            Transform horizon = FindDeep(scene, "Horizon");
+            Assert.IsNotNull(horizon, "Horizon root");
+            foreach (Transform child in horizon)
+            {
+                // The lighthouse's islet is the only one with a single pine; Island 5 must not keep it.
+                Assert.IsFalse(child.name.StartsWith("Islet") && child.childCount == 2, "an empty lighthouse islet is left: " + child.name);
+            }
+        }
+        finally
+        {
+            EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+
+    [Test]
+    public void MenuLitLookIsTheAmberGreatLampBeam()
+    {
+        Scene scene = EditorSceneManager.OpenScene(ScenePath("MainMenu"), OpenSceneMode.Additive);
+        try
+        {
+            Transform pivot = FindDeep(scene, "LampPivot");
+            Assert.IsNotNull(pivot, "MenuGreatLight lamp pivot");
+            Assert.IsNull(FindDeep(scene, "BeamCore"), "the pale BeamCore card is gone");
+            Assert.IsNull(FindDeep(scene, "BeamSoft"), "the pale BeamSoft card is gone");
+            Assert.IsNull(pivot.GetComponent(Type.GetType("LanternKeeper.LighthouseBeam, Assembly-CSharp")), "the old sweeping beam script is gone");
+            Transform beam = pivot.Find("GreatLightBeam");
+            Assert.IsNotNull(beam, "GreatLightBeam under the pivot");
+            Assert.IsNotNull(beam.GetComponent(Type.GetType("LanternKeeper.GreatLampBeam, Assembly-CSharp")), "GreatLampBeam on it");
+            Assert.AreEqual("BeaconBeam", beam.GetComponent<Renderer>().sharedMaterial.name, "the finale's amber beam material");
+        }
+        finally
+        {
+            EditorSceneManager.CloseScene(scene, true);
+        }
+    }
+
+    // The build tail: IslandBuilder.BuildInternal calls HorizonLighthouseInstaller.Apply after CreateHorizon, so a rebuild (Build, Build All,
+    // BuildMainMenu) keeps the dark Great Light. A scenery lighthouse placed the way PlaceLighthouse does it must come out dark and without a beam.
+    [TestCase(false)]
+    [TestCase(true)]
+    public void BuildTailLeavesTheDarkGreatLightAfterPlaceLighthouse(bool menu)
+    {
+        Type builder = Type.GetType("LanternKeeper.IslandBuilder, Assembly-CSharp-Editor");
+        Assert.IsNotNull(builder, "IslandBuilder type");
+        MethodInfo place = builder.GetMethod("PlaceLighthouse", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(place, "IslandBuilder.PlaceLighthouse");
+        Type artType = builder.GetNestedType("ArtKit", BindingFlags.NonPublic);
+        Assert.IsNotNull(artType, "IslandBuilder.ArtKit");
+        object art = Activator.CreateInstance(artType);
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Assert.IsNotNull(shader, "URP Unlit shader");
+        Material scratch = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+        foreach (string field in new[] { "rock", "iron", "lamp", "beam" })
+        {
+            FieldInfo info = artType.GetField(field);
+            Assert.IsNotNull(info, "ArtKit." + field);
+            info.SetValue(art, scratch);
+        }
+
+        SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
+        Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        try
+        {
+            GameObject horizon = new GameObject("Horizon");
+            GameObject islet = new GameObject("Islet0");
+            islet.transform.SetParent(horizon.transform, false);
+            islet.transform.localPosition = new Vector3(170f, 0f, 0f);
+            place.Invoke(null, new object[] { islet.transform, 3f, art });
+            Type beamType = Type.GetType("LanternKeeper.LighthouseBeam, Assembly-CSharp");
+            Assert.IsNotNull(horizon.GetComponentInChildren(beamType, true), "precondition: PlaceLighthouse makes the lit scenery tower");
+
+            MethodInfo tail = Installer().GetMethod("Apply", new[] { typeof(Scene), typeof(bool), typeof(bool) });
+            Assert.IsNotNull(tail, "HorizonLighthouseInstaller.Apply(Scene, bool, bool)");
+            tail.Invoke(null, new object[] { scene, menu, false });
+
+            foreach (Component beam in horizon.GetComponentsInChildren(beamType, true))
+            {
+                Assert.IsFalse(beam is Behaviour b && b.isActiveAndEnabled, "an active LighthouseBeam is left");
+            }
+
+            Assert.IsNotNull(FindDeep(scene, "GreatLight"), "the Great Light model container");
+            Assert.AreEqual(menu, FindDeep(scene, "LampPivot") != null, "the lamp pivot stays only for the menu");
+            Type menuType = Type.GetType("LanternKeeper.MenuGreatLight, Assembly-CSharp");
+            Assert.AreEqual(menu, FindDeep(scene, "Lighthouse").GetComponent(menuType) != null, "MenuGreatLight only for the menu");
+        }
+        finally
+        {
+            if (setup.Length > 0)
+            {
+                EditorSceneManager.RestoreSceneManagerSetup(setup);
+            }
+
+            UnityEngine.Object.DestroyImmediate(scratch);
         }
     }
 }

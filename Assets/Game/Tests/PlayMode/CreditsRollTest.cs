@@ -452,6 +452,11 @@ public class CreditsRollTest
 
         Assert.IsTrue((bool)Get(manager, "Won"), "the win completes through the dawn path");
         Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "DawnPlaying is released");
+        // The fallback follows the normal win rule (Islands 1-4): the finale does not run, so the finale clause of RestartAllowed does not apply,
+        // and the win panel replaces the credits. After a win R is not offered (restart unlocks only on a loss), the same as Island 1.
+        Assert.IsFalse((bool)Get(manager, "FinaleRuns"), "an inactive finale does not count as running");
+        Assert.IsTrue((bool)Get(manager, "HasFinale"), "the finale object is still wired");
+        Assert.IsFalse((bool)Get(manager, "RestartAllowed"), "the same R rule as the Island 1 win panel");
     }
 
     // The roll clamps its frame time, so a fixed real-time wait can end before it is armed: wait for the arm itself.

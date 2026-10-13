@@ -453,7 +453,7 @@ public static class LighthouseInstaller
 
     // Two opposed vertical cards along +X and -X from the lantern axis. UV.x is 0 at the lantern and 1 at the tip, UV.y across: the
     // BeaconBeam shader takes the outward direction from the XZ position. The cards fan out from about 1.2 m to BeamWidth in height.
-    static Mesh EnsureBeamMesh()
+    public static Mesh EnsureBeamMesh()
     {
         Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(BeamMeshPath);
         bool create = mesh == null;

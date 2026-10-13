@@ -62,11 +62,16 @@ public class MenuGreatLightTest
         PropertyInfo info = type.GetProperty("IsLit", BindingFlags.Public | BindingFlags.Instance);
         Assert.IsNotNull(info, "MenuGreatLight.IsLit");
         bool lit = (bool)info.GetValue(found);
-        // The state is real: the beam is running in the scene exactly when lit.
-        Type beamType = Type.GetType("LanternKeeper.LighthouseBeam, Assembly-CSharp");
+        // The state is real: the amber Great Light beam (the finale's GreatLampBeam look) is running in the scene exactly when lit.
+        Type beamType = Type.GetType("LanternKeeper.GreatLampBeam, Assembly-CSharp");
+        Assert.IsNotNull(beamType, "GreatLampBeam type");
         UnityEngine.Object beam = UnityEngine.Object.FindFirstObjectByType(beamType, FindObjectsInactive.Include);
-        Assert.IsNotNull(beam, "the menu's LighthouseBeam");
+        Assert.IsNotNull(beam, "the menu's GreatLampBeam");
         Assert.AreEqual(lit, ((Behaviour)beam).isActiveAndEnabled, "the beam must be active exactly when lit");
+        PropertyInfo running = beamType.GetProperty("Running", BindingFlags.Public | BindingFlags.Instance);
+        Assert.AreEqual(lit, (bool)running.GetValue(beam), "the beam turns exactly when lit");
+        Type oldBeamType = Type.GetType("LanternKeeper.LighthouseBeam, Assembly-CSharp");
+        Assert.IsNull(UnityEngine.Object.FindFirstObjectByType(oldBeamType, FindObjectsInactive.Include), "the old pale sweeping beam is gone from the menu");
         return lit;
     }
 

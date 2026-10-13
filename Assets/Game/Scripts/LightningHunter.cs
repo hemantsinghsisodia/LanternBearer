@@ -41,6 +41,8 @@ public class LightningHunter : MonoBehaviour
     GameObject ringObject;
     MeshRenderer ringRenderer;
     Mesh ringMesh;
+    Vector3[] gridVertices;
+    Vector2[] gridUvs;
     Material runtimeMaterial;
     Light strikeLight;
     float lightLeft;
@@ -203,7 +205,7 @@ public class LightningHunter : MonoBehaviour
     }
 
     // Test hook: the seconds until the next strike is picked.
-    public void SetCountdownForTests(float seconds)
+    internal void SetCountdownForTests(float seconds)
     {
         countdown = Mathf.Max(0f, seconds);
     }
@@ -554,6 +556,8 @@ public class LightningHunter : MonoBehaviour
 
         ringMesh.vertices = vertices;
         ringMesh.uv = uvs;
+        gridVertices = vertices;
+        gridUvs = uvs;
         ringMesh.triangles = triangles;
         ringMesh.bounds = new Bounds(Vector3.zero, new Vector3(StrikeLogic.HitRadius * 2f, 40f, StrikeLogic.HitRadius * 2f));
     }
@@ -561,8 +565,8 @@ public class LightningHunter : MonoBehaviour
     void FitRing(Vector3 centre)
     {
         ringObject.transform.SetPositionAndRotation(centre, Quaternion.identity);
-        Vector3[] vertices = ringMesh.vertices;
-        Vector2[] uvs = ringMesh.uv;
+        Vector3[] vertices = gridVertices;
+        Vector2[] uvs = gridUvs;
         vertices[0] = new Vector3(0f, GroundOffset, 0f);
         for (int i = 1; i < vertices.Length; i++)
         {

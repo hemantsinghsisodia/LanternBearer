@@ -53,7 +53,7 @@ public class LightningHunterTest
 
     static object Call(object target, string method, params object[] args)
     {
-        MethodInfo info = target.GetType().GetMethod(method, BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo info = target.GetType().GetMethod(method, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.IsNotNull(info, target.GetType().Name + "." + method + " not found");
         return info.Invoke(target, args);
     }

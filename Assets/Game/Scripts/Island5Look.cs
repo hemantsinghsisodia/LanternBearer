@@ -132,6 +132,12 @@ public class Island5Look : MonoBehaviour
             return;
         }
 
+        // The dawn after the win owns the fog and sky.
+        if (GameManager.Instance != null && GameManager.Instance.IsRoundOver)
+        {
+            return;
+        }
+
         Apply(level);
         written = level;
         dirty = false;

@@ -237,6 +237,11 @@ public static partial class IslandBuilder
         {
             PlaceLighthouse(lighthouseIslet, lighthouseTop, art);
         }
+        else if (lighthouseIslet != null)
+        {
+            // Island 5 has the real lighthouse: no scenery tower, and no empty islet where it would stand.
+            Object.DestroyImmediate(lighthouseIslet.gameObject);
+        }
 
         if (hazeShader != null)
         {

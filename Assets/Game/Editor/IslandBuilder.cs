@@ -275,6 +275,8 @@ public static partial class IslandBuilder
             }
 
             string scenePath = "Assets/Game/Scenes/" + config.sceneName + ".unity";
+            // The scenery lighthouse CreateHorizon placed becomes the dark Great Light (and the menu keeps MenuGreatLight), so a rebuild keeps both.
+            HorizonLighthouseInstaller.Apply(EditorSceneManager.GetActiveScene(), !gameplay, config.spire);
             SceneWiring.ApplyActiveScene();
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
             AssetDatabase.SaveAssets();

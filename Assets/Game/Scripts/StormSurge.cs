@@ -12,6 +12,7 @@ namespace LanternKeeper
 //    except Instance and the two switches, which OnDestroy resets.
 // The look: one dark roiling layer (shader LanternKeeper/StormSurge), a disc built here at runtime with a swell surface and a mist sheet
 // in one mesh, one draw call, lit from within by its own lightning (capped by Reduce flashing) and the real Lightning's flashes.
+[DefaultExecutionOrder(100)]
 public class StormSurge : MonoBehaviour
 {
     // The surge stops this far below the plateau (the path's top height), so a keeper on the plateau is never caught.
@@ -66,6 +67,8 @@ public class StormSurge : MonoBehaviour
     float pulseClock;
     float fogAmount;
     bool fogSaved;
+    bool fogRecapture;
+    float nextDirectorSearch;
     bool savedFogOn;
     FogMode savedFogMode;
     Color savedFogColour;
@@ -229,7 +232,7 @@ public class StormSurge : MonoBehaviour
     }
 
     // Test hooks. The surge clock (seconds since the first beacon, starting the surge if it has not started) and a held height.
-    public void SetElapsedForTests(float seconds)
+    internal void SetElapsedForTests(float seconds)
     {
         if (!Started && !DisabledForTests)
         {
@@ -241,7 +244,7 @@ public class StormSurge : MonoBehaviour
     }
 
     // Holds the surge at this height above the sea (NaN releases it). Starts the surge if it has not started.
-    public void HoldHeightForTests(float heightAboveSea)
+    internal void HoldHeightForTests(float heightAboveSea)
     {
         if (!Started && !DisabledForTests && !float.IsNaN(heightAboveSea))
         {
@@ -441,9 +444,16 @@ public class StormSurge : MonoBehaviour
     {
         if (director == null)
         {
+            // Cached once found; while there is none (stripped test scenes) the search is retried at most every 2 s.
+            if (Time.unscaledTime < nextDirectorSearch)
+            {
+                return;
+            }
+
             director = FindAnyObjectByType<MusicDirector>();
             if (director == null)
             {
+                nextDirectorSearch = Time.unscaledTime + 2f;
                 return;
             }
         }
@@ -494,6 +504,13 @@ public class StormSurge : MonoBehaviour
             return;
         }
 
+        if (fogSaved && fogRecapture)
+        {
+            // A quality change re-applied the level's fog while the surge held it: the saved values are stale, take them again.
+            fogSaved = false;
+        }
+
+        fogRecapture = false;
         if (!fogSaved)
         {
             fogSaved = true;
@@ -517,9 +534,14 @@ public class StormSurge : MonoBehaviour
         }
 
         fogSaved = false;
-        RenderSettings.fog = savedFogOn;
-        RenderSettings.fogMode = savedFogMode;
-        RenderSettings.fogDensity = savedFogDensity;
+        if (!fogRecapture)
+        {
+            RenderSettings.fog = savedFogOn;
+            RenderSettings.fogMode = savedFogMode;
+            RenderSettings.fogDensity = savedFogDensity;
+        }
+
+        fogRecapture = false;
         // The colour goes back to Island5Look's current target, which may have moved with the ring while the surge held the fog.
         if (look == null)
         {
@@ -540,6 +562,7 @@ public class StormSurge : MonoBehaviour
 
     void OnQuality(GraphicsProfile profile)
     {
+        fogRecapture = true;
         ApplyQuality();
     }
 
