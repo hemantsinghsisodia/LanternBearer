@@ -22,10 +22,10 @@ The user played the merged H2 build and raised five points:
 
    | Island | Reach |
    |---|---|
-   | 1 | 0.25 |
-   | 2 | 0.45 |
-   | 3 | 0.65 |
-   | 4 | 0.85 |
+   | 1 | 0.15 |
+   | 2 | 0.25 |
+   | 3 | 0.35 |
+   | 4 | 0.50 |
 
    The Island 5 finale has the game's only full sunrise. This replaces the "existing dawn" on the Island 1–4 wins.
 4. **The beacon fire whoosh** (the `SoundCues.BeaconIgnite` variants) is replaced.

@@ -48495,7 +48495,7 @@ MonoBehaviour:
   dawnEuler: {x: 8.0413475, y: 214.24171, z: 0}
   lookVolume: {fileID: 26960325}
   dawnVolume: {fileID: 210614581}
-  reach: 0.85
+  reach: 0.5
 --- !u!114 &1677404630
 MonoBehaviour:
   m_ObjectHideFlags: 0

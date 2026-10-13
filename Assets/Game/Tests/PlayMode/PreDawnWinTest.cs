@@ -143,17 +143,43 @@ public class PreDawnWinTest
     [Timeout(300000)]
     public IEnumerator PreDawnNeverShowsSun()
     {
-        yield return Load("Island1");
+        yield return WinAndWatch("Island1", 0.15f, 0.02f);
+    }
+
+    // Island 4 has the biggest reach: its upper sky must still be dark blue and its grass untouched by the dawn.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator Island4PreDawnKeepsTheNightSky()
+    {
+        yield return WinAndWatch("Island4", 0.5f, 0.07f);
+    }
+
+    static float Luminance(Color c)
+    {
+        return 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+    }
+
+    // Wins the island and watches the dawn. maxTopRise: how far the sky-top colour (night to dawn top by _Blend, linear luminance) may rise above its night value.
+    // The dawn top is about 0.6 above the night top, and the sky weight is 0.2 x reach: 0.02 holds Island 1 (about 0.02 x 0.6 = 0.012 plus slack), 0.07 Island 4 (0.1 x 0.6 = 0.06).
+    IEnumerator WinAndWatch(string scene, float reach, float maxTopRise)
+    {
+        yield return Load(scene);
         Component manager = (Component)Find("GameManager");
         Component dawn = (Component)Find("DawnSequence");
-        Assert.AreEqual(0.25f, (float)Get(dawn, "Reach"), 1e-4f, "Island 1 reach");
+        Assert.AreEqual(reach, (float)Get(dawn, "Reach"), 1e-4f, scene + " reach");
         Light moon = GameObject.Find("Moonlight").GetComponent<Light>();
+        Material sky = RenderSettings.skybox;
+        Assert.IsNotNull(sky);
+        Assert.IsTrue(sky.HasProperty("_MoonAlpha") && sky.HasProperty("_DawnTop"), "the island sky is the NightSky shader");
+        Assert.AreEqual(1f, sky.GetFloat("_MoonAlpha"), 1e-4f, "the moon is up before the win");
+        Color grassRoot = Shader.GetGlobalColor("_LKGrassRoot");
+        float nightTop = Luminance(Color.Lerp(sky.GetColor("_Top"), sky.GetColor("_DawnTop"), sky.GetFloat("_Blend")));
         float nightIntensity = moon.intensity;
         Quaternion nightRotation = moon.transform.rotation;
         LightAllBeacons();
         yield return null;
         Assert.IsTrue((bool)Get(dawn, "IsPlaying"), "the dawn plays");
-        float maxSun = 0f, maxIntensity = 0f, maxAngle = 0f, maxBlend = 0f;
+        float maxSun = 0f, maxIntensity = 0f, maxAngle = 0f, maxBlend = 0f, maxTop = 0f, minMoon = 1f, maxGrassShift = 0f;
         float waited = 0f;
         while ((bool)Get(dawn, "IsPlaying") && waited < 20f)
         {
@@ -161,16 +187,25 @@ public class PreDawnWinTest
             maxIntensity = Mathf.Max(maxIntensity, moon.intensity);
             maxAngle = Mathf.Max(maxAngle, Quaternion.Angle(nightRotation, moon.transform.rotation));
             maxBlend = Mathf.Max(maxBlend, Shader.GetGlobalFloat("_LanternSkyBlend"));
+            Color top = Color.Lerp(sky.GetColor("_Top"), sky.GetColor("_DawnTop"), sky.GetFloat("_Blend"));
+            maxTop = Mathf.Max(maxTop, Luminance(top));
+            minMoon = Mathf.Min(minMoon, sky.GetFloat("_MoonAlpha"));
+            Color g = Shader.GetGlobalColor("_LKGrassRoot");
+            maxGrassShift = Mathf.Max(maxGrassShift, Mathf.Abs(g.r - grassRoot.r) + Mathf.Abs(g.g - grassRoot.g) + Mathf.Abs(g.b - grassRoot.b));
             waited += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        Assert.AreEqual(0f, maxSun, "no sun in the sky");
-        Assert.LessOrEqual(maxIntensity, nightIntensity * 1.3f, "the light never becomes a sun");
-        Assert.LessOrEqual(maxAngle, 12f, "the light stays near its night rotation");
-        Assert.LessOrEqual(maxBlend, 0.25f + 1e-3f, "the sky never blends past the reach");
-        Assert.Greater(maxBlend, 0.2f, "the sky reaches the pre-dawn");
         yield return null;
+        Assert.AreEqual(0f, sky.GetFloat("_MoonAlpha"), 1e-3f, "the moon disc has faded out by the end");
+        Assert.AreEqual(0f, minMoon, 1e-3f);
+        Assert.LessOrEqual(maxTop - nightTop, maxTopRise, "the upper sky stays dark (rise over its night luminance)");
+        Assert.LessOrEqual(maxSun, 0f, "no sun in the sky");
+        Assert.LessOrEqual(maxIntensity, nightIntensity * 1.16f, "the moon light only brightens a little");
+        Assert.LessOrEqual(maxAngle, 3f, "the light stays at its night rotation");
+        Assert.LessOrEqual(maxBlend, reach + 1e-3f, "the sky globals never pass the reach");
+        Assert.Greater(maxBlend, reach * 0.4f, "the horizon haze warms");
+        Assert.Less(maxGrassShift, 0.12f, "the grass does not turn dawn-coloured");
         yield return null;
         Assert.IsTrue((bool)Get(manager, "IsRoundOver"));
         Assert.IsFalse((bool)Get(manager, "DawnPlaying"));

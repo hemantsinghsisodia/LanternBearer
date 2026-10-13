@@ -9,10 +9,10 @@ public static class PreDawn
     {
         switch (levelId)
         {
-            case "island1": return 0.25f;
-            case "island2": return 0.45f;
-            case "island3": return 0.65f;
-            case "island4": return 0.85f;
+            case "island1": return 0.15f;
+            case "island2": return 0.25f;
+            case "island3": return 0.35f;
+            case "island4": return 0.5f;
             default: return 1f;
         }
     }
