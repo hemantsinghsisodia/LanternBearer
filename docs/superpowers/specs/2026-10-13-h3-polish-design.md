@@ -35,7 +35,7 @@ The user played the merged H2 build and raised five points:
 5. **Island 5 challenge.** There are three additions, all Island 5 only.
    - **Rising storm.**
      - A dark surge rises from the sea, starting 8 s after the first beacon is lit (retuned at the midway gate).
-     - Its pace keeps a full-pace climber about 8–12 m ahead (a 70%-pace climber is caught before the summit).
+     - Its pace keeps a full-pace climber about 8–12 m ahead (a 70%-pace climber is caught before the summit). **H4 overrides this and the push-back below: rise 1.4 m/s, push-back 4 m per beacon; full pace is 8.1 m ahead at the tightest (lowest gap 2.8 m as it starts), an 85%-pace climber is caught.**
      - Each beacon lit pushes it down 3 m.
      - It stops at the base of the summit plateau.
      - **Inside the surge:**

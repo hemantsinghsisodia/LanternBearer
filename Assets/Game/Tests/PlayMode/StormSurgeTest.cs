@@ -10,7 +10,7 @@ using UnityEngine.TestTools;
 namespace LanternKeeper.Tests
 {
 // Island 5's rising storm surge, live: it starts on the first beacon, catches a keeper below it (drain x4, no safe light, dark fog,
-// heartbeat), lets a caught keeper climb out, resets on Retry and stops when the great lamp is lit.
+// heartbeat), frees a caught keeper when the next beacon is lit, resets on Retry and stops when the great lamp is lit.
 // Game types are reached by reflection (this assembly can't reference Assembly-CSharp); the Logic types are used directly.
 // Every frame advances the game by the same step (captureDeltaTime), so timings do not depend on how slowly the editor renders.
 public class StormSurgeTest
@@ -363,67 +363,37 @@ public class StormSurgeTest
         Assert.Less((float)Get(surge, "FogAmount"), 0.05f, "the fog clears");
     }
 
-    // No softlock: a keeper caught low can walk up the route and climb out; the drain is normal again above the surface.
+    // No softlock: the surge now rises faster than the keeper can climb, so a keeper caught low recovers by lighting the next beacon;
+    // its 4 m push-back lifts the keeper clear and the drain is normal again.
     [UnityTest]
     [Timeout(300000)]
-    public IEnumerator CaughtKeeperCanClimbOut()
+    public IEnumerator CaughtKeeperRecoversByLightingABeacon()
     {
         yield return Load("Island5");
         Assert.IsTrue(LightBeacon(0));
         Component lantern = Lantern();
         Component surge = Surge();
-        GameObject guide = GameObject.Find("TrailGuide");
-        Assert.IsNotNull(guide, "TrailGuide");
-        List<Vector3> trail = new List<Vector3>();
-        foreach (Transform point in guide.transform.GetChild(0))
-        {
-            trail.Add(point.position);
-        }
-
-        Vector3 start = Walkway(7.5f);
-        Teleport(start);
+        Teleport(Walkway(7.5f));
         yield return Wait(0.5f);
+        // A real (not held) surge 1.6 m above the keeper with one beacon lit: seconds = delay + (height + one push-back) / rise rate.
         float surgeHeight = KeeperHeight() + 1.6f;
-        Hold(surgeHeight);
-        yield return Wait(0.5f);
-        Assert.IsTrue(Caught(), "caught at " + KeeperHeight().ToString("F1") + " m under a surge at " + surgeHeight.ToString("F1") + " m");
+        Call(surge, "SetElapsedForTests", StormSurgeLogic.StartDelay + (surgeHeight + StormSurgeLogic.PushBack) / StormSurgeLogic.RisePerSecond);
+        yield return Wait(0.3f);
+        Assert.IsTrue(Caught(), "caught at " + KeeperHeight().ToString("F1") + " m under a surge at " + Height().ToString("F1") + " m");
         Assert.AreEqual(StormSurgeLogic.CaughtDrain, (float)Call(lantern, "GetDrainModifier", surge), 1e-4f);
 
-        SetStatic("CameraFollow", "ExternalYaw", 0f);
-        SetStatic("CameraFollow", "UseExternalYaw", true);
+        // Lighting the next beacon takes 4 m off the surge.
+        Assert.IsTrue(LightBeacon(1));
         float elapsed = 0f;
-        float climbedAt = -1f;
-        while (elapsed < 40f && climbedAt < 0f)
+        while (elapsed < 3f && Caught())
         {
             Refuel();
-            Vector3 position = Player().transform.position;
-            int nearest = 0;
-            float best = float.MaxValue;
-            for (int i = 0; i < trail.Count; i++)
-            {
-                float d = (new Vector2(trail[i].x, trail[i].z) - new Vector2(position.x, position.z)).sqrMagnitude;
-                if (d < best)
-                {
-                    best = d;
-                    nearest = i;
-                }
-            }
-
-            Vector3 target = trail[Mathf.Min(trail.Count - 1, nearest + 3)];
-            Vector2 direction = new Vector2(target.x - position.x, target.z - position.z);
-            SetStatic("PlayerController", "ExternalMove", direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.zero);
             yield return null;
             elapsed += Time.deltaTime;
-            if (!Caught() && KeeperHeight() > surgeHeight)
-            {
-                climbedAt = elapsed;
-            }
         }
 
-        SetStatic("PlayerController", "ExternalMove", Vector2.zero);
-        Assert.GreaterOrEqual(climbedAt, 0f, "the keeper climbed above the surge (now at " + KeeperHeight().ToString("F1") + " m, surge " + surgeHeight.ToString("F1") + " m)");
+        Assert.IsFalse(Caught(), "the push-back freed the keeper (keeper " + KeeperHeight().ToString("F1") + " m, surge " + Height().ToString("F1") + " m)");
         yield return Wait(0.3f);
-        Assert.IsFalse(Caught());
         Assert.AreEqual(1f, (float)Call(lantern, "GetDrainModifier", surge), 1e-4f, "the drain is back to normal above the surge");
         Assert.IsFalse((bool)StaticProperty("StormSurge", "SafeLightSuppressed"));
         Assert.Less((float)Get(lantern, "DrainRelative"), 3f);
@@ -484,7 +454,7 @@ public class StormSurgeTest
         yield return null;
         Assert.IsTrue((bool)Get(surge, "Active"), "the surge is running");
         float height = Height();
-        Assert.Greater(height, 5f);
+        Assert.Greater(height, 3f, "the cap minus eight push-backs still leaves a surge");
         // Caught: stand low under a held surge, then light the lamp.
         Teleport(Walkway(3f));
         yield return Wait(0.5f);

@@ -29,7 +29,7 @@ public class StormSurgeLogicTests
     public void CappedAtPlateau()
     {
         Assert.AreEqual(Cap, StormSurgeLogic.Height(10000f, 0, Cap), 1e-4f);
-        Assert.AreEqual(Cap - 24f, StormSurgeLogic.Height(10000f, 8, Cap), 1e-4f, "the push applies after the cap");
+        Assert.AreEqual(Cap - 8f * StormSurgeLogic.PushBack, StormSurgeLogic.Height(10000f, 8, Cap), 1e-4f, "the push applies after the cap");
     }
 
     [Test]
@@ -239,23 +239,23 @@ public class StormSurgeLogicTests
     [Test]
     public void SteadyClimberStaysAhead()
     {
-        // Full walking pace: while the keeper is on the route's open stretch (10 to 30 m up) the surge is 8 to 12 m behind at its tightest.
+        // Full walking pace: while the keeper is on the route's open stretch (10 to 30 m up) the surge is 5 to 12 m behind at its tightest (8.1 m measured; the lowest gap anywhere is 2.8 m just as the surge starts).
         ClimbResult full = FullPace();
         Debug.Log("StormSurge full pace: ends " + full.endTime.ToString("F0") + " s, start gap " + full.startGap.ToString("F1")
             + " m, tightest (10-30 m up) " + full.minGap.ToString("F1") + " m at " + full.minGapAt.ToString("F0") + " s, widest " + full.maxGap.ToString("F1")
             + " m, lowest ever " + full.lowestGap.ToString("F1") + " m, gap at the plateau " + full.gapAtEnd.ToString("F1") + " m. " + full.trace);
         Assert.Greater(full.samples, 100, "the surge must be active while the full-pace climber is still climbing");
-        Assert.GreaterOrEqual(full.minGap, 8f);
+        Assert.GreaterOrEqual(full.minGap, 5f);
         Assert.LessOrEqual(full.minGap, 12f);
-        Assert.GreaterOrEqual(full.lowestGap, 0f, "never caught");
+        Assert.GreaterOrEqual(full.lowestGap, 2f, "never caught, and never closer than 2 m");
     }
 
     [Test]
     public void SlowClimberGetsCaught()
     {
-        // 70% pace with a player's stops: the surge catches up at some point before the summit.
-        ClimbResult slow = Player(0.7f);
-        Debug.Log("StormSurge 0.7 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1") + " m. " + slow.trace);
+        // 85% pace with a player's stops: the surge catches up at some point before the summit.
+        ClimbResult slow = Player(0.85f);
+        Debug.Log("StormSurge 0.85 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1") + " m. " + slow.trace);
         Assert.Less(slow.lowestGap, 0f, "caught on the way up");
         // Anyone slower than that is caught too.
         Assert.Less(Player(0.4f).lowestGap, 0f);

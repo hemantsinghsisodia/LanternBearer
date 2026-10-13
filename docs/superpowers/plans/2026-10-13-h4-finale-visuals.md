@@ -46,12 +46,12 @@ Merge only on "merge in main and push".
 - Spec addendum and plan constraints.
 
 **Retune the tests:**
-- `SteadyClimberStaysAhead`: the full-pace bot is never caught; the minimum gap is about 3–5 m.
+- `SteadyClimberStaysAhead`: the full-pace bot is never caught; measured: 8.1 m ahead at the tightest point of the open stretch (10–30 m up), 2.8 m as the surge starts (the lowest gap). The test asserts 5–12 m and a lowest gap of at least 2 m.
 - `SlowClimberGetsCaught`: 85% pace is caught.
 - `CaughtKeeperCanClimbOut` becomes `CaughtKeeperRecoversByLightingABeacon`. The rise is now faster than the steepest climb rate, so recovery is through the 4 m push-back.
 - Keep the PlayMode `SteadyBotReachesLamp`: everything on, fuel within 25–40%, never caught.
 
-**If the full-pace bot gets caught at 1.4:** shorten nothing else. Raise the push-back to 5 m, and report it.
+**If the full-pace bot gets caught at 1.4:** shorten nothing else. Raise the push-back to 5 m, and report it. Result: 4 m was enough, no change needed.
 
 **Unchanged:** the 8 s start delay, the ×3 caught drain and the cap.
 

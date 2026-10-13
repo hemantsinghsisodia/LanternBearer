@@ -13,20 +13,21 @@ namespace LanternKeeper
 //    logs 255.9 m) and climbs 38 m; walking flat out the open stretch climbs at up to about 1.1 m/s.
 //  - The full-pace bot (measured): first beacon at 5.5 s, lamp at 48.9 s. The surge starts 8 s after the first beacon, so it is on the
 //    mountain for the whole climb. The sim uses a key press per beacon (0.25 s) and the bridge waits that overlap walking (1.2 s, summit 2.5 s).
-//  - The surge starts at the sea, so the first seconds are close: the keeper is only about 3 m up when it starts. After that, with the 3 m
-//    push-back per beacon, 1.0 m/s keeps full pace 9.8 m ahead at the tightest point of the open stretch (10-30 m up), widening to 21 m
-//    there and 26 m at the plateau. 1.1 gives 8.4 m, 1.2 gives 7.0 m, so 1.0 is the largest round rate that holds 8 m or more.
-//  - 1.0 m/s stays under the 1.1 m/s peak climb rate, so a caught keeper can still out-climb it on the steep stretches (and every beacon
-//    lit takes 3 m off it). A keeper at 70% pace with a player's stops (1.5 s a beacon, the full bridge waits) is caught around the
-//    second bridge and gets out again once the summit stretch is reached.
+//  - H4 retune: RisePerSecond 1.0 -> 1.4, PushBack 3 -> 4 (StartDelay, drain and cap unchanged). The surge now outpaces the steepest
+//    climb rate (about 1.1 m/s), so a caught keeper no longer out-climbs it: recovery is by lighting the next beacon (4 m push-back).
+//  - The surge starts at the sea, so the first seconds are close: the full-pace keeper is only 2.8 m up when it starts (the lowest gap
+//    anywhere). With the 4 m push-back per beacon, 1.4 m/s keeps full pace 8.1 m ahead at the tightest point of the open stretch
+//    (10-30 m up), widening to 16.9 m there and 33 m at the plateau; never caught.
+//  - A keeper at 85% pace with a player's stops (1.5 s a beacon, the full bridge waits) is caught around the second to fourth beacon
+//    (lowest gap -7 m) and recovers by lighting the next beacon.
 public static class StormSurgeLogic
 {
-    public const float StartDelay = 8f, PushBack = 3f, CaughtDrain = 3f;
+    public const float StartDelay = 8f, PushBack = 4f, CaughtDrain = 3f;
     public const float ChipGap = 25f;
     public const float MusicGap = 15f;
     public const float MusicFloorFar = 0.6f, MusicFloorNear = 0.9f;
 
-    public static float RisePerSecond = 1.0f;
+    public static float RisePerSecond = 1.4f;
 
     // Surge height above the sea. `capHeight` is the height of the summit plateau base above the sea.
     public static float Height(float secondsSinceStart, int beaconsLit, float capHeight)
