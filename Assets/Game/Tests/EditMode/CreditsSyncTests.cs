@@ -21,6 +21,25 @@ public class CreditsSyncTests
     }
 
     [Test]
+    public void BuildPreprocessThrowsWhenCreditsTxtIsMissing()
+    {
+        string path = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "CREDITS.txt"));
+        string hidden = path + ".bak-test";
+        Assert.IsTrue(File.Exists(path), "CREDITS.txt");
+        File.Move(path, hidden);
+        try
+        {
+            System.Type type = System.Type.GetType("LanternKeeper.CreditsBuildSync, Assembly-CSharp-Editor");
+            var step = (UnityEditor.Build.IPreprocessBuildWithReport)System.Activator.CreateInstance(type);
+            Assert.Throws<UnityEditor.Build.BuildFailedException>(() => step.OnPreprocessBuild(null));
+        }
+        finally
+        {
+            File.Move(hidden, path);
+        }
+    }
+
+    [Test]
     public void CreditsResourceMatchesRepoFile()
     {
         TextAsset asset = Resources.Load<TextAsset>("Credits");

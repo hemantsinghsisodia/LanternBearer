@@ -64,7 +64,8 @@ public class GameManager : MonoBehaviour
     public string[] IntroLines => introLines;
     public float DeathStartedUnscaled { get; private set; }
     public float LoseShownUnscaled { get; private set; }
-    public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && Time.unscaledTime >= restartUnlockTime;
+    // On a finale island the only way out after the win is the credits -> menu, so R never restarts once won.
+    public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && !(HasFinale && won) && Time.unscaledTime >= restartUnlockTime;
     public bool DawnPlaying { get; private set; }
     public float Elapsed => elapsed;
     public bool Won => won;
@@ -565,7 +566,8 @@ public class GameManager : MonoBehaviour
         }
 
         ResolveSceneRefs();
-        if (finale != null)
+        // An inactive or disabled finale falls back to the dawn path so DawnPlaying cannot stick.
+        if (finale != null && finale.isActiveAndEnabled)
         {
             DawnPlaying = true;
             finale.Play(FinishWin);

@@ -44,6 +44,12 @@ public class AudioImportTests
         Assert.IsNotNull(library, "MusicLibrary missing");
         AudioClip cue = new SerializedObject(library).FindProperty("finaleCue").objectReferenceValue as AudioClip;
         Assert.IsNotNull(cue, "finaleCue is not assigned");
+        bool realExists = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Game/Audio/Music/Finale_1.ogg") != null;
+        if (realExists)
+        {
+            Assert.AreEqual("Finale_1", cue.name, "finaleCue is the fallback while Finale_1.ogg exists");
+        }
+
         Assert.GreaterOrEqual(cue.length, 45f);
         Assert.LessOrEqual(cue.length, 95f);
     }

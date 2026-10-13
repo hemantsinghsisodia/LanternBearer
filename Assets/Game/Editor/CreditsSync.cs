@@ -53,6 +53,11 @@ public class CreditsBuildSync : IPreprocessBuildWithReport
 
     public void OnPreprocessBuild(BuildReport report)
     {
+        if (!File.Exists(CreditsSync.SourcePath))
+        {
+            throw new BuildFailedException("CREDITS.txt not found at " + CreditsSync.SourcePath + "; the build would ship a stale credits roll.");
+        }
+
         CreditsSync.Sync();
     }
 }

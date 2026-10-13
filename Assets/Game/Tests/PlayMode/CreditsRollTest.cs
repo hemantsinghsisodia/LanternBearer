@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -367,6 +368,108 @@ public class CreditsRollTest
         }
 
         Assert.AreEqual(1, playing, "exactly one menu track in the menu");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator RestartIsBlockedAfterTheIsland5Win()
+    {
+        yield return WinIsland5();
+        Component manager = (Component)Find("GameManager");
+        Assert.IsTrue((bool)Get(manager, "Won"));
+        Assert.IsFalse((bool)Get(manager, "RestartAllowed"), "no restart during the credits roll");
+        Assert.IsFalse((bool)Call(manager, "DebugPressRestart"), "R does nothing during the credits roll");
+        yield return null;
+        Assert.AreEqual("Island5", SceneManager.GetActiveScene().name, "still in Island5");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator Island1WinIsUnchangedByTheFinaleGuard()
+    {
+        yield return Load("Island1");
+        Component manager = (Component)Find("GameManager");
+        Assert.IsFalse((bool)Get(manager, "HasFinale"), "Island 1 has no finale");
+        Call(manager, "Win");
+        float start = Time.realtimeSinceStartup;
+        while (!(bool)Get(manager, "Won") && Time.realtimeSinceStartup - start < 15f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue((bool)Get(manager, "Won"), "Island 1 win completed");
+        Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "the dawn flag is released");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator Island1RestartStillWorksOnTheLosePanel()
+    {
+        yield return Load("Island1");
+        Component manager = (Component)Find("GameManager");
+        Call(manager, "Lose");
+        float start = Time.realtimeSinceStartup;
+        while (!(bool)Get(manager, "RestartAllowed") && Time.realtimeSinceStartup - start < 15f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue((bool)Get(manager, "RestartAllowed"), "R still restarts on the Island 1 result panel (guard is Island 5 only)");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator DisabledFinaleFallsBackToTheDawn()
+    {
+        yield return Load("Island5");
+        Component manager = (Component)Find("GameManager");
+        ((Behaviour)Find("FinaleSequence")).enabled = false;
+        Call(manager, "Win");
+        float start = Time.realtimeSinceStartup;
+        while (!(bool)Get(manager, "Won") && Time.realtimeSinceStartup - start < 15f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue((bool)Get(manager, "Won"), "the win completes through the dawn path");
+        Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "DawnPlaying is released");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator GamepadButtonHeldAcrossTheArmDoesNotSkipButAFreshPressDoes()
+    {
+        yield return Load("Island5");
+        Gamepad pad = InputSystem.AddDevice<Gamepad>();
+        try
+        {
+            CreditsRoll credits = FindCredits();
+            InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState { buttons = 1u << (int)UnityEngine.InputSystem.LowLevel.GamepadButton.South });
+            InputSystem.Update();
+            credits.Begin();
+            float start = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - start < 1.6f)
+            {
+                yield return null;
+            }
+
+            Assert.IsFalse(credits.Exiting, "a pad button held across the arm does not skip");
+            InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState());
+            InputSystem.Update();
+            yield return null;
+            yield return null;
+            Assert.IsFalse(credits.Exiting);
+            InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState { buttons = 1u << (int)UnityEngine.InputSystem.LowLevel.GamepadButton.East });
+            InputSystem.Update();
+            yield return null;
+            Assert.IsTrue(credits.Exiting, "a fresh pad press skips");
+        }
+        finally
+        {
+            InputSystem.RemoveDevice(pad);
+        }
+
+        yield return WaitForMenu(8f);
     }
 
     [UnityTest]

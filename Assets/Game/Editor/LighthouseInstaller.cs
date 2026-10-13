@@ -56,6 +56,16 @@ public static class LighthouseInstaller
         Scene scene = OpenScene();
         if (Rebuild(scene))
         {
+            // Rebuild recreates FlameRoot and LampBeam: re-run the finale wiring so FinaleCamera.flame and FinaleSequence.beam stay set.
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root.name == FinaleInstaller.RootName)
+                {
+                    FinaleInstaller.Rebuild(scene);
+                    break;
+                }
+            }
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("LighthouseInstaller: placed the lighthouse in " + scene.name + ".");

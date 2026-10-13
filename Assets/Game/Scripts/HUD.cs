@@ -38,6 +38,7 @@ public class HUD : MonoBehaviour
     bool buttonsBound;
     bool creditsBound;
     bool creditsMusicStarted;
+    MusicDirector creditsMusicDirector;
     bool missingResolved;
     bool lanternResolved;
     int shownSecond = int.MinValue;
@@ -462,7 +463,12 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (creditsMusicDirector == null)
+        {
+            creditsMusicDirector = FindAnyObjectByType<MusicDirector>();
+        }
+
+        MusicDirector music = creditsMusicDirector;
         if (music == null || !music.FinaleCueDone || MusicPlayer.Instance == null)
         {
             return;
@@ -474,7 +480,12 @@ public class HUD : MonoBehaviour
 
     void FadeMusicOut(float seconds)
     {
-        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (creditsMusicDirector == null)
+        {
+            creditsMusicDirector = FindAnyObjectByType<MusicDirector>();
+        }
+
+        MusicDirector music = creditsMusicDirector;
         if (music != null)
         {
             music.FadeOutForExit(seconds);
