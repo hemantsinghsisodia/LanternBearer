@@ -115,7 +115,6 @@ public class FinaleSequence : MonoBehaviour
         if (dawn != null)
         {
             dawn.FogDensityScale = 0.01f;
-            dawn.DawnGradeWeight = 0.4f;
             dawn.WaterWarmth = 1f;
             dawn.WaterTintOverride = new Color(0.55f, 0.85f, 1.05f, 1f);
             dawn.DawnGradeWeight = 0f;
@@ -202,6 +201,11 @@ public class FinaleSequence : MonoBehaviour
         // The sand floor 10 m under the water shows through it and turns the sea brown in the dawn light: a private dark teal copy of its material.
         // (The floor itself stays, it keeps the water depth even.)
         GameObject floor = GameObject.Find("SeaFloor");
+        if (floor == null)
+        {
+            Debug.LogWarning("FinaleSequence: no SeaFloor in the scene; the sea may turn brown at the sunrise.", this);
+        }
+
         Renderer floorRenderer = floor != null ? floor.GetComponent<Renderer>() : null;
         if (floorRenderer != null && floorRenderer.sharedMaterial != null && floorRenderer.sharedMaterial.HasProperty("_BaseColor"))
         {
@@ -212,6 +216,11 @@ public class FinaleSequence : MonoBehaviour
         }
 
         GameObject water = GameObject.Find("Water");
+        if (water == null)
+        {
+            Debug.LogWarning("FinaleSequence: no Water in the scene; the horizon edge will show.", this);
+        }
+
         if (water != null)
         {
             Vector3 scale = water.transform.localScale;
@@ -276,6 +285,8 @@ public class FinaleSequence : MonoBehaviour
             {
                 seaMaterial.SetColor("_DeepColor", new Color(0.015f, 0.08f, 0.18f, 0.92f));
                 seaMaterial.SetColor("_ShallowColor", new Color(0.05f, 0.2f, 0.36f, 0.5f));
+                // The sun path is the water's moon streak, drawn in _RimColor: gold for the sunrise.
+                seaMaterial.SetColor("_RimColor", new Color(1f, 0.83f, 0.54f, 1f));
             }
 
             if (dawn != null)

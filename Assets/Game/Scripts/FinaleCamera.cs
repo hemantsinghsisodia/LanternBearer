@@ -28,6 +28,7 @@ public class FinaleCamera : MonoBehaviour
     const float FarLook = 300f;
     // At the sunrise the camera slides round the lighthouse by this much, so the sun side is lit and the far side shadowed in view.
     const float SunriseSideOffset = 16f;
+    const float SunriseKeepLamp = 0.8f;
 
     [SerializeField] Transform lamp;
     [SerializeField] Transform flame;
@@ -121,7 +122,11 @@ public class FinaleCamera : MonoBehaviour
         // The sunrise looks level so the sky gradient fills the frame.
         float pitch = Mathf.Lerp(HoldPitch, SunrisePitch, Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise)));
         Vector3 far = position + new Vector3(Mathf.Sin(lookBearing), -Mathf.Tan(pitch * Mathf.Deg2Rad), Mathf.Cos(lookBearing)) * FarLook;
-        Vector3 forward = Vector3.Lerp(flamePosition, far, look) - position;
+        // At the sunrise the view leans back towards the lantern room so the lit lighthouse and its beam stay in the lower part of the frame.
+        Vector3 aim = Vector3.Lerp(flamePosition, far, look);
+        float keep = SunriseKeepLamp * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart) / 6f));
+        aim = Vector3.Lerp(aim, flamePosition, keep);
+        Vector3 forward = aim - position;
         if (forward.sqrMagnitude < 0.0001f)
         {
             return;
