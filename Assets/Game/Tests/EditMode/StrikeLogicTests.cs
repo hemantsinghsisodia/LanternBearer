@@ -6,14 +6,14 @@ namespace LanternKeeper.Tests
 public class StrikeLogicTests
 {
     [Test]
-    public void IntervalStaysInSixToTenSeconds()
+    public void IntervalStaysInFourToSixSeconds()
     {
         System.Random random = new System.Random(5506);
         for (int i = 0; i < 500; i++)
         {
             float interval = StrikeLogic.Interval(random);
-            Assert.GreaterOrEqual(interval, 6f);
-            Assert.LessOrEqual(interval, 10f);
+            Assert.GreaterOrEqual(interval, 4f);
+            Assert.LessOrEqual(interval, 6f);
         }
     }
 

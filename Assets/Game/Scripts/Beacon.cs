@@ -13,8 +13,6 @@ public class Beacon : MonoBehaviour
     [SerializeField] float interactRange = 2.8f;
     [SerializeField] float fuelCost = 15f;
     [SerializeField] float safeRadius = 8f;
-    [Tooltip("Fraction of the lantern's max fuel returned when this beacon is lit (Island 5 scarce fuel; LevelConfig.beaconRefund01). 0 elsewhere.")]
-    [SerializeField] float refund01;
     [SerializeField] float settleIntensity = 3.4f;
     [SerializeField] float settleRange = 16f;
     [SerializeField] Light beaconLight;
@@ -31,7 +29,8 @@ public class Beacon : MonoBehaviour
     public float ZoneRadius => safeRadius;
     public float SafeRadius => IsLit ? safeRadius : 0f;
     public float FuelCost => fuelCost;
-    public float Refund01 => refund01;
+    // Fraction of the beacon's fuel cost handed back when it is lit: LevelConfig.beaconRefund01 through the scene's LevelTuning (0 elsewhere).
+    public float Refund01 => LevelTuning.BeaconRefund01;
 
     public bool IsPlayerInRange
     {
@@ -304,9 +303,9 @@ public class Beacon : MonoBehaviour
             return false;
         }
 
-        if (refund01 > 0f)
+        if (Refund01 > 0f)
         {
-            lantern.AddFuel(lantern.MaxFuel * refund01);
+            lantern.AddFuel(fuelCost * Refund01);
         }
 
         IsLit = true;

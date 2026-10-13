@@ -741,7 +741,9 @@ public static partial class IslandBuilder
         island5.windStrength = 0f;
         island5.shadeCount = 0;
         island5.lightning = false;
+        // Scarce fuel: the single source for the scene's LevelTuning (LightningHunterInstaller copies these).
         island5.beaconRefund01 = 0.2f;
+        island5.drainMultiplier = 1.5f;
         island5.ridges = false;
         island5.lookProfile = EnsureIsland5Look();
         EditorUtility.SetDirty(island5);

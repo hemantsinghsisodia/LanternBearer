@@ -240,7 +240,7 @@ public class Lantern : MonoBehaviour
         RaiseAdjusted(fuel - before);
     }
 
-    // A strike or similar blow: removes up to `amount` fuel at once (never below 0). Reported as a discrete spend; running dry is
+    // A strike or similar blow: removes up to `amount` fuel at once (never below 1 point). Reported as a discrete spend; running dry is
     // handled by Update's next frame like any other drain.
     public void Hit(float amount)
     {
@@ -249,8 +249,9 @@ public class Lantern : MonoBehaviour
             return;
         }
 
+        // A strike alone never kills: it leaves at least one point (the drain and the surge still can).
         float before = fuel;
-        CommitFuel(fuel - amount, true);
+        CommitFuel(Mathf.Max(fuel - amount, Mathf.Min(fuel, 1f)), true);
         RaiseAdjusted(fuel - before);
     }
 

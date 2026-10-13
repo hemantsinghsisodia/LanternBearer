@@ -9,6 +9,7 @@ Shader "LanternKeeper/StrikeWarning"
         _Color ("Ring colour", Color) = (0.737, 0.824, 1, 1)
         _Progress ("Warning progress", Range(0, 1)) = 0
         _Pulse ("Pulse depth", Range(0, 1)) = 1
+        _PulseCount ("Pulses over the warning", Float) = 3
         _Alpha ("Alpha", Range(0, 1)) = 1
     }
     SubShader
@@ -35,6 +36,7 @@ Shader "LanternKeeper/StrikeWarning"
                 float4 _Color;
                 float _Progress;
                 float _Pulse;
+                float _PulseCount;
                 float _Alpha;
             CBUFFER_END
 
@@ -68,8 +70,8 @@ Shader "LanternKeeper/StrikeWarning"
                 float inner = (1.0 - smoothstep(0.0, 0.1, abs(r - closing * 0.8))) * step(0.05, closing);
                 // A faint fill.
                 float fill = (1.0 - smoothstep(0.0, 0.95, r)) * 0.12;
-                // Three pulses over the 1.0 s warning (one soft pulse with Reduce flashing: the depth shrinks).
-                float wave = 0.5 + 0.5 * sin(_Progress * 6.2831853 * 3.0 - 1.5707963);
+                // _PulseCount pulses over the 1.0 s warning (3; one soft pulse, 1 Hz, with Reduce flashing).
+                float wave = 0.5 + 0.5 * sin(_Progress * 6.2831853 * _PulseCount - 1.5707963);
                 float pulse = lerp(1.0 - 0.55 * _Pulse, 1.0, wave);
                 float fadeIn = smoothstep(0.0, 0.12, _Progress);
                 float a = saturate(outer + inner * 0.8 + fill) * pulse * fadeIn * _Alpha;

@@ -3,12 +3,12 @@ using UnityEngine;
 namespace LanternKeeper
 {
 // Island 5's hunting lightning, as pure numbers (LightningHunter uses them; tests read them).
-// Every IntervalMin..IntervalMax seconds a strike picks a point OffsetMin..OffsetMax metres from where the keeper will be in LeadSeconds,
+// Every IntervalMin..IntervalMax seconds (4-6 s) a strike picks a point OffsetMin..OffsetMax metres from where the keeper will be in LeadSeconds,
 // shows a warning ring for WarnSeconds, then hits. A keeper within HitRadius of the point loses FuelFraction of the lantern and is knocked
 // back KnockDistance metres.
 public static class StrikeLogic
 {
-    public const float IntervalMin = 6f, IntervalMax = 10f;
+    public const float IntervalMin = 4f, IntervalMax = 6f;
     public const float WarnSeconds = 1f;
     public const float LeadSeconds = 1f;
     public const float OffsetMin = 2f, OffsetMax = 4f;

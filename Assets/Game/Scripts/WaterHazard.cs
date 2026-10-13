@@ -238,6 +238,7 @@ public class WaterHazard : MonoBehaviour
             body.enabled = false;
         }
 
+        player.ClearKnock();
         player.transform.position = safe + Vector3.up * 0.12f;
         if (body != null)
         {

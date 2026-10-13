@@ -1275,6 +1275,21 @@ public static partial class SceneWiring
             }
         }
 
+        // The scene's LevelTuning must carry the level config's refund and drain (one source: Island5.asset).
+        LevelTuning tuning = Object.FindAnyObjectByType<LevelTuning>(FindObjectsInactive.Include);
+        LevelConfig levelConfig = AssetDatabase.LoadAssetAtPath<LevelConfig>(LightningHunterInstaller.LevelPath);
+        SerializedObject tuningData = tuning != null ? new SerializedObject(tuning) : null;
+        if (tuning == null || levelConfig == null
+            || !Mathf.Approximately(tuningData.FindProperty("beaconRefund01").floatValue, levelConfig.beaconRefund01)
+            || !Mathf.Approximately(tuningData.FindProperty("drainMultiplier").floatValue, levelConfig.drainMultiplier))
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " LevelTuning is missing or differs from Island5.asset (rerun the Hunting Lightning installer)");
+            }
+        }
+
         FinaleIslands finaleIslands = Object.FindAnyObjectByType<FinaleIslands>(FindObjectsInactive.Include);
         if (finaleIslands != null)
         {

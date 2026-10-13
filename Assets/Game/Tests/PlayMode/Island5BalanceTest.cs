@@ -177,7 +177,49 @@ public class Island5BalanceTest
     [Timeout(900000)]
     public IEnumerator SteadyBotReachesLamp()
     {
+        // Full pace, everything on except the moths and Shades: they roll UnityEngine.Random on their own schedule, a bot that dodges nothing
+        // loses anywhere from nothing to its whole lantern to them, and the run stops being repeatable. The scarcity target is the fuel left
+        // at the lamp: 25-40% of max.
+        float fraction = 0f;
+        yield return RunBot(101, f => fraction = f);
+        Assert.GreaterOrEqual(fraction, 0.25f, "scarce fuel: the full-pace bot arrives with less than 25% fuel");
+        Assert.LessOrEqual(fraction, 0.40f, "scarce fuel: the full-pace bot arrives with more than 40% fuel");
+    }
+
+    // One full-pace run. Asserts it reaches the lamp, is never caught, never runs dry and that the hunter struck; reports the fuel fraction it arrived with.
+    IEnumerator RunBot(int seed, Action<float> report)
+    {
+        PlayerPrefs.DeleteKey("LanternKeeperLit_island5");
         yield return Load();
+        UnityEngine.Random.InitState(seed);
+        foreach (UnityEngine.Object spawner in UnityEngine.Object.FindObjectsByType(GameType("MothSpawner"), FindObjectsInactive.Include))
+        {
+            ((Behaviour)spawner).enabled = false;
+        }
+
+        foreach (UnityEngine.Object spawner in UnityEngine.Object.FindObjectsByType(GameType("ShadeSpawner"), FindObjectsInactive.Include))
+        {
+            ((Behaviour)spawner).enabled = false;
+        }
+
+        foreach (UnityEngine.Object moth in UnityEngine.Object.FindObjectsByType(GameType("Moth"), FindObjectsInactive.Include))
+        {
+            UnityEngine.Object.Destroy(((Component)moth).gameObject);
+        }
+        // The pickups drift on Time.time (a wander and a bob), so whether the bot's path touches one depends on when the scene loaded.
+        // Pin them to their homes: the bot then collects the same ones in every run.
+        foreach (UnityEngine.Object fly in UnityEngine.Object.FindObjectsByType(GameType("Firefly"), FindObjectsInactive.Exclude))
+        {
+            foreach (string field in new[] { "wanderRadius", "bobHeight" })
+            {
+                FieldInfo info = GameType("Firefly").GetField(field, BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.IsNotNull(info, "Firefly." + field);
+                info.SetValue(fly, 0f);
+            }
+        }
+
+
+        yield return null;
         Component player = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("PlayerController"));
         object lantern = UnityEngine.Object.FindAnyObjectByType(GameType("Lantern"));
         object manager = UnityEngine.Object.FindAnyObjectByType(GameType("GameManager"));
@@ -261,6 +303,8 @@ public class Island5BalanceTest
         float tightestOpen = 999f;
         float sea = GameObject.Find("Water").transform.position.y;
         float minFuel = float.MaxValue;
+        float lastFuel = 100f;
+        int pickups = 0;
         bool caughtEver = false;
         bool atLamp = false;
         string error = null;
@@ -269,6 +313,12 @@ public class Island5BalanceTest
         {
             float fuel = (float)Member(lantern, "Fuel");
             minFuel = Mathf.Min(minFuel, fuel);
+            if (fuel - lastFuel > 5f)
+            {
+                pickups++;
+            }
+
+            lastFuel = fuel;
             if ((bool)Member(surge, "Started") && !(bool)Member(surge, "Stopped"))
             {
                 float gap = (float)Member(surge, "Gap");
@@ -394,17 +444,20 @@ public class Island5BalanceTest
         int skipped = hunter != null ? (int)Member(hunter, "Skipped") : -1;
         string highRing = GameType("RingZones").GetProperty("Reached", BindingFlags.Public | BindingFlags.Static).GetValue(null).ToString();
         float fuelAtLamp = (float)Member(lantern, "Fuel");
-        string summary = "Island5Balance SteadyBot: lamp reached at " + lampAt.ToString("F1") + " s (" + (lampAt - firstBeaconAt).ToString("F1") + " s after the first beacon), "
+        string summary = "Island5Balance SteadyBot seed " + seed + ": lamp reached at " + lampAt.ToString("F1") + " s (" + (lampAt - firstBeaconAt).ToString("F1") + " s after the first beacon), "
             + "min surge gap " + minGap.ToString("F1") + " m (at " + minGapAt.ToString("F1") + " s, keeper " + minGapHeight.ToString("F1") + " m up), tightest above 10 m up " + tightestOpen.ToString("F1") + " m, min fuel " + minFuel.ToString("F1") + "/" + maxFuel.ToString("F0") + " (at the lamp " + fuelAtLamp.ToString("F1") + "), "
-            + strikes + " strikes, " + hits + " hits, " + skipped + " dropped for shelter, high ring reached " + highRing + ", caught " + caughtEver + ", route " + length.ToString("F1") + " m";
+            + strikes + " strikes, " + pickups + " fuel jumps (firefly pickups), " + hits + " hits, " + skipped + " dropped for shelter, high ring reached " + highRing + ", caught " + caughtEver + ", route " + length.ToString("F1") + " m";
         Debug.Log(summary);
         Assert.IsNull(error, error);
         Assert.IsTrue(atLamp, "the bot did not reach the lamp in " + limit.ToString("F0") + " s. " + summary);
         Assert.IsFalse(caughtEver, "the surge caught the bot. " + summary);
         Assert.Greater(minGap, 0f, summary);
         Assert.Greater(minFuel, 0f, "the bot's fuel ran out. " + summary);
+        Assert.IsNotNull(hunter, "the lightning hunter is in the scene");
+        Assert.Greater(strikes, 0, "the hunter ran and struck. " + summary);
         Assert.IsTrue((bool)Invoke(lamp, "TryLight"), "the lamp refused to light. " + summary);
         Assert.IsEmpty(problems, "errors were logged: " + string.Join(" | ", problems));
+        report(fuelAtLamp / maxFuel);
     }
 
     [UnityTest]

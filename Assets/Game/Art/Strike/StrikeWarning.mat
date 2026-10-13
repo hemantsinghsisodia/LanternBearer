@@ -28,6 +28,7 @@ Material:
     - _Alpha: 1
     - _Progress: 0
     - _Pulse: 1
+    - _PulseCount: 3
     m_Colors:
     - _Color: {r: 0.737, g: 0.824, b: 1, a: 1}
   m_BuildTextureStacks: []

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// Island 5: switches the storm on as the keeper climbs. Wind and the Shade patrol start at Mid, lightning and rain at High.
+// Island 5: switches the storm on as the keeper climbs. Wind, the Shade patrol and the lightning hunter start at Mid, the ambient lightning and rain at High.
 // They sit in the scene switched off and are never switched off again (the ratchet). Also raises the music's tension floor and
 // starts the summit hush.
 public class RingHazards : MonoBehaviour
@@ -46,13 +46,13 @@ public class RingHazards : MonoBehaviour
         {
             Switch(wind);
             Switch(shadeSpawner);
+            Switch(hunter);
         }
 
         if (ring >= Ring.High)
         {
             Switch(lightning);
             Switch(rain);
-            Switch(hunter);
         }
 
         if (director == null)

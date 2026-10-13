@@ -8,7 +8,7 @@ namespace LanternKeeper
 // Installs Island 5's hunting lightning and scarce fuel (BuildIsland5 runs it after the storm surge, before the audio):
 //  - the material Assets/Game/Art/Strike/StrikeWarning.mat (shader LanternKeeper/StrikeWarning);
 //  - the "LightningHunter" object under the "Rings" root, switched off, wired into RingHazards (which switches it on in the High ring);
-//  - each beacon's refund (LevelConfig.beaconRefund01 of Island5.asset, 0.2);
+//  - the "LevelTuning" object (beacon refund and lantern drain multiplier, copied from Island5.asset);
 //  - half the firefly swarms: every second pickup under "Fireflies" (by sibling order) is switched off.
 // Idempotent: the object is rebuilt, the swarms are all switched on first and then every second one off. The scene is edited through
 // EditorSceneManager, never as text.
@@ -18,6 +18,7 @@ public static class LightningHunterInstaller
     public const string RootName = "LightningHunter";
     public const string MaterialPath = Folder + "/StrikeWarning.mat";
     public const string LevelPath = "Assets/Game/Levels/Island5.asset";
+    public const string TuningName = "LevelTuning";
     const string RingsName = "Rings";
     const string FirefliesName = "Fireflies";
 
@@ -104,12 +105,22 @@ public static class LightningHunterInstaller
         hazardData.FindProperty("hunter").objectReferenceValue = host;
         hazardData.ApplyModifiedPropertiesWithoutUndo();
 
-        foreach (Beacon beacon in beacons.GetComponentsInChildren<Beacon>(true))
+        // The beacon refund and the lantern drain come from the level config, the single source, through one scene object.
+        foreach (GameObject root in scene.GetRootGameObjects())
         {
-            SerializedObject beaconData = new SerializedObject(beacon);
-            beaconData.FindProperty("refund01").floatValue = config.beaconRefund01;
-            beaconData.ApplyModifiedPropertiesWithoutUndo();
+            if (root.name == TuningName)
+            {
+                Object.DestroyImmediate(root);
+            }
         }
+
+        GameObject tuningObject = new GameObject(TuningName);
+        SceneManager.MoveGameObjectToScene(tuningObject, scene);
+        LevelTuning tuning = tuningObject.AddComponent<LevelTuning>();
+        SerializedObject tuningData = new SerializedObject(tuning);
+        tuningData.FindProperty("beaconRefund01").floatValue = config.beaconRefund01;
+        tuningData.FindProperty("drainMultiplier").floatValue = config.drainMultiplier;
+        tuningData.ApplyModifiedPropertiesWithoutUndo();
 
         HalveSwarms(fireflies.transform);
         return true;

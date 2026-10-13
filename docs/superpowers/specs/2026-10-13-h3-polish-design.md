@@ -47,16 +47,17 @@ The user played the merged H2 build and raised five points:
      - The music tension floor rises as the surge closes in.
      - Retry resets it.
    - **Lightning hunts you.**
-     - In the High and Summit rings, before the lamp is lit.
-     - Every 6–10 s a strike targets a point 2–4 m from the keeper's predicted position, after a 1.0 s glowing warning ring on the ground.
-     - A hit costs 15% fuel and knocks the keeper back.
+     - From the Mid ring up (Mid, High, Summit), before the lamp is lit.
+     - Every 4–6 s a strike targets a point 2–4 m from the keeper's predicted position, after a 1.0 s glowing warning ring on the ground.
+     - A hit costs 15% fuel (never below 1 point left) and knocks the keeper back 3 m, shortened or flipped at a drop so it never throws the keeper off the path.
      - Bridges and lit-beacon safe rings are immune.
    - **Scarce fuel.**
      - Firefly density ×0.5.
-     - Lighting a beacon refunds 20% fuel.
+     - Lighting a beacon refunds 20% of the beacon's fuel cost (3 of 15 on Normal).
+     - The Island 5 lantern drains x1.6 (LevelConfig.drainMultiplier).
    - **Balance.**
      - On Normal, a bot that climbs the reachability route at walking pace must reach the lamp, and the surge must never catch it.
-     - Its fuel must never reach 0.
+     - Its fuel must never reach 0, and it must arrive at the lamp with 25–40% fuel (scarce, not impossible), measured without the random moths and Shades.
      - A bot that waits 60 s at the beach must be caught.
 
 ## Unchanged

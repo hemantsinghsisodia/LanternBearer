@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// Island 5's hunting lightning (spec: "Lightning hunts you"). Switched on by RingHazards in the High ring and active until the great lamp
-// is lit. Every 6-10 s (seeded) it picks a point 2-4 m from where the keeper will be in a second, shows a cold-blue warning ring on the
+// Island 5's hunting lightning (spec: "Lightning hunts you"). Switched on by RingHazards in the Mid ring and active until the great lamp
+// is lit. Every 4-6 s (seeded) it picks a point 2-4 m from where the keeper will be in a second, shows a cold-blue warning ring on the
 // ground for 1.0 s, then strikes: the Lightning flash and thunder crack, and a keeper within 2.5 m loses 15% of the lantern and is knocked
 // back 3 m. A keeper on a built bridge or inside a lit beacon's safe ring is never targeted and never hit, even while the storm surge is
 // catching them (the shelter checks are the geometry only, not Lantern's drain state).
@@ -16,6 +16,7 @@ public class LightningHunter : MonoBehaviour
     static readonly Color RingColour = new Color(0.737f, 0.824f, 1f, 1f);
     static readonly int ProgressId = Shader.PropertyToID("_Progress");
     static readonly int PulseId = Shader.PropertyToID("_Pulse");
+    static readonly int PulseCountId = Shader.PropertyToID("_PulseCount");
     static readonly int AlphaId = Shader.PropertyToID("_Alpha");
     static readonly int ColourId = Shader.PropertyToID("_Color");
 
@@ -48,6 +49,8 @@ public class LightningHunter : MonoBehaviour
     public Vector3 StrikePoint { get; private set; }
     public int Strikes { get; private set; }
     public int Hits { get; private set; }
+    // The distance the last hit actually threw the keeper (3 m unless the ground ran out).
+    public float KnockDistanceUsed { get; private set; }
     // Strikes that came due while the keeper (or the point) was sheltered and were dropped.
     public int Skipped { get; private set; }
     public float SecondsToNextStrike => countdown;
@@ -56,6 +59,8 @@ public class LightningHunter : MonoBehaviour
     public bool RingVisible => ringRenderer != null && ringRenderer.enabled;
     // How deep the ring pulses: 1, or a soft 0.3 with Reduce flashing.
     public float PulseDepth => UserSettings.ReduceFlashing ? 0.3f : 1f;
+    // Pulses over the 1.0 s warning: 3, or one (1 Hz) with Reduce flashing.
+    public float PulseCount => UserSettings.ReduceFlashing ? 1f : 3f;
     public Mesh RingMesh => ringMesh;
     public Material RingMaterial => runtimeMaterial;
 
@@ -294,6 +299,11 @@ public class LightningHunter : MonoBehaviour
         {
             storm.StrikeFlash();
         }
+        else
+        {
+            // Mid ring: the ambient storm has not started yet (it waits for High), so the strike brings its own crack and light.
+            PlayOwnCrack();
+        }
 
         StartLight();
         Resolve();
@@ -314,7 +324,10 @@ public class LightningHunter : MonoBehaviour
             lantern.Hit(lantern.MaxFuel * StrikeLogic.FuelFraction);
         }
 
-        player.Knockback(StrikeLogic.KnockDirection(keeper, StrikePoint, player.transform.forward), StrikeLogic.KnockDistance);
+        Vector3 knock = StrikeLogic.KnockDirection(keeper, StrikePoint, player.transform.forward);
+        float distance = SafeKnockDistance(keeper, ref knock);
+        KnockDistanceUsed = distance;
+        player.Knockback(knock, distance);
         if (lowFuel == null)
         {
             lowFuel = FindAnyObjectByType<LowFuelFX>();
@@ -323,6 +336,94 @@ public class LightningHunter : MonoBehaviour
         if (lowFuel != null)
         {
             lowFuel.PulseEdge(0.6f, RingColour);
+        }
+    }
+
+    // ---- the knock-back edge guard ----
+
+    const float KnockStep = 0.5f;
+    // The ground may fall away this much between steps (a stair) but no more; a taller drop ends the throw.
+    const float MaxDrop = 0.9f;
+    const float MaxRise = 1.0f;
+
+    // How far the keeper may be thrown along `direction` (at most KnockDistance): the throw stops at the last step with ground within
+    // MaxDrop below and MaxRise above the previous step. If the first steps are already a drop the throw flips to the other way (toward the
+    // strike) when that is longer. Public so tests can probe it.
+    public static float SafeKnockDistance(Vector3 from, ref Vector3 direction)
+    {
+        float forward = SafeRun(from, direction);
+        if (forward >= 1f)
+        {
+            return forward;
+        }
+
+        float back = SafeRun(from, -direction);
+        if (back > forward)
+        {
+            direction = -direction;
+            return back;
+        }
+
+        return forward;
+    }
+
+    static float SafeRun(Vector3 from, Vector3 direction)
+    {
+        float ground;
+        if (!GroundAt(from, from.y, out ground))
+        {
+            return StrikeLogic.KnockDistance;
+        }
+
+        float safe = 0f;
+        float previous = ground;
+        for (float d = KnockStep; d <= StrikeLogic.KnockDistance + 0.001f; d += KnockStep)
+        {
+            Vector3 probe = from + direction.normalized * d;
+            float height;
+            if (!GroundAt(probe, previous, out height) || height < previous - MaxDrop || height > previous + MaxRise)
+            {
+                break;
+            }
+
+            previous = height;
+            safe = d;
+        }
+
+        return safe;
+    }
+
+    // The ground under a point (a downward ray from a little above `reference`; terrain, rocks and decks all count).
+    static bool GroundAt(Vector3 point, float reference, out float height)
+    {
+        Vector3 origin = new Vector3(point.x, reference + 1.2f, point.z);
+        RaycastHit hit;
+        if (Physics.Raycast(origin, Vector3.down, out hit, 6f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            height = hit.point.y;
+            return true;
+        }
+
+        height = reference - 100f;
+        return false;
+    }
+
+    // ---- the strike's own crack (no ambient Lightning yet) ----
+
+    AudioSource crack;
+
+    void PlayOwnCrack()
+    {
+        if (crack == null)
+        {
+            crack = StormAudio.Make(gameObject, null, false, 0f);
+        }
+
+        StormAudio.Route(crack, false);
+        AudioClip clip = AudioManager.CueClip(SoundCues.ThunderCrack);
+        if (clip != null)
+        {
+            crack.PlayOneShot(clip, 0.9f * StormAudio.MuteGain);
         }
     }
 
@@ -494,6 +595,7 @@ public class LightningHunter : MonoBehaviour
 
         runtimeMaterial.SetFloat(ProgressId, progress);
         runtimeMaterial.SetFloat(PulseId, PulseDepth);
+        runtimeMaterial.SetFloat(PulseCountId, PulseCount);
         runtimeMaterial.SetFloat(AlphaId, UserSettings.ReduceFlashing ? 0.7f : 1f);
     }
 }

@@ -66,6 +66,13 @@ public class PlayerController : MonoBehaviour
     Vector3 knockVelocity;
     float knockLeft;
 
+    // Ends a knock-back in progress (a teleport, a pause, a death).
+    public void ClearKnock()
+    {
+        knockLeft = 0f;
+        knockVelocity = Vector3.zero;
+    }
+
     public void Knockback(Vector3 direction, float distance)
     {
         direction.y = 0f;
@@ -149,6 +156,7 @@ public class PlayerController : MonoBehaviour
         {
             ExternalMove = Vector2.zero;
             ExternalPush = Vector3.zero;
+            ClearKnock();
             ExternalJump = false;
             IsSprinting = false;
             HorizontalSpeed = 0f;

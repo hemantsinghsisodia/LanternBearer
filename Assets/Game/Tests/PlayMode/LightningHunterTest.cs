@@ -289,7 +289,9 @@ public class LightningHunterTest
         Assert.AreEqual(1, (int)Get(hunter, "Hits"), "a strike on the keeper hits");
         Assert.AreEqual(before - max * 0.15f, Fuel(), 0.05f, "a hit costs 15% of max fuel");
         Vector3 after = Player().transform.position;
-        Assert.Greater(new Vector2(after.x - start.x, after.z - start.z).magnitude, 1.5f, "the keeper is knocked back");
+        float thrown = new Vector2(after.x - start.x, after.z - start.z).magnitude;
+        Assert.AreEqual(3f, (float)Get(hunter, "KnockDistanceUsed"), 1e-3f, "open ground: the full 3 m throw");
+        Assert.AreEqual(3f, thrown, 0.6f, "the keeper is knocked back about 3 m");
 
         // A near miss: the keeper moved 3 m away from the last hit; a strike 6 m off does nothing.
         float fuel = Fuel();
@@ -373,6 +375,88 @@ public class LightningHunterTest
         Assert.IsFalse((bool)Get(hunter, "WarningActive"));
     }
 
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator HitNeverLeavesOneFuel()
+    {
+        Component hunter = null;
+        yield return Stage(h => hunter = h);
+        Call(Lantern(), "TrySpend", Fuel() - 10f);
+        Assert.AreEqual(10f, Fuel(), 0.05f);
+        Call(hunter, "BeginWarning", Player().transform.position);
+        yield return Wait(StrikeLogic.WarnSeconds + 0.4f);
+        Assert.AreEqual(1, (int)Get(hunter, "Hits"));
+        Assert.AreEqual(1f, Fuel(), 0.05f, "a strike alone never kills: one point is left");
+        Assert.IsFalse((bool)Get(Lantern(), "IsDepleted"));
+    }
+
+    // A walkway edge: find a grounded spot where one side drops away by more than 3 m within 2.5 m and the other side is solid.
+    // Strike on the inner side so the throw points over the edge. The keeper must not be thrown into the drop.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator HitOnTheWalkwayEdgeNeverThrowsOffThePath()
+    {
+        Component hunter = null;
+        yield return Stage(h => hunter = h);
+        Terrain terrain = Terrain.activeTerrain;
+        float baseY = terrain.transform.position.y;
+        bool found = false;
+        Vector3 edge = Vector3.zero;
+        Vector3 outward = Vector3.zero;
+        for (int step = 0; step <= 1000 && !found; step++)
+        {
+            float u = step / 1000f;
+            if (SpireLayout.PathHeight(u) < 20f || InGap(u))
+            {
+                continue;
+            }
+
+            Vector2 xz = SpireLayout.PathPoint(u);
+            Vector3 p = new Vector3(xz.x, 0f, xz.y);
+            float here = terrain.SampleHeight(p) + baseY;
+            for (int a = 0; a < 360 && !found; a += 15)
+            {
+                Vector3 dir = new Vector3(Mathf.Cos(a * Mathf.Deg2Rad), 0f, Mathf.Sin(a * Mathf.Deg2Rad));
+                float drop = here - (terrain.SampleHeight(p + dir * 2.5f) + baseY);
+                float behind = here - (terrain.SampleHeight(p - dir * 1.5f) + baseY);
+                if (drop > 3f && Mathf.Abs(behind) < 0.5f)
+                {
+                    edge = p;
+                    outward = dir;
+                    found = true;
+                }
+            }
+        }
+
+        Assert.IsTrue(found, "the spire has a walkway edge with a drop of more than 3 m");
+        Vector3 start = edge;
+        start.y = terrain.SampleHeight(edge) + baseY + 0.3f;
+        Teleport(start);
+        yield return Wait(0.6f);
+        float groundedY = Player().transform.position.y;
+        Lantern().GetType().GetProperty("DrainFrozen").SetValue(Lantern(), true);
+        // The strike is on the inner side, so the throw points outward over the drop.
+        Call(hunter, "BeginWarning", Player().transform.position - outward * 0.8f);
+        yield return Wait(StrikeLogic.WarnSeconds + 1.2f);
+        Assert.AreEqual(1, (int)Get(hunter, "Hits"), "the keeper was hit");
+        Vector3 after = Player().transform.position;
+        Assert.GreaterOrEqual(after.y, groundedY - 1.2f, "the keeper was not thrown off the edge: now " + after.ToString("F1") + " from " + start.ToString("F1"));
+        Assert.Less((float)Get(hunter, "KnockDistanceUsed"), 3f, "the throw was shortened or flipped at the edge");
+        CharacterController body = Player().GetComponent<CharacterController>();
+        Assert.IsTrue(body.isGrounded || Mathf.Abs(after.y - groundedY) < 1.2f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator ReduceFlashingSlowsTheWarningPulse()
+    {
+        Component hunter = null;
+        yield return Stage(h => hunter = h);
+        Assert.AreEqual(3f, (float)Get(hunter, "PulseCount"), 1e-4f);
+        UserSettings.ReduceFlashing = true;
+        Assert.AreEqual(1f, (float)Get(hunter, "PulseCount"), 1e-4f, "one pulse over the 1.0 s warning (1 Hz)");
+    }
     [UnityTest]
     [Timeout(300000)]
     public IEnumerator StrikeRespectsReduceFlashing()
@@ -419,6 +503,7 @@ public class LightningHunterTest
         yield return Load("Island1");
         Component first = GameObject.Find("Beacons").transform.GetChild(0).GetComponent(GameType("Beacon"));
         Assert.AreEqual(0f, (float)Get(first, "Refund01"), "Island 1 refunds nothing");
+        Assert.AreEqual(1f, (float)StaticProperty("LevelTuning", "DrainMultiplier"), "Island 1 drains at 1x");
         Lantern().GetType().GetProperty("DrainFrozen").SetValue(Lantern(), true);
         Assert.IsTrue((bool)Call(Lantern(), "TrySpend", 40f));
         float before = Fuel();
@@ -428,22 +513,36 @@ public class LightningHunterTest
         yield return Load("Island4");
         Component four = GameObject.Find("Beacons").transform.GetChild(0).GetComponent(GameType("Beacon"));
         Assert.AreEqual(0f, (float)Get(four, "Refund01"), "Island 4 refunds nothing");
+        Assert.AreEqual(1f, (float)StaticProperty("LevelTuning", "DrainMultiplier"), "Island 4 drains at 1x");
 
+        // Island 5: the numbers come from Island5.asset (the one source), through the scene's LevelTuning.
+        UnityEngine.Object config = UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Game/Levels/Island5.asset", GameType("LevelConfig"));
+        Assert.IsNotNull(config, "Island5.asset");
+        float refund = (float)GameType("LevelConfig").GetField("beaconRefund01").GetValue(config);
+        float drain = (float)GameType("LevelConfig").GetField("drainMultiplier").GetValue(config);
+        Assert.Greater(refund, 0f);
+        Assert.GreaterOrEqual(drain, 1.3f);
+        Assert.LessOrEqual(drain, 1.7f);
         yield return Load("Island5");
         StormSurgeSwitch.DisableFor("Island5");
         Transform beacons = GameObject.Find("Beacons").transform;
+        Assert.AreEqual(refund, (float)StaticProperty("LevelTuning", "BeaconRefund01"), 1e-5f);
+        Assert.AreEqual(drain, (float)StaticProperty("LevelTuning", "DrainMultiplier"), 1e-5f);
+        object tuning = UnityEngine.Object.FindAnyObjectByType(GameType("LevelTuning"));
+        Assert.AreEqual(drain, (float)Call(Lantern(), "GetDrainModifier", tuning), 1e-5f, "the lantern drains at the level's multiplier");
         for (int i = 0; i < beacons.childCount; i++)
         {
-            Assert.AreEqual(0.2f, (float)Get(beacons.GetChild(i).GetComponent(GameType("Beacon")), "Refund01"), 1e-4f, "Island 5 beacon " + i);
+            Assert.AreEqual(refund, (float)Get(beacons.GetChild(i).GetComponent(GameType("Beacon")), "Refund01"), 1e-5f, "Island 5 beacon " + i);
         }
 
         Component beacon = beacons.GetChild(0).GetComponent(GameType("Beacon"));
         Lantern().GetType().GetProperty("DrainFrozen").SetValue(Lantern(), true);
         Assert.IsTrue((bool)Call(Lantern(), "TrySpend", 40f));
         before = Fuel();
-        float max = (float)Get(Lantern(), "MaxFuel");
+        float cost = (float)Get(beacon, "FuelCost");
         Assert.IsTrue((bool)Call(beacon, "TryLight"));
-        Assert.AreEqual(before - (float)Get(beacon, "FuelCost") + max * 0.2f, Fuel(), 0.01f, "Island 5: lighting a beacon refunds 20% of max fuel");
+        Assert.AreEqual(before - cost + cost * refund, Fuel(), 0.01f, "Island 5: lighting a beacon refunds a fraction of its cost");
+        Assert.Less(Fuel(), before, "the beacon still costs fuel overall");
     }
 
     [UnityTest]
