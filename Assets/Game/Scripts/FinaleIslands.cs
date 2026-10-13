@@ -243,36 +243,12 @@ public class FinaleIslands : MonoBehaviour
         }
     }
 
+    // The sun glow card and the sun path card are retired: the sun is now a disc and halo in the sky shader (FinaleSequence drives it) and the
+    // sun path lives in the water shader. The cards were additive quads whose straight angled edges showed as a lighter band at the horizon.
     void TickSun(float t)
     {
-        float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart + 3f) / (FinaleTimeline.SunriseLength - 2f)));
-        bool on = u > 0.001f;
-        if (sunGlowRenderer != null)
-        {
-            if (sunGlowRenderer.enabled != on) sunGlowRenderer.enabled = on;
-            if (on)
-            {
-                if (viewer != null && sunGlow != null) sunGlow.rotation = viewer.transform.rotation;
-                Color c = sunColor;
-                c.a = 0.95f * u;
-                sunGlowRenderer.GetPropertyBlock(block);
-                block.SetColor(BaseColorId, c);
-                sunGlowRenderer.SetPropertyBlock(block);
-            }
-        }
-
-        if (sunPathRenderer != null)
-        {
-            if (sunPathRenderer.enabled != on) sunPathRenderer.enabled = on;
-            if (on)
-            {
-                Color c = sunColor;
-                c.a = 0.8f * u;
-                sunPathRenderer.GetPropertyBlock(block);
-                block.SetColor(BaseColorId, c);
-                sunPathRenderer.SetPropertyBlock(block);
-            }
-        }
+        if (sunGlowRenderer != null && sunGlowRenderer.enabled) sunGlowRenderer.enabled = false;
+        if (sunPathRenderer != null && sunPathRenderer.enabled) sunPathRenderer.enabled = false;
     }
 
     // Fade (dithered) and the flare light on one of an island's lit bodies.

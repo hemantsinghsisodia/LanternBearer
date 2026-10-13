@@ -330,6 +330,7 @@ public static partial class FinaleInstaller
         sequenceData.FindProperty("islands").objectReferenceValue = islands;
         sequenceData.FindProperty("dawn").objectReferenceValue = dawn;
         sequenceData.FindProperty("embers").objectReferenceValue = embers;
+        sequenceData.FindProperty("finaleGrade").objectReferenceValue = BuildGradeVolume(finaleObject.transform);
         sequenceData.ApplyModifiedPropertiesWithoutUndo();
 
         SerializedObject managerData = new SerializedObject(manager);
@@ -706,6 +707,24 @@ public static partial class FinaleInstaller
         }
 
         return EditorSceneManager.OpenScene(BridgeInstaller.ScenePath, OpenSceneMode.Single);
+    }
+
+    public const string GradeVolumeName = "LookVolume_finale";
+
+    // The finale colour grade: a global volume (priority 2, above the dawn grade, below the effects volume) at weight 0, which FinaleSequence blends in
+    // over the sunrise. The profile is its own asset (LookVolume_finale); the shared look and dawn profiles are never touched.
+    static Volume BuildGradeVolume(Transform parent)
+    {
+        VolumeProfile profile = LookVolumeBuilder.BuildFinale();
+        GameObject volumeObject = new GameObject(GradeVolumeName);
+        volumeObject.transform.SetParent(parent, false);
+        Volume volume = volumeObject.AddComponent<Volume>();
+        volume.isGlobal = true;
+        volume.priority = 2f;
+        volume.weight = 0f;
+        volume.sharedProfile = profile;
+        volumeObject.AddComponent<LookVolumeQuality>();
+        return volume;
     }
 }
 }

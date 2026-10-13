@@ -17,6 +17,14 @@ Shader "LanternKeeper/Water"
         _WaveAmp ("Wave Amp", Float) = 8
         _FadeStart ("Ring Start", Float) = 520
         _FadeEnd ("Ring End", Float) = 630
+        // The Island 5 finale sunrise (FinaleSequence blends _FinaleSea 0 -> 1 on its own material instance): a deep teal sea that is
+        // lighter toward the horizon, a narrow gold sun path with sparkle, no fog or tint mix and a solid far sea. 0 = the island water, unchanged.
+        _FinaleSea ("Finale Sea (0 = off)", Range(0, 1)) = 0
+        _FinaleNear ("Finale Near", Color) = (0.118, 0.29, 0.361, 1)
+        _FinaleFar ("Finale Far", Color) = (0.17, 0.416, 0.478, 1)
+        _FinaleHorizon ("Finale Horizon", Color) = (0.6, 0.5, 0.42, 1)
+        _FinalePath ("Finale Sun Path Strength", Float) = 0
+        _FinalePathColor ("Finale Sun Path", Color) = (1, 0.827, 0.541, 1)
     }
     SubShader
     {
@@ -60,6 +68,12 @@ Shader "LanternKeeper/Water"
             float _FadeEnd;
             float4 _WaterTint;
             float _LKLightningFlash;
+            float _FinaleSea;
+            float4 _FinaleNear;
+            float4 _FinaleFar;
+            float4 _FinaleHorizon;
+            float _FinalePath;
+            float4 _FinalePathColor;
 
             struct Attributes
             {
@@ -166,6 +180,15 @@ Shader "LanternKeeper/Water"
                 float2 camToFrag = absoluteWS.xz - GetAbsolutePositionWS(_WorldSpaceCameraPos.xyz).xz;
                 float eye = length(camToFrag);
 
+                // Finale sea: deep teal, darker near the camera and lighter toward the horizon. The shallows keep the island's lighter water.
+                float finale = saturate(_FinaleSea);
+                if (finale > 0.001)
+                {
+                    float farBlend = 1.0 - exp(-eye / 700.0);
+                    float3 seaColor = lerp(_FinaleNear.rgb, _FinaleFar.rgb, farBlend);
+                    water = lerp(water, lerp(_ShallowColor.rgb, seaColor, depth01), finale);
+                }
+
 #if !defined(_LK_WATER_LOW)
                 // Painterly swell bands: two octaves of soft value noise, slowly scrolled.
                 float2 sp = absoluteWS.xz * _SwellScale + float2(time * _SwellSpeed, time * _SwellSpeed * 0.6);
@@ -184,9 +207,31 @@ Shader "LanternKeeper/Water"
                     float width = 4.0 + 0.12 * max(along, 0.0);
                     float streak = (1.0 - smoothstep(0.0, width, abs(lateral))) * smoothstep(6.0, 40.0, along);
                     float dashes = smoothstep(0.4, 0.75, ValueNoise(float2(along * 0.2 - time * 0.15, lateral * 0.08)));
-                    water += _RimColor.rgb * (streak * dashes * _MoonPathStrength);
+                    water += _RimColor.rgb * (streak * dashes * _MoonPathStrength * (1.0 - finale));
                 }
 #endif
+
+                // The sun path: narrower than the old moon streak, with sparkle that grows toward the sun. (Low keeps the path, without the noise.)
+                if (finale > 0.001 && _FinalePath > 0.001 && _MoonDir.w > 0.5 && length(_MoonDir.xz) > 0.001)
+                {
+                    float2 sm = normalize(_MoonDir.xz);
+                    float sAlong = dot(camToFrag, sm);
+                    float sLateral = dot(camToFrag, float2(-sm.y, sm.x));
+                    float sWidth = 2.0 + 0.045 * max(sAlong, 0.0);
+                    float lat = abs(sLateral) / sWidth;
+                    float core = 1.0 - smoothstep(0.0, 1.0, lat);
+                    float halo = exp(-lat * lat * 2.2);
+                    float reach = smoothstep(30.0, 220.0, sAlong);
+                    float sparkle = 0.55;
+#if !defined(_LK_WATER_LOW)
+                    float2 gp = absoluteWS.xz * 0.34 + float2(time * 0.42, -time * 0.27);
+                    float glint = smoothstep(0.62, 0.92, ValueNoise(gp) * 0.6 + ValueNoise(gp * 2.7 + 3.3) * 0.4);
+                    float dash = smoothstep(0.3, 0.7, ValueNoise(float2(sAlong * 0.12 - time * 0.2, sLateral * 0.2)));
+                    sparkle = 0.18 + 0.5 * dash + 0.95 * glint;
+#endif
+                    float3 pathColor = lerp(_FinalePathColor.rgb, float3(1.0, 0.906, 0.69), saturate(sAlong / 1400.0));
+                    water += pathColor * reach * (core * sparkle + halo * 0.16) * _FinalePath * finale;
+                }
 
                 // Lighting: the moon and the lantern light the flat surface, so the lantern pools on the water.
                 Light mainLight = GetMainLight();
@@ -204,7 +249,7 @@ Shader "LanternKeeper/Water"
                     lit += addLight.color * (addLight.distanceAttenuation * saturate(addLight.direction.y + 0.35));
                 LIGHT_LOOP_END
                 #endif
-                water += water * lit;
+                water += water * lit * (1.0 - finale);
 
                 // Foam line, pulsing gently with the swell.
                 float pulse = 1.0 + 0.2 * sin(time * 0.9 + absoluteWS.x * 0.05 + absoluteWS.z * 0.04);
@@ -227,18 +272,22 @@ Shader "LanternKeeper/Water"
 
                 water += _LKLightningFlash * 0.10 * _RimColor.rgb;
 
-                water *= TintOrWhite(_WaterTint.rgb);
+                water *= lerp(TintOrWhite(_WaterTint.rgb), float3(1, 1, 1), finale);
 
+                // The fog mix is 32% of the fog colour at ANY distance (this fog variant is at full strength), which at the finale (a gold horizon
+                // fog colour) turned the whole sea brown. The finale sea takes no fog at all.
                 float fogFactor = ComputeFogFactor(input.positionCS.z);
                 float3 fogged = MixFog(water, fogFactor);
-                water = lerp(water, fogged, 0.32);
+                water = lerp(water, fogged, 0.32 * (1.0 - finale));
 
-                // Distant ring fades into the fog colour rather than a sky cubemap.
+                // Distant ring fades into the fog colour rather than a sky cubemap (the finale: into the warm horizon colour).
                 float ring = smoothstep(_FadeStart, _FadeEnd, length(absoluteWS.xz));
-                water = lerp(water, unity_FogColor.rgb, ring);
+                water = lerp(water, lerp(unity_FogColor.rgb, _FinaleHorizon.rgb, finale), ring);
 
                 float alpha = lerp(_ShallowColor.a, 0.92, depth01);
                 alpha *= saturate(depth / 0.12);
+                // The far finale sea is solid (the sky and the floor never show through it); the shallows by the islands stay clear.
+                alpha = lerp(alpha, 1.0, finale * depth01 * smoothstep(120.0, 400.0, eye));
                 alpha = max(alpha, foam * _FoamColor.a);
                 alpha = max(alpha, rim * 0.7);
                 return half4(water, saturate(alpha));

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace LanternKeeper
 {
@@ -28,6 +29,16 @@ public class FinaleSequence : MonoBehaviour
     const float SeaFar = 4000f;
     const float SeaScale = 8f;
     const float HaloSize = 16f;
+    const float FloorSink = 300f;
+    // The finale grade volume (warm balance, lifted shadows, mild bloom, a slight vignette): weight 0 until the sunrise, GradeTarget at its end.
+    public const float GradeTarget = 1f;
+    // The sun rises from just under the horizon to SunRiseDegrees above it, at the real sun bearing (FinaleCamera.SunBearing).
+    const float SunSetDegrees = -2.5f, SunRiseDegrees = 6.5f;
+    // The sea at the sunrise (deep blue-teal, lighter to the horizon) and the gold sun path.
+    static readonly Color SeaNearColor = new Color(0.095f, 0.26f, 0.34f, 1f);
+    static readonly Color SeaFarColor = new Color(0.173f, 0.416f, 0.478f, 1f);
+    static readonly Color SeaHorizonColor = new Color(0.62f, 0.56f, 0.47f, 1f);
+    static readonly Color SunPathColor = new Color(1f, 0.827f, 0.541f, 1f);
 
     [SerializeField] GreatLamp lamp;
     [SerializeField] GreatLampBeam beam;
@@ -39,10 +50,13 @@ public class FinaleSequence : MonoBehaviour
     [SerializeField] FinaleIslands islands;
     [SerializeField] DawnSequence dawn;
     [SerializeField] ParticleSystem embers;
+    // Finale only (not in Islands 1-4): the sunrise colour grade, blended in over the sunrise.
+    [SerializeField] Volume finaleGrade;
 
     Coroutine running;
     Material sky;
     float skyExponent = 1.6f;
+    float skyBand = 0.12f;
     Color cloudColor = Color.gray;
     Material seaMaterial;
     bool sunriseStarted;
@@ -54,6 +68,7 @@ public class FinaleSequence : MonoBehaviour
     public float Elapsed { get; private set; }
     public FinalePhase Phase { get; private set; }
     public bool Finished { get; private set; }
+    public Volume FinaleGrade => finaleGrade;
 
     void OnDestroy()
     {
@@ -125,7 +140,7 @@ public class FinaleSequence : MonoBehaviour
             dawn.WaterWarmth = 1f;
             dawn.WaterTintOverride = new Color(0.55f, 0.85f, 1.05f, 1f);
             dawn.DawnGradeWeight = 0f;
-            dawn.SkyTopOverride = new Color(0.16f, 0.15f, 0.46f, 1f);
+            dawn.SkyTopOverride = new Color(0.1f, 0.17f, 0.72f, 1f);
             dawn.HorizonOverride = new Color(1f, 0.74f, 0.46f, 1f);
             dawn.AmbientOverride = new Color(0.30f, 0.38f, 0.62f, 1f);
             dawn.ExposureScale = 0.6f;
@@ -149,10 +164,19 @@ public class FinaleSequence : MonoBehaviour
         if (sky != null && sky.HasProperty("_Exponent"))
         {
             skyExponent = sky.GetFloat("_Exponent");
+            if (sky.HasProperty("_HorizonBand"))
+            {
+                skyBand = sky.GetFloat("_HorizonBand");
+            }
+
             cloudColor = sky.HasProperty("_CloudColor") ? sky.GetColor("_CloudColor") : cloudColor;
         }
 
         MakeSeaSeamless();
+        if (finaleGrade != null)
+        {
+            finaleGrade.weight = 0f;
+        }
 
         // The Rain follows the camera; the wall tears open at the end of it.
         Rain rain = FindAnyObjectByType<Rain>();
@@ -205,8 +229,7 @@ public class FinaleSequence : MonoBehaviour
             camera.farClipPlane = SeaFar;
         }
 
-        // The sand floor 10 m under the water shows through it and turns the sea brown in the dawn light: a private dark teal copy of its material.
-        // (The floor itself stays, it keeps the water depth even.)
+        // The sand floor 10 m under the water: a private dark teal copy of its material (it is no longer the cause of a brown sea, see Water.shader _FinaleSea).
         GameObject floor = GameObject.Find("SeaFloor");
         if (floor == null)
         {
@@ -217,9 +240,11 @@ public class FinaleSequence : MonoBehaviour
         if (floorRenderer != null && floorRenderer.sharedMaterial != null && floorRenderer.sharedMaterial.HasProperty("_BaseColor"))
         {
             floorRenderer.material.SetColor("_BaseColor", new Color(0.02f, 0.05f, 0.07f, 1f));
-            // Out past the floor the water would blend over the bright sky (brown): the floor grows with the sea.
+            // The floor grows with the sea and sinks well under it: at 10 m it was an opaque plane that depth-clipped the god rays along straight
+            // angled edges (the lighter band at the horizon). The sea is solid out there, so the floor is never seen; the water depth stays deep.
             Vector3 floorScale = floor.transform.localScale;
             floor.transform.localScale = new Vector3(floorScale.x * SeaScale, floorScale.y, floorScale.z * SeaScale);
+            floor.transform.position += Vector3.down * FloorSink;
         }
 
         GameObject water = GameObject.Find("Water");
@@ -239,8 +264,18 @@ public class FinaleSequence : MonoBehaviour
             {
                 Material instance = renderer.material;
                 seaMaterial = instance;
-                instance.SetFloat("_FadeStart", 2800f);
-                instance.SetFloat("_FadeEnd", 3800f);
+                instance.SetFloat("_FadeStart", 2400f);
+                instance.SetFloat("_FadeEnd", 3900f);
+                // The finale sea (Water.shader _FinaleSea): off until the sunrise blends it in.
+                if (instance.HasProperty("_FinaleSea"))
+                {
+                    instance.SetFloat("_FinaleSea", 0f);
+                    instance.SetFloat("_FinalePath", 0f);
+                    instance.SetColor("_FinaleNear", SeaNearColor);
+                    instance.SetColor("_FinaleFar", SeaFarColor);
+                    instance.SetColor("_FinaleHorizon", SeaHorizonColor);
+                    instance.SetColor("_FinalePathColor", SunPathColor);
+                }
             }
         }
     }
@@ -307,25 +342,60 @@ public class FinaleSequence : MonoBehaviour
             clouds.Tick(t);
         }
 
-        // The sunrise sky keeps a blue-violet to gold gradient: the exponent drops so the gold does not cover the whole view.
+        float sunrise = Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise));
+        // The sunrise sky is blue-violet high up, graded to gold and peach at the horizon: the exponent drops so the violet takes the upper sky, and the
+        // horizon band (the pre-dawn first-light glow, here at full strength) holds the gold low down.
         if (t >= FinaleTimeline.SunriseStart && sky != null && sky.HasProperty("_Exponent"))
         {
-            sky.SetFloat("_Exponent", Mathf.Lerp(skyExponent, 0.3f, Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
+            sky.SetFloat("_Exponent", Mathf.Lerp(skyExponent, 0.18f, sunrise));
+            if (sky.HasProperty("_HorizonBand"))
+            {
+                sky.SetFloat("_HorizonBand", Mathf.Lerp(skyBand, 0.03f, sunrise));
+            }
+            if (sky.HasProperty("_HorizonBlend"))
+            {
+                sky.SetFloat("_HorizonBlend", sunrise);
+            }
+
             if (sky.HasProperty("_CloudColor"))
             {
-                sky.SetColor("_CloudColor", Color.Lerp(cloudColor, new Color(0.46f, 0.38f, 0.62f, cloudColor.a), Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
+                sky.SetColor("_CloudColor", Color.Lerp(cloudColor, new Color(0.3f, 0.28f, 0.62f, cloudColor.a), sunrise));
+            }
+
+            // The sun: a disc and a warm halo at the real sun bearing, just under the horizon at first and rising a little.
+            if (sky.HasProperty("_SunAlpha"))
+            {
+                float bearing = FinaleCamera.SunBearing * Mathf.Deg2Rad;
+                float elevation = Mathf.Lerp(SunSetDegrees, SunRiseDegrees, sunrise) * Mathf.Deg2Rad;
+                Vector3 toSun = new Vector3(Mathf.Sin(bearing) * Mathf.Cos(elevation), Mathf.Sin(elevation), Mathf.Cos(bearing) * Mathf.Cos(elevation));
+                sky.SetVector("_SunDir", new Vector4(toSun.x, toSun.y, toSun.z, 0f));
+                sky.SetFloat("_SunAlpha", Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(sunrise / 0.35f)));
+            }
+        }
+
+        // The sea turns deep blue-teal with a gold path as the sun comes up; the grade warms the whole picture over the sunrise.
+        if (t >= FinaleTimeline.SunriseStart)
+        {
+            if (seaMaterial != null && seaMaterial.HasProperty("_FinaleSea"))
+            {
+                seaMaterial.SetFloat("_FinaleSea", Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(sunrise / 0.55f)));
+                seaMaterial.SetFloat("_FinalePath", Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((sunrise - 0.1f) / 0.7f)));
+            }
+
+            if (finaleGrade != null)
+            {
+                finaleGrade.weight = GradeTarget * sunrise;
             }
         }
 
         if (!sunriseStarted && t >= FinaleTimeline.SunriseStart)
         {
             sunriseStarted = true;
-            // The sea turns deep blue-teal for the sunrise (the dawn light warms the night colours to brown otherwise).
             if (seaMaterial != null)
             {
+                // The shallows round the lighthouse stay a clear blue-teal; the rim lines and the sun path are gold (the finale sea's own colours do the rest).
                 seaMaterial.SetColor("_DeepColor", new Color(0.015f, 0.08f, 0.18f, 0.92f));
                 seaMaterial.SetColor("_ShallowColor", new Color(0.05f, 0.2f, 0.36f, 0.5f));
-                // The sun path is the water's moon streak, drawn in _RimColor: gold for the sunrise.
                 seaMaterial.SetColor("_RimColor", new Color(1f, 0.83f, 0.54f, 1f));
             }
 

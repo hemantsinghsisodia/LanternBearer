@@ -1234,6 +1234,33 @@ public static partial class SceneWiring
             }
         }
 
+        // H4 finale grade: the global volume (weight 0 until the sunrise, its own profile) wired into the sequence.
+        UnityEngine.Rendering.Volume gradeVolume = null;
+        foreach (UnityEngine.Rendering.Volume candidate in Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsInactive.Include))
+        {
+            if (candidate.name == FinaleInstaller.GradeVolumeName)
+            {
+                gradeVolume = candidate;
+            }
+        }
+
+        if (gradeVolume == null || gradeVolume.sharedProfile == null || !gradeVolume.isGlobal || gradeVolume.weight != 0f)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing the finale grade volume (global, weight 0, with its profile)");
+            }
+        }
+        else if (finaleSeq != null && new SerializedObject(finaleSeq).FindProperty("finaleGrade").objectReferenceValue != gradeVolume)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " FinaleSequence.finaleGrade is not wired");
+            }
+        }
+
         // H3 rising storm: the surge with its material, and the HUD chip that reads it.
         StormSurge stormSurge = Object.FindAnyObjectByType<StormSurge>(FindObjectsInactive.Include);
         if (stormSurge == null)

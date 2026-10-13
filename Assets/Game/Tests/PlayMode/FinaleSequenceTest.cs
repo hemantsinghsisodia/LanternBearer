@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -353,6 +354,65 @@ public class FinaleSequenceTest
         }
     }
 
+    const string FinaleGradeName = "LookVolume_finale";
+
+    // Islands 1-4 never get the finale grade: no volume of that name or profile exists, enabled or not.
+    static void AssertNoFinaleGrade(string when)
+    {
+        foreach (Volume volume in UnityEngine.Object.FindObjectsByType<Volume>(FindObjectsInactive.Include))
+        {
+            Assert.AreNotEqual(FinaleGradeName, volume.name, "no finale grade volume " + when);
+            Assert.IsFalse(volume.sharedProfile != null && volume.sharedProfile.name == FinaleGradeName, "no finale grade profile " + when);
+        }
+    }
+
+    // The Island 5 finale grade (warm balance, lifted shadows, mild bloom, a slight vignette) is weight 0 until the sunrise and reaches its target at the end.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator FinaleGradeBlendsInOverTheSunrise()
+    {
+        yield return Load("Island5");
+        SetTestSpeed(8f);
+        Component manager = (Component)Find("GameManager");
+        Subscribe(manager);
+        Component finale = (Component)Find("FinaleSequence");
+        Volume grade = (Volume)Get(finale, "FinaleGrade");
+        Assert.IsNotNull(grade, "Island 5 has the finale grade volume");
+        Assert.AreEqual(FinaleGradeName, grade.name);
+        Assert.AreEqual(0f, grade.weight, 1e-6f, "weight 0 before the finale");
+        Assert.IsTrue(grade.isGlobal);
+        VolumeProfile profile = grade.sharedProfile;
+        Assert.IsNotNull(profile);
+        UnityEngine.Rendering.Universal.WhiteBalance balance;
+        UnityEngine.Rendering.Universal.Bloom bloom;
+        UnityEngine.Rendering.Universal.Vignette vignette;
+        Assert.IsTrue(profile.TryGet(out balance) && balance.temperature.value > 0f, "warm white balance");
+        Assert.IsTrue(profile.TryGet(out bloom) && Mathf.Abs(bloom.threshold.value - 1f) < 0.01f && Mathf.Abs(bloom.intensity.value - 0.6f) < 0.01f, "mild bloom: threshold 1, intensity 0.6");
+        Assert.IsTrue(profile.TryGet(out vignette) && vignette.intensity.value > 0f, "a slight vignette");
+        float target = Convert.ToSingle(GameType("FinaleSequence").GetField("GradeTarget").GetRawConstantValue());
+        LightTheLamp();
+        float maxBefore = 0f;
+        float maxAny = 0f;
+        float start = Time.realtimeSinceStartup;
+        while (wonCount == 0 && Time.realtimeSinceStartup - start < 52f / 8f + 4f)
+        {
+            float t = (float)Get(finale, "Elapsed");
+            if (t < 36f)
+            {
+                maxBefore = Mathf.Max(maxBefore, grade.weight);
+            }
+
+            maxAny = Mathf.Max(maxAny, grade.weight);
+            yield return null;
+        }
+
+        yield return null;
+        Assert.AreEqual(1, wonCount, "the finale ran");
+        Assert.AreEqual(0f, maxBefore, 1e-6f, "the grade stays at weight 0 until the sunrise");
+        Assert.AreEqual(target, grade.weight, 0.01f, "the grade reaches its target at the end of the sunrise");
+        Assert.LessOrEqual(maxAny, target + 1e-4f);
+    }
+
     [UnityTest]
     [Timeout(300000)]
     public IEnumerator IslandsOneToFourWinUnchanged()
@@ -361,6 +421,7 @@ public class FinaleSequenceTest
         Component manager = (Component)Find("GameManager");
         Assert.IsFalse((bool)Get(manager, "HasFinale"), "Island 1 has no finale");
         Assert.IsNull(Find("FinaleSequence"));
+        AssertNoFinaleGrade("before the win");
         Subscribe(manager);
         Component dawn = (Component)Find("DawnSequence");
         Component director = (Component)Find("MusicDirector");
@@ -395,6 +456,7 @@ public class FinaleSequenceTest
         }
 
         Assert.AreEqual(1, wonCount, "Island 1 still wins after its 6 s dawn");
+        AssertNoFinaleGrade("after the win");
         Assert.AreEqual(1, (int)Get(director, "StingerRequests") - stingers, "the win stinger still plays on Island 1");
         Assert.GreaterOrEqual(waited, 4.5f, "the dawn kept its 6 s length");
     }

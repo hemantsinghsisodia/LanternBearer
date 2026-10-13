@@ -21,6 +21,12 @@ Shader "LanternKeeper/NightSky"
         _MoonGlow ("Moon Glow", Float) = 0.25
         _Clouds ("Clouds", Float) = 0
         _CloudColor ("Cloud Color", Color) = (0.1, 0.12, 0.17, 1)
+        // The Island 5 finale sunrise sun: a disc and a warm halo at _SunDir (FinaleSequence writes the runtime sky). _SunAlpha 0 = no sun (Islands 1-4).
+        _SunDir ("Sun Direction", Vector) = (0, 0, 1, 0)
+        _SunColor ("Sun Color", Color) = (1, 0.93, 0.74, 1)
+        _SunSize ("Sun Size", Float) = 0.03
+        _SunGlow ("Sun Glow", Float) = 0.6
+        _SunAlpha ("Sun Alpha", Range(0, 1)) = 0
         // DawnSequence animates these on the SkyBlend skybox; kept so it can read and write them without warnings. Not used for shading.
         [HideInInspector] _Exposure ("Exposure", Float) = 1
         [HideInInspector] _Tint ("Tint", Color) = (1, 1, 1, 1)
@@ -63,6 +69,11 @@ Shader "LanternKeeper/NightSky"
             float _MoonGlow;
             float _Clouds;
             float4 _CloudColor;
+            float4 _SunDir;
+            float4 _SunColor;
+            float _SunSize;
+            float _SunGlow;
+            float _SunAlpha;
 
             struct Attributes
             {
@@ -143,6 +154,16 @@ Shader "LanternKeeper/NightSky"
                     float glow = exp(-ang * 7.0) * _MoonGlow;
                     float fade = (1.0 - _Blend) * _MoonAlpha;
                     color += _MoonColor.rgb * (disc + glow) * fade;
+                }
+
+                // The finale sun: a bright disc with a soft edge, a tight warm glow and a wide halo, all additive. The sea (opaque) hides what is below the horizon.
+                if (_SunAlpha > 0.001)
+                {
+                    float3 sunDir = normalize(_SunDir.xyz);
+                    float sunAng = acos(clamp(dot(dir, sunDir), -1.0, 1.0));
+                    float sunDisc = 1.0 - smoothstep(_SunSize * 0.82, _SunSize, sunAng);
+                    float sunGlow = exp(-sunAng * 11.0) * 0.85 + exp(-sunAng * 3.2) * 0.3;
+                    color += (_SunColor.rgb * (sunDisc * 3.0) + float3(1.0, 0.72, 0.4) * (sunGlow * _SunGlow)) * _SunAlpha;
                 }
 
                 // Dither to hide banding in the dark gradient. It targets the 8-bit sRGB output, so the +-0.5/255 step is added

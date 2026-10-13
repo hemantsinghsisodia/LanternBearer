@@ -12,6 +12,8 @@ public static class LookVolumeBuilder
     public const string Folder = "Assets/Game/Art/Look/Volumes";
     public const string DawnPath = Folder + "/LookVolume_dawn.asset";
     public const string EffectsPath = Folder + "/EffectsVolume.asset";
+    public const string FinalePath = Folder + "/LookVolume_finale.asset";
+    const float FinaleWarmth = 14f;
     const string DawnLookPath = "Assets/Game/Art/Look/DawnLook.asset";
 
     const float BloomThreshold = 1.1f;
@@ -61,6 +63,7 @@ public static class LookVolumeBuilder
         }
 
         BuildEffects();
+        BuildFinale();
         AssetDatabase.SaveAssets();
     }
 
@@ -78,6 +81,44 @@ public static class LookVolumeBuilder
         Color shadows = TintToward(dawn.dawnTop, ShadowTint);
         Color highlights = Color.Lerp(Color.white, Normalised(dawn.dawnLight), 0.3f);
         Fill(profile, 12f, 8f, 0.1f, shadows, highlights);
+        return profile;
+    }
+
+    // The Island 5 finale grade (FinaleSequence blends this volume in over the sunrise; its weight is 0 everywhere else, and no other scene has it):
+    // warm white balance, a slight saturation and contrast lift, slightly lifted shadows, mild bloom (threshold 1, intensity 0.6) and a slight vignette.
+    public static VolumeProfile BuildFinale()
+    {
+        EnsureFolder();
+        VolumeProfile profile = LoadOrCreate(FinalePath);
+
+        Tonemapping tone = Component<Tonemapping>(profile);
+        tone.mode.Override(TonemappingMode.Neutral);
+
+        WhiteBalance balance = Component<WhiteBalance>(profile);
+        balance.temperature.Override(FinaleWarmth);
+        balance.tint.Override(-2f);
+
+        ColorAdjustments color = Component<ColorAdjustments>(profile);
+        color.saturation.Override(10f);
+        color.contrast.Override(6f);
+        color.postExposure.Override(0.1f);
+
+        LiftGammaGain lgg = Component<LiftGammaGain>(profile);
+        lgg.lift.Override(new Vector4(1f, 1f, 1f, 0.035f));
+        lgg.gamma.Override(new Vector4(1f, 1f, 1f, 0f));
+        lgg.gain.Override(new Vector4(1f, 1f, 1f, 0f));
+
+        Bloom bloom = Component<Bloom>(profile);
+        bloom.threshold.Override(1f);
+        bloom.intensity.Override(0.6f);
+        bloom.scatter.Override(BloomScatter);
+
+        Vignette vignette = Component<Vignette>(profile);
+        vignette.intensity.Override(0.22f);
+        vignette.smoothness.Override(VignetteSmoothness);
+        vignette.color.Override(Color.black);
+
+        Save(profile);
         return profile;
     }
 
