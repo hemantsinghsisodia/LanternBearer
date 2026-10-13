@@ -32,6 +32,7 @@ public class FinaleSequence : MonoBehaviour
     [SerializeField] GreatLampBeam beam;
     [SerializeField] FinaleCamera finaleCamera;
     [SerializeField] StormRing storm;
+    [SerializeField] FinaleClouds clouds;
     [SerializeField] FinaleIslands islands;
     [SerializeField] DawnSequence dawn;
     [SerializeField] ParticleSystem embers;
@@ -62,6 +63,7 @@ public class FinaleSequence : MonoBehaviour
         if (beam == null && lamp != null) beam = lamp.GetComponentInChildren<GreatLampBeam>(true);
         if (finaleCamera == null) finaleCamera = GetComponent<FinaleCamera>();
         if (storm == null) storm = GetComponentInChildren<StormRing>(true);
+        if (clouds == null) clouds = GetComponentInChildren<FinaleClouds>(true);
         if (islands == null) islands = GetComponentInChildren<FinaleIslands>(true);
         if (dawn == null) dawn = FindAnyObjectByType<DawnSequence>();
     }
@@ -248,9 +250,19 @@ public class FinaleSequence : MonoBehaviour
                 // The gap opens from the bearing the beam points at when the storm starts to open.
                 Vector3 beamDirection = beam != null ? beam.transform.right : Vector3.right;
                 gapBearing = StormRing.Bearing01(beamDirection);
+                if (clouds != null)
+                {
+                    clouds.SetBeamBearing(gapBearing);
+                }
             }
 
             storm.SetOpen(FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm), gapBearing);
+            // The dramatic cloud banks take over from the ring as the storm starts to break.
+            if (clouds != null)
+            {
+                storm.SetFade(1f - FinaleCloudMath.CrossFade(t));
+            }
+
             if (islands != null)
             {
                 islands.SinkInnerHorizon(FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm) * 3f);
@@ -265,6 +277,11 @@ public class FinaleSequence : MonoBehaviour
         if (islands != null)
         {
             islands.Tick(t);
+        }
+
+        if (clouds != null)
+        {
+            clouds.Tick(t);
         }
 
         // The sunrise sky keeps a blue-violet to gold gradient: the exponent drops so the gold does not cover the whole view.

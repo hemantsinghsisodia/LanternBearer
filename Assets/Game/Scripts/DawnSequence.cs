@@ -39,6 +39,9 @@ public class DawnSequence : MonoBehaviour
     Color nightGrassTip;
 
     public bool IsPlaying { get; private set; }
+    // The light that is the sun at dawn (the night's moonlight turns into it), and the direction towards the sun when the dawn is complete.
+    public Light SunLight => sun;
+    public Vector3 DawnSunDirection => -(Quaternion.Euler(dawnEuler) * Vector3.forward);
     // A reach of 0 would divide by zero in the pre-dawn light blend.
     const float MinReach = 0.05f;
     public float Reach => reach;

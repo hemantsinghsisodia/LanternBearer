@@ -216,6 +216,13 @@ public static partial class FinaleInstaller
         stormData.FindProperty("cardsLow").intValue = StormLayersLow * StormSegments;
         stormData.ApplyModifiedPropertiesWithoutUndo();
 
+        // The dramatic clouds (three banks and the god rays); finale only.
+        FinaleClouds clouds = BuildClouds(finaleObject.transform, seaY, cloud);
+        if (clouds == null)
+        {
+            return false;
+        }
+
         // The distant islands.
         GameObject islandsObject = new GameObject("Islands");
         islandsObject.transform.SetParent(finaleObject.transform, false);
@@ -306,6 +313,7 @@ public static partial class FinaleInstaller
         sequenceData.FindProperty("beam").objectReferenceValue = beam;
         sequenceData.FindProperty("finaleCamera").objectReferenceValue = finaleCamera;
         sequenceData.FindProperty("storm").objectReferenceValue = storm;
+        sequenceData.FindProperty("clouds").objectReferenceValue = clouds;
         sequenceData.FindProperty("islands").objectReferenceValue = islands;
         sequenceData.FindProperty("dawn").objectReferenceValue = dawn;
         sequenceData.FindProperty("embers").objectReferenceValue = embers;

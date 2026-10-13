@@ -198,6 +198,24 @@ public class FinaleInstallTests
             Assert.IsNotNull(root.GetComponent(Type.GetType("LanternKeeper.FinaleCamera, Assembly-CSharp")), "FinaleCamera");
             Assert.IsNotNull(root.GetComponentInChildren(Type.GetType("LanternKeeper.StormRing, Assembly-CSharp"), true), "StormRing");
             Assert.IsNotNull(root.GetComponentInChildren(Type.GetType("LanternKeeper.FinaleIslands, Assembly-CSharp"), true), "FinaleIslands");
+            Component clouds = root.GetComponentInChildren(Type.GetType("LanternKeeper.FinaleClouds, Assembly-CSharp"), true);
+            Assert.IsNotNull(clouds, "FinaleClouds");
+            SerializedObject cloudData = new SerializedObject(clouds);
+            SerializedProperty layers = cloudData.FindProperty("layers");
+            Assert.AreEqual(3, layers.arraySize, "near, mid and far banks");
+            System.Collections.Generic.HashSet<UnityEngine.Object> materials = new System.Collections.Generic.HashSet<UnityEngine.Object>();
+            for (int i = 0; i < 3; i++)
+            {
+                MeshRenderer layer = layers.GetArrayElementAtIndex(i).objectReferenceValue as MeshRenderer;
+                Assert.IsNotNull(layer, "cloud layer " + i);
+                Assert.IsNotNull(layer.sharedMaterial, "cloud layer " + i + " material");
+                materials.Add(layer.sharedMaterial);
+            }
+
+            MeshRenderer rays = cloudData.FindProperty("rays").objectReferenceValue as MeshRenderer;
+            Assert.IsNotNull(rays, "god rays");
+            materials.Add(rays.sharedMaterial);
+            Assert.AreEqual(4, materials.Count, "one material per layer plus one for the rays");
             Component manager = null;
             foreach (GameObject go in scene.GetRootGameObjects())
             {

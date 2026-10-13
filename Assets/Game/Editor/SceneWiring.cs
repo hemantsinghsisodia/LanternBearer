@@ -1209,6 +1209,31 @@ public static partial class SceneWiring
             }
         }
 
+        // H4 dramatic clouds: three banks and the god rays, each with a renderer and a material, wired into the sequence.
+        FinaleClouds finaleClouds = Object.FindAnyObjectByType<FinaleClouds>(FindObjectsInactive.Include);
+        bool cloudsOk = finaleClouds != null && finaleClouds.LayerCount == FinaleCloudMath.FullLayers && finaleClouds.RaysRenderer != null && finaleClouds.RaysRenderer.sharedMaterial != null;
+        for (int i = 0; cloudsOk && i < finaleClouds.LayerCount; i++)
+        {
+            cloudsOk = finaleClouds.LayerRenderer(i) != null && finaleClouds.LayerRenderer(i).sharedMaterial != null;
+        }
+
+        if (!cloudsOk)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing FinaleClouds (3 cloud layers and the god rays)");
+            }
+        }
+        else if (finaleSeq != null && new SerializedObject(finaleSeq).FindProperty("clouds").objectReferenceValue != finaleClouds)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " FinaleSequence.clouds is not wired");
+            }
+        }
+
         // H3 rising storm: the surge with its material, and the HUD chip that reads it.
         StormSurge stormSurge = Object.FindAnyObjectByType<StormSurge>(FindObjectsInactive.Include);
         if (stormSurge == null)
