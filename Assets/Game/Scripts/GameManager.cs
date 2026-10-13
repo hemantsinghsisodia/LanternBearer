@@ -420,6 +420,7 @@ public class GameManager : MonoBehaviour
         nearbyBeacons.Remove(beacon);
         SelectNearest();
         litCount++;
+        GameSettings.RecordLit(LevelId, litCount);
         RaiseBeacons();
         ShowLogEntry();
         if (CanWin())

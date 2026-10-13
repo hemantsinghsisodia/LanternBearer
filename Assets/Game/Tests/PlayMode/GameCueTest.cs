@@ -26,6 +26,7 @@ public class GameCueTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         hadIntroKey = PlayerPrefs.HasKey(IntroKey);
         previousIntro = PlayerPrefs.GetInt(IntroKey, 0);
         previousGraphics = PlayerPrefs.GetInt(GraphicsKey, 0);
@@ -39,6 +40,7 @@ public class GameCueTest
     [TearDown]
     public void TearDown()
     {
+        LitKeyGuard.Restore();
         EventInfo cuePlayed = GameType("AudioManager").GetEvent("CuePlayed", BindingFlags.Public | BindingFlags.Static);
         cuePlayed.RemoveEventHandler(null, spy);
         Time.timeScale = 1f;

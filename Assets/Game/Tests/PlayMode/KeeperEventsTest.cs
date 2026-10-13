@@ -25,6 +25,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             problems.Clear();
             Application.logMessageReceived += OnLog;
             hadIntroKey = PlayerPrefs.HasKey(IntroKey);
@@ -35,6 +36,7 @@ namespace LanternKeeper.Tests
         [TearDown]
         public void TearDown()
         {
+            LitKeyGuard.Restore();
             Application.logMessageReceived -= OnLog;
             Time.timeScale = 1f;
             if (hadIntroKey)

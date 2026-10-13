@@ -41,6 +41,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             savedGraphics = PlayerPrefs.GetInt(GraphicsKey, 0);
             previousScale = Time.timeScale;
             previousCaptureDelta = Time.captureDeltaTime;
@@ -53,6 +54,7 @@ namespace LanternKeeper.Tests
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            LitKeyGuard.Restore();
             PlayerPrefs.SetInt(GraphicsKey, savedGraphics);
             Time.timeScale = previousScale;
             Time.captureDeltaTime = previousCaptureDelta;

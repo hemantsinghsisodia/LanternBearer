@@ -272,6 +272,33 @@ public static class GameSettings
         PlayerPrefs.Save();
     }
 
+    // Beacons lit on the best run so far; the main menu roofs read this.
+    public static int GetLitCount(string levelId)
+    {
+        if (string.IsNullOrEmpty(levelId))
+        {
+            return 0;
+        }
+
+        return Mathf.Max(0, PlayerPrefs.GetInt(LitKey(levelId), 0));
+    }
+
+    public static void RecordLit(string levelId, int count)
+    {
+        if (string.IsNullOrEmpty(levelId) || count <= GetLitCount(levelId))
+        {
+            return;
+        }
+
+        PlayerPrefs.SetInt(LitKey(levelId), count);
+        PlayerPrefs.Save();
+    }
+
+    static string LitKey(string levelId)
+    {
+        return "LanternKeeperLit_" + levelId;
+    }
+
     static string LogKey(string levelId)
     {
         return "LanternKeeperLog_" + levelId;

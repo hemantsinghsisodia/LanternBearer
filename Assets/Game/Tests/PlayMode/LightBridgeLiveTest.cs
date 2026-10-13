@@ -75,6 +75,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             savedInts.Clear();
             savedFloats.Clear();
             for (int i = 0; i < IntKeys.Length; i++)
@@ -100,6 +101,7 @@ namespace LanternKeeper.Tests
         [TearDown]
         public void TearDown()
         {
+            LitKeyGuard.Restore();
             foreach (KeyValuePair<string, int> pair in savedInts)
             {
                 if (pair.Value < 0)

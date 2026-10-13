@@ -77,6 +77,7 @@ public class FinaleSequenceTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         savedInts.Clear();
         savedFloats.Clear();
         for (int i = 0; i < IntKeys.Length; i++)
@@ -104,6 +105,7 @@ public class FinaleSequenceTest
     [UnityTearDown]
     public IEnumerator TearDown()
     {
+        LitKeyGuard.Restore();
         Time.timeScale = previousScale;
         SetTestSpeed(1f);
         foreach (KeyValuePair<string, int> pair in savedInts)

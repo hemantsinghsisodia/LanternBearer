@@ -9,6 +9,7 @@ public struct IslandInfo
     public string name;
     public int beacons;
     public int found;
+    public int lit;
     public float bestTime;
     public bool unlocked;
 }
@@ -58,7 +59,7 @@ public class IslandRow : MonoBehaviour
             lockLabel.SetColourOverride(true, dim);
         }
         timeLabel.SetColourOverride(true, selected ? amber : timeColour);
-        int lit = unlocked ? IslandList.AmberRoofs(info.found, info.beacons) : 0;
+        int lit = unlocked ? IslandList.AmberRoofs(info.lit, info.beacons) : 0;
         int count = unlocked ? Mathf.Min(info.beacons, roofs.Length) : 0;
         if (countLabel != null)
         {
