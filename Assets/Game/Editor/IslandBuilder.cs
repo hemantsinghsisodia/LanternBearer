@@ -1524,6 +1524,7 @@ public static partial class IslandBuilder
         dawnObject.FindProperty("sun").objectReferenceValue = stage.sun;
         dawnObject.FindProperty("stars").objectReferenceValue = stage.stars;
         dawnObject.FindProperty("duration").floatValue = 6f;
+        dawnObject.FindProperty("reach").floatValue = PreDawn.ReachFor(config.levelId);
         dawnObject.FindProperty("lookVolume").objectReferenceValue = stage.lookVolume;
         dawnObject.FindProperty("dawnVolume").objectReferenceValue = stage.dawnVolume;
         if (art.dawnDirection.sqrMagnitude > 0.25f)

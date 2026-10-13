@@ -11,6 +11,8 @@ public class DawnSequence : MonoBehaviour
     [SerializeField] Vector3 dawnEuler = new Vector3(10f, 28f, 0f);
     [SerializeField] Volume lookVolume;
     [SerializeField] Volume dawnVolume;
+    // How far the dawn goes (1 = the full sunrise). Islands 1-4 end in a growing pre-dawn (PreDawnInstaller); the finale always runs at 1.
+    [SerializeField, Range(0f, 1f)] float reach = 1f;
 
     Color nightLightColor = new Color(0.75f, 0.84f, 1f);
     float nightIntensity = 0.85f;
@@ -37,6 +39,9 @@ public class DawnSequence : MonoBehaviour
     Color nightGrassTip;
 
     public bool IsPlaying { get; private set; }
+    public float Reach => reach;
+    // The sun in the sky: 0 for a pre-dawn (reach < 1, no sun at all), the dawn progress for the full sunrise.
+    public float SkySunIntensity { get; private set; }
 
     // Finale-only overrides (Island 5). The defaults are the values the dawn always used, so Islands 1-4 are unchanged.
     [System.NonSerialized] public float FogDensityScale = 0.45f;
@@ -99,7 +104,7 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete, duration, false));
+        StartCoroutine(Run(onComplete, duration, false, Mathf.Clamp01(reach)));
     }
 
     // The Island 5 finale's sunrise: its own length, on unscaled time (the finale keeps running at timeScale 0). The other islands
@@ -111,11 +116,12 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled));
+        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled, 1f));
     }
 
-    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled)
+    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled, float runReach)
     {
+        bool preDawn = runReach < 0.999f;
         IsPlaying = true;
         CaptureNight();
         float elapsed = 0f;
@@ -201,12 +207,23 @@ public class DawnSequence : MonoBehaviour
         while (elapsed < runDuration)
         {
             elapsed += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / runDuration));
+            float u = PreDawn.Blend(elapsed / runDuration, runReach);
+            SkySunIntensity = preDawn ? 0f : u;
             if (sun != null)
             {
-                sun.color = Color.Lerp(nightLightColor, dawnLight, u);
-                sun.intensity = Mathf.Lerp(nightIntensity, 1.45f, u);
-                sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u);
+                if (preDawn)
+                {
+                    // The moon stays the light: a touch warmer and brighter, and barely turned, so no low sun throws long shadows.
+                    sun.color = Color.Lerp(nightLightColor, dawnLight, u * 0.5f);
+                    sun.intensity = Mathf.Lerp(nightIntensity, nightIntensity * 1.15f, u / runReach);
+                    sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u * 0.12f);
+                }
+                else
+                {
+                    sun.color = Color.Lerp(nightLightColor, dawnLight, u);
+                    sun.intensity = Mathf.Lerp(nightIntensity, 1.45f, u);
+                    sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u);
+                }
             }
 
             RenderSettings.fogColor = Color.Lerp(nightFog, dawnFog, u);
@@ -277,7 +294,7 @@ public class DawnSequence : MonoBehaviour
 
             if (stars != null)
             {
-                stars.SetFade(1f - u);
+                stars.SetFade(preDawn ? 1f - u * 0.6f : 1f - u);
             }
 
             yield return null;
