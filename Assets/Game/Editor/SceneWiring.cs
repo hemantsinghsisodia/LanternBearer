@@ -1296,15 +1296,31 @@ public static partial class SceneWiring
             for (int i = 0; i < finaleIslands.Count; i++)
             {
                 FinaleIslands.Entry entry = finaleIslands.EntryAt(i);
-                Renderer sil = entry != null ? entry.silhouette : null;
-                MeshFilter filter = sil != null ? sil.GetComponent<MeshFilter>() : null;
-                if (filter == null || filter.sharedMesh == null)
+                string n = entry != null && entry.root != null ? entry.root.name : i.ToString();
+                // Terrain (full and Low meshes), props, beacon bases, glass, beams and flames: each needs a mesh.
+                Renderer[] parts = entry != null
+                    ? new[] { entry.silhouette, entry.props, entry.beaconBase, entry.glass, entry.flame, entry.beams != null && entry.beams.Length > 0 ? entry.beams[0] : null }
+                    : new Renderer[6];
+                string[] labels = { "terrain", "props", "beacon bases", "beacon glass", "beacon flames", "beacon beams" };
+                for (int p = 0; p < parts.Length; p++)
+                {
+                    MeshFilter filter = parts[p] != null ? parts[p].GetComponent<MeshFilter>() : null;
+                    if (filter == null || filter.sharedMesh == null)
+                    {
+                        problems++;
+                        if (!quiet)
+                        {
+                            Debug.LogWarning(sceneName + " finale island '" + n + "' has no " + labels[p] + " mesh");
+                        }
+                    }
+                }
+
+                if (entry == null || entry.terrainFull == null || entry.terrainLow == null)
                 {
                     problems++;
                     if (!quiet)
                     {
-                        string n = entry != null && entry.root != null ? entry.root.name : (sil != null ? sil.name : i.ToString());
-                        Debug.LogWarning(sceneName + " silhouette '" + n + "' has no mesh");
+                        Debug.LogWarning(sceneName + " finale island '" + n + "' lacks its 128x128 or 64x64 terrain mesh");
                     }
                 }
             }

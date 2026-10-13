@@ -8,24 +8,22 @@ using UnityEngine.SceneManagement;
 namespace LanternKeeper
 {
 // Installs the Island 5 finale cinematic on the built scene (BuildIsland5 runs it after the performance pass, before the audio).
-//  - Bakes the silhouettes of Islands 1-4 from their TerrainData (read only; the scenes are not opened and the terrain is not modified):
-//    a 48x48 grid mesh at the terrain's true size, heights relative to that island's sea, with the sea skirt cut away.
-//    Assets/Game/Art/Finale/Silhouette_Island{1..4}.asset. The meshes are rewritten only if they differ, so a second run is byte-identical.
-//  - Bakes the storm ring meshes (full and Low) and the cloud noise texture, and the materials for the ring, the silhouettes and the glow.
-//  - Builds the "Finale" object in Island5: FinaleSequence + FinaleCamera, StormRing, FinaleIslands (the four silhouettes, each with five
-//    BeaconBeam clusters and a glow sprite) and the ember burst; wires GameManager.finale.
+//  - Bakes detailed miniatures of Islands 1-4 (FinaleInstaller.Islands.cs): a 128x128 coloured terrain (and 64x64 for Low), merged low-poly
+//    trees and rocks, and the real beacon model, from each island's TerrainData and, read only, its scene (opened additively, closed unsaved).
+//    Assets/Game/Art/Finale/Finale_Island{1..4}_{Terrain,TerrainLow,Props,Base,Glass,Beams,Flame}.asset. The meshes are rewritten only if they
+//    differ, so a second run is byte-identical. The old 48x48 Silhouette_Island*.asset files are removed.
+//  - Bakes the storm ring meshes (full and Low) and the cloud noise texture, and the materials for the ring, the islands and the glow.
+//  - Builds the "Finale" object in Island5: FinaleSequence + FinaleCamera, StormRing, FinaleIslands (the four islands, each with terrain, props,
+//    beacon bases, glass, beams, flame cards, a glow sprite and a column) and the ember burst; wires GameManager.finale.
 // Idempotent: the Finale object is rebuilt each run. The scene is edited through EditorSceneManager, never as text.
-public static class FinaleInstaller
+public static partial class FinaleInstaller
 {
     public const string Folder = "Assets/Game/Art/Finale";
     public const string RootName = "Finale";
-    public const int GridCells = 48;
-    public const int FlareClusters = 5;
-    // The islands are low (4 to 9 m above their sea) and drawn at 2x at 300 m; the silhouette is stretched a little vertically so they read as hills.
-    public const float VerticalExaggeration = 1.5f;
     const string CloudTexturePath = Folder + "/StormCloud.png";
     const string StormMaterialPath = Folder + "/StormRing.mat";
     const string SilhouetteMaterialPath = Folder + "/FinaleSilhouette.mat";
+    const string IslandMaterialPath = Folder + "/FinaleIsland.mat";
     const string GlowMaterialPath = Folder + "/FinaleGlow.mat";
     const string StormFullPath = Folder + "/StormRing_Full.asset";
     const string StormLowPath = Folder + "/StormRing_Low.asset";
@@ -38,7 +36,6 @@ public static class FinaleInstaller
     // IslandBuilder.WaterFraction: the sea stands at 20% of the terrain height.
     const float WaterFraction = 0.2f;
     const float SkirtFloor = -2f;
-    const float ClusterSpacing = 8f;
     // Continuous cloud ribbons round the island: 4 layers on the full level, 2 on Low (half the cards, half the overdraw).
     const int StormSegments = 48;
     const int StormLayersFull = 4;
@@ -50,10 +47,6 @@ public static class FinaleInstaller
         Install();
     }
 
-    public static string SilhouettePath(int island)
-    {
-        return Folder + "/Silhouette_Island" + island + ".asset";
-    }
 
     public static string TerrainPath(int island)
     {
@@ -111,15 +104,15 @@ public static class FinaleInstaller
         }
 
         Shader stormShader = Shader.Find("LanternKeeper/StormRing");
-        Shader silhouetteShader = Shader.Find("LanternKeeper/Silhouette");
+        Shader islandShader = Shader.Find("LanternKeeper/FinaleIsland");
         Shader additive = Shader.Find("LanternKeeper/AdditiveUnlit");
         Material beamMaterial = AssetDatabase.LoadAssetAtPath<Material>(CreatureInstaller.BeaconBeamMaterialPath);
         Material emberMaterial = AssetDatabase.LoadAssetAtPath<Material>(CreatureInstaller.BeaconEmberMaterialPath);
-        Mesh beamMesh = AssetDatabase.LoadAssetAtPath<Mesh>(LighthouseInstaller.BeamMeshPath);
+        Material glassMaterial = AssetDatabase.LoadAssetAtPath<Material>(CreatureInstaller.BeaconGlassMaterialPath);
         Texture2D soft = AssetDatabase.LoadAssetAtPath<Texture2D>(SoftTexturePath);
-        if (stormShader == null || silhouetteShader == null || additive == null || beamMaterial == null || emberMaterial == null || beamMesh == null || soft == null)
+        if (stormShader == null || islandShader == null || additive == null || beamMaterial == null || emberMaterial == null || glassMaterial == null || soft == null)
         {
-            Debug.LogError("FinaleInstaller: a shader, material, the lamp beam mesh or MistSoft is missing.");
+            Debug.LogError("FinaleInstaller: a shader, material (beacon glass, beam or ember) or MistSoft is missing.");
             return false;
         }
 
@@ -135,15 +128,16 @@ public static class FinaleInstaller
         stormMaterial.SetFloat("_Alpha", 0.85f);
         EditorUtility.SetDirty(stormMaterial);
 
-        Material silhouetteMaterial = EnsureMaterial(SilhouetteMaterialPath, silhouetteShader, "FinaleSilhouette");
-        silhouetteMaterial.SetColor("_NearColor", new Color(0.045f, 0.05f, 0.08f, 1f));
-        silhouetteMaterial.SetColor("_FarColor", new Color(0.07f, 0.075f, 0.11f, 1f));
-        silhouetteMaterial.SetColor("_RimColor", new Color(1f, 0.72f, 0.42f, 1f));
-        silhouetteMaterial.SetFloat("_Solid", 0.95f);
-        silhouetteMaterial.SetFloat("_Band", 0.3f);
-        silhouetteMaterial.SetFloat("_RimStrength", 1.1f);
-        silhouetteMaterial.SetFloat("_Fade", 1f);
-        EditorUtility.SetDirty(silhouetteMaterial);
+        Material islandMaterial = EnsureMaterial(IslandMaterialPath, islandShader, "FinaleIsland");
+        islandMaterial.SetColor("_FarColor", new Color(0.07f, 0.075f, 0.11f, 1f));
+        islandMaterial.SetColor("_RimColor", new Color(1f, 0.72f, 0.42f, 1f));
+        islandMaterial.SetColor("_FlareColor", new Color(1f, 0.62f, 0.28f, 1f));
+        islandMaterial.SetFloat("_RimStrength", 1f);
+        islandMaterial.SetFloat("_Ambient", 0.22f);
+        islandMaterial.SetFloat("_DawnAmbient", 0.8f);
+        islandMaterial.SetFloat("_Wrap", 0.75f);
+        islandMaterial.SetFloat("_Fade", 1f);
+        EditorUtility.SetDirty(islandMaterial);
 
         Material glowMaterial = EnsureMaterial(GlowMaterialPath, additive, "FinaleGlow");
         glowMaterial.SetTexture("_BaseMap", soft);
@@ -164,15 +158,25 @@ public static class FinaleInstaller
         Mesh sunPathMesh = EnsureMesh(SunPathMeshPath, "FinaleSunPath", BuildSunPath());
         Mesh glowQuad = EnsureMesh(GlowQuadPath, "FinaleGlowQuad", BuildQuad());
 
-        Mesh[] silhouettes = new Mesh[4];
-        List<Vector3>[] clusters = new List<Vector3>[4];
+        IslandBake[] bakes = new IslandBake[4];
         for (int i = 0; i < 4; i++)
         {
-            if (!BakeSilhouette(i + 1, out silhouettes[i], out clusters[i]))
+            if (!BakeIsland(i + 1, out bakes[i]))
             {
                 return false;
             }
+
+            // Saved as assets (rewritten only when the geometry changed).
+            bakes[i].terrain = EnsureMesh(IslandMeshPath(i + 1, "Terrain"), bakes[i].terrain.name, bakes[i].terrain);
+            bakes[i].terrainLow = EnsureMesh(IslandMeshPath(i + 1, "TerrainLow"), bakes[i].terrainLow.name, bakes[i].terrainLow);
+            bakes[i].props = EnsureMesh(IslandMeshPath(i + 1, "Props"), bakes[i].props.name, bakes[i].props);
+            bakes[i].beaconBase = EnsureMesh(IslandMeshPath(i + 1, "Base"), bakes[i].beaconBase.name, bakes[i].beaconBase);
+            bakes[i].glass = EnsureMesh(IslandMeshPath(i + 1, "Glass"), bakes[i].glass.name, bakes[i].glass);
+            bakes[i].beams = EnsureMesh(IslandMeshPath(i + 1, "Beams"), bakes[i].beams.name, bakes[i].beams);
+            bakes[i].flame = EnsureMesh(IslandMeshPath(i + 1, "Flame"), bakes[i].flame.name, bakes[i].flame);
         }
+
+        RemoveOldSilhouettes();
 
         // ---- scene ----
         foreach (GameObject root in scene.GetRootGameObjects())
@@ -222,47 +226,45 @@ public static class FinaleInstaller
         entries.arraySize = 4;
         for (int i = 0; i < 4; i++)
         {
+            IslandBake bake = bakes[i];
             GameObject island = new GameObject("Island" + (i + 1));
             island.transform.SetParent(islandsObject.transform, false);
             Vector2 xz = FinaleLayout.SilhouetteXZ(i);
             island.transform.localPosition = new Vector3(xz.x, 0f, xz.y);
             island.transform.localScale = Vector3.one * FinaleLayout.SilhouetteScale(i);
 
-            GameObject shape = new GameObject("Silhouette");
-            shape.transform.SetParent(island.transform, false);
-            shape.transform.localScale = new Vector3(1f, VerticalExaggeration, 1f);
-            shape.AddComponent<MeshFilter>().sharedMesh = silhouettes[i];
-            MeshRenderer shapeRenderer = shape.AddComponent<MeshRenderer>();
-            ConfigureRenderer(shapeRenderer, silhouetteMaterial);
+            MeshRenderer terrainRenderer = AddPart(island.transform, "MiniTerrain", bake.terrain, islandMaterial);
+            MeshRenderer propsRenderer = AddPart(island.transform, "MiniProps", bake.props, islandMaterial);
+            MeshRenderer baseRenderer = AddPart(island.transform, "MiniBeaconBases", bake.beaconBase, islandMaterial);
+            MeshRenderer glassRenderer = AddPart(island.transform, "MiniBeaconGlass", bake.glass, glassMaterial);
+            MeshRenderer beamsRenderer = AddPart(island.transform, "MiniBeaconBeams", bake.beams, beamMaterial);
+            MeshRenderer flameRenderer = AddPart(island.transform, "MiniBeaconFlames", bake.flame, glowMaterial);
 
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
             entry.FindPropertyRelative("root").objectReferenceValue = island.transform;
-            entry.FindPropertyRelative("silhouette").objectReferenceValue = shapeRenderer;
+            entry.FindPropertyRelative("silhouette").objectReferenceValue = terrainRenderer;
+            entry.FindPropertyRelative("terrainFull").objectReferenceValue = bake.terrain;
+            entry.FindPropertyRelative("terrainLow").objectReferenceValue = bake.terrainLow;
+            entry.FindPropertyRelative("props").objectReferenceValue = propsRenderer;
+            entry.FindPropertyRelative("beaconBase").objectReferenceValue = baseRenderer;
+            entry.FindPropertyRelative("glass").objectReferenceValue = glassRenderer;
+            entry.FindPropertyRelative("flame").objectReferenceValue = flameRenderer;
+            entry.FindPropertyRelative("flareLocal").vector3Value = bake.flareLocal;
             SerializedProperty beams = entry.FindPropertyRelative("beams");
-            beams.arraySize = FlareClusters;
-            for (int b = 0; b < FlareClusters; b++)
-            {
-                Vector3 at = clusters[i][Mathf.Min(b, clusters[i].Count - 1)];
-                GameObject cluster = new GameObject("Beam" + b);
-                cluster.transform.SetParent(island.transform, false);
-                cluster.transform.localPosition = new Vector3(at.x, at.y * VerticalExaggeration + 1.5f, at.z);
-                cluster.transform.localRotation = Quaternion.Euler(0f, b * 180f / FlareClusters, 0f);
-                cluster.transform.localScale = new Vector3(0.6f, 3f, 0.6f);
-                cluster.AddComponent<MeshFilter>().sharedMesh = beamMesh;
-                MeshRenderer beamRenderer = cluster.AddComponent<MeshRenderer>();
-                ConfigureRenderer(beamRenderer, beamMaterial);
-                beams.GetArrayElementAtIndex(b).objectReferenceValue = beamRenderer;
-            }
+            beams.arraySize = 1;
+            beams.GetArrayElementAtIndex(0).objectReferenceValue = beamsRenderer;
 
+            // The glow sprite and the tall column stand on the highest beacon.
+            Vector3 top = bake.flareLocal;
             GameObject glow = new GameObject("Glow");
             glow.transform.SetParent(island.transform, false);
-            glow.transform.localPosition = new Vector3(clusters[i][0].x, clusters[i][0].y * VerticalExaggeration + 6f, clusters[i][0].z);
+            glow.transform.localPosition = top + Vector3.up * 3.5f;
             glow.AddComponent<MeshFilter>().sharedMesh = glowQuad;
             MeshRenderer glowRenderer = glow.AddComponent<MeshRenderer>();
             ConfigureRenderer(glowRenderer, glowMaterial);
             GameObject column = new GameObject("Column");
             column.transform.SetParent(island.transform, false);
-            column.transform.localPosition = new Vector3(clusters[i][0].x, clusters[i][0].y * VerticalExaggeration, clusters[i][0].z);
+            column.transform.localPosition = top;
             column.transform.localScale = new Vector3(1f, 0.01f, 1f);
             column.AddComponent<MeshFilter>().sharedMesh = columnMesh;
             MeshRenderer columnRenderer = column.AddComponent<MeshRenderer>();
@@ -313,6 +315,17 @@ public static class FinaleInstaller
         managerData.FindProperty("finale").objectReferenceValue = sequence;
         managerData.ApplyModifiedPropertiesWithoutUndo();
         return true;
+    }
+
+    // A child of an island with a mesh and a material (no shadows, probes or motion vectors).
+    static MeshRenderer AddPart(Transform parent, string name, Mesh mesh, Material material)
+    {
+        GameObject part = new GameObject(name);
+        part.transform.SetParent(parent, false);
+        part.AddComponent<MeshFilter>().sharedMesh = mesh;
+        MeshRenderer renderer = part.AddComponent<MeshRenderer>();
+        ConfigureRenderer(renderer, material);
+        return renderer;
     }
 
     static void ConfigureRenderer(MeshRenderer renderer, Material material)
@@ -383,134 +396,6 @@ public static class FinaleInstaller
         renderer.shadowCastingMode = ShadowCastingMode.Off;
         renderer.receiveShadows = false;
         return system;
-    }
-
-    // ---- silhouettes ----
-
-    // Bakes island `island` (1..4). `clusters` are up to five beacon cluster spots (island local, y relative to the sea), highest first.
-    static bool BakeSilhouette(int island, out Mesh mesh, out List<Vector3> clusters)
-    {
-        mesh = null;
-        clusters = null;
-        TerrainData data = AssetDatabase.LoadAssetAtPath<TerrainData>(TerrainPath(island));
-        if (data == null)
-        {
-            Debug.LogError("FinaleInstaller: missing " + TerrainPath(island));
-            return false;
-        }
-
-        int res = data.heightmapResolution;
-        float[,] heights = data.GetHeights(0, 0, res, res);
-        Vector3 size = data.size;
-        float waterY = WaterFraction * size.y;
-        int n = GridCells + 1;
-        Vector3[] grid = new Vector3[n * n];
-        for (int j = 0; j < n; j++)
-        {
-            for (int i = 0; i < n; i++)
-            {
-                float u = (float)i / GridCells;
-                float v = (float)j / GridCells;
-                float y = Bilinear(heights, res, u, v) * size.y - waterY;
-                grid[j * n + i] = new Vector3((u - 0.5f) * size.x, y, (v - 0.5f) * size.z);
-            }
-        }
-
-        // Triangles with at least one corner at or above the sea; the rest of the skirt is cut away.
-        List<int> kept = new List<int>();
-        for (int j = 0; j < GridCells; j++)
-        {
-            for (int i = 0; i < GridCells; i++)
-            {
-                int v00 = j * n + i, v10 = v00 + 1, v01 = v00 + n, v11 = v01 + 1;
-                AddTriangle(kept, grid, v00, v01, v10);
-                AddTriangle(kept, grid, v10, v01, v11);
-            }
-        }
-
-        int[] remap = new int[grid.Length];
-        for (int i = 0; i < remap.Length; i++) remap[i] = -1;
-        List<Vector3> vertices = new List<Vector3>();
-        int[] triangles = new int[kept.Count];
-        for (int t = 0; t < kept.Count; t++)
-        {
-            int old = kept[t];
-            if (remap[old] < 0)
-            {
-                remap[old] = vertices.Count;
-                Vector3 p = grid[old];
-                p.y = Mathf.Max(p.y, SkirtFloor);
-                vertices.Add(p);
-            }
-
-            triangles[t] = remap[old];
-        }
-
-        Mesh built = new Mesh();
-        built.name = "Silhouette_Island" + island;
-        built.SetVertices(vertices);
-        built.SetTriangles(triangles, 0);
-        built.RecalculateNormals();
-        built.RecalculateBounds();
-        mesh = EnsureMesh(SilhouettePath(island), built.name, built);
-
-        // Cluster spots: the highest grid points, kept ClusterSpacing apart.
-        List<int> order = new List<int>();
-        for (int i = 0; i < grid.Length; i++) order.Add(i);
-        order.Sort((a, b) =>
-        {
-            int c = grid[b].y.CompareTo(grid[a].y);
-            return c != 0 ? c : a.CompareTo(b);
-        });
-        clusters = new List<Vector3>();
-        for (int k = 0; k < order.Count && clusters.Count < FlareClusters; k++)
-        {
-            Vector3 p = grid[order[k]];
-            bool apart = true;
-            for (int c = 0; c < clusters.Count; c++)
-            {
-                Vector2 d = new Vector2(clusters[c].x - p.x, clusters[c].z - p.z);
-                if (d.magnitude < ClusterSpacing)
-                {
-                    apart = false;
-                    break;
-                }
-            }
-
-            if (apart && p.y > 0f)
-            {
-                clusters.Add(p);
-            }
-        }
-
-        if (clusters.Count == 0)
-        {
-            Debug.LogError("FinaleInstaller: island " + island + " has no land above the sea.");
-            return false;
-        }
-
-        return true;
-    }
-
-    static void AddTriangle(List<int> kept, Vector3[] grid, int a, int b, int c)
-    {
-        if (Mathf.Max(grid[a].y, Mathf.Max(grid[b].y, grid[c].y)) >= 0f)
-        {
-            kept.Add(a);
-            kept.Add(b);
-            kept.Add(c);
-        }
-    }
-
-    // Heights are [z, x]; u and v run 0..1 across the terrain.
-    static float Bilinear(float[,] heights, int res, float u, float v)
-    {
-        float fx = u * (res - 1), fz = v * (res - 1);
-        int x0 = Mathf.Min((int)fx, res - 2), z0 = Mathf.Min((int)fz, res - 2);
-        float tx = fx - x0, tz = fz - z0;
-        float a = Mathf.Lerp(heights[z0, x0], heights[z0, x0 + 1], tx);
-        float b = Mathf.Lerp(heights[z0 + 1, x0], heights[z0 + 1, x0 + 1], tx);
-        return Mathf.Lerp(a, b, tz);
     }
 
     // ---- storm ring meshes ----
@@ -723,6 +608,7 @@ public static class FinaleInstaller
         }
 
         existing.Clear();
+        existing.indexFormat = built.indexFormat;
         existing.SetVertices(built.vertices);
         existing.SetNormals(built.normals);
         List<Vector2> uv0 = new List<Vector2>();
@@ -731,6 +617,8 @@ public static class FinaleInstaller
         built.GetUVs(1, uv1);
         if (uv0.Count > 0) existing.SetUVs(0, uv0);
         if (uv1.Count > 0) existing.SetUVs(1, uv1);
+        Color32[] builtColors = built.colors32;
+        if (builtColors.Length > 0) existing.SetColors(builtColors);
         existing.SetTriangles(built.triangles, 0);
         existing.RecalculateBounds();
         existing.name = name;
@@ -761,6 +649,9 @@ public static class FinaleInstaller
         b.GetUVs(1, ub);
         if (ua.Count != ub.Count) return false;
         for (int i = 0; i < ua.Count; i++) if (ua[i] != ub[i]) return false;
+        Color32[] ca = a.colors32, cb = b.colors32;
+        if (ca.Length != cb.Length) return false;
+        for (int i = 0; i < ca.Length; i++) if (!ca[i].Equals(cb[i])) return false;
         return true;
     }
 
