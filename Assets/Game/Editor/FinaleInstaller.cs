@@ -36,6 +36,8 @@ public static partial class FinaleInstaller
     // IslandBuilder.WaterFraction: the sea stands at 20% of the terrain height.
     const float WaterFraction = 0.2f;
     const float SkirtFloor = -2f;
+    // The miniature islands at night are dark shapes (lit by their own beacon flare and the moon rim); they warm up to the dawn values at the sunrise.
+    public const float IslandNightAmbient = 0.08f, IslandNightWrap = 0.3f, IslandDawnAmbient = 0.8f, IslandDawnWrap = 0.75f, IslandNightDim = 0.5f;
     // Continuous cloud ribbons round the island: 4 layers on the full level, 2 on Low (half the cards, half the overdraw).
     const int StormSegments = 48;
     const int StormLayersFull = 4;
@@ -133,9 +135,11 @@ public static partial class FinaleInstaller
         islandMaterial.SetColor("_RimColor", new Color(1f, 0.72f, 0.42f, 1f));
         islandMaterial.SetColor("_FlareColor", new Color(1f, 0.62f, 0.28f, 1f));
         islandMaterial.SetFloat("_RimStrength", 1f);
-        islandMaterial.SetFloat("_Ambient", 0.22f);
-        islandMaterial.SetFloat("_DawnAmbient", 0.8f);
-        islandMaterial.SetFloat("_Wrap", 0.75f);
+        islandMaterial.SetFloat("_Ambient", IslandNightAmbient);
+        islandMaterial.SetFloat("_DawnAmbient", IslandDawnAmbient);
+        islandMaterial.SetFloat("_Wrap", IslandNightWrap);
+        islandMaterial.SetFloat("_DawnWrap", IslandDawnWrap);
+        islandMaterial.SetFloat("_NightDim", IslandNightDim);
         islandMaterial.SetFloat("_Fade", 1f);
         EditorUtility.SetDirty(islandMaterial);
 
@@ -305,6 +309,14 @@ public static partial class FinaleInstaller
         islandData.FindProperty("sunPathRenderer").objectReferenceValue = sunPathRenderer;
         islandData.ApplyModifiedPropertiesWithoutUndo();
 
+        // A soft amber halo at the lantern room (switched on by the sequence), so the lit lamp reads at the finale camera distances.
+        GameObject haloObject = new GameObject("LampHalo");
+        haloObject.transform.SetParent(finaleObject.transform, false);
+        haloObject.transform.position = flame.position;
+        haloObject.AddComponent<MeshFilter>().sharedMesh = glowQuad;
+        ConfigureRenderer(haloObject.AddComponent<MeshRenderer>(), glowMaterial);
+        haloObject.SetActive(false);
+
         // The ember burst at the flame.
         ParticleSystem embers = CreateEmbers(finaleObject.transform, emberMaterial, flame.position);
 
@@ -314,6 +326,7 @@ public static partial class FinaleInstaller
         sequenceData.FindProperty("finaleCamera").objectReferenceValue = finaleCamera;
         sequenceData.FindProperty("storm").objectReferenceValue = storm;
         sequenceData.FindProperty("clouds").objectReferenceValue = clouds;
+        sequenceData.FindProperty("halo").objectReferenceValue = haloObject.transform;
         sequenceData.FindProperty("islands").objectReferenceValue = islands;
         sequenceData.FindProperty("dawn").objectReferenceValue = dawn;
         sequenceData.FindProperty("embers").objectReferenceValue = embers;

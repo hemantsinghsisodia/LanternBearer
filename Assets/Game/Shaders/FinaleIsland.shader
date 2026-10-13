@@ -10,9 +10,11 @@ Shader "LanternKeeper/FinaleIsland"
         _FarColor ("Haze", Color) = (0.07, 0.075, 0.11, 1)
         _RimColor ("Rim", Color) = (1, 0.72, 0.42, 1)
         _RimStrength ("Rim Strength", Float) = 1
-        _Ambient ("Night Ambient", Range(0, 1)) = 0.22
+        _Ambient ("Night Ambient", Range(0, 1)) = 0.08
         _DawnAmbient ("Dawn Ambient", Range(0, 1)) = 0.8
-        _Wrap ("Light Wrap", Range(0, 2)) = 0.75
+        _Wrap ("Night Light Wrap", Range(0, 2)) = 0.3
+        _DawnWrap ("Dawn Light Wrap", Range(0, 2)) = 0.75
+        _NightDim ("Night base light scale", Range(0, 1)) = 0.5
         _FlareColor ("Flare", Color) = (1, 0.62, 0.28, 1)
         _Fade ("Fade", Range(0, 1)) = 1
         _Flare ("Flare Amount", Float) = 0
@@ -36,6 +38,8 @@ Shader "LanternKeeper/FinaleIsland"
         float _Ambient;
         float _DawnAmbient;
         float _Wrap;
+        float _DawnWrap;
+        float _NightDim;
         float4 _FlareColor;
         float _Fade;
         float _Flare;
@@ -109,14 +113,14 @@ Shader "LanternKeeper/FinaleIsland"
                 float dawn = saturate(_LanternSkyBlend);
                 float ambient = lerp(_Ambient, _DawnAmbient, dawn);
                 float wrap = saturate(dot(normalWS, mainLight.direction) * 0.5 + 0.5);
-                float light = ambient + _Wrap * wrap * wrap * (1.0 - ambient);
+                float light = ambient + lerp(_Wrap, _DawnWrap, dawn) * wrap * wrap * (1.0 - ambient);
                 float3 tint = TintOrWhite(_SilhouetteTint.rgb);
-                float3 color = albedo * tint * light;
+                float3 color = albedo * tint * light * lerp(_NightDim, 1.0, dawn);
 
                 // The island's own beacons light the ground and trees round them.
                 float3 absolutePos = GetAbsolutePositionWS(input.positionWS);
                 float near = saturate(1.0 - distance(absolutePos, _FlareCenter.xyz) / max(_FlareCenter.w, 0.01));
-                float flareLight = _Flare * near * near;
+                float flareLight = _Flare * near * near * near;
                 color += (albedo * 1.4 + 0.04) * _FlareColor.rgb * flareLight * (0.55 + 0.45 * wrap);
 
                 float dist = length(absolutePos - _WorldSpaceCameraPos.xyz);

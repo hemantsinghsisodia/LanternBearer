@@ -26,6 +26,7 @@ Shader "LanternKeeper/FinaleCloud"
         _Haze ("Haze", Range(0, 1)) = 0
         _HorizonGlow ("Horizon glow", Range(0, 2)) = 0
         _NoiseScale ("Noise scale", Float) = 1.4
+        _FadeHeight ("Fade height above the sea (m)", Float) = 50
         _SunDir ("Sun direction", Vector) = (0, 0.1, 1, 0)
         _UTime ("Unscaled time", Float) = 0
     }
@@ -69,6 +70,7 @@ Shader "LanternKeeper/FinaleCloud"
                 float _Haze;
                 float _HorizonGlow;
                 float _NoiseScale;
+                float _FadeHeight;
                 float _UTime;
             CBUFFER_END
 
@@ -87,6 +89,7 @@ Shader "LanternKeeper/FinaleCloud"
                 float4 data : TEXCOORD1;      // x random, y height in the bank, z tear (1 = whole), w elevation above the camera
                 float3 sunVS : TEXCOORD2;
                 float3 viewWS : TEXCOORD3;
+                float seaHeight : TEXCOORD4;
             };
 
             Varyings vert(Attributes input)
@@ -98,23 +101,25 @@ Shader "LanternKeeper/FinaleCloud"
                 float signedD = frac(turn - _GapCenter + 0.5) - 0.5;
                 float side = signedD >= 0.0 ? 1.0 : -1.0;
                 float ad = abs(signedD);
-                float gap = _Open * _GapHalf * _GapScale;
-                float push = gap * (1.0 - smoothstep(0.0, 0.5, ad));
-                // A little per-puff ragged edge.
-                push *= 0.85 + 0.3 * input.puff.y;
+                // The window: puffs closer than gapO (turns) to the gap centre thin out and vanish; the banks beside it slide a little way
+                // outwards, and rise into towers (bigger, higher) the further they stand from the window. Everything else stays put.
+                float gapO = _Open * _GapHalf * _GapScale;
+                float push = _Open * 0.045 * (1.0 - smoothstep(0.0, 0.3, ad)) * (0.85 + 0.3 * input.puff.y);
                 float placed = _GapCenter + side * (ad + push);
                 float angle = placed * 6.2831853;
-                float3 world = TransformObjectToWorld(float3(sin(angle) * radius, centre.y, cos(angle) * radius));
+                float edgeK = smoothstep(gapO, gapO + 0.12, ad);
+                float heightK = lerp(1.0, lerp(0.6, 1.3, edgeK), _Open);
+                float3 world = TransformObjectToWorld(float3(sin(angle) * radius, centre.y * heightK, cos(angle) * radius));
 
-                // The puffs right in the middle of the gap thin out and vanish instead of popping from one side to the other.
-                float tear = lerp(1.0, smoothstep(0.0, 0.07, ad), saturate(_Open * 3.0));
-                float size = input.puff.x * lerp(0.55, 1.0, tear);
+                float tear = lerp(1.0, smoothstep(gapO * 0.7, gapO * 1.15 + 0.001, ad), saturate(_Open * 8.0));
+                float size = input.puff.x * lerp(0.55, 1.0, tear) * lerp(1.0, lerp(0.75, 1.2, edgeK), _Open);
                 float3 right = UNITY_MATRIX_V[0].xyz;
                 float3 up = UNITY_MATRIX_V[1].xyz;
                 float2 c = input.uv * 2.0 - 1.0;
                 float3 pos = world + (right * c.x + up * c.y * 0.72) * size * 0.5;
                 output.positionCS = TransformWorldToHClip(pos);
                 output.corner = c;
+                output.seaHeight = pos.y - unity_ObjectToWorld._m13;
                 float3 toCentre = world - _WorldSpaceCameraPos;
                 output.data = float4(input.puff.y, input.color.r, tear, toCentre.y / max(length(toCentre.xz), 1.0));
                 output.sunVS = mul((float3x3)UNITY_MATRIX_V, normalize(_SunDir.xyz));
@@ -143,7 +148,7 @@ Shader "LanternKeeper/FinaleCloud"
                 float cut = lerp(0.1, 0.3, h01);
                 float density = saturate((body * 1.35 + (shape - 0.5) * 1.1 - cut) * 2.6);
                 float alpha = density * density * (3.0 - 2.0 * density);
-                alpha *= _Alpha * _Fade * input.data.z;
+                alpha *= _Alpha * _Fade * input.data.z * smoothstep(0.0, max(_FadeHeight, 1.0), input.seaHeight);
                 if (alpha < 0.004)
                 {
                     return half4(0, 0, 0, 0);

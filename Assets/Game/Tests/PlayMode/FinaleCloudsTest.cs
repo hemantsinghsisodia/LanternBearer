@@ -88,6 +88,34 @@ public class FinaleCloudsTest
 
     [UnityTest]
     [Timeout(300000)]
+    public IEnumerator FinalePlayLightsTheGreatLamp()
+    {
+        yield return Load(3);
+        Component lamp = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("GreatLamp"));
+        Component finale = (Component)UnityEngine.Object.FindAnyObjectByType(GameType("FinaleSequence"));
+        Assert.IsFalse((bool)Get(lamp, "Lit"), "the lamp starts dark");
+        GameType("FinaleSequence").GetMethod("Play").Invoke(finale, new object[] { null });
+        yield return null;
+        Assert.IsTrue((bool)Get(lamp, "Lit"), "Play lights the lamp");
+        float waited = 0f;
+        while (waited < 2.6f)
+        {
+            yield return null;
+            waited += Time.unscaledDeltaTime;
+        }
+
+        Component beam = lamp.GetComponentInChildren(GameType("GreatLampBeam"), true);
+        Assert.IsTrue((bool)Get(beam, "Running"), "the beam runs");
+        Assert.Greater((float)Get(beam, "Intensity01"), 0.9f, "the beam is up after its ramp");
+        Transform glassTransform = lamp.transform.Find("BeaconGlass");
+        Assert.IsNotNull(glassTransform);
+        MaterialPropertyBlock block = new MaterialPropertyBlock();
+        glassTransform.GetComponent<Renderer>().GetPropertyBlock(block);
+        Assert.AreEqual(1f, block.GetFloat("_Glow"), 1e-4f, "the glass glows fully");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
     public IEnumerator CloudsAreHiddenAndStormRingUnchangedInPlay()
     {
         yield return Load(3);

@@ -27,12 +27,15 @@ public class FinaleSequence : MonoBehaviour
     const float LampFlareSeconds = 1.2f;
     const float SeaFar = 4000f;
     const float SeaScale = 8f;
+    const float HaloSize = 16f;
 
     [SerializeField] GreatLamp lamp;
     [SerializeField] GreatLampBeam beam;
     [SerializeField] FinaleCamera finaleCamera;
     [SerializeField] StormRing storm;
     [SerializeField] FinaleClouds clouds;
+    // A soft amber additive card at the lantern room, so the lit lamp reads from the finale camera distances.
+    [SerializeField] Transform halo;
     [SerializeField] FinaleIslands islands;
     [SerializeField] DawnSequence dawn;
     [SerializeField] ParticleSystem embers;
@@ -94,6 +97,8 @@ public class FinaleSequence : MonoBehaviour
 
         if (lamp != null)
         {
+            // The lamp is always lit in the cinematic (a no-op when the keeper lit it), then it flares.
+            lamp.EnsureLit();
             lamp.Flare(LampFlarePeak, LampFlareSeconds);
         }
 
@@ -242,6 +247,24 @@ public class FinaleSequence : MonoBehaviour
 
     void Step(float t, float speed, Rain rain)
     {
+        if (halo != null && lamp != null && lamp.Flame != null)
+        {
+            // The halo follows the lantern room, faces the camera and breathes a little.
+            Camera main = Camera.main;
+            if (!halo.gameObject.activeSelf)
+            {
+                halo.gameObject.SetActive(true);
+            }
+
+            halo.position = lamp.Flame.position;
+            if (main != null)
+            {
+                halo.rotation = main.transform.rotation;
+            }
+
+            halo.localScale = Vector3.one * HaloSize * (0.92f + 0.08f * Mathf.Sin(Time.unscaledTime * 3.1f));
+        }
+
         if (t >= FinaleTimeline.BeamStart && storm != null)
         {
             if (!stormStarted)

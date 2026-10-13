@@ -11,9 +11,9 @@ public static class FinaleCloudMath
     public const int FullLayers = 3;
     public const int LowLayers = 1;
     // Peak god ray strength (additive alpha) before the Reduce flashing cap.
-    public const float RayPeak = 0.45f;
+    public const float RayPeak = 0.6f;
     // The gap narrows a little at the sunrise so the banks flank the sun: 1 .. SunriseGapScale.
-    public const float SunriseGapScale = 0.5f;
+    public const float SunriseGapScale = 0.7f;
 
     public static int LayerCount(bool low)
     {
@@ -60,13 +60,20 @@ public static class FinaleCloudMath
         return k * RayPeak * SettingsMath.FlashCap(reduceFlashing);
     }
 
-    // The gap centre (bearing 0..1): the beam's bearing at the start of the break, drifting round the short way to the sun's bearing through the
-    // islands phase, so the banks part where the sun will come up.
-    public static float GapBearing(float beamBearing01, float sunBearing01, float t)
+    // The gap centre (bearing 0..1): the beam bearing at the start of the break, swinging the short way round to where the camera looks through the
+    // break (so the window is always in the middle of the view, with banks on both sides), which pans to the dawn, then settling on the sun's own bearing through the sunrise.
+    public static float GapBearing(float beamBearing01, float lookBearing01, float sunBearing01, float t)
     {
-        float k = Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Islands));
-        float delta = Mathf.Repeat(sunBearing01 - beamBearing01 + 0.5f, 1f) - 0.5f;
-        return Mathf.Repeat(beamBearing01 + delta * k, 1f);
+        float toLook = Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.BeamAndStorm));
+        float toSun = Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise));
+        float a = Round(beamBearing01, lookBearing01, toLook);
+        return Round(a, sunBearing01, toSun);
+    }
+
+    static float Round(float from, float to, float k)
+    {
+        float delta = Mathf.Repeat(to - from + 0.5f, 1f) - 0.5f;
+        return Mathf.Repeat(from + delta * k, 1f);
     }
 }
 }

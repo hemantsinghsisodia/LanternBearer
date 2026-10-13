@@ -14,7 +14,7 @@ public static partial class FinaleInstaller
     const string RayShaderName = "LanternKeeper/FinaleGodRays";
     const string RayMaterialPath = Folder + "/FinaleGodRays.mat";
     const string RayMeshPath = Folder + "/FinaleGodRays.asset";
-    const int RayShafts = 9;
+    const int RayShafts = 14;
 
     struct CloudLayerSpec
     {
@@ -22,6 +22,7 @@ public static partial class FinaleInstaller
         public float radius, baseY, bankHeight, puffMin, puffMax;
         public int banks, perBank;
         public float bankDegMin, bankDegMax;
+        public float fadeHeight;
         public float gapHalf, drift, haze, horizonGlow, noiseScale;
         public int queue;
     }
@@ -30,9 +31,9 @@ public static partial class FinaleInstaller
     // high so they leave the horizon band (where the islands stand) clear.
     static readonly CloudLayerSpec[] CloudLayers =
     {
-        new CloudLayerSpec { name = "Near", radius = 250f, baseY = 80f, bankHeight = 100f, puffMin = 62f, puffMax = 120f, banks = 14, perBank = 9, bankDegMin = 22f, bankDegMax = 34f, gapHalf = 0.13f, drift = 0.0007f, haze = 0f, horizonGlow = 0f, noiseScale = 1.5f, queue = 3012 },
-        new CloudLayerSpec { name = "Mid", radius = 450f, baseY = 62f, bankHeight = 160f, puffMin = 120f, puffMax = 230f, banks = 14, perBank = 9, bankDegMin = 20f, bankDegMax = 32f, gapHalf = 0.14f, drift = 0.00033f, haze = 0.12f, horizonGlow = 0.3f, noiseScale = 1.4f, queue = 3011 },
-        new CloudLayerSpec { name = "Far", radius = 700f, baseY = 36f, bankHeight = 230f, puffMin = 200f, puffMax = 380f, banks = 14, perBank = 10, bankDegMin = 18f, bankDegMax = 30f, gapHalf = 0.12f, drift = 0.00014f, haze = 0.3f, horizonGlow = 0.85f, noiseScale = 1.3f, queue = 3010 }
+        new CloudLayerSpec { name = "Near", radius = 250f, baseY = 55f, bankHeight = 100f, puffMin = 62f, puffMax = 120f, banks = 15, perBank = 9, bankDegMin = 14f, bankDegMax = 24f, fadeHeight = 25f, gapHalf = 0.06f, drift = 0.0007f, haze = 0f, horizonGlow = 0f, noiseScale = 1.5f, queue = 3012 },
+        new CloudLayerSpec { name = "Mid", radius = 450f, baseY = 30f, bankHeight = 160f, puffMin = 120f, puffMax = 230f, banks = 15, perBank = 9, bankDegMin = 13f, bankDegMax = 22f, fadeHeight = 45f, gapHalf = 0.065f, drift = 0.00033f, haze = 0.12f, horizonGlow = 0.3f, noiseScale = 1.4f, queue = 3011 },
+        new CloudLayerSpec { name = "Far", radius = 700f, baseY = 10f, bankHeight = 230f, puffMin = 200f, puffMax = 380f, banks = 15, perBank = 10, bankDegMin = 12f, bankDegMax = 21f, fadeHeight = 90f, gapHalf = 0.06f, drift = 0.00014f, haze = 0.3f, horizonGlow = 0.85f, noiseScale = 1.3f, queue = 3010 }
     };
 
     static string CloudMeshPath(string layer)
@@ -72,6 +73,7 @@ public static partial class FinaleInstaller
             material.SetFloat("_Haze", spec.haze);
             material.SetFloat("_HorizonGlow", spec.horizonGlow);
             material.SetFloat("_NoiseScale", spec.noiseScale);
+            material.SetFloat("_FadeHeight", spec.fadeHeight);
             material.SetFloat("_Fade", 0f);
             material.renderQueue = spec.queue;
             EditorUtility.SetDirty(material);
@@ -127,6 +129,7 @@ public static partial class FinaleInstaller
         {
             float centre = (bank + (float)(rng.NextDouble() - 0.5) * 0.6f) / spec.banks;
             float width = Mathf.Lerp(spec.bankDegMin, spec.bankDegMax, (float)rng.NextDouble()) / 360f;
+            float tall = Mathf.Lerp(0.5f, 1.2f, (float)rng.NextDouble());
             for (int j = 0; j < spec.perBank; j++)
             {
                 float across = ((j + (float)rng.NextDouble() * 0.8f) / spec.perBank) - 0.5f;
@@ -135,7 +138,7 @@ public static partial class FinaleInstaller
                 float turn = centre + across * width;
                 float radius = spec.radius * (1f + ((float)rng.NextDouble() - 0.5f) * 0.12f);
                 float size = Mathf.Lerp(spec.puffMax, spec.puffMin, h01 * 0.7f) * (0.55f + 0.45f * mound) * (0.85f + 0.3f * (float)rng.NextDouble());
-                float y = Mathf.Max(spec.baseY + h01 * spec.bankHeight * (0.3f + 0.7f * mound) + size * 0.1f, size * 0.4f);   // a puff never dips into the sea (the water would cut it flat)
+                float y = Mathf.Max(spec.baseY + h01 * spec.bankHeight * tall * (0.3f + 0.7f * mound) + size * 0.1f, size * 0.15f);   // the shader fades the bottoms out near the waterline
                 float angle = turn * 2f * Mathf.PI;
                 Vector3 p = new Vector3(Mathf.Sin(angle) * radius, y, Mathf.Cos(angle) * radius);
                 float random = (float)rng.NextDouble();
@@ -178,10 +181,10 @@ public static partial class FinaleInstaller
         List<int> triangles = new List<int>();
         for (int i = 0; i < RayShafts; i++)
         {
-            float lateral = Mathf.Lerp(-1f, 1f, (i + 0.5f) / RayShafts) * 520f + ((float)rng.NextDouble() - 0.5f) * 90f;
-            float height = Mathf.Lerp(150f, 260f, (float)rng.NextDouble());
-            float distance = 950f + ((float)rng.NextDouble() - 0.5f) * 120f;
-            float halfWidth = Mathf.Lerp(7f, 18f, (float)rng.NextDouble());
+            float lateral = Mathf.Lerp(-1f, 1f, (i + 0.5f) / RayShafts) * 900f + ((float)rng.NextDouble() - 0.5f) * 120f;
+            float height = Mathf.Lerp(100f, 210f, (float)rng.NextDouble());
+            float distance = 1300f + ((float)rng.NextDouble() - 0.5f) * 160f;
+            float halfWidth = Mathf.Lerp(16f, 40f, (float)rng.NextDouble());
             float random = (float)rng.NextDouble();
             Vector3 start = new Vector3(lateral, height, distance);
             int first = vertices.Count;
@@ -203,7 +206,7 @@ public static partial class FinaleInstaller
         mesh.SetUVs(1, uv1);
         mesh.SetColors(colours);
         mesh.SetTriangles(triangles, 0);
-        mesh.bounds = new Bounds(new Vector3(0f, 120f, 0f), new Vector3(3200f, 900f, 3200f));
+        mesh.bounds = new Bounds(new Vector3(0f, 120f, 0f), new Vector3(4400f, 900f, 4400f));
         return mesh;
     }
 }

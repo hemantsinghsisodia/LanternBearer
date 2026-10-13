@@ -61,13 +61,14 @@ Shader "LanternKeeper/FinaleGodRays"
                 float3 axis = -sun;
                 float3 start = TransformObjectToWorld(input.positionOS.xyz);
                 float height = max(input.shaft.x, 1.0);
-                float run = min(height / max(sun.y, 0.06), 650.0);
+                float run = min(height / max(sun.y, 0.06), 1400.0);
                 float3 centre = start + axis * run * input.uv.y;
                 float3 side = cross(axis, normalize(centre - _WorldSpaceCameraPos));
                 side = normalize(side + float3(0.0, 0.0001, 0.0));
                 float across = input.uv.x * 2.0 - 1.0;
-                float width = input.shaft.y * lerp(1.0, 2.2, input.uv.y);
-                output.positionCS = TransformWorldToHClip(centre + side * across * width);
+                float width = input.shaft.y * lerp(1.0, 2.6, input.uv.y);
+                float sway = sin(_UTime * 0.15 + input.color.r * 40.0) * width * 0.45;
+                output.positionCS = TransformWorldToHClip(centre + side * (across * width + sway));
                 output.data = float3(across, input.uv.y, input.color.r);
                 return output;
             }
@@ -76,10 +77,10 @@ Shader "LanternKeeper/FinaleGodRays"
             {
                 float lateral = 1.0 - abs(input.data.x);
                 lateral = lateral * lateral * (3.0 - 2.0 * lateral);
-                float along = smoothstep(0.0, 0.18, input.data.y) * (1.0 - smoothstep(0.4, 0.95, input.data.y));
+                float along = smoothstep(0.0, 0.15, input.data.y) * (1.0 - smoothstep(0.62, 1.0, input.data.y));
                 float2 uv = float2(input.data.x * 0.35 + input.data.z * 9.0, input.data.y * 0.5 + _UTime * 0.004);
-                float streak = 0.55 + 0.9 * SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, uv).r;
-                float shimmer = 0.9 + 0.1 * sin(_UTime * 0.6 + input.data.z * 40.0);
+                float streak = 0.5 + 1.1 * SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, uv).r;
+                float shimmer = 0.8 + 0.2 * sin(_UTime * 0.5 + input.data.z * 40.0 + input.data.y * 3.0);
                 float a = lateral * along * streak * shimmer * _Strength;
                 return half4(_Color.rgb, a * _Color.a);
             }

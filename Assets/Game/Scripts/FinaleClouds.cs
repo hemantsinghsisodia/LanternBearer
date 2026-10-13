@@ -250,7 +250,7 @@ public class FinaleClouds : MonoBehaviour
         float open = FinaleCloudMath.Break01(t);
         float dawn01 = FinaleCloudMath.Dawn01(t);
         float gapScale = FinaleCloudMath.GapScale(t);
-        float gap = FinaleCloudMath.GapBearing(beamBearing, SunBearing01(), t);
+        float gap = FinaleCloudMath.GapBearing(beamBearing, Mathf.Repeat(FinaleCamera.LookBearing(t) / 360f, 1f), SunBearing01(), t);
         float utime = Time.unscaledTime;
         for (int i = 0; i < LayerCount; i++)
         {

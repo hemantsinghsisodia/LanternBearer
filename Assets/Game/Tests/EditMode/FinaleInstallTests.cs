@@ -140,6 +140,19 @@ public class FinaleInstallTests
     }
 
     [Test]
+    public void NightIslandsAreDarkerThanDawnIslands()
+    {
+        float Const(string n) { return (float)Installer().GetField(n).GetValue(null); }
+        Assert.Less(Const("IslandNightAmbient"), 0.12f, "night ambient is low");
+        Assert.Less(Const("IslandNightWrap"), 0.4f, "night wrap is low");
+        Assert.Greater(Const("IslandDawnAmbient"), Const("IslandNightAmbient") * 4f, "dawn warms up");
+        Assert.Greater(Const("IslandDawnWrap"), Const("IslandNightWrap"));
+        var mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Game/Art/Finale/FinaleIsland.mat");
+        Assert.AreEqual(Const("IslandNightAmbient"), mat.GetFloat("_Ambient"), 1e-5f);
+        Assert.AreEqual(Const("IslandNightWrap"), mat.GetFloat("_Wrap"), 1e-5f);
+    }
+
+    [Test]
     public void IslandsKeepTheirOwnColoursAndProps()
     {
         Color[] average = new Color[5];

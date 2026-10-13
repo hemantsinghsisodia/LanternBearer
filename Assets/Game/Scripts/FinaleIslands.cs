@@ -21,7 +21,7 @@ public class FinaleIslands : MonoBehaviour
     public const float FlareRadius = 38f;
     const float PopSeconds = 0.4f;
     const float PopPeak = 3f;
-    const float SteadyFlare = 1.2f;
+    const float SteadyFlare = 0.4f;
     const float SettleSeconds = 2.2f;
 
     static readonly int FadeId = Shader.PropertyToID("_Fade");
