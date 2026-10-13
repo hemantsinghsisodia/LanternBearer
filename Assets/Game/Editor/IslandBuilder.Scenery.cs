@@ -233,7 +233,7 @@ public static partial class IslandBuilder
             }
         }
 
-        if (lighthouseIslet != null)
+        if (lighthouseIslet != null && !config.spire)
         {
             PlaceLighthouse(lighthouseIslet, lighthouseTop, art);
         }
@@ -909,6 +909,7 @@ public static partial class IslandBuilder
         Stage stage = new Stage();
         stage.waterY = waterY;
         CreateHorizon(config, art, stage);
+        HorizonLighthouseInstaller.Apply(scene);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("Rebuilt horizon in " + scenePath + " waterY=" + waterY.ToString("0.00"));
