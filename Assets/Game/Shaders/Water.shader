@@ -25,6 +25,8 @@ Shader "LanternKeeper/Water"
         _FinaleHorizon ("Finale Horizon", Color) = (0.6, 0.5, 0.42, 1)
         _FinalePath ("Finale Sun Path Strength", Float) = 0
         _FinalePathColor ("Finale Sun Path", Color) = (1, 0.827, 0.541, 1)
+        // 1 = the deep water beyond about 400 m is fully opaque (the Island 5 finale sets it on its own material instance: the sky, the sun and the sea floor must never show through the far sea). 0 = the island water, unchanged.
+        _FarSolid ("Far Sea Solid", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -74,6 +76,7 @@ Shader "LanternKeeper/Water"
             float4 _FinaleHorizon;
             float _FinalePath;
             float4 _FinalePathColor;
+            float _FarSolid;
 
             struct Attributes
             {
@@ -287,7 +290,10 @@ Shader "LanternKeeper/Water"
                 float alpha = lerp(_ShallowColor.a, 0.92, depth01);
                 alpha *= saturate(depth / 0.12);
                 // The far finale sea is solid (the sky and the floor never show through it); the shallows by the islands stay clear.
-                alpha = lerp(alpha, 1.0, finale * depth01 * smoothstep(120.0, 400.0, eye));
+                float solid = max(finale, _FarSolid);
+                alpha = lerp(alpha, 1.0, solid * depth01 * smoothstep(120.0, 400.0, eye));
+                // Deeper than a few metres the finale sea hides what lies under it (the island shelves end in straight edges).
+                alpha = lerp(alpha, 1.0, finale * smoothstep(4.0, 14.0, depth));
                 alpha = max(alpha, foam * _FoamColor.a);
                 alpha = max(alpha, rim * 0.7);
                 return half4(water, saturate(alpha));

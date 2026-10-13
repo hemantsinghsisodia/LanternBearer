@@ -31,9 +31,9 @@ public static partial class FinaleInstaller
     // high so they leave the horizon band (where the islands stand) clear.
     static readonly CloudLayerSpec[] CloudLayers =
     {
-        new CloudLayerSpec { name = "Near", radius = 250f, baseY = 55f, bankHeight = 100f, puffMin = 62f, puffMax = 120f, banks = 15, perBank = 9, bankDegMin = 14f, bankDegMax = 24f, fadeHeight = 25f, gapHalf = 0.06f, drift = 0.0007f, haze = 0f, horizonGlow = 0f, noiseScale = 1.5f, queue = 3012 },
-        new CloudLayerSpec { name = "Mid", radius = 450f, baseY = 30f, bankHeight = 160f, puffMin = 120f, puffMax = 230f, banks = 15, perBank = 9, bankDegMin = 13f, bankDegMax = 22f, fadeHeight = 45f, gapHalf = 0.065f, drift = 0.00033f, haze = 0.12f, horizonGlow = 0.3f, noiseScale = 1.4f, queue = 3011 },
-        new CloudLayerSpec { name = "Far", radius = 700f, baseY = 10f, bankHeight = 230f, puffMin = 200f, puffMax = 380f, banks = 15, perBank = 10, bankDegMin = 12f, bankDegMax = 21f, fadeHeight = 90f, gapHalf = 0.06f, drift = 0.00014f, haze = 0.3f, horizonGlow = 0.85f, noiseScale = 1.3f, queue = 3010 }
+        new CloudLayerSpec { name = "Near", radius = 250f, baseY = 55f, bankHeight = 100f, puffMin = 62f, puffMax = 120f, banks = 15, perBank = 9, bankDegMin = 14f, bankDegMax = 24f, fadeHeight = 25f, gapHalf = 0.035f, drift = 0.0007f, haze = 0f, horizonGlow = 0f, noiseScale = 1.5f, queue = 3012 },
+        new CloudLayerSpec { name = "Mid", radius = 450f, baseY = 30f, bankHeight = 160f, puffMin = 120f, puffMax = 230f, banks = 15, perBank = 9, bankDegMin = 13f, bankDegMax = 22f, fadeHeight = 45f, gapHalf = 0.04f, drift = 0.00033f, haze = 0.12f, horizonGlow = 0.3f, noiseScale = 1.4f, queue = 3011 },
+        new CloudLayerSpec { name = "Far", radius = 700f, baseY = 10f, bankHeight = 230f, puffMin = 200f, puffMax = 380f, banks = 15, perBank = 10, bankDegMin = 12f, bankDegMax = 21f, fadeHeight = 90f, gapHalf = 0.035f, drift = 0.00014f, haze = 0.3f, horizonGlow = 0.85f, noiseScale = 1.3f, queue = 3010 }
     };
 
     static string CloudMeshPath(string layer)

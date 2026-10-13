@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace LanternKeeper.Tests
 {
 // The Island 5 finale cinematic, live. Game types are reached by reflection (this assembly can't reference Assembly-CSharp).
-// The finale runs on unscaled time; FinaleSequence.TestSpeed (8) makes the 52 s sequence take 6.5 s.
+// The finale runs on unscaled time; FinaleSequence.TestSpeed (8) makes the 66 s sequence take 8.25 s.
 public class FinaleSequenceTest
 {
     const string GraphicsKey = "LanternKeeperGraphics";
@@ -203,7 +203,7 @@ public class FinaleSequenceTest
         LightTheLamp();
         float start = Time.realtimeSinceStartup;
         List<int> phases = new List<int>();
-        float limit = 52f / 8f + 1f;
+        float limit = 66f / 8f + 1f;
         while (wonCount == 0 && Time.realtimeSinceStartup - start < limit + 3f)
         {
             int phase = Convert.ToInt32(Get(finale, "Phase"));
@@ -218,7 +218,7 @@ public class FinaleSequenceTest
         yield return null;
         yield return null;
         Assert.AreEqual(1, wonCount, "WonGame fires once");
-        Assert.LessOrEqual(wonAt - start, limit, "WonGame within (52 / 8) + 1 s of unscaled time");
+        Assert.LessOrEqual(wonAt - start, limit, "WonGame within (66 / 8) + 1 s of unscaled time");
         Assert.IsTrue((bool)Get(manager, "Won"));
         Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "the dawn flag is released");
         Assert.GreaterOrEqual(phases.Count, 4, "phases seen: " + string.Join(",", phases));
@@ -228,7 +228,9 @@ public class FinaleSequenceTest
         }
 
         Assert.AreEqual(0, phases[0], "starts at Ignition");
-        Assert.IsTrue(phases.Contains(1) && phases.Contains(2) && phases.Contains(3), "BeamAndStorm, Islands and Sunrise were all seen: " + string.Join(",", phases));
+        Assert.IsTrue(phases.Contains(1) && phases.Contains(2) && phases.Contains(3) && phases.Contains(4), "BeamAndStorm, Islands, Sunrise and Hold were all seen: " + string.Join(",", phases));
+        Assert.GreaterOrEqual(wonAt - start, 66f / 8f - 0.5f, "the credits start at 66 s (at TestSpeed 8), not before");
+        Assert.AreEqual(66f, (float)Get(finale, "Elapsed"), 0.01f, "the finale clock ends at 66 s");
     }
 
     [UnityTest]
@@ -243,7 +245,7 @@ public class FinaleSequenceTest
         Time.timeScale = 0f;
         float start = Time.realtimeSinceStartup;
         int tries = 0;
-        while (wonCount == 0 && Time.realtimeSinceStartup - start < 52f / 8f + 4f)
+        while (wonCount == 0 && Time.realtimeSinceStartup - start < 66f / 8f + 4f)
         {
             Call(manager, "Pause");
             Assert.IsFalse((bool)Get(manager, "IsPaused"), "pause has no effect during the finale");
@@ -254,7 +256,130 @@ public class FinaleSequenceTest
         yield return null;
         Assert.Greater(tries, 5);
         Assert.AreEqual(1, wonCount, "the finale ran to the end at timeScale 0");
-        Assert.LessOrEqual(wonAt - start, 52f / 8f + 1f);
+        Assert.LessOrEqual(wonAt - start, 66f / 8f + 1f);
+    }
+
+    // The cinematic flight on the real camera: the lamp is in the frame at the checkpoints, each island is passed 80-150 m away at its flare
+    // time, the pitch is never steeper than 20 degrees down, the lens stays the gameplay one and the far plane is raised.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator FlightFramesTheLampAndPassesEachIsland()
+    {
+        yield return Load("Island5");
+        Camera cam = Camera.main;
+        Assert.IsNotNull(cam);
+        float fov = cam.fieldOfView;
+        LightTheLamp();
+        Component finale = (Component)Find("FinaleSequence");
+        Component finaleCamera = finale.GetComponent(GameType("FinaleCamera"));
+        Transform flame = (Transform)Get(Find("GreatLamp"), "Flame");
+        Component islands = finale.GetComponentInChildren(GameType("FinaleIslands"), true);
+        float minY = -Mathf.Sin(20f * Mathf.Deg2Rad) - 0.001f;
+
+        float[] checkpoints = { 3f, 15f, 50f, 64f };
+        for (int i = 0; i < checkpoints.Length; i++)
+        {
+            Call(finaleCamera, "Place", checkpoints[i]);
+            Vector3 view = cam.WorldToViewportPoint(flame.position);
+            Assert.Greater(view.z, 0f, "the lamp is in front of the camera at " + checkpoints[i] + " s");
+            Assert.That(view.x, Is.InRange(0.03f, 0.97f), "the lamp is inside the frame (x) at " + checkpoints[i] + " s");
+            Assert.That(view.y, Is.InRange(0.03f, 0.97f), "the lamp is inside the frame (y) at " + checkpoints[i] + " s");
+        }
+
+        for (float t = 0f; t <= 66f; t += 0.5f)
+        {
+            Call(finaleCamera, "Place", t);
+            Assert.GreaterOrEqual(cam.transform.forward.y, minY, "pitch no steeper than -20 degrees at " + t + " s");
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            float t = 21f + 6f * i;
+            Call(finaleCamera, "Place", t);
+            object entry = Call(islands, "EntryAt", i);
+            Transform root = (Transform)entry.GetType().GetField("root").GetValue(entry);
+            Vector3 flareLocal = (Vector3)entry.GetType().GetField("flareLocal").GetValue(entry);
+            Vector3 flare = root.TransformPoint(flareLocal);
+            float distance = Vector3.Distance(cam.transform.position, flare);
+            Assert.That(distance, Is.InRange(80f, 150f), "island " + (i + 1) + " is passed at a pleasing distance at " + t + " s");
+            Vector3 view = cam.WorldToViewportPoint(flare);
+            Assert.That(view.x, Is.InRange(0.2f, 0.8f), "island " + (i + 1) + " is centred-ish at " + t + " s");
+            Assert.That(view.y, Is.InRange(0.03f, 0.97f), "and its beacon is in the frame");
+        }
+
+        Assert.AreEqual(fov, cam.fieldOfView, 0.001f, "the gameplay lens");
+        yield return null;
+        Assert.GreaterOrEqual(cam.farClipPlane, 4000f, "the far plane is raised for the whole finale");
+    }
+
+    // The far sea is one solid gradient to the horizon: its material is opaque out there (nothing shows through: not the sky, not the sea floor edge,
+    // not the sun before it rises) and a column of pixels from the sea up to the horizon has no hard step in it.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator FarSeaIsSolidAndHidesTheSun()
+    {
+        yield return Load("Island5");
+        SetTestSpeed(8f);
+        Camera cam = Camera.main;
+        LightTheLamp();
+        Component finale = (Component)Find("FinaleSequence");
+        float start = Time.realtimeSinceStartup;
+        while ((float)Get(finale, "Elapsed") < 44f && Time.realtimeSinceStartup - start < 20f)
+        {
+            yield return null;
+        }
+
+        yield return new WaitForEndOfFrame();
+        Renderer water = GameObject.Find("Water").GetComponent<Renderer>();
+        Assert.IsTrue(water.material.HasProperty("_FarSolid"), "the water shader has the far-solid switch");
+        Assert.AreEqual(1f, water.material.GetFloat("_FarSolid"), 0.001f, "the finale sea is solid in the distance");
+        Assert.GreaterOrEqual(water.material.GetFloat("_FadeEnd"), 3800f, "the fade ring is out at the horizon");
+
+        // Pixel check at the 44 s pose: the sun is still below the horizon, so nothing bright may show under the horizon line.
+        // (The cloud banks and the island miniatures are switched off for the capture: only the sea, the sky and the sun are being judged.)
+        finale.GetComponentInChildren(GameType("FinaleClouds"), true).gameObject.SetActive(false);
+        finale.GetComponentInChildren(GameType("FinaleIslands"), true).gameObject.SetActive(false);
+        RenderTexture rt = new RenderTexture(960, 540, 24, RenderTextureFormat.ARGB32);
+        RenderTexture previous = cam.targetTexture;
+        cam.targetTexture = rt;
+        cam.Render();
+        cam.targetTexture = previous;
+        RenderTexture.active = rt;
+        Texture2D tex = new Texture2D(960, 540, TextureFormat.RGB24, false);
+        tex.ReadPixels(new Rect(0, 0, 960, 540), 0, 0);
+        tex.Apply();
+        RenderTexture.active = null;
+        Vector3 flat = cam.transform.forward;
+        flat.y = 0f;
+        flat.Normalize();
+        Vector3 horizon = cam.WorldToViewportPoint(cam.transform.position + flat * 3500f);
+        int horizonRow = Mathf.RoundToInt(horizon.y * 540f);
+        Assert.Greater(horizonRow, 40, "the horizon is in the frame");
+        float worst = 0f;
+        float maxLuma = 0f;
+        for (int column = 0; column < 3; column++)
+        {
+            int x = Mathf.RoundToInt(960f * (0.15f + 0.35f * column));
+            float prev = -1f;
+            for (int row = horizonRow - 8; row > Mathf.Max(4, horizonRow - 90); row -= 1)
+            {
+                Color c = tex.GetPixel(x, row);
+                float luma = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+                maxLuma = Mathf.Max(maxLuma, luma);
+                if (prev >= 0f)
+                {
+                    worst = Mathf.Max(worst, Mathf.Abs(luma - prev));
+                }
+
+                prev = luma;
+            }
+        }
+
+        UnityEngine.Object.Destroy(tex);
+        rt.Release();
+        UnityEngine.Object.Destroy(rt);
+        Assert.Less(worst, 0.07f, "no hard line in the sea below the horizon (largest step between rows)");
+        Assert.Less(maxLuma, 0.5f, "the sea is not lit up by anything showing through it");
     }
 
     static IEnumerator ShadersFor(GraphicsLevelValue level)
@@ -394,10 +519,10 @@ public class FinaleSequenceTest
         float maxBefore = 0f;
         float maxAny = 0f;
         float start = Time.realtimeSinceStartup;
-        while (wonCount == 0 && Time.realtimeSinceStartup - start < 52f / 8f + 4f)
+        while (wonCount == 0 && Time.realtimeSinceStartup - start < 66f / 8f + 4f)
         {
             float t = (float)Get(finale, "Elapsed");
-            if (t < 36f)
+            if (t < 42f)
             {
                 maxBefore = Mathf.Max(maxBefore, grade.weight);
             }

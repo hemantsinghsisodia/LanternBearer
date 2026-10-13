@@ -74,7 +74,7 @@ public class FinaleCloudMathTests
         Assert.AreEqual(0.1f, FinaleCloudMath.GapBearing(0.9f, 0.4f, 0.1f, FinaleTimeline.Total), 1e-5f, "ends at the sun");
         float midway = FinaleCloudMath.GapBearing(0.9f, 0.9f, 0.1f, FinaleTimeline.IslandsStart);
         Assert.AreEqual(0.9f, midway, 1e-5f);
-        float round = FinaleCloudMath.GapBearing(0.9f, 0.9f, 0.1f, (FinaleTimeline.SunriseStart + FinaleTimeline.Total) * 0.5f);
+        float round = FinaleCloudMath.GapBearing(0.9f, 0.9f, 0.1f, (FinaleTimeline.SunriseStart + FinaleTimeline.HoldStart) * 0.5f);
         Assert.AreEqual(0f, Mathf.Min(round, 1f - round), 1e-4f, "through north, the short way round");
     }
 }

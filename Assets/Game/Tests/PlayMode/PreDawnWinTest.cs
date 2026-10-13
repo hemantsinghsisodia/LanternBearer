@@ -230,7 +230,7 @@ public class PreDawnWinTest
         Call(Find("GreatLamp"), "Light");
         float maxSun = 0f, maxBlend = 0f;
         float start = Time.realtimeSinceStartup;
-        while (!(bool)Get(manager, "Won") && Time.realtimeSinceStartup - start < 52f / 8f + 4f)
+        while (!(bool)Get(manager, "Won") && Time.realtimeSinceStartup - start < 66f / 8f + 4f)
         {
             maxSun = Mathf.Max(maxSun, (float)Get(dawn, "SkySunIntensity"));
             maxBlend = Mathf.Max(maxBlend, Shader.GetGlobalFloat("_LanternSkyBlend"));

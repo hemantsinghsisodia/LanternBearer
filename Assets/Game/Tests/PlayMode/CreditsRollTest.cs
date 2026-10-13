@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace LanternKeeper.Tests
 {
 // The credits roll after the Island 5 finale, live. Game types (Assembly-CSharp) are reached by reflection; CreditsRoll is in the Hud assembly.
-// FinaleSequence.TestSpeed (8) makes the 52 s finale take 6.5 s. The save keys a test writes are restored in TearDown.
+// FinaleSequence.TestSpeed (8) makes the 66 s finale take 8.25 s. The save keys a test writes are restored in TearDown.
 public class CreditsRollTest
 {
     const string GraphicsKey = "LanternKeeperGraphics";
@@ -222,7 +222,7 @@ public class CreditsRollTest
         LightTheLamp();
         float start = Time.realtimeSinceStartup;
         CreditsRoll credits = FindCredits();
-        while (!credits.Started && Time.realtimeSinceStartup - start < 52f / 8f + 8f)
+        while (!credits.Started && Time.realtimeSinceStartup - start < 66f / 8f + 8f)
         {
             yield return null;
         }

@@ -10,10 +10,12 @@ namespace LanternKeeper
 // touch it (pause is blocked while GameManager.DawnPlaying, and PlayerController ignores input once the round is over).
 //
 //   0 s    MusicDirector.PlayFinale (the cue's deep chord), a lamp flare (x4 over 1.2 s), an ember burst, the camera takes over.
-//   6 s    the storm ring starts to open from the bearing the beam is pointing at (fully open by 18 s); the camera pulls back and up.
-//   18 s   the silhouettes of Islands 1-4 fade in, and each flares its beacons at FinaleTimeline.IslandFlareTime.
-//   36 s   the sunrise: DawnSequence.Play(null, SunriseLength, unscaled). The dawn owns the sky, fog, sun and water from here.
-//   52 s   onComplete. The camera holds its final frame.
+//   6 s    the storm ring starts to open from the bearing the beam is pointing at (fully open by 18 s); the camera rises and swings round the lighthouse.
+//   18 s   the flyby: the camera glides along the island chain (FinaleFlightPath); Islands 1-4 fade in, and each flares its beacons at
+//          FinaleTimeline.IslandFlareTime (21, 27, 33, 39 s) as the camera passes.
+//   42 s   the sunrise: DawnSequence.Play(null, SunriseLength, unscaled). The dawn owns the sky, fog, sun and water from here.
+//   60 s   the hold: a slow push-in on the lighthouse against the sun.
+//   66 s   onComplete (the credits). The camera holds its final frame.
 //
 // Island5Look stops writing the sky and fog once the round is over (GameManager.Win sets it before Play), so the storm opening and the
 // sunrise never fight it. The storm ring is its own material; it does not touch the sky.
@@ -266,6 +268,12 @@ public class FinaleSequence : MonoBehaviour
                 seaMaterial = instance;
                 instance.SetFloat("_FadeStart", 2400f);
                 instance.SetFloat("_FadeEnd", 3900f);
+                // The far sea is opaque from the start of the finale (the clouds and the sky never show through it, the sun cannot rise through it).
+                if (instance.HasProperty("_FarSolid"))
+                {
+                    instance.SetFloat("_FarSolid", 1f);
+                }
+
                 // The finale sea (Water.shader _FinaleSea): off until the sunrise blends it in.
                 if (instance.HasProperty("_FinaleSea"))
                 {

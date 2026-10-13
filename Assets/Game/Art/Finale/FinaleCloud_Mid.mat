@@ -35,7 +35,7 @@ Material:
     - _Fade: 0
     - _FadeHeight: 45
     - _GapCenter: 0
-    - _GapHalf: 0.065
+    - _GapHalf: 0.04
     - _GapScale: 1
     - _Haze: 0.12
     - _HorizonGlow: 0.3
