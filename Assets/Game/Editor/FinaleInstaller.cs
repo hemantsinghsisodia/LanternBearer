@@ -39,9 +39,10 @@ public static class FinaleInstaller
     const float WaterFraction = 0.2f;
     const float SkirtFloor = -2f;
     const float ClusterSpacing = 8f;
-    const int StormCardsPerLayerFull = 24;
-    const int StormCardsPerLayerLow = 12;
-    const int StormSegments = 4;
+    // Continuous cloud ribbons round the island: 4 layers on the full level, 2 on Low (half the cards, half the overdraw).
+    const int StormSegments = 48;
+    const int StormLayersFull = 4;
+    const int StormLayersLow = 2;
 
     [MenuItem("Lantern Keeper/Install Finale (Island 5)")]
     public static void InstallMenu()
@@ -120,10 +121,12 @@ public static class FinaleInstaller
         EditorUtility.SetDirty(stormMaterial);
 
         Material silhouetteMaterial = EnsureMaterial(SilhouetteMaterialPath, silhouetteShader, "FinaleSilhouette");
-        silhouetteMaterial.SetColor("_NearColor", new Color(0.50f, 0.56f, 0.74f, 1f));
-        silhouetteMaterial.SetColor("_FarColor", new Color(0.55f, 0.62f, 0.80f, 1f));
+        silhouetteMaterial.SetColor("_NearColor", new Color(0.045f, 0.05f, 0.08f, 1f));
+        silhouetteMaterial.SetColor("_FarColor", new Color(0.07f, 0.075f, 0.11f, 1f));
+        silhouetteMaterial.SetColor("_RimColor", new Color(1f, 0.72f, 0.42f, 1f));
+        silhouetteMaterial.SetFloat("_Solid", 0.95f);
         silhouetteMaterial.SetFloat("_Band", 0.3f);
-        silhouetteMaterial.SetFloat("_RimStrength", 0.35f);
+        silhouetteMaterial.SetFloat("_RimStrength", 1.1f);
         silhouetteMaterial.SetFloat("_Fade", 1f);
         EditorUtility.SetDirty(silhouetteMaterial);
 
@@ -132,8 +135,8 @@ public static class FinaleInstaller
         glowMaterial.SetColor("_BaseColor", new Color(1f, 0.694f, 0.361f, 0.8f));
         EditorUtility.SetDirty(glowMaterial);
 
-        Mesh stormFull = EnsureMesh(StormFullPath, "StormRing_Full", BuildStormMesh(StormCardsPerLayerFull, 5505));
-        Mesh stormLow = EnsureMesh(StormLowPath, "StormRing_Low", BuildStormMesh(StormCardsPerLayerLow, 5505));
+        Mesh stormFull = EnsureMesh(StormFullPath, "StormRing_Full", BuildStormMesh(StormLayersFull, 5505));
+        Mesh stormLow = EnsureMesh(StormLowPath, "StormRing_Low", BuildStormMesh(StormLayersLow, 5505));
         Material columnMaterial = EnsureMaterial(ColumnMaterialPath, additive, "FinaleColumn");
         columnMaterial.SetTexture("_BaseMap", soft);
         columnMaterial.SetColor("_BaseColor", new Color(1f, 0.78f, 0.45f, 0.5f));
@@ -190,8 +193,8 @@ public static class FinaleInstaller
         stormData.FindProperty("ringRenderer").objectReferenceValue = stormRenderer;
         stormData.FindProperty("meshFull").objectReferenceValue = stormFull;
         stormData.FindProperty("meshLow").objectReferenceValue = stormLow;
-        stormData.FindProperty("cardsFull").intValue = StormCardsPerLayerFull * 2;
-        stormData.FindProperty("cardsLow").intValue = StormCardsPerLayerLow * 2;
+        stormData.FindProperty("cardsFull").intValue = StormLayersFull * StormSegments;
+        stormData.FindProperty("cardsLow").intValue = StormLayersLow * StormSegments;
         stormData.ApplyModifiedPropertiesWithoutUndo();
 
         // The distant islands.
@@ -497,46 +500,44 @@ public static class FinaleInstaller
 
     // ---- storm ring meshes ----
 
-    // Two layers of cloud cards round the island at StormRing.Radius, StormRing.MinHeight..MaxHeight above the object (the sea). Each card is an
-    // arc of StormSegments segments, so wide cards still follow the circle. uv0 runs across the card; uv1.x is a per-card random.
-    static Mesh BuildStormMesh(int cardsPerLayer, int seed)
+    // `layers` continuous ribbons round the island at about StormRing.Radius (each StormSegments quads, no gaps), from StormRing.MinHeight up to
+    // StormRing.MaxHeight above the object (the sea). Layer 0 is the lowest and densest; the higher layers reach further up and are wispier
+    // (the shader shapes that from uv.y). uv0.x runs round the circle 12 times (the noise tiles), uv0.y is 0 at the base and 1 at the top;
+    // uv1.x is a per-layer random.
+    static Mesh BuildStormMesh(int layers, int seed)
     {
         System.Random rng = new System.Random(seed);
         List<Vector3> vertices = new List<Vector3>();
         List<Vector2> uv0 = new List<Vector2>();
         List<Vector2> uv1 = new List<Vector2>();
         List<int> triangles = new List<int>();
-        float spacing = 2f * Mathf.PI / cardsPerLayer;
-        for (int layer = 0; layer < 2; layer++)
+        for (int layer = 0; layer < layers; layer++)
         {
-            for (int c = 0; c < cardsPerLayer; c++)
+            float k = layers > 1 ? (float)layer / (layers - 1) : 0f;
+            float radius = StormRing.Radius + 12f - k * 36f;
+            float y0 = StormRing.MinHeight + k * 14f;
+            float y1 = Mathf.Lerp(StormRing.MinHeight + 70f, StormRing.MaxHeight, k);
+            float random = (float)rng.NextDouble();
+            int first = vertices.Count;
+            for (int s = 0; s <= StormSegments; s++)
             {
-                float centre = (c + 0.5f * layer) * spacing + ((float)rng.NextDouble() - 0.5f) * spacing * 0.2f;
-                float half = spacing * 0.95f;
-                float radius = StormRing.Radius - layer * 12f + ((float)rng.NextDouble() - 0.5f) * 16f;
-                float y0 = StormRing.MinHeight + (float)rng.NextDouble() * 14f + layer * 18f;
-                float y1 = Mathf.Min(StormRing.MaxHeight, y0 + 65f + (float)rng.NextDouble() * 50f);
-                float random = (float)rng.NextDouble();
-                int first = vertices.Count;
-                for (int s = 0; s <= StormSegments; s++)
-                {
-                    float k = (float)s / StormSegments;
-                    float a = centre + Mathf.Lerp(-half, half, k);
-                    Vector3 p = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * radius;
-                    vertices.Add(new Vector3(p.x, y0, p.z));
-                    vertices.Add(new Vector3(p.x, y1, p.z));
-                    uv0.Add(new Vector2(k, 0f));
-                    uv0.Add(new Vector2(k, 1f));
-                    uv1.Add(new Vector2(random, 0f));
-                    uv1.Add(new Vector2(random, 0f));
-                }
+                float u = (float)s / StormSegments;
+                float a = u * 2f * Mathf.PI;
+                float wobble = 1f + 0.03f * Mathf.Sin(a * 7f + random * 6f);
+                Vector3 p = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * radius * wobble;
+                vertices.Add(new Vector3(p.x, y0, p.z));
+                vertices.Add(new Vector3(p.x, y1, p.z));
+                uv0.Add(new Vector2(u * 12f, 0f));
+                uv0.Add(new Vector2(u * 12f, 1f));
+                uv1.Add(new Vector2(random, k));
+                uv1.Add(new Vector2(random, k));
+            }
 
-                for (int s = 0; s < StormSegments; s++)
-                {
-                    int b = first + s * 2;
-                    triangles.Add(b); triangles.Add(b + 1); triangles.Add(b + 2);
-                    triangles.Add(b + 2); triangles.Add(b + 1); triangles.Add(b + 3);
-                }
+            for (int s = 0; s < StormSegments; s++)
+            {
+                int b = first + s * 2;
+                triangles.Add(b); triangles.Add(b + 1); triangles.Add(b + 2);
+                triangles.Add(b + 2); triangles.Add(b + 1); triangles.Add(b + 3);
             }
         }
 

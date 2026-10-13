@@ -25,6 +25,8 @@ public class FinaleSequence : MonoBehaviour
     const float MaxFrameSeconds = 0.25f;
     const float LampFlarePeak = 4f;
     const float LampFlareSeconds = 1.2f;
+    const float SeaFar = 4000f;
+    const float SeaScale = 8f;
 
     [SerializeField] GreatLamp lamp;
     [SerializeField] GreatLampBeam beam;
@@ -37,6 +39,8 @@ public class FinaleSequence : MonoBehaviour
     Coroutine running;
     Material sky;
     float skyExponent = 1.6f;
+    Color cloudColor = Color.gray;
+    Material seaMaterial;
     bool sunriseStarted;
     bool stormStarted;
     float gapBearing;
@@ -110,25 +114,25 @@ public class FinaleSequence : MonoBehaviour
         // so the sky keeps its blue-violet to gold gradient and the island its form.
         if (dawn != null)
         {
-            dawn.FogDensityScale = 0.08f;
+            dawn.FogDensityScale = 0.01f;
             dawn.DawnGradeWeight = 0.4f;
-            dawn.WaterWarmth = 0.6f;
+            dawn.WaterWarmth = 1f;
+            dawn.WaterTintOverride = new Color(0.55f, 0.85f, 1.05f, 1f);
+            dawn.DawnGradeWeight = 0f;
+            dawn.SkyTopOverride = new Color(0.16f, 0.15f, 0.46f, 1f);
+            dawn.HorizonOverride = new Color(1f, 0.74f, 0.46f, 1f);
+            dawn.AmbientOverride = new Color(0.30f, 0.38f, 0.62f, 1f);
+            dawn.ExposureScale = 0.6f;
         }
 
         // The fireflies are big green blobs from the air.
-        GameObject fireflies = GameObject.Find("Fireflies");
-        if (fireflies != null)
+        FireflySwarm[] swarms = FindObjectsByType<FireflySwarm>(FindObjectsInactive.Exclude);
+        for (int i = 0; i < swarms.Length; i++)
         {
-            fireflies.SetActive(false);
+            swarms[i].gameObject.SetActive(false);
         }
 
         // So are the moths (glowing white dots all over the sea): no more spawns, and the living ones go.
-        MothSpawner spawner = FindAnyObjectByType<MothSpawner>();
-        if (spawner != null)
-        {
-            spawner.enabled = false;
-        }
-
         Moth[] moths = FindObjectsByType<Moth>(FindObjectsInactive.Exclude);
         for (int i = 0; i < moths.Length; i++)
         {
@@ -139,7 +143,10 @@ public class FinaleSequence : MonoBehaviour
         if (sky != null && sky.HasProperty("_Exponent"))
         {
             skyExponent = sky.GetFloat("_Exponent");
+            cloudColor = sky.HasProperty("_CloudColor") ? sky.GetColor("_CloudColor") : cloudColor;
         }
+
+        MakeSeaSeamless();
 
         // The Rain follows the camera; the wall tears open at the end of it.
         Rain rain = FindAnyObjectByType<Rain>();
@@ -182,6 +189,46 @@ public class FinaleSequence : MonoBehaviour
         }
     }
 
+    // The sea is a 1280 m square: from the finale camera its edge shows as a line and a corner. The far plane goes out and the plane scales up, so the
+    // water (which fades to the fog colour, the dawn horizon colour) runs to the horizon.
+    void MakeSeaSeamless()
+    {
+        Camera camera = Camera.main;
+        if (camera != null && camera.farClipPlane < SeaFar)
+        {
+            camera.farClipPlane = SeaFar;
+        }
+
+        // The sand floor 10 m under the water shows through it and turns the sea brown in the dawn light: a private dark teal copy of its material.
+        // (The floor itself stays, it keeps the water depth even.)
+        GameObject floor = GameObject.Find("SeaFloor");
+        Renderer floorRenderer = floor != null ? floor.GetComponent<Renderer>() : null;
+        if (floorRenderer != null && floorRenderer.sharedMaterial != null && floorRenderer.sharedMaterial.HasProperty("_BaseColor"))
+        {
+            floorRenderer.material.SetColor("_BaseColor", new Color(0.02f, 0.05f, 0.07f, 1f));
+            // Out past the floor the water would blend over the bright sky (brown): the floor grows with the sea.
+            Vector3 floorScale = floor.transform.localScale;
+            floor.transform.localScale = new Vector3(floorScale.x * SeaScale, floorScale.y, floorScale.z * SeaScale);
+        }
+
+        GameObject water = GameObject.Find("Water");
+        if (water != null)
+        {
+            Vector3 scale = water.transform.localScale;
+            water.transform.localScale = new Vector3(SeaScale, scale.y, SeaScale);
+            // The water fades to the fog colour in a ring (520-630 m); out here that would turn most of the visible sea gold, so the ring moves out
+            // to where the sea meets the horizon (a private material instance; the shared asset is not touched).
+            Renderer renderer = water.GetComponent<Renderer>();
+            if (renderer != null && renderer.sharedMaterial != null && renderer.sharedMaterial.HasProperty("_FadeStart"))
+            {
+                Material instance = renderer.material;
+                seaMaterial = instance;
+                instance.SetFloat("_FadeStart", 2800f);
+                instance.SetFloat("_FadeEnd", 3800f);
+            }
+        }
+    }
+
     void Step(float t, float speed, Rain rain)
     {
         if (t >= FinaleTimeline.BeamStart && storm != null)
@@ -214,12 +261,23 @@ public class FinaleSequence : MonoBehaviour
         // The sunrise sky keeps a blue-violet to gold gradient: the exponent drops so the gold does not cover the whole view.
         if (t >= FinaleTimeline.SunriseStart && sky != null && sky.HasProperty("_Exponent"))
         {
-            sky.SetFloat("_Exponent", Mathf.Lerp(skyExponent, 0.6f, Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
+            sky.SetFloat("_Exponent", Mathf.Lerp(skyExponent, 0.3f, Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
+            if (sky.HasProperty("_CloudColor"))
+            {
+                sky.SetColor("_CloudColor", Color.Lerp(cloudColor, new Color(0.46f, 0.38f, 0.62f, cloudColor.a), Mathf.SmoothStep(0f, 1f, FinaleTimeline.Phase01(t, FinalePhase.Sunrise))));
+            }
         }
 
         if (!sunriseStarted && t >= FinaleTimeline.SunriseStart)
         {
             sunriseStarted = true;
+            // The sea turns deep blue-teal for the sunrise (the dawn light warms the night colours to brown otherwise).
+            if (seaMaterial != null)
+            {
+                seaMaterial.SetColor("_DeepColor", new Color(0.015f, 0.08f, 0.18f, 0.92f));
+                seaMaterial.SetColor("_ShallowColor", new Color(0.05f, 0.2f, 0.36f, 0.5f));
+            }
+
             if (dawn != null)
             {
                 dawn.Play(null, FinaleTimeline.SunriseLength / speed, true);

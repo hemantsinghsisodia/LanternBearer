@@ -42,6 +42,12 @@ public class DawnSequence : MonoBehaviour
     [System.NonSerialized] public float FogDensityScale = 0.45f;
     [System.NonSerialized] public float DawnGradeWeight = 1f;
     [System.NonSerialized] public float WaterWarmth = 1f;
+    // Alpha 0 = no override. SkyTop and Horizon replace the dawn sky colours (and the dawn fog follows Horizon); Ambient replaces the dawn ambient sky and equator.
+    [System.NonSerialized] public Color SkyTopOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public Color HorizonOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public Color AmbientOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public float ExposureScale = 1f;
+    [System.NonSerialized] public Color WaterTintOverride = new Color(0f, 0f, 0f, 0f);
 
     public static void ApplyNightGlobals()
     {
@@ -139,9 +145,34 @@ public class DawnSequence : MonoBehaviour
             ambientBoost = look.dawnAmbientBoost;
         }
 
+        if (HorizonOverride.a > 0f)
+        {
+            dawnFog = HorizonOverride;
+            dawnHorizon = HorizonOverride;
+            if (skybox != null && skybox.HasProperty("_DawnHorizon"))
+            {
+                skybox.SetColor("_DawnHorizon", HorizonOverride);
+            }
+        }
+
+        if (SkyTopOverride.a > 0f && skybox != null && skybox.HasProperty("_DawnTop"))
+        {
+            skybox.SetColor("_DawnTop", SkyTopOverride);
+        }
+
+        if (AmbientOverride.a > 0f)
+        {
+            dawnSky = AmbientOverride;
+            dawnEquator = AmbientOverride;
+        }
+
         Color dawnHaze = new Color(1f, 0.64f, 0.42f, 1f);
         Color dawnTint = new Color(1f, 0.94f, 0.86f, 1f);
         Color dawnWater = new Color(1f, 0.7f, 0.5f, 1f);
+        if (WaterTintOverride.a > 0f)
+        {
+            dawnWater = WaterTintOverride;
+        }
         Color dawnSilhouette = new Color(1f, 0.64f, 0.46f, 1f);
         bool blendSky = skybox != null && skybox.HasProperty("_Blend");
 
@@ -211,6 +242,7 @@ public class DawnSequence : MonoBehaviour
                         }
                     }
 
+                    dawnExposure *= ExposureScale;
                     skybox.SetFloat("_Exposure", Mathf.Lerp(nightExposure, dawnExposure, u));
                     skybox.SetColor("_Tint", Color.Lerp(nightTint, dawnTint, u));
                     if (skybox.HasProperty("_HazeColor"))

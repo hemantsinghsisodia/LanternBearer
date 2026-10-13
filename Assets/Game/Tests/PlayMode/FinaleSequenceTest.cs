@@ -315,6 +315,43 @@ public class FinaleSequenceTest
 
     [UnityTest]
     [Timeout(300000)]
+    public IEnumerator FinaleSilencesTheNearMoth()
+    {
+        yield return Load("Island5");
+        SetTestSpeed(8f);
+        Component lantern = (Component)Find("Lantern");
+        Component spawner = (Component)Find("MothSpawner");
+        GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Prefabs/Gameplay/Moth.prefab");
+        Assert.IsNotNull(prefab, "Moth prefab");
+        GameObject moth = UnityEngine.Object.Instantiate(prefab, lantern.transform.position + new Vector3(2f, 0.5f, 0f), Quaternion.identity);
+        float waited = 0f;
+        AudioSource whisper = (AudioSource)Get(spawner, "ProximitySource");
+        while ((float)Get(lantern, "ProximityDim") <= 0.05f && waited < 3f)
+        {
+            yield return null;
+            waited += Time.unscaledDeltaTime;
+        }
+
+        Assert.Greater((float)Get(lantern, "ProximityDim"), 0.05f, "the moth near the keeper dims the lantern before the finale");
+        Assert.IsTrue(whisper != null && whisper.isPlaying, "and the whisper plays");
+        LightTheLamp();
+        waited = 0f;
+        while (waited < 1f)
+        {
+            yield return null;
+            waited += Time.unscaledDeltaTime;
+        }
+
+        Assert.AreEqual(0f, (float)Get(lantern, "ProximityDim"), 1e-4f, "the finale clears the proximity dim");
+        Assert.IsFalse(whisper.isPlaying, "and stops the moth whisper");
+        if (moth != null)
+        {
+            UnityEngine.Object.Destroy(moth);
+        }
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
     public IEnumerator IslandsOneToFourWinUnchanged()
     {
         yield return Load("Island1");

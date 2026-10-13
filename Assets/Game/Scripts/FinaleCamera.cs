@@ -18,14 +18,16 @@ public class FinaleCamera : MonoBehaviour
     public const float MaxDownPitch = 20f;
     // Pitch while looking out at the horizon (degrees below level).
     public const float HoldPitch = 11f;
-    public const float SunrisePitch = 1f;
+    public const float SunrisePitch = -9f;
     // The view stays on the lantern room while the camera pulls back, then swings out to the horizon.
     public const float LookShiftStart = 6f, LookShiftEnd = 16f;
     // The bearing (degrees clockwise from +Z, seen from the lamp) the camera looks towards: the middle of the arc, then across it, then the dawn.
     public const float PanFromBearing = 225f, PanToBearing = 310f, PanStart = 16f, PanEnd = 34f;
-    // DawnSequence's sun sits on the bearing opposite its light direction (yaw 28): the sunrise looks that way.
-    public const float SunBearing = 208f, SunPanEnd = 50f;
+    // Island 5's dawn sun (_MoonDir) is at bearing 35: the sunrise looks that way.
+    public const float SunBearing = 35f, SunPanEnd = 50f;
     const float FarLook = 300f;
+    // At the sunrise the camera slides round the lighthouse by this much, so the sun side is lit and the far side shadowed in view.
+    const float SunriseSideOffset = 16f;
 
     [SerializeField] Transform lamp;
     [SerializeField] Transform flame;
@@ -88,13 +90,14 @@ public class FinaleCamera : MonoBehaviour
             ? PanFromBearing - OrbitDegreesPerSecond * (PanStart - t)
             : Mathf.Lerp(PanFromBearing, PanToBearing, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - PanStart) / (PanEnd - PanStart))));
         float dawn = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart + 2f) / (SunPanEnd - FinaleTimeline.SunriseStart + 2f)));
-        return Mathf.Lerp(across, SunBearing, dawn);
+        return Mathf.Lerp(across, SunBearing + 360f, dawn);
     }
 
     // Bearing of the camera as seen from the lamp: always opposite the look direction (so the lighthouse stays centred horizontally).
     public static float OrbitBearing(float t)
     {
-        return LookBearing(t) + 180f;
+        float side = SunriseSideOffset * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart) / 6f));
+        return LookBearing(t) + 180f + side;
     }
 
     // Horizontal distance from the lamp axis: close at the lantern room, out to EndRadius by the end of the Beam phase.

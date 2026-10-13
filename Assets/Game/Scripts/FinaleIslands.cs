@@ -46,7 +46,7 @@ public class FinaleIslands : MonoBehaviour
     [SerializeField] Color sunColor = new Color(1f, 0.74f, 0.38f, 1f);
 
     static MaterialPropertyBlock block;
-    // The Horizon hills (Range*, Islet*, Ridge*) hide the silhouettes and read as stepped rings of terrain from the low camera.
+    // The Horizon hills (Range*, Islet*, Ridge*, and the additive Haze* rings, which turn the distant sea gold at dawn) hide the silhouettes and read as stepped rings of terrain from the low camera.
     // They sink flat as the storm opens: SinkInnerHorizon(0..1). Done once they are gone.
     bool sunk;
     Transform[] inner;
@@ -116,7 +116,7 @@ public class FinaleIslands : MonoBehaviour
 
     static bool IsInnerHorizon(string objectName)
     {
-        return objectName.StartsWith("Range") || objectName.StartsWith("Islet") || objectName.StartsWith("Ridge");
+        return objectName.StartsWith("Range") || objectName.StartsWith("Islet") || objectName.StartsWith("Ridge") || objectName.StartsWith("Haze");
     }
 
     // 0 = the hills as built, 1 = flattened into the sea (and switched off).

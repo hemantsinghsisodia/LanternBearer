@@ -89,22 +89,27 @@ Shader "LanternKeeper/StormRing"
 
             half4 frag(Varyings input) : SV_Target
             {
+                // Continuous ribbons: uv.x runs round the circle (the noise tiles), uv.y is 0 at the base and 1 at the top; card.y is the layer (0 lowest).
                 float2 uv = input.uv;
-                float2 scroll = float2(_UTime * (0.004 + 0.006 * input.card.x) + input.card.x * 7.0, input.card.x * 3.0);
-                float shape = SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, uv * float2(2.0, 1.0) + scroll).r;
-                float edge = smoothstep(0.0, 0.3, uv.x) * smoothstep(1.0, 0.7, uv.x) * smoothstep(0.0, 0.35, uv.y) * smoothstep(1.0, 0.55, uv.y);
-                float body = saturate((shape * 1.5 * edge - 0.22) * 2.2);
+                float v = uv.y;
+                float2 scroll = float2(_UTime * (0.004 + 0.006 * input.card.x) + input.card.x * 7.0, input.card.y * 0.37);
+                float shape = SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, uv + scroll).r;
+                // Dense and dark at the base, wispy at the top: the threshold climbs with height, and the top fades out.
+                float baseFade = smoothstep(0.0, 0.14, v);
+                float topFade = 1.0 - smoothstep(0.5 + 0.25 * input.card.y, 1.0, v);
+                float dens = saturate((shape * lerp(1.8, 1.0, v) - lerp(0.1, 0.52, v)) * 3.0);
+                float body = dens * baseFade * topFade;
 
                 // The dissolve threshold grows outwards from the gap centre; the dense cores last longest.
-                float dissolve = saturate((_Open * 1.5 - input.dist.x) * 2.5);
+                float dissolve = saturate((_Open * 1.5 - input.dist.x + (shape - 0.35) * 0.5) * 2.5);
                 float alpha = saturate(body - dissolve) / max(1.0 - dissolve, 0.001);
-                alpha *= _Alpha * _Density;
+                alpha *= _Alpha * _Density * lerp(1.0, 0.7, input.card.y);
 
                 // Lit from within: a strike lights the clouds near it (the denser the brighter), plus a faint idle flicker.
                 float near = 1.0 - smoothstep(0.0, 0.4, input.dist.y);
                 float idle = 0.5 + 0.5 * sin(_UTime * 1.7 + input.card.x * 31.0 + shape * 6.0);
                 float lit = saturate(_Flash * near * (0.35 + 0.65 * shape) + 0.05 * idle * shape);
-                float3 colour = lerp(_DarkColor.rgb, _LitColor.rgb, lit);
+                float3 colour = lerp(_DarkColor.rgb * lerp(0.55, 1.2, v), _LitColor.rgb, lit);
                 colour = lerp(colour, _WarmColor.rgb * (0.4 + 0.6 * shape), _Warm);
                 return half4(colour, alpha);
             }
