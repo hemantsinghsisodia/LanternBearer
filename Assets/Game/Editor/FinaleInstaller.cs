@@ -65,11 +65,26 @@ public static class FinaleInstaller
         Scene scene = OpenScene();
         if (Rebuild(scene))
         {
+            InstallCredits();
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("FinaleInstaller: installed the finale in " + scene.name + ".");
         }
+    }
+
+    // The credits that follow the finale: Resources/Credits.txt (a copy of CREDITS.txt) and the overlay on the Island 5 HUD canvas.
+    static void InstallCredits()
+    {
+        CreditsSync.Sync();
+        HUD hud = Object.FindAnyObjectByType<HUD>(FindObjectsInactive.Include);
+        if (hud == null)
+        {
+            Debug.LogError("FinaleInstaller: Island 5 has no HUD for the credits roll.");
+            return;
+        }
+
+        UIBuilder.InstallCredits(hud);
     }
 
     // Rebuilds the finale in an open Island 5 scene without saving it (the assets are written). False, and the scene untouched, if something is missing.

@@ -1,0 +1,390 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+
+namespace LanternKeeper.Tests
+{
+// The credits roll after the Island 5 finale, live. Game types (Assembly-CSharp) are reached by reflection; CreditsRoll is in the Hud assembly.
+// FinaleSequence.TestSpeed (8) makes the 52 s finale take 6.5 s. The save keys a test writes are restored in TearDown.
+public class CreditsRollTest
+{
+    const string GraphicsKey = "LanternKeeperGraphics";
+    static readonly string[] IntKeys =
+    {
+        "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4", "LanternKeeperIntro_island5",
+        "LanternKeeperWon_island5"
+    };
+    const string BestKey = "LanternKeeperBest_island5";
+
+    readonly Dictionary<string, int> savedInts = new Dictionary<string, int>();
+    float savedBest;
+    int savedGraphics;
+    float previousScale;
+    int wonCount;
+
+    public void OnWon()
+    {
+        wonCount++;
+    }
+
+    static Type GameType(string name)
+    {
+        Type type = Type.GetType("LanternKeeper." + name + ", Assembly-CSharp");
+        Assert.IsNotNull(type, name + " type not found");
+        return type;
+    }
+
+    static UnityEngine.Object Find(string typeName)
+    {
+        return UnityEngine.Object.FindAnyObjectByType(GameType(typeName));
+    }
+
+    static object Get(object target, string member)
+    {
+        Type type = target.GetType();
+        PropertyInfo property = type.GetProperty(member, BindingFlags.Public | BindingFlags.Instance);
+        if (property != null)
+        {
+            return property.GetValue(target);
+        }
+
+        FieldInfo field = type.GetField(member, BindingFlags.Public | BindingFlags.Instance);
+        Assert.IsNotNull(field, type.Name + "." + member + " not found");
+        return field.GetValue(target);
+    }
+
+    static object Call(object target, string method, params object[] args)
+    {
+        MethodInfo info = target.GetType().GetMethod(method, BindingFlags.Public | BindingFlags.Instance);
+        Assert.IsNotNull(info, target.GetType().Name + "." + method + " not found");
+        return info.Invoke(target, args);
+    }
+
+    static object CallStatic(string typeName, string method, params object[] args)
+    {
+        MethodInfo info = GameType(typeName).GetMethod(method, BindingFlags.Public | BindingFlags.Static);
+        Assert.IsNotNull(info, typeName + "." + method + " not found");
+        return info.Invoke(null, args);
+    }
+
+    static void SetTestSpeed(float speed)
+    {
+        FieldInfo field = GameType("FinaleSequence").GetField("TestSpeed", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+        Assert.IsNotNull(field, "FinaleSequence.TestSpeed");
+        field.SetValue(null, speed);
+    }
+
+    [SetUp]
+    public void SetUp()
+    {
+        savedInts.Clear();
+        for (int i = 0; i < IntKeys.Length; i++)
+        {
+            savedInts[IntKeys[i]] = PlayerPrefs.HasKey(IntKeys[i]) ? PlayerPrefs.GetInt(IntKeys[i]) : -1;
+        }
+
+        savedBest = PlayerPrefs.HasKey(BestKey) ? PlayerPrefs.GetFloat(BestKey) : float.NaN;
+        // A first-visit intro card pauses the game.
+        for (int i = 1; i <= 5; i++)
+        {
+            PlayerPrefs.SetInt("LanternKeeperIntro_island" + i, 1);
+        }
+
+        savedGraphics = PlayerPrefs.GetInt(GraphicsKey, 0);
+        PlayerPrefs.SetInt(GraphicsKey, 0);
+        previousScale = Time.timeScale;
+        wonCount = 0;
+    }
+
+    [UnityTearDown]
+    public IEnumerator TearDown()
+    {
+        Time.timeScale = previousScale;
+        SetTestSpeed(1f);
+        CreditsRoll.TestSpeed = 1f;
+        foreach (KeyValuePair<string, int> pair in savedInts)
+        {
+            if (pair.Value < 0)
+            {
+                PlayerPrefs.DeleteKey(pair.Key);
+            }
+            else
+            {
+                PlayerPrefs.SetInt(pair.Key, pair.Value);
+            }
+        }
+
+        if (float.IsNaN(savedBest))
+        {
+            PlayerPrefs.DeleteKey(BestKey);
+        }
+        else
+        {
+            PlayerPrefs.SetFloat(BestKey, savedBest);
+        }
+
+        PlayerPrefs.SetInt(GraphicsKey, savedGraphics);
+        PlayerPrefs.Save();
+        AsyncOperation load = SceneManager.LoadSceneAsync("MainMenu");
+        while (!load.isDone)
+        {
+            yield return null;
+        }
+
+        yield return null;
+    }
+
+    static IEnumerator Load(string scene)
+    {
+        AsyncOperation load = SceneManager.LoadSceneAsync(scene);
+        while (!load.isDone)
+        {
+            yield return null;
+        }
+
+        yield return null;
+        yield return null;
+    }
+
+    static IEnumerator WaitForMenu(float seconds)
+    {
+        float start = Time.realtimeSinceStartup;
+        while (SceneManager.GetActiveScene().name != "MainMenu" && Time.realtimeSinceStartup - start < seconds)
+        {
+            yield return null;
+        }
+
+        Assert.AreEqual("MainMenu", SceneManager.GetActiveScene().name, "loaded the main menu");
+        yield return null;
+        yield return null;
+    }
+
+    static CreditsRoll FindCredits()
+    {
+        CreditsRoll credits = UnityEngine.Object.FindAnyObjectByType<CreditsRoll>(FindObjectsInactive.Include);
+        Assert.IsNotNull(credits, "Island5 has the credits roll");
+        return credits;
+    }
+
+    static void Refuel()
+    {
+        Call(Find("Lantern"), "AddFuel", 100f);
+    }
+
+    static void LightTheLamp()
+    {
+        Transform root = GameObject.Find("Beacons").transform;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Refuel();
+            Assert.IsTrue((bool)Call(root.GetChild(i).GetComponent(GameType("Beacon")), "TryLight"), "beacon " + i);
+        }
+
+        Refuel();
+        Component lamp = (Component)Find("GreatLamp");
+        Call(lamp, "Light");
+        Assert.IsTrue((bool)Get(lamp, "Lit"), "the great lamp is lit");
+    }
+
+    void Subscribe(Component manager)
+    {
+        EventInfo won = manager.GetType().GetEvent("WonGame");
+        won.AddEventHandler(manager, Delegate.CreateDelegate(won.EventHandlerType, this, GetType().GetMethod("OnWon")));
+    }
+
+    // Plays the finale at 8x on a fresh Island5 and returns once the credits have started.
+    IEnumerator WinIsland5()
+    {
+        yield return Load("Island5");
+        SetTestSpeed(8f);
+        Component manager = (Component)Find("GameManager");
+        Subscribe(manager);
+        LightTheLamp();
+        float start = Time.realtimeSinceStartup;
+        CreditsRoll credits = FindCredits();
+        while (!credits.Started && Time.realtimeSinceStartup - start < 52f / 8f + 8f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue(credits.Started, "the credits start after the finale");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator RollListsEveryCredit()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        credits.Build();
+        string built = credits.BuiltText;
+        List<CreditEntry> entries = CreditsFormat.Parse(Resources.Load<TextAsset>("Credits").text);
+        Assert.AreEqual(41, entries.Count, "the repo credits");
+        for (int i = 0; i < entries.Count; i++)
+        {
+            StringAssert.Contains(entries[i].title, built, "title " + i);
+            StringAssert.Contains(entries[i].author, built, "author of " + entries[i].title);
+            StringAssert.Contains(entries[i].heading, built, "heading of " + entries[i].title);
+        }
+
+        StringAssert.Contains("Lantern Keeper", built);
+        StringAssert.Contains("Made by " + Application.companyName, built);
+        StringAssert.Contains("Made with Unity", built);
+        StringAssert.Contains("Thank you for keeping the light.", built);
+        Assert.Less(built.IndexOf("Made by ", StringComparison.Ordinal), built.IndexOf(entries[0].title, StringComparison.Ordinal));
+        Assert.Less(built.IndexOf(entries[entries.Count - 1].title, StringComparison.Ordinal), built.IndexOf("Made with Unity", StringComparison.Ordinal));
+        Assert.Less(built.IndexOf("Made with Unity", StringComparison.Ordinal), built.IndexOf("Thank you for keeping the light.", StringComparison.Ordinal));
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator HeldKeyDoesNotSkipCredits()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        bool held = true;
+        credits.InputHeld = () => held;
+        credits.Begin();
+        float start = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - start < 2f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue(credits.Rolling, "still rolling after 2 s with a key held from before the start");
+        Assert.IsFalse(credits.Exiting);
+        Assert.AreEqual("Island5", SceneManager.GetActiveScene().name);
+        held = false;
+        yield return null;
+        yield return null;
+        Assert.IsTrue(credits.Rolling, "releasing does not skip");
+        held = true;
+        yield return null;
+        yield return null;
+        Assert.IsTrue(credits.Exiting, "a press after the release skips");
+        yield return WaitForMenu(8f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator SkipReturnsToMenu()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        bool held = false;
+        credits.InputHeld = () => held;
+        credits.Begin();
+        float start = Time.realtimeSinceStartup;
+        held = true;
+        yield return null;
+        yield return null;
+        Assert.IsFalse(credits.Exiting, "a press in the first second is ignored");
+        held = false;
+        while (Time.realtimeSinceStartup - start < 1.1f)
+        {
+            yield return null;
+        }
+
+        held = true;
+        yield return null;
+        yield return null;
+        Assert.IsTrue(credits.Exiting, "a press after 1.1 s skips");
+        yield return WaitForMenu(8f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator RollEndsAtTheLastLineAndLoadsMenu()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        credits.InputHeld = () => false;
+        CreditsRoll.TestSpeed = 400f;
+        credits.Begin();
+        float length = credits.ScrollLength;
+        Assert.Greater(length, 3000f, "the roll is long (px)");
+        yield return WaitForMenu(length / (CreditsRoll.PixelsPerSecond * 400f) * 2f + 10f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator FinaleRecordsBestAndWon()
+    {
+        PlayerPrefs.DeleteKey("LanternKeeperWon_island5");
+        PlayerPrefs.DeleteKey(BestKey);
+        yield return WinIsland5();
+        Assert.AreEqual(1, wonCount, "WonGame fires once");
+        Assert.IsTrue((bool)CallStatic("GameSettings", "HasWon", "island5"), "Island 5 is marked won");
+        float best = (float)CallStatic("GameSettings", "GetBestTime", "island5");
+        Assert.Greater(best, 0f, "a best time is stored");
+        ResultPanel result = UnityEngine.Object.FindAnyObjectByType<ResultPanel>(FindObjectsInactive.Include);
+        Assert.IsFalse(result != null && result.IsShowing, "the credits replace the result panel");
+
+        CreditsRoll credits = FindCredits();
+        credits.InputHeld = () => false;
+        CreditsRoll.TestSpeed = 400f;
+        yield return WaitForMenu(30f);
+
+        // A second win also completes.
+        CreditsRoll.TestSpeed = 1f;
+        wonCount = 0;
+        yield return WinIsland5();
+        Assert.AreEqual(1, wonCount, "the second win fires WonGame");
+        Assert.IsTrue((bool)CallStatic("GameSettings", "HasWon", "island5"));
+        Assert.Greater((float)CallStatic("GameSettings", "GetBestTime", "island5"), 0f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator ReturnToMenuStopsFinaleCue()
+    {
+        yield return WinIsland5();
+        MonoBehaviour director = (MonoBehaviour)Find("MusicDirector");
+        Assert.IsTrue((bool)Get(director, "FinalePlaying"), "the finale cue started");
+        AudioSource cue = (AudioSource)Get(director, "FinaleSource");
+        AudioClip finaleClip = cue.clip;
+        Assert.IsNotNull(finaleClip, "finale cue clip");
+        Assert.IsTrue(cue.isPlaying, "the cue is still playing when the credits start");
+
+        CreditsRoll credits = FindCredits();
+        bool held = false;
+        credits.InputHeld = () => held;
+        float start = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - start < 1.2f)
+        {
+            yield return null;
+        }
+
+        held = true;
+        yield return WaitForMenu(10f);
+        ScriptableObject library = Resources.Load<ScriptableObject>("MusicLibrary");
+        AudioClip menuTrack = (AudioClip)Get(library, "menuTrack");
+        Assert.IsNotNull(menuTrack, "menu track");
+
+        // The menu track fades in over 3 s.
+        float wait = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - wait < 1f)
+        {
+            yield return null;
+        }
+
+        AudioSource[] sources = UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        int menuPlaying = 0;
+        for (int i = 0; i < sources.Length; i++)
+        {
+            Assert.IsFalse(sources[i].isPlaying && sources[i].clip == finaleClip, "no AudioSource plays the finale cue in the menu (" + sources[i].name + ")");
+            if (sources[i].isPlaying && sources[i].clip == menuTrack)
+            {
+                menuPlaying++;
+            }
+        }
+
+        Assert.AreEqual(1, menuPlaying, "exactly one source plays the menu track");
+    }
+}
+}

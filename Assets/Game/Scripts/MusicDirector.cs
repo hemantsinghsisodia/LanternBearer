@@ -41,6 +41,9 @@ public class MusicDirector : MonoBehaviour
     const float FinaleFadeSeconds = 1.5f;
     float finaleElapsed = -1f;
     AudioSource finaleSource;
+    // The credits roll leaves for the main menu: everything this director plays fades to silence over exitSeconds.
+    float exitElapsed = -1f;
+    float exitSeconds = 1f;
 
     public float Threat => threat;
     // Storm tension never drops below this (Island 5 height rings). Zero on the other islands.
@@ -111,6 +114,7 @@ public class MusicDirector : MonoBehaviour
         hushed = false;
         hushElapsed = 0f;
         finaleElapsed = -1f;
+        exitElapsed = -1f;
         if (finaleSource != null)
         {
             finaleSource.Stop();
@@ -171,6 +175,11 @@ public class MusicDirector : MonoBehaviour
         if (finaleElapsed >= 0f)
         {
             finaleElapsed += dt;
+        }
+
+        if (exitElapsed >= 0f)
+        {
+            exitElapsed += dt;
         }
 
         ApplyVolumes();
@@ -261,21 +270,40 @@ public class MusicDirector : MonoBehaviour
         tension.volume = hasTension ? baseVolume * TensionGain * EffectiveThreat * hush : 0f;
         if (hushSource != null)
         {
-            hushSource.volume = hushed ? baseVolume * HushLevel * Mathf.Clamp01(hushElapsed / HushSeconds) * FinaleFade() : 0f;
+            hushSource.volume = hushed ? baseVolume * HushLevel * Mathf.Clamp01(hushElapsed / HushSeconds) * FinaleFade() * ExitFade() : 0f;
         }
 
         if (finaleSource != null)
         {
             // The cue plays at the base music level, un-ducked by mood or threat.
-            finaleSource.volume = baseVolume;
+            finaleSource.volume = baseVolume * ExitFade();
         }
+    }
+
+    // 1 until FadeOutForExit, then fades to 0.
+    float ExitFade()
+    {
+        return exitElapsed < 0f ? 1f : 1f - Mathf.Clamp01(exitElapsed / exitSeconds);
+    }
+
+    // The credits are leaving for the main menu: fades the track, tension, hush and finale cue out over `seconds` (unscaled).
+    // The sources go with the scene when the menu loads, so the menu track (MusicPlayer) never overlaps them.
+    public void FadeOutForExit(float seconds)
+    {
+        if (exitElapsed >= 0f)
+        {
+            return;
+        }
+
+        exitSeconds = Mathf.Max(0.05f, seconds);
+        exitElapsed = 0f;
     }
 
     // 1 until the summit hush, then fades to 0 over HushSeconds. The finale cue fades the track and tension out too.
     float HushScale()
     {
         float scale = hushed ? 1f - Mathf.Clamp01(hushElapsed / HushSeconds) : 1f;
-        return Mathf.Min(scale, FinaleFade());
+        return Mathf.Min(Mathf.Min(scale, FinaleFade()), ExitFade());
     }
 
     // 1 before the finale cue, then 0 after FinaleFadeSeconds.
