@@ -13,6 +13,14 @@ public class CreditsSyncTests
     }
 
     [Test]
+    public void CreditsAreSyncedBeforeAPlayerBuild()
+    {
+        System.Type type = System.Type.GetType("LanternKeeper.CreditsBuildSync, Assembly-CSharp-Editor");
+        Assert.IsNotNull(type, "CreditsBuildSync");
+        Assert.IsTrue(typeof(UnityEditor.Build.IPreprocessBuildWithReport).IsAssignableFrom(type), "runs before a player build");
+    }
+
+    [Test]
     public void CreditsResourceMatchesRepoFile()
     {
         TextAsset asset = Resources.Load<TextAsset>("Credits");

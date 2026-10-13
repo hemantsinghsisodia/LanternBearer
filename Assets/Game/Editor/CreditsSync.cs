@@ -1,5 +1,7 @@
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace LanternKeeper
@@ -41,6 +43,17 @@ public static class CreditsSync
     static string Normalise(string text)
     {
         return text.Replace("\r\n", "\n").Replace("\r", "\n");
+    }
+}
+
+// A player build never ships a stale Resources/Credits.txt: the copy is refreshed first.
+public class CreditsBuildSync : IPreprocessBuildWithReport
+{
+    public int callbackOrder { get { return 0; } }
+
+    public void OnPreprocessBuild(BuildReport report)
+    {
+        CreditsSync.Sync();
     }
 }
 }

@@ -224,7 +224,9 @@ public class CreditsRollTest
         credits.Build();
         string built = credits.BuiltText;
         List<CreditEntry> entries = CreditsFormat.Parse(Resources.Load<TextAsset>("Credits").text);
-        Assert.AreEqual(41, entries.Count, "the repo credits");
+        string repoRaw = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "..", "CREDITS.txt"));
+        Assert.AreEqual(CreditsFormat.Parse(repoRaw).Count, entries.Count, "every entry of CREDITS.txt");
+        Assert.Greater(entries.Count, 0);
         for (int i = 0; i < entries.Count; i++)
         {
             StringAssert.Contains(entries[i].title, built, "title " + i);
@@ -268,6 +270,103 @@ public class CreditsRollTest
         yield return null;
         Assert.IsTrue(credits.Exiting, "a press after the release skips");
         yield return WaitForMenu(8f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator RollIsShort()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        credits.Build();
+        Assert.LessOrEqual(credits.Seconds, 75f, "the roll lasts 75 s or less (" + credits.Seconds.ToString("F1") + " s)");
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator KeyPressedBeforeArmAndHeldAcrossDoesNotSkip()
+    {
+        yield return Load("Island5");
+        CreditsRoll credits = FindCredits();
+        bool held = false;
+        credits.InputHeld = () => held;
+        credits.Begin();
+        float start = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - start < 0.5f)
+        {
+            yield return null;
+        }
+
+        held = true;
+        while (Time.realtimeSinceStartup - start < 1.6f)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue(credits.Armed, "armed after 1 s");
+        Assert.IsFalse(credits.Exiting, "a key pressed before arming and held across it does not skip");
+        Assert.IsTrue(credits.HintAlpha > 0.05f, "the skip hint fades in once armed");
+        held = false;
+        yield return null;
+        yield return null;
+        Assert.IsFalse(credits.Exiting);
+        held = true;
+        yield return null;
+        yield return null;
+        Assert.IsTrue(credits.Exiting, "a fresh press skips");
+        yield return WaitForMenu(8f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator MenuTrackFadesInUnderTheRollAfterTheCue()
+    {
+        yield return WinIsland5();
+        MonoBehaviour director = (MonoBehaviour)Find("MusicDirector");
+        AudioSource cue = (AudioSource)Get(director, "FinaleSource");
+        ScriptableObject library = Resources.Load<ScriptableObject>("MusicLibrary");
+        AudioClip menuTrack = (AudioClip)Get(library, "menuTrack");
+        Component player = (Component)Find("MusicPlayer");
+        AudioSource[] players = { (AudioSource)Get(player, "FirstMusic"), (AudioSource)Get(player, "SecondMusic") };
+        Assert.IsFalse(players[0].isPlaying && players[0].clip == menuTrack || players[1].isPlaying && players[1].clip == menuTrack, "no menu track while the cue plays");
+
+        cue.Stop();
+        float start = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - start < 2.6f)
+        {
+            yield return null;
+        }
+
+        AudioSource menu = players[0].isPlaying && players[0].clip == menuTrack ? players[0] : players[1];
+        Assert.IsTrue(menu.isPlaying && menu.clip == menuTrack, "the menu track plays under the roll once the cue is over");
+        Assert.Greater(menu.volume, 0.1f, "and has faded in");
+        float timeBefore = menu.time;
+
+        CreditsRoll credits = FindCredits();
+        bool held = false;
+        credits.InputHeld = () => held;
+        yield return null;
+        held = true;
+        yield return WaitForMenu(10f);
+        float wait = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - wait < 1f)
+        {
+            yield return null;
+        }
+
+        int playing = 0;
+        AudioSource[] sources = UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < sources.Length; i++)
+        {
+            if (sources[i].isPlaying && sources[i].clip == menuTrack)
+            {
+                playing++;
+                Assert.AreSame(menu, sources[i], "the same source keeps playing: no restart");
+                Assert.Greater(sources[i].time, timeBefore, "the track did not restart");
+            }
+        }
+
+        Assert.AreEqual(1, playing, "exactly one menu track in the menu");
     }
 
     [UnityTest]

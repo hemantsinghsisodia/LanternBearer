@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace LanternKeeper
 {
 // The credits roll that follows the Island 5 finale: a column of text scrolls up over a darkened band while the dawn stays visible above
-// and below it. It runs on unscaled time, scrolls at 40 px/s at the 1080p reference height, and ends when the last line leaves the band.
+// and below it. It runs on unscaled time, scrolls at 64 px/s at the 1080p reference height, and ends when the last line leaves the band.
 // Any key, mouse button or gamepad button skips it, but only after ArmSeconds and after every key has been released once, so a key the
 // player was holding when the finale ended cannot skip it. Both ways out raise ExitStarted (the HUD fades the music) and then
 // MenuRequested (the HUD loads the main menu; without a listener the roll loads it itself).
@@ -17,10 +17,13 @@ namespace LanternKeeper
 // the template labels the UIBuilder made, so the fonts and colours come from the UI kit.
 public class CreditsRoll : MonoBehaviour
 {
-    public const float PixelsPerSecond = 40f;
+    public const float PixelsPerSecond = 64f;
     public const float ReferenceHeight = 1080f;
     public const float ArmSeconds = 1f;
     public const float FadeInSeconds = 1f;
+    public const float HintFadeSeconds = 0.6f;
+    public const float HintAlphaTarget = 0.55f;
+    public const string HintText = "Press any key to skip";
     public const float ExitFadeSeconds = 0.8f;
     public const string MenuScene = "MainMenu";
     public const string Closing = "Thank you for keeping the light.";
@@ -40,6 +43,8 @@ public class CreditsRoll : MonoBehaviour
     [SerializeField] private ThemedLabel entryTemplate;
     [SerializeField] private ThemedLabel bylineTemplate;
     [SerializeField] private ThemedLabel closingTemplate;
+    [SerializeField] private ThemedLabel skipHint;
+    [SerializeField] private CanvasGroup skipHintGroup;
 
     private readonly List<GameObject> built = new List<GameObject>();
     private readonly StringBuilder text = new StringBuilder();
@@ -47,6 +52,7 @@ public class CreditsRoll : MonoBehaviour
     private bool rolling;
     private bool exiting;
     private bool armed;
+    private bool previousHeld;
     private bool sawRelease;
     private float elapsed;
     private float offset;
@@ -66,12 +72,15 @@ public class CreditsRoll : MonoBehaviour
     public float Alpha { get { return group != null ? group.alpha : 0f; } }
     public string BuiltText { get { return text.ToString(); } }
     public float ScrollLength { get { return scrollLength; } }
+    // Seconds from the start to the last line leaving the band at 1080p (the spec asks for a short roll: 75 s or less).
+    public float Seconds { get { return scrollLength / (PixelsPerSecond * UnitsPerReferencePixel()); } }
+    public float HintAlpha { get { return skipHintGroup != null ? skipHintGroup.alpha : 0f; } }
     public float Offset { get { return offset; } }
     public RectTransform Content { get { return content; } }
     public RectTransform Viewport { get { return viewport; } }
 
     public void Configure(CanvasGroup canvasGroup, GameObject rollPanel, RectTransform band, RectTransform column, ThemedLabel gameTitle, ThemedLabel madeBy,
-        ThemedLabel heading, ThemedLabel entry, ThemedLabel byline, ThemedLabel closing)
+        ThemedLabel heading, ThemedLabel entry, ThemedLabel byline, ThemedLabel closing, ThemedLabel hint, CanvasGroup hintGroup)
     {
         group = canvasGroup;
         panel = rollPanel;
@@ -83,6 +92,8 @@ public class CreditsRoll : MonoBehaviour
         entryTemplate = entry;
         bylineTemplate = byline;
         closingTemplate = closing;
+        skipHint = hint;
+        skipHintGroup = hintGroup;
     }
 
     private void OnEnable()
@@ -111,6 +122,7 @@ public class CreditsRoll : MonoBehaviour
         elapsed = 0f;
         offset = 0f;
         armed = false;
+        previousHeld = false;
         sawRelease = false;
         group.alpha = 0f;
         panel.SetActive(true);
@@ -155,7 +167,7 @@ public class CreditsRoll : MonoBehaviour
 
         AddLine(gameTitleTemplate, "Lantern Keeper");
         AddLine(madeByTemplate, "Made by " + Application.companyName);
-        AddGap(130f);
+        AddGap(60f);
         string heading = null;
         for (int i = 0; i < entries.Count; i++)
         {
@@ -163,22 +175,22 @@ public class CreditsRoll : MonoBehaviour
             if (entry.heading != heading)
             {
                 heading = entry.heading;
-                AddGap(i == 0 ? 0f : 64f);
+                AddGap(i == 0 ? 0f : 30f);
                 AddLine(headingTemplate, heading);
-                AddGap(18f);
+                AddGap(8f);
             }
             else
             {
-                AddGap(20f);
+                AddGap(6f);
             }
 
             AddLine(entryTemplate, entry.title);
             AddLine(bylineTemplate, "by " + entry.author + " · " + entry.licence);
         }
 
-        AddGap(130f);
+        AddGap(60f);
         AddLine(madeByTemplate, MadeWithUnity);
-        AddGap(70f);
+        AddGap(44f);
         AddLine(closingTemplate, Closing);
 
         LayoutRebuilderForce();
@@ -248,7 +260,10 @@ public class CreditsRoll : MonoBehaviour
 
         dt = Mathf.Max(0f, dt);
         bool held = ReadHeld();
-        if (armed && held)
+        // A skip needs a fresh press edge once armed: a key pressed before the arm moment and held across it does not skip.
+        bool edge = held && !previousHeld;
+        previousHeld = held;
+        if (armed && edge)
         {
             Exit();
             return;
@@ -262,6 +277,11 @@ public class CreditsRoll : MonoBehaviour
         elapsed += dt;
         armed = elapsed >= ArmSeconds && sawRelease;
         group.alpha = Mathf.MoveTowards(group.alpha, 1f, dt / FadeInSeconds);
+        if (skipHintGroup != null)
+        {
+            skipHintGroup.alpha = Mathf.MoveTowards(skipHintGroup.alpha, armed ? HintAlphaTarget : 0f, dt / HintFadeSeconds);
+        }
+
         offset += PixelsPerSecond * UnitsPerReferencePixel() * Mathf.Max(0.01f, TestSpeed) * dt;
         Place();
         if (offset >= scrollLength)

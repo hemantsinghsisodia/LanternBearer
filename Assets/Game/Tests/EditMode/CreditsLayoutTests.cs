@@ -52,6 +52,10 @@ public class CreditsLayoutTests
             SerializedObject so = new SerializedObject(hud);
             Assert.AreSame(roll, so.FindProperty("credits").objectReferenceValue, "HUD.credits is wired");
 
+            UserSettings.TextScale = 1f;
+            roll.Build();
+            Assert.LessOrEqual(roll.Seconds, 75f, "the roll lasts 75 s or less at 100% text (" + roll.Seconds.ToString("F1") + " s)");
+
             UserSettings.TextScale = 1.3f;
             roll.Build();
             Canvas.ForceUpdateCanvases();

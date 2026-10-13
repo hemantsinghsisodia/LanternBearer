@@ -215,6 +215,25 @@ public class MusicPlayer : MonoBehaviour
         CrossfadeTo(clip);
     }
 
+    // The credits roll outlasts the finale cue: brings the menu track in under the roll over `seconds`. The menu then finds it already playing
+    // (ApplyScene returns when the active clip is the menu track), so there is no restart and never two copies.
+    public void BeginMenuUnderlay(float seconds)
+    {
+        if (library == null)
+        {
+            library = Resources.Load<MusicLibrary>("MusicLibrary");
+        }
+
+        AudioClip clip = library != null ? library.menuTrack : null;
+        if (clip == null || (active != null && active.clip == clip))
+        {
+            return;
+        }
+
+        CrossfadeTo(clip);
+        fadeDuration = Mathf.Max(0.05f, seconds);
+    }
+
     void HandOver()
     {
         if (active == null || active.clip == null)

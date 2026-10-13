@@ -57,6 +57,8 @@ public class MusicDirector : MonoBehaviour
     public AudioSource Tension => tension;
     public AudioSource StingerSource => stinger;
     public bool FinalePlaying => finaleElapsed >= 0f;
+    // True once the finale cue has played out (or has no clip). The credits roll then brings the menu track in under it.
+    public bool FinaleCueDone => finaleElapsed > 0.5f && (finaleSource == null || !finaleSource.isPlaying);
     public AudioSource FinaleSource => finaleSource;
 
     void Awake()

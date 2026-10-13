@@ -37,6 +37,7 @@ public class HUD : MonoBehaviour
     bool lanternBound;
     bool buttonsBound;
     bool creditsBound;
+    bool creditsMusicStarted;
     bool missingResolved;
     bool lanternResolved;
     int shownSecond = int.MinValue;
@@ -96,6 +97,7 @@ public class HUD : MonoBehaviour
         ShowTimer(manager.Elapsed);
         prompt.Refresh(manager, lantern);
         introFeed.Update(introCard, pauseScreen, manager);
+        UpdateCreditsMusic();
         if (resultPanel == null)
         {
             return;
@@ -450,6 +452,24 @@ public class HUD : MonoBehaviour
         }
 
         group.alpha = 0f;
+    }
+
+    // The roll outlasts the finale cue: once the cue is over, the menu track fades in softly under the roll (2 s) so there is no silence.
+    void UpdateCreditsMusic()
+    {
+        if (creditsMusicStarted || credits == null || !credits.Started || credits.Exiting)
+        {
+            return;
+        }
+
+        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (music == null || !music.FinaleCueDone || MusicPlayer.Instance == null)
+        {
+            return;
+        }
+
+        creditsMusicStarted = true;
+        MusicPlayer.Instance.BeginMenuUnderlay(2f);
     }
 
     void FadeMusicOut(float seconds)

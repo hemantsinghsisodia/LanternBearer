@@ -11,8 +11,8 @@ namespace LanternKeeper
 public static partial class UIBuilder
 {
     public const string CreditsRootName = "CreditsRoll";
-    const float CreditsBandBottom = 0.14f;
-    const float CreditsBandTop = 0.86f;
+    const float CreditsBandBottom = 0.16f;
+    const float CreditsBandTop = 0.84f;
     const float CreditsColumnWidth = 1100f;
 
     public static CreditsRoll InstallCredits(HUD hud)
@@ -50,7 +50,7 @@ public static partial class UIBuilder
         columnRect.pivot = new Vector2(0.5f, 1f);
         columnRect.sizeDelta = new Vector2(CreditsColumnWidth, 100f);
         VerticalLayoutGroup layout = column.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 6f;
+        layout.spacing = 2f;
         layout.childAlignment = TextAnchor.UpperCenter;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
@@ -68,16 +68,26 @@ public static partial class UIBuilder
 
         GameObject templates = NewUI("Templates", panel.transform);
         templates.SetActive(false);
-        ThemedLabel gameTitle = CreditsTemplate(templates.transform, "GameTitle", ThemedLabel.Role.Title, 88f, theme, 130f);
-        ThemedLabel madeBy = CreditsTemplate(templates.transform, "MadeBy", ThemedLabel.Role.Flavour, 34f, theme, 52f);
-        ThemedLabel heading = CreditsTemplate(templates.transform, "Heading", ThemedLabel.Role.Label, 32f, theme, 52f);
+        ThemedLabel gameTitle = CreditsTemplate(templates.transform, "GameTitle", ThemedLabel.Role.Title, 80f, theme, 80f);
+        ThemedLabel madeBy = CreditsTemplate(templates.transform, "MadeBy", ThemedLabel.Role.Flavour, 30f, theme, 0f);
+        ThemedLabel heading = CreditsTemplate(templates.transform, "Heading", ThemedLabel.Role.Label, 28f, theme, 0f);
         heading.SetColourOverride(true, theme.amber);
-        ThemedLabel entry = CreditsTemplate(templates.transform, "Entry", ThemedLabel.Role.Body, 30f, theme, 44f);
-        ThemedLabel byline = CreditsTemplate(templates.transform, "Byline", ThemedLabel.Role.Flavour, 22f, theme, 34f);
-        ThemedLabel closing = CreditsTemplate(templates.transform, "Closing", ThemedLabel.Role.Title, 46f, theme, 76f);
+        ThemedLabel entry = CreditsTemplate(templates.transform, "Entry", ThemedLabel.Role.Body, 26f, theme, 0f);
+        ThemedLabel byline = CreditsTemplate(templates.transform, "Byline", ThemedLabel.Role.Flavour, 19f, theme, 0f);
+        ThemedLabel closing = CreditsTemplate(templates.transform, "Closing", ThemedLabel.Role.Title, 42f, theme, 0f);
+
+        // The skip hint sits outside the scrolling band (below it), small and faint; CreditsRoll fades it in once skip arms.
+        GameObject hintGo = NewUI("SkipHint", panel.transform);
+        CanvasGroup hintGroup = AddPassiveGroup(hintGo);
+        hintGroup.alpha = 0f;
+        ThemedLabel hint = AddLabel(hintGo.transform, "Label", CreditsRoll.HintText, ThemedLabel.Role.Body, 20f, theme);
+        hint.Text.alignment = TextAlignmentOptions.Center;
+        hint.SetColourOverride(true, theme.textMuted);
+        Anchor(hint.gameObject, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(40f, 40f), new Vector2(-40f, 80f));
+        Stretch(hintGo);
 
         CreditsRoll roll = root.AddComponent<CreditsRoll>();
-        roll.Configure(group, panel, (RectTransform)band.transform, columnRect, gameTitle, madeBy, heading, entry, byline, closing);
+        roll.Configure(group, panel, (RectTransform)band.transform, columnRect, gameTitle, madeBy, heading, entry, byline, closing, hint, hintGroup);
         panel.SetActive(false);
 
         SerializedObject so = new SerializedObject(hud);
