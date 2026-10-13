@@ -4,7 +4,7 @@ namespace LanternKeeper
 {
 // Island 5's rising storm (spec decision 5). The first beacon lit starts a clock; StormSurgeLogic.StartDelay later a dark surge rises
 // from the sea up the spire at StormSurgeLogic.RisePerSecond, up to the base of the summit plateau, and every lit beacon pushes it down.
-//  - A keeper below the surface is caught: the lantern drains x4 (Lantern.SetDrainModifier), safe light does not protect
+//  - A keeper below the surface is caught: the lantern drains x3 (Lantern.SetDrainModifier), safe light does not protect
 //    (SafeLightSuppressed, read by Lantern), the lantern heartbeat plays, the screen edge pulses and the world goes dark and foggy.
 //    Bridges and ground are still ground: caught is only the keeper's height against the surface, so climbing out ends it at once.
 //  - The HUD (SurgeFeed) shows "Storm rising: N m below" under 25 m. The music tension floor rises from 0.6 to 0.9 as the gap closes.
@@ -44,6 +44,7 @@ public class StormSurge : MonoBehaviour
     GreatLamp lamp;
     LowFuelFX lowFuel;
     MusicDirector director;
+    Island5Look look;
     LightningSchedule schedule;
     Transform camTransform;
     Transform layer;
@@ -518,8 +519,21 @@ public class StormSurge : MonoBehaviour
         fogSaved = false;
         RenderSettings.fog = savedFogOn;
         RenderSettings.fogMode = savedFogMode;
-        RenderSettings.fogColor = savedFogColour;
         RenderSettings.fogDensity = savedFogDensity;
+        // The colour goes back to Island5Look's current target, which may have moved with the ring while the surge held the fog.
+        if (look == null)
+        {
+            look = FindAnyObjectByType<Island5Look>();
+        }
+
+        if (look != null)
+        {
+            look.Reapply();
+        }
+        else
+        {
+            RenderSettings.fogColor = savedFogColour;
+        }
     }
 
     // ---- the layer ----

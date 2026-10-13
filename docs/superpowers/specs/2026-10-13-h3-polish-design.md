@@ -34,12 +34,12 @@ The user played the merged H2 build and raised five points:
    - The stingers are unchanged.
 5. **Island 5 challenge.** There are three additions, all Island 5 only.
    - **Rising storm.**
-     - A dark surge rises from the sea, starting 45 s after the first beacon is lit.
-     - Its pace keeps a steady climber about 8–12 m ahead.
+     - A dark surge rises from the sea, starting 8 s after the first beacon is lit (retuned at the midway gate).
+     - Its pace keeps a full-pace climber about 8–12 m ahead (a 70%-pace climber is caught before the summit).
      - Each beacon lit pushes it down 3 m.
      - It stops at the base of the summit plateau.
      - **Inside the surge:**
-       - fuel drains ×4;
+       - fuel drains ×3;
        - dark fog, a heartbeat and lightning flicker;
        - beacon safe rings don't protect;
        - bridges are still ground.

@@ -79,7 +79,7 @@ public class StormSurgeLogicTests
 
     struct ClimbResult
     {
-        public float minGap, minGapAt, endTime, gapAtEnd, startGap;
+        public float minGap, maxGap, minGapAt, endTime, gapAtEnd, startGap, lowestGap;
         public int samples;
         public string trace;
     }
@@ -102,7 +102,7 @@ public class StormSurgeLogicTests
         return cum;
     }
 
-    static ClimbResult Climb(float paceFraction)
+    static ClimbResult Climb(float paceFraction, float lightSeconds, float bridgeWait, float summitWait)
     {
         const int n = 4000;
         float[] cum = RouteArcLengths(n);
@@ -113,14 +113,14 @@ public class StormSurgeLogicTests
         for (int i = 0; i < 8; i++)
         {
             stops[i] = beacons[i];
-            waits[i] = LightSeconds;
+            waits[i] = lightSeconds;
             isBeacon[i] = true;
         }
 
         for (int g = 0; g < 4; g++)
         {
             stops[8 + g] = SpireLayout.GapSpanU(g).x;
-            waits[8 + g] = g == 3 ? SummitWait : BridgeWait;
+            waits[8 + g] = g == 3 ? summitWait : bridgeWait;
         }
 
         // Sort the stops by u (insertion sort over 12 entries).
@@ -134,7 +134,7 @@ public class StormSurgeLogicTests
             }
         }
 
-        ClimbResult result = new ClimbResult { minGap = float.MaxValue, startGap = -1f, trace = "" };
+        ClimbResult result = new ClimbResult { minGap = float.MaxValue, lowestGap = float.MaxValue, startGap = -1f, trace = "" };
         const float dt = 0.05f;
         float speed = WalkSpeed * paceFraction;
         float time = 0f, distance = 0f, wait = 0f, firstLit = -1f, nextTrace = 0f;
@@ -167,7 +167,7 @@ public class StormSurgeLogicTests
             {
                 float since = time - firstLit;
                 float surge = StormSurgeLogic.Height(since, lit, SpireLayout.PathTopHeight - 1.5f);
-                if (since >= StormSurgeLogic.StartDelay)
+                if (since >= StormSurgeLogic.StartDelay && keeperY >= 1f)
                 {
                     float gap = StormSurgeLogic.Gap(keeperY, surge);
                     if (result.startGap < 0f)
@@ -176,10 +176,15 @@ public class StormSurgeLogicTests
                     }
 
                     result.samples++;
-                    if (gap < result.minGap)
+                    result.lowestGap = Mathf.Min(result.lowestGap, gap);
+                    if (keeperY >= 10f && keeperY <= 30f)
                     {
-                        result.minGap = gap;
-                        result.minGapAt = time;
+                        result.maxGap = Mathf.Max(result.maxGap, gap);
+                        if (gap < result.minGap)
+                        {
+                            result.minGap = gap;
+                            result.minGapAt = time;
+                        }
                     }
 
                     result.gapAtEnd = gap;
@@ -219,25 +224,41 @@ public class StormSurgeLogicTests
         return result;
     }
 
+    // The full-pace bot's stops are the ones BeaconReachabilityTest measured (beacon 1 at 5.5 s, lamp at 48.9 s): a key press per beacon and
+    // the bridge waits overlapped with walking. A player's stops are longer (1.5 s a beacon, the full bridge waits).
+    static ClimbResult FullPace()
+    {
+        return Climb(1f, 0.25f, 1.2f, 2.5f);
+    }
+
+    static ClimbResult Player(float pace)
+    {
+        return Climb(pace, 1.5f, BridgeWait, SummitWait);
+    }
+
     [Test]
     public void SteadyClimberStaysAhead()
     {
-        // An unhurried climber (40% of the walking pace): the tightest point of the climb is 8 to 12 m.
-        ClimbResult steady = Climb(0.4f);
-        Debug.Log("StormSurge steady climber (0.4x): ends " + steady.endTime.ToString("F0") + " s, start gap " + steady.startGap.ToString("F1")
-            + " m, tightest " + steady.minGap.ToString("F1") + " m at " + steady.minGapAt.ToString("F0") + " s, gap at the plateau " + steady.gapAtEnd.ToString("F1") + " m. " + steady.trace);
-        Assert.Greater(steady.samples, 100, "the surge must be active while the steady climber is still climbing");
-        Assert.GreaterOrEqual(steady.minGap, 8f);
-        Assert.LessOrEqual(steady.minGap, 12f);
+        // Full walking pace: while the keeper is on the route's open stretch (10 to 30 m up) the surge is 8 to 12 m behind at its tightest.
+        ClimbResult full = FullPace();
+        Debug.Log("StormSurge full pace: ends " + full.endTime.ToString("F0") + " s, start gap " + full.startGap.ToString("F1")
+            + " m, tightest (10-30 m up) " + full.minGap.ToString("F1") + " m at " + full.minGapAt.ToString("F0") + " s, widest " + full.maxGap.ToString("F1")
+            + " m, lowest ever " + full.lowestGap.ToString("F1") + " m, gap at the plateau " + full.gapAtEnd.ToString("F1") + " m. " + full.trace);
+        Assert.Greater(full.samples, 100, "the surge must be active while the full-pace climber is still climbing");
+        Assert.GreaterOrEqual(full.minGap, 8f);
+        Assert.LessOrEqual(full.minGap, 12f);
+        Assert.GreaterOrEqual(full.lowestGap, 0f, "never caught");
+    }
 
-        // The route bot at full walking pace (BeaconReachabilityTest, 49 s): never near it.
-        ClimbResult bot = Climb(1f);
-        Debug.Log("StormSurge route bot (1.0x): ends " + bot.endTime.ToString("F0") + " s, tightest " + (bot.samples == 0 ? "never reached" : bot.minGap.ToString("F1") + " m"));
-        Assert.GreaterOrEqual(bot.minGap, 8f);
-
-        // Faster than the unhurried pace is safer.
-        Assert.GreaterOrEqual(Climb(0.6f).minGap, 8f);
-        Assert.GreaterOrEqual(Climb(0.5f).minGap, 8f);
+    [Test]
+    public void SlowClimberGetsCaught()
+    {
+        // 70% pace with a player's stops: the surge catches up at some point before the summit.
+        ClimbResult slow = Player(0.7f);
+        Debug.Log("StormSurge 0.7 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1") + " m. " + slow.trace);
+        Assert.Less(slow.lowestGap, 0f, "caught on the way up");
+        // Anyone slower than that is caught too.
+        Assert.Less(Player(0.4f).lowestGap, 0f);
     }
 
     [Test]
@@ -245,7 +266,7 @@ public class StormSurgeLogicTests
     {
         float beachY = SpireLayout.PathBaseHeight + 0.1f;
         float t = StormSurgeLogic.StartDelay + 15f;
-        Assert.IsTrue(StormSurgeLogic.Caught(beachY, StormSurgeLogic.Height(t, 1, 37f)), "60 s after the first beacon, a keeper on the beach is under");
+        Assert.IsTrue(StormSurgeLogic.Caught(beachY, StormSurgeLogic.Height(t, 1, 37f)), "23 s after the first beacon, a keeper on the beach is under");
     }
 }
 }

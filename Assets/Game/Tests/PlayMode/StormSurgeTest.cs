@@ -299,7 +299,7 @@ public class StormSurgeTest
 
     [UnityTest]
     [Timeout(300000)]
-    public IEnumerator CaughtDrainsFourTimes()
+    public IEnumerator CaughtDrainsThreeTimes()
     {
         yield return Load("Island5");
         Assert.IsTrue(LightBeacon(2));
@@ -317,15 +317,15 @@ public class StormSurgeTest
         Assert.IsFalse((bool)Get(lantern, "InSafeLight"), "safe rings do not protect inside the surge");
         Assert.AreEqual(StormSurgeLogic.CaughtDrain, (float)Call(lantern, "GetDrainModifier", surge), 1e-4f);
         float escalation = (float)Get(lantern, "EscalationMultiplier");
-        Assert.GreaterOrEqual((float)Get(lantern, "DrainRelative"), 3.99f * escalation, "drain x4 and no safe discount");
-        Assert.Greater((float)Get(lantern, "DrainRelative"), calm * 3.9f);
+        Assert.GreaterOrEqual((float)Get(lantern, "DrainRelative"), 2.99f * escalation, "drain x3 and no safe discount");
+        Assert.Greater((float)Get(lantern, "DrainRelative"), calm * 2.9f);
 
-        // The fuel really falls ~4x as fast.
+        // The fuel really falls ~3x as fast.
         float before = (float)Get(lantern, "Fuel");
         yield return Wait(1f);
         float after = (float)Get(lantern, "Fuel");
         float basePerSecond = (float)Get(lantern, "BaseDrainPerSecond");
-        Assert.GreaterOrEqual(before - after, basePerSecond * (float)Get(lantern, "DifficultyDrain") * 4f * escalation * 0.9f, "fuel drained by " + (before - after).ToString("F2"));
+        Assert.GreaterOrEqual(before - after, basePerSecond * (float)Get(lantern, "DifficultyDrain") * 3f * escalation * 0.9f, "fuel drained by " + (before - after).ToString("F2"));
 
         // Heartbeat, dark fog.
         object audio = StaticProperty("AudioManager", "Instance");
