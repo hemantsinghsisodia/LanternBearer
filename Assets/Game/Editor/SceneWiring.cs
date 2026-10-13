@@ -1241,6 +1241,40 @@ public static partial class SceneWiring
             }
         }
 
+        // H3 hunting lightning: the hunter with its warning material, wired into RingHazards.
+        LightningHunter hunter = Object.FindAnyObjectByType<LightningHunter>(FindObjectsInactive.Include);
+        if (hunter == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing LightningHunter");
+            }
+        }
+        else
+        {
+            SerializedProperty warning = new SerializedObject(hunter).FindProperty("warningMaterial");
+            if (warning == null || warning.objectReferenceValue == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " LightningHunter has no warning material");
+                }
+            }
+
+            RingHazards ringHazards = Object.FindAnyObjectByType<RingHazards>(FindObjectsInactive.Include);
+            SerializedProperty wired = ringHazards != null ? new SerializedObject(ringHazards).FindProperty("hunter") : null;
+            if (wired == null || wired.objectReferenceValue != hunter.gameObject)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " RingHazards does not switch on the LightningHunter");
+                }
+            }
+        }
+
         FinaleIslands finaleIslands = Object.FindAnyObjectByType<FinaleIslands>(FindObjectsInactive.Include);
         if (finaleIslands != null)
         {

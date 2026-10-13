@@ -46,4 +46,5 @@ MonoBehaviour:
   lightning: 0
   ridges: 0
   spire: 1
+  beaconRefund01: 0.2
   lookProfile: {fileID: 11400000, guid: cd2ab6ad31bd59248a4a07c4a169027c, type: 2}

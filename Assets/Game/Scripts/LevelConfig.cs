@@ -34,6 +34,9 @@ public class LevelConfig : ScriptableObject
     public bool ridges;
     [Tooltip("Island 5: sculpt the spiral spire (SculptSpire) instead of the noise island.")]
     public bool spire;
+    [Tooltip("Island 5: lighting a beacon refunds this fraction of the lantern's max fuel. 0 elsewhere.")]
+    [Range(0f, 0.5f)]
+    public float beaconRefund01;
     public LookProfile lookProfile;
 }
 }

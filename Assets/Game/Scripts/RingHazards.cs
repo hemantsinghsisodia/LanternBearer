@@ -11,6 +11,7 @@ public class RingHazards : MonoBehaviour
     [SerializeField] GameObject shadeSpawner;
     [SerializeField] GameObject lightning;
     [SerializeField] GameObject rain;
+    [SerializeField] GameObject hunter;
 
     MusicDirector director;
     bool started;
@@ -51,6 +52,7 @@ public class RingHazards : MonoBehaviour
         {
             Switch(lightning);
             Switch(rain);
+            Switch(hunter);
         }
 
         if (director == null)

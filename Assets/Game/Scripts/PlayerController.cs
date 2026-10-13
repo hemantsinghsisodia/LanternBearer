@@ -61,6 +61,23 @@ public class PlayerController : MonoBehaviour
 
     public static Vector2 ExternalMove;
     public static Vector3 ExternalPush;
+    // A knock-back (lightning strike): the keeper is thrown `distance` metres along `direction` over KnockSeconds.
+    public const float KnockSeconds = 0.3f;
+    Vector3 knockVelocity;
+    float knockLeft;
+
+    public void Knockback(Vector3 direction, float distance)
+    {
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f || distance <= 0f)
+        {
+            return;
+        }
+
+        // Linear decay over KnockSeconds covers speed * KnockSeconds / 2.
+        knockVelocity = direction.normalized * (2f * distance / KnockSeconds);
+        knockLeft = KnockSeconds;
+    }
     public static bool ExternalSprint;
     public static bool ExternalJump;
 
@@ -273,6 +290,12 @@ public class PlayerController : MonoBehaviour
 
         verticalVelocity += gravity * dt;
         Vector3 velocity = planarVelocity + ExternalPush;
+        if (knockLeft > 0f)
+        {
+            velocity += knockVelocity * Mathf.Clamp01(knockLeft / KnockSeconds);
+            knockLeft -= dt;
+        }
+
         velocity.y = verticalVelocity;
         controller.Move(velocity * dt);
 

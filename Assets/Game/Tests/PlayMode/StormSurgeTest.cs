@@ -166,6 +166,8 @@ public class StormSurgeTest
             yield return null;
         }
 
+        // This fixture is about the surge, not the hunting lightning.
+        StormSurgeSwitch.SetHunter(true);
         yield return null;
         yield return null;
     }

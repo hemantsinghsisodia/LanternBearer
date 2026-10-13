@@ -240,6 +240,20 @@ public class Lantern : MonoBehaviour
         RaiseAdjusted(fuel - before);
     }
 
+    // A strike or similar blow: removes up to `amount` fuel at once (never below 0). Reported as a discrete spend; running dry is
+    // handled by Update's next frame like any other drain.
+    public void Hit(float amount)
+    {
+        if (amount <= 0f || depleted)
+        {
+            return;
+        }
+
+        float before = fuel;
+        CommitFuel(fuel - amount, true);
+        RaiseAdjusted(fuel - before);
+    }
+
     public bool TrySpend(float amount)
     {
         if (amount <= 0f)
