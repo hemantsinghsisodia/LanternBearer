@@ -377,8 +377,11 @@ def jobs():
         one("Shade_Steal_%d" % i, "Shade.Steal", "sfx", R2 / (n + ".ogg"), fo=0.08, note="R2 " + n + " (guess)")
 
     # --- beacons
-    for i, n in enumerate(["spell_fire_03", "spell_fire_04"], 1):
-        one("Beacon_Ignite_%d" % i, "Beacon.Ignite", "sfx", R3 / (n + ".ogg"), fo=0.2, note="R3 " + n)
+    # Phase H3: Joseph Sardin "Gasoline fire #1" (BigSoundBank 1340, CC0). The "whump" ignition starts at about 0.03 s
+    # and peaks near 0.25 s; keep 0.0-1.5 s with a 0.3 s fade-out, three variants pitched -5%, 0 and +5%.
+    for i, r in enumerate([0.95, 1.0, 1.05], 1):
+        one("Beacon_Ignite_%d" % i, "Beacon.Ignite", "sfx", RAW / "Whoosh_Gasoline/1340.mp3", fo=0.3, max_s=1.5, t0=0.0,
+            pitch_r=None if r == 1.0 else r, note="Sardin Gasoline fire #1, 0-1.5 s, pitch x%.2f" % r)
     J.append(Job("Beacon_Fire_1", "Beacon.Fire", "sfx",
                  lambda: pitch(trim_silence(read(RAW / "F2/fire-1_0.ogg", 1)), 0.88), "loop", xf=0.3, note="F2 fire-1 pitched x0.88, loop"))
     one("Beacon_Fizzle_1", "Beacon.Fizzle", "sfx", R4 / "bubble_02.ogg", fo=0.1, note="R4 bubble_02")

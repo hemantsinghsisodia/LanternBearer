@@ -116,7 +116,7 @@ Assets/Game/Audio/Sfx/Moth_Flutter_*, Shade_Steal_*
   https://opengameart.org/content/80-cc0-creature-sfx
   Licence: CC0
 
-Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Beacon_Ignite_*, Assets/Game/Audio/UI/UI_PageTurn_*
+Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Assets/Game/Audio/UI/UI_PageTurn_*
   80 CC0 RPG SFX by rubberduck
   https://opengameart.org/content/80-cc0-rpg-sfx
   Licence: CC0
@@ -134,6 +134,11 @@ Assets/Game/Audio/Sfx/Footstep_Grass_*, Footstep_Rock_*
 Assets/Game/Audio/Sfx/Lantern_Crackle_1, Lantern_Sputter_1, Beacon_Fire_1
   Fire Crackling (fire-1) by AntumDeluge
   https://opengameart.org/content/fire-crackling
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Beacon_Ignite_*
+  Gasoline fire #1 by Joseph Sardin
+  https://bigsoundbank.com/gasoline-fire-1-s1340.html
   Licence: CC0
 
 Assets/Game/Audio/Sfx/Firefly_Chime_*

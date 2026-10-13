@@ -62,7 +62,7 @@ public class CreditsFormatTests
             "Victory Fanfare Short", "Game Over IV",
             "Interface Sounds", "Impact Sounds", "50 RPG sound effects", "100 CC0 SFX #2", "80 CC0 creature SFX",
             "80 CC0 RPG SFX", "40 CC0 water splash and slime SFX", "Fantozzi's Footsteps (Grass/Sand & Stone)",
-            "Fire Crackling (fire-1)", "Pleasing Bell Sound Effect", "Beach Ocean Waves", "Rain (loopable)",
+            "Fire Crackling (fire-1)", "Gasoline fire #1", "Pleasing Bell Sound Effect", "Beach Ocean Waves", "Rain (loopable)",
             "Crickets Ambient Noise - loopable", "Short wind sound", "wind whoosh loop", "Tawny Owl #1", "Strong Wind in a Village",
             "Hooded Adventurer", "Models", "Terrain textures", "HDRIs", "Stylized Nature MegaKit",
             "Liberation Sans", "Cormorant Garamond", "Spectral", "Inter",
