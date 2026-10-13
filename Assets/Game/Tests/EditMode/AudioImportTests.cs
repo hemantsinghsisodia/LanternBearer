@@ -53,5 +53,50 @@ public class AudioImportTests
         Assert.GreaterOrEqual(cue.length, 45f);
         Assert.LessOrEqual(cue.length, 95f);
     }
+
+    [Test]
+    public void InstallerUpgradesAStaleMenuTrackFinaleCue()
+    {
+        const string libraryPath = "Assets/Game/Resources/MusicLibrary.asset";
+        AudioClip real = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Game/Audio/Music/Finale_1.ogg");
+        AudioClip menu = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Game/Audio/Music/Music_Menu_1.ogg");
+        Assert.IsNotNull(real, "Finale_1.ogg");
+        Assert.IsNotNull(menu, "Music_Menu_1.ogg");
+        ScriptableObject library = AssetDatabase.LoadAssetAtPath<ScriptableObject>(libraryPath);
+        Assert.IsNotNull(library, "MusicLibrary missing");
+        SerializedObject so = new SerializedObject(library);
+        AudioClip original = so.FindProperty("finaleCue").objectReferenceValue as AudioClip;
+        System.Type installer = System.Type.GetType("LanternKeeper.Editor.AudioInstaller, Assembly-CSharp-Editor")
+            ?? System.Type.GetType("LanternKeeper.AudioInstaller, Assembly-CSharp-Editor")
+            ?? System.Type.GetType("AudioInstaller, Assembly-CSharp-Editor");
+        Assert.IsNotNull(installer, "AudioInstaller type");
+        try
+        {
+            so.FindProperty("finaleCue").objectReferenceValue = menu;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            installer.GetMethod("InstallLibrary").Invoke(null, null);
+            so.Update();
+            Assert.AreEqual(real, so.FindProperty("finaleCue").objectReferenceValue, "the stale menu-track cue is upgraded to Finale_1");
+
+            // A deliberately chosen different cue is left alone.
+            AudioClip other = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Game/Audio/Music/Music_Island1_1.ogg");
+            if (other != null)
+            {
+                so.FindProperty("finaleCue").objectReferenceValue = other;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                installer.GetMethod("InstallLibrary").Invoke(null, null);
+                so.Update();
+                Assert.AreEqual(other, so.FindProperty("finaleCue").objectReferenceValue, "a non-fallback cue is not overwritten");
+            }
+        }
+        finally
+        {
+            so.Update();
+            so.FindProperty("finaleCue").objectReferenceValue = original;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(library);
+            AssetDatabase.SaveAssets();
+        }
+    }
 }
 }

@@ -870,6 +870,8 @@ public static class ProceduralAudio
         AudioClip clip = AudioClip.Create(clipName, data.Length, 1, Rate, false);
         clip.SetData(data, 0);
         clip.name = clipName;
+        // The clips are cached in statics: keep them through the unload-unused-assets pass that runs on a scene change.
+        clip.hideFlags = HideFlags.DontUnloadUnusedAsset;
         return clip;
     }
 }

@@ -18,12 +18,14 @@ public class CreditsRollTest
     static readonly string[] IntKeys =
     {
         "LanternKeeperIntro_island1", "LanternKeeperIntro_island2", "LanternKeeperIntro_island3", "LanternKeeperIntro_island4", "LanternKeeperIntro_island5",
-        "LanternKeeperWon_island5"
+        "LanternKeeperWon_island5", "LanternKeeperWon_island1"
     };
     const string BestKey = "LanternKeeperBest_island5";
+    const string Best1Key = "LanternKeeperBest_island1";
 
     readonly Dictionary<string, int> savedInts = new Dictionary<string, int>();
     float savedBest;
+    float savedBest1;
     int savedGraphics;
     float previousScale;
     int wonCount;
@@ -83,6 +85,7 @@ public class CreditsRollTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         savedInts.Clear();
         for (int i = 0; i < IntKeys.Length; i++)
         {
@@ -90,6 +93,7 @@ public class CreditsRollTest
         }
 
         savedBest = PlayerPrefs.HasKey(BestKey) ? PlayerPrefs.GetFloat(BestKey) : float.NaN;
+        savedBest1 = PlayerPrefs.HasKey(Best1Key) ? PlayerPrefs.GetFloat(Best1Key) : float.NaN;
         // A first-visit intro card pauses the game.
         for (int i = 1; i <= 5; i++)
         {
@@ -105,6 +109,7 @@ public class CreditsRollTest
     [UnityTearDown]
     public IEnumerator TearDown()
     {
+        LitKeyGuard.Restore();
         Time.timeScale = previousScale;
         SetTestSpeed(1f);
         CreditsRoll.TestSpeed = 1f;
@@ -127,6 +132,14 @@ public class CreditsRollTest
         else
         {
             PlayerPrefs.SetFloat(BestKey, savedBest);
+        }
+        if (float.IsNaN(savedBest1))
+        {
+            PlayerPrefs.DeleteKey(Best1Key);
+        }
+        else
+        {
+            PlayerPrefs.SetFloat(Best1Key, savedBest1);
         }
 
         PlayerPrefs.SetInt(GraphicsKey, savedGraphics);
@@ -299,7 +312,10 @@ public class CreditsRollTest
         }
 
         held = true;
-        while (Time.realtimeSinceStartup - start < 1.6f)
+        yield return WaitArmed(credits, 10f);
+
+        float hintWait = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - hintWait < 0.6f)
         {
             yield return null;
         }
@@ -399,6 +415,8 @@ public class CreditsRollTest
 
         Assert.IsTrue((bool)Get(manager, "Won"), "Island 1 win completed");
         Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "the dawn flag is released");
+        // Unchanged from before the finale guard: restart is only unlocked by a loss (restartUnlockTime stays infinite after a win), so R is not offered here.
+        Assert.IsFalse((bool)Get(manager, "RestartAllowed"), "Island 1 win panel offers no R restart, as before");
     }
 
     [UnityTest]
@@ -435,6 +453,26 @@ public class CreditsRollTest
         Assert.IsFalse((bool)Get(manager, "DawnPlaying"), "DawnPlaying is released");
     }
 
+    // The roll clamps its frame time, so a fixed real-time wait can end before it is armed: wait for the arm itself.
+    static IEnumerator WaitArmed(CreditsRoll credits, float seconds)
+    {
+        float start = Time.realtimeSinceStartup;
+        while (!credits.Armed && Time.realtimeSinceStartup - start < seconds)
+        {
+            yield return null;
+        }
+
+        Assert.IsTrue(credits.Armed, "the roll armed");
+    }
+
+    static IEnumerator WaitFrames(Func<bool> done, int maxFrames)
+    {
+        for (int i = 0; i < maxFrames && !done(); i++)
+        {
+            yield return null;
+        }
+    }
+
     [UnityTest]
     [Timeout(300000)]
     public IEnumerator GamepadButtonHeldAcrossTheArmDoesNotSkipButAFreshPressDoes()
@@ -444,8 +482,10 @@ public class CreditsRollTest
         try
         {
             CreditsRoll credits = FindCredits();
+            // No manual InputSystem.Update: events are queued, the player loop processes them, and each state is awaited over frames.
             InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState { buttons = 1u << (int)UnityEngine.InputSystem.LowLevel.GamepadButton.South });
-            InputSystem.Update();
+            yield return WaitFrames(() => pad.buttonSouth.isPressed, 30);
+            Assert.IsTrue(pad.buttonSouth.isPressed, "the held press reached the device");
             credits.Begin();
             float start = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - start < 1.6f)
@@ -455,13 +495,17 @@ public class CreditsRollTest
 
             Assert.IsFalse(credits.Exiting, "a pad button held across the arm does not skip");
             InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState());
-            InputSystem.Update();
-            yield return null;
-            yield return null;
-            Assert.IsFalse(credits.Exiting);
+            yield return WaitFrames(() => !pad.buttonSouth.isPressed, 30);
+            Assert.IsFalse(pad.buttonSouth.isPressed, "the release reached the device");
+            for (int i = 0; i < 5; i++)
+            {
+                yield return null;
+            }
+
+            Assert.IsFalse(credits.Exiting, "releasing does not skip");
+            yield return WaitArmed(credits, 10f);
             InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState { buttons = 1u << (int)UnityEngine.InputSystem.LowLevel.GamepadButton.East });
-            InputSystem.Update();
-            yield return null;
+            yield return WaitFrames(() => credits.Exiting, 30);
             Assert.IsTrue(credits.Exiting, "a fresh pad press skips");
         }
         finally
@@ -481,16 +525,12 @@ public class CreditsRollTest
         bool held = false;
         credits.InputHeld = () => held;
         credits.Begin();
-        float start = Time.realtimeSinceStartup;
         held = true;
         yield return null;
         yield return null;
         Assert.IsFalse(credits.Exiting, "a press in the first second is ignored");
         held = false;
-        while (Time.realtimeSinceStartup - start < 1.1f)
-        {
-            yield return null;
-        }
+        yield return WaitArmed(credits, 10f);
 
         held = true;
         yield return null;
@@ -556,11 +596,7 @@ public class CreditsRollTest
         CreditsRoll credits = FindCredits();
         bool held = false;
         credits.InputHeld = () => held;
-        float start = Time.realtimeSinceStartup;
-        while (Time.realtimeSinceStartup - start < 1.2f)
-        {
-            yield return null;
-        }
+        yield return WaitArmed(credits, 10f);
 
         held = true;
         yield return WaitForMenu(10f);

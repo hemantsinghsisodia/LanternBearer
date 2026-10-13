@@ -86,6 +86,7 @@ public class LighthouseInstallTests
             Component lamp = Lamp(scene);
             float range = new SerializedObject(lamp).FindProperty("interactRange").floatValue;
             float approach = (float)Installer().GetField("ApproachDistance").GetRawConstantValue();
+            Assert.AreEqual(4.0f, approach, 1e-6f);
             Assert.GreaterOrEqual(range, approach, "the interact range covers the approach distance");
 
             Vector3 axis = lamp.transform.position;
