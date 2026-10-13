@@ -1209,6 +1209,87 @@ public static partial class SceneWiring
             }
         }
 
+        // H3 rising storm: the surge with its material, and the HUD chip that reads it.
+        StormSurge stormSurge = Object.FindAnyObjectByType<StormSurge>(FindObjectsInactive.Include);
+        if (stormSurge == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing StormSurge");
+            }
+        }
+        else
+        {
+            SerializedProperty surgeMaterial = new SerializedObject(stormSurge).FindProperty("material");
+            if (surgeMaterial == null || surgeMaterial.objectReferenceValue == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " StormSurge has no material");
+                }
+            }
+
+            if (Object.FindAnyObjectByType<SurgeChip>(FindObjectsInactive.Include) == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " StormSurge has no SurgeChip in the HUD");
+                }
+            }
+        }
+
+        // H3 hunting lightning: the hunter with its warning material, wired into RingHazards.
+        LightningHunter hunter = Object.FindAnyObjectByType<LightningHunter>(FindObjectsInactive.Include);
+        if (hunter == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing LightningHunter");
+            }
+        }
+        else
+        {
+            SerializedProperty warning = new SerializedObject(hunter).FindProperty("warningMaterial");
+            if (warning == null || warning.objectReferenceValue == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " LightningHunter has no warning material");
+                }
+            }
+
+            RingHazards ringHazards = Object.FindAnyObjectByType<RingHazards>(FindObjectsInactive.Include);
+            SerializedProperty wired = ringHazards != null ? new SerializedObject(ringHazards).FindProperty("hunter") : null;
+            if (wired == null || wired.objectReferenceValue != hunter.gameObject)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " RingHazards does not switch on the LightningHunter");
+                }
+            }
+        }
+
+        // The scene's LevelTuning must carry the level config's refund and drain (one source: Island5.asset).
+        LevelTuning tuning = Object.FindAnyObjectByType<LevelTuning>(FindObjectsInactive.Include);
+        LevelConfig levelConfig = AssetDatabase.LoadAssetAtPath<LevelConfig>(LightningHunterInstaller.LevelPath);
+        SerializedObject tuningData = tuning != null ? new SerializedObject(tuning) : null;
+        if (tuning == null || levelConfig == null
+            || !Mathf.Approximately(tuningData.FindProperty("beaconRefund01").floatValue, levelConfig.beaconRefund01)
+            || !Mathf.Approximately(tuningData.FindProperty("drainMultiplier").floatValue, levelConfig.drainMultiplier))
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " LevelTuning is missing or differs from Island5.asset (rerun the Hunting Lightning installer)");
+            }
+        }
+
         FinaleIslands finaleIslands = Object.FindAnyObjectByType<FinaleIslands>(FindObjectsInactive.Include);
         if (finaleIslands != null)
         {

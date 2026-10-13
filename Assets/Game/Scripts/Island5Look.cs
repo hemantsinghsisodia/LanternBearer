@@ -123,6 +123,26 @@ public class Island5Look : MonoBehaviour
         }
     }
 
+    // Writes the current level's fog and sky again now. StormSurge calls it when it hands the fog back, so the fog colour is this look's
+    // current target (the ring may have changed while the surge held the fog) and not the value from before the surge.
+    public void Reapply()
+    {
+        if (!ready)
+        {
+            return;
+        }
+
+        // The dawn after the win owns the fog and sky.
+        if (GameManager.Instance != null && GameManager.Instance.IsRoundOver)
+        {
+            return;
+        }
+
+        Apply(level);
+        written = level;
+        dirty = false;
+    }
+
     static float Sample(float[] steps, float at)
     {
         float clamped = Mathf.Clamp(at, 0f, steps.Length - 1f);

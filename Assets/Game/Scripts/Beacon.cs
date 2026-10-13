@@ -29,6 +29,8 @@ public class Beacon : MonoBehaviour
     public float ZoneRadius => safeRadius;
     public float SafeRadius => IsLit ? safeRadius : 0f;
     public float FuelCost => fuelCost;
+    // Fraction of the beacon's fuel cost handed back when it is lit: LevelConfig.beaconRefund01 through the scene's LevelTuning (0 elsewhere).
+    public float Refund01 => LevelTuning.BeaconRefund01;
 
     public bool IsPlayerInRange
     {
@@ -301,6 +303,11 @@ public class Beacon : MonoBehaviour
             return false;
         }
 
+        if (Refund01 > 0f)
+        {
+            lantern.AddFuel(fuelCost * Refund01);
+        }
+
         IsLit = true;
         StartFireLoop();
         if (Lit != null)
@@ -338,11 +345,8 @@ public class Beacon : MonoBehaviour
 
     IEnumerator Ignite()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlayBeacon(transform.position);
-        }
-        else if (whooshSource != null && whooshSource.clip != null)
+        // The fire recording (Beacon.Ignite) is played by BeaconVisual.PlayLightMoment.
+        if (AudioManager.Instance == null && whooshSource != null && whooshSource.clip != null)
         {
             whooshSource.Play();
         }

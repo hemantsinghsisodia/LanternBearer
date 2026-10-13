@@ -64,6 +64,9 @@ public class MainMenu : MonoBehaviour
         info.name = DisplayName(index);
         info.beacons = BeaconCount(index);
         info.found = GameSettings.GetLogCount(LevelId(index));
+        info.lit = GameSettings.HasWon(LevelId(index))
+            ? info.beacons
+            : Mathf.Min(GameSettings.GetLitCount(LevelId(index)), info.beacons);
         info.bestTime = GameSettings.GetBestTime(LevelId(index));
         info.unlocked = GameSettings.IsLevelUnlocked(LevelId(index));
         return info;

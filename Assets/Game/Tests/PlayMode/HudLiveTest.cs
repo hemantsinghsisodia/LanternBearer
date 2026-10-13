@@ -13,6 +13,18 @@ namespace LanternKeeper.Tests
 // The themed HUD running on Island1. Game types are reached by reflection (this assembly can't reference Assembly-CSharp).
 public class HudLiveTest
 {
+    [SetUp]
+    public void SetUp()
+    {
+        LitKeyGuard.Save();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        LitKeyGuard.Restore();
+    }
+
     static Type GameType(string name)
     {
         Type type = Type.GetType("LanternKeeper." + name + ", Assembly-CSharp");

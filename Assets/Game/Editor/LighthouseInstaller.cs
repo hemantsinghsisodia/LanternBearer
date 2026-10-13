@@ -29,7 +29,7 @@ public static class LighthouseInstaller
     const float BeamStartHalfHeight = 0.6f;
     const float FlameScale = 5f;            // the Beacon flame pose scaled to fill the lantern room (2.6 m tall, 2.6 m across)
     public const string StoneMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseStone.mat";
-    const string GlassMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseGlass.mat";
+    public const string GlassMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseGlass.mat";
     const string WoodMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseWood.mat";
     const string StrapMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseStrap.mat";
     const string DoorGlowMaterialPath = "Assets/Game/Art/Lighthouse/LighthouseDoorGlow.mat";
@@ -56,6 +56,16 @@ public static class LighthouseInstaller
         Scene scene = OpenScene();
         if (Rebuild(scene))
         {
+            // Rebuild recreates FlameRoot and LampBeam: re-run the finale wiring so FinaleCamera.flame and FinaleSequence.beam stay set.
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root.name == FinaleInstaller.RootName)
+                {
+                    FinaleInstaller.Rebuild(scene);
+                    break;
+                }
+            }
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("LighthouseInstaller: placed the lighthouse in " + scene.name + ".");
@@ -154,58 +164,9 @@ public static class LighthouseInstaller
 
         Object.DestroyImmediate(instance);
 
-        Renderer glassRenderer = null;
         System.Collections.Generic.List<Renderer> lod0 = new System.Collections.Generic.List<Renderer>();
         System.Collections.Generic.List<Renderer> lod1 = new System.Collections.Generic.List<Renderer>();
-        foreach (Renderer renderer in lampObject.GetComponentsInChildren<Renderer>(true))
-        {
-            string name = renderer.name;
-            bool low = name.EndsWith("_L1");
-            bool shadows = true;
-            if (name.StartsWith("LighthouseStone"))
-            {
-                renderer.sharedMaterial = cairn;
-            }
-            else if (name.StartsWith("LighthouseIron"))
-            {
-                renderer.sharedMaterial = iron;
-            }
-            else if (name == "BeaconGlass")
-            {
-                renderer.sharedMaterial = glass;
-                glassRenderer = renderer;
-                shadows = false;
-            }
-            else if (name == "LighthouseDoor")
-            {
-                renderer.sharedMaterial = wood;
-            }
-            else if (name == "LighthouseDoorIron")
-            {
-                renderer.sharedMaterial = strap;
-            }
-            else if (name == "LighthouseDoorGlow")
-            {
-                renderer.sharedMaterial = doorGlow;
-                renderer.receiveShadows = false;
-                shadows = false;
-            }
-
-            renderer.shadowCastingMode = shadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
-            if (name == "BeaconGlass" || name.StartsWith("LighthouseDoor"))
-            {
-                lod0.Add(renderer);
-                lod1.Add(renderer);
-            }
-            else if (low)
-            {
-                lod1.Add(renderer);
-            }
-            else
-            {
-                lod0.Add(renderer);
-            }
-        }
+        Renderer glassRenderer = AssignModelMaterials(lampObject.transform, cairn, iron, glass, wood, strap, doorGlow, lod0, lod1);
 
         Transform flameRoot = lampObject.transform.Find("FlameRoot");
         Transform stone = lampObject.transform.Find("LighthouseStone");
@@ -260,9 +221,69 @@ public static class LighthouseInstaller
         return true;
     }
 
+    // Gives every renderer under root its lighthouse material by name, sets its shadow casting, and sorts it into the LOD0 / LOD1
+    // lists (glass and door parts are in both, the _L1 meshes only in LOD1). Shared by the Island 5 lamp and the horizon Great Light.
+    // Returns the BeaconGlass renderer (null if there is none).
+    public static Renderer AssignModelMaterials(Transform root, Material cairn, Material iron, Material glass, Material wood, Material strap, Material doorGlow,
+        System.Collections.Generic.List<Renderer> lod0, System.Collections.Generic.List<Renderer> lod1)
+    {
+        Renderer glassRenderer = null;
+        foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+        {
+            string name = renderer.name;
+            bool low = name.EndsWith("_L1");
+            bool shadows = true;
+            if (name.StartsWith("LighthouseStone"))
+            {
+                renderer.sharedMaterial = cairn;
+            }
+            else if (name.StartsWith("LighthouseIron"))
+            {
+                renderer.sharedMaterial = iron;
+            }
+            else if (name == "BeaconGlass")
+            {
+                renderer.sharedMaterial = glass;
+                glassRenderer = renderer;
+                shadows = false;
+            }
+            else if (name == "LighthouseDoor")
+            {
+                renderer.sharedMaterial = wood;
+            }
+            else if (name == "LighthouseDoorIron")
+            {
+                renderer.sharedMaterial = strap;
+            }
+            else if (name == "LighthouseDoorGlow")
+            {
+                renderer.sharedMaterial = doorGlow;
+                renderer.receiveShadows = false;
+                shadows = false;
+            }
+
+            renderer.shadowCastingMode = shadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
+            if (name == "BeaconGlass" || name.StartsWith("LighthouseDoor"))
+            {
+                lod0.Add(renderer);
+                lod1.Add(renderer);
+            }
+            else if (low)
+            {
+                lod1.Add(renderer);
+            }
+            else
+            {
+                lod0.Add(renderer);
+            }
+        }
+
+        return glassRenderer;
+    }
+
     // Own stone material: the Island 5 cliff recipe (the same URP Lit rock and the island tint of CliffSkin_island5), so the tower matches
     // the spire at night and in the dawn light. BeaconCairn (island 1 tint) is not touched.
-    static Material EnsureStoneMaterial()
+    public static Material EnsureStoneMaterial()
     {
         Material cliff = AssetDatabase.LoadAssetAtPath<Material>(CliffMaterialPath);
         if (cliff == null)
@@ -287,7 +308,7 @@ public static class LighthouseInstaller
 
     // A lighthouse-only copy of the beacon glass with a dim cold glint when unlit (the game blue signal colour); lit, GreatLamp
     // drives _Glow and the amber takes over. The beacons keep BeaconGlass.
-    static Material EnsureGlassMaterial()
+    public static Material EnsureGlassMaterial()
     {
         Material source = AssetDatabase.LoadAssetAtPath<Material>(CreatureInstaller.BeaconGlassMaterialPath);
         if (source == null)
@@ -314,7 +335,7 @@ public static class LighthouseInstaller
         return material;
     }
 
-    static Material EnsureWoodMaterial()
+    public static Material EnsureWoodMaterial()
     {
         Material material = AssetDatabase.LoadAssetAtPath<Material>(WoodMaterialPath);
         if (material == null)
@@ -331,7 +352,7 @@ public static class LighthouseInstaller
     }
 
     // Door straps: plain URP Lit near-black iron (the beacon iron shader has a moon rim that drew stray blue lines on the thin straps).
-    static Material EnsureStrapMaterial()
+    public static Material EnsureStrapMaterial()
     {
         Material material = AssetDatabase.LoadAssetAtPath<Material>(StrapMaterialPath);
         if (material == null)
@@ -348,7 +369,7 @@ public static class LighthouseInstaller
     }
 
     // Faint amber (#FFB15C) across the foot of the door: the lamp is waiting. Low on purpose; it must not read as a beacon.
-    static Material EnsureDoorGlowMaterial()
+    public static Material EnsureDoorGlowMaterial()
     {
         Shader shader = Shader.Find("LanternKeeper/AdditiveUnlit");
         if (shader == null)
@@ -372,7 +393,7 @@ public static class LighthouseInstaller
         return material;
     }
 
-    static void ConfigureModel()
+    public static void ConfigureModel()
     {
         ModelImporter importer = AssetImporter.GetAtPath(ModelPath) as ModelImporter;
         if (importer == null)
@@ -432,7 +453,7 @@ public static class LighthouseInstaller
 
     // Two opposed vertical cards along +X and -X from the lantern axis. UV.x is 0 at the lantern and 1 at the tip, UV.y across: the
     // BeaconBeam shader takes the outward direction from the XZ position. The cards fan out from about 1.2 m to BeamWidth in height.
-    static Mesh EnsureBeamMesh()
+    public static Mesh EnsureBeamMesh()
     {
         Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(BeamMeshPath);
         bool create = mesh == null;

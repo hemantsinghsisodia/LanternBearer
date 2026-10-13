@@ -8,6 +8,9 @@ Shader "LanternKeeper/NightSky"
         _Exponent ("Exponent", Float) = 1.6
         _HorizonBand ("Horizon Band", Float) = 0.12
         _Blend ("Dawn Blend", Range(0, 1)) = 0
+        // A pre-dawn win warms the horizon band ahead of the rest of the sky: below 0 there is no extra band (a full dawn). _MoonAlpha fades the moon out.
+        _HorizonBlend ("Horizon Blend", Float) = -1
+        _MoonAlpha ("Moon Alpha", Range(0, 1)) = 1
         _DawnTop ("Dawn Top", Color) = (0.494, 0.612, 0.796, 1)
         _DawnHorizon ("Dawn Horizon", Color) = (0.957, 0.702, 0.541, 1)
         _DawnGround ("Dawn Ground", Color) = (0.788, 0.541, 0.478, 1)
@@ -48,6 +51,8 @@ Shader "LanternKeeper/NightSky"
             float _Exponent;
             float _HorizonBand;
             float _Blend;
+            float _HorizonBlend;
+            float _MoonAlpha;
             float4 _DawnTop;
             float4 _DawnHorizon;
             float4 _DawnGround;
@@ -102,6 +107,7 @@ Shader "LanternKeeper/NightSky"
                 float3 dir = normalize(input.direction);
                 float y = dir.y;
                 float3 top = lerp(_Top.rgb, _DawnTop.rgb, _Blend);
+                float horizonBlend = _HorizonBlend < 0.0 ? 0.0 : saturate(_HorizonBlend);
                 float3 horizon = lerp(_Horizon.rgb, _DawnHorizon.rgb, _Blend);
                 float3 ground = lerp(_Ground.rgb, _DawnGround.rgb, _Blend);
 
@@ -111,6 +117,10 @@ Shader "LanternKeeper/NightSky"
                 float down = saturate((-y - band * 0.5) / (1.0 - band * 0.5));
                 float3 color = lerp(horizon, top, pow(up, _Exponent));
                 color = lerp(color, ground, pow(down, _Exponent));
+
+                // A pre-dawn first-light band: warm only low on the horizon, fading out within about 0.25 of the horizon height.
+                float horizonGlow = exp(-max(y, 0.0) * 11.0) * horizonBlend;
+                color = lerp(color, _DawnHorizon.rgb, saturate(horizonGlow));
 
                 // Slow scrolling cloud bands above the horizon.
                 if (_Clouds > 0.5)
@@ -131,7 +141,7 @@ Shader "LanternKeeper/NightSky"
                     float ang = acos(clamp(cosAng, -1.0, 1.0));
                     float disc = 1.0 - smoothstep(_MoonSize * 0.9, _MoonSize, ang);
                     float glow = exp(-ang * 7.0) * _MoonGlow;
-                    float fade = 1.0 - _Blend;
+                    float fade = (1.0 - _Blend) * _MoonAlpha;
                     color += _MoonColor.rgb * (disc + glow) * fade;
                 }
 

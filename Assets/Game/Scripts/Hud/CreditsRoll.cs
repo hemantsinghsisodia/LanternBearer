@@ -232,9 +232,17 @@ public class CreditsRoll : MonoBehaviour
     }
 
     // Canvas units per reference pixel: the canvas is 1080 tall at the reference size and scales with the screen.
+    private Canvas parentCanvas;
+    private const float MaxFrameDt = 0.1f;
+
     private float UnitsPerReferencePixel()
     {
-        Canvas canvas = GetComponentInParent<Canvas>();
+        if (parentCanvas == null)
+        {
+            parentCanvas = GetComponentInParent<Canvas>();
+        }
+
+        Canvas canvas = parentCanvas;
         RectTransform root = canvas != null ? canvas.rootCanvas.transform as RectTransform : null;
         return root != null && root.rect.height > 1f ? root.rect.height / ReferenceHeight : 1f;
     }
@@ -247,7 +255,8 @@ public class CreditsRoll : MonoBehaviour
 
     private void Update()
     {
-        Tick(Time.unscaledDeltaTime);
+        // The first frame after Build() is a hitch; clamp so it cannot jump the scroll or the fade.
+        Tick(Mathf.Min(Time.unscaledDeltaTime, MaxFrameDt));
     }
 
     // Moves the roll by dt seconds of unscaled time; tests may call it with fixed steps.
@@ -259,9 +268,21 @@ public class CreditsRoll : MonoBehaviour
         }
 
         dt = Mathf.Max(0f, dt);
-        bool held = ReadHeld();
-        // A skip needs a fresh press edge once armed: a key pressed before the arm moment and held across it does not skip.
-        bool edge = held && !previousHeld;
+        bool held;
+        bool edge;
+        Func<bool> seam = InputHeld;
+        if (seam != null)
+        {
+            held = seam();
+            edge = held && !previousHeld;
+        }
+        else
+        {
+            held = AnyInputDown();
+            // A skip needs a fresh per-control press once armed: a key pressed before the arm moment and held across it does not skip.
+            edge = AnyInputPressedThisFrame();
+        }
+
         previousHeld = held;
         if (armed && edge)
         {
@@ -290,24 +311,49 @@ public class CreditsRoll : MonoBehaviour
         }
     }
 
-    private bool ReadHeld()
+    private static Gamepad cachedPad;
+    private static UnityEngine.InputSystem.Controls.ButtonControl[] cachedButtons;
+
+    private static UnityEngine.InputSystem.Controls.ButtonControl[] PadButtons(Gamepad pad)
     {
-        Func<bool> seam = InputHeld;
-        return seam != null ? seam() : AnyInputDown();
+        if (cachedPad != pad || cachedButtons == null)
+        {
+            cachedPad = pad;
+            cachedButtons = new[]
+            {
+                pad.buttonSouth, pad.buttonEast, pad.buttonWest, pad.buttonNorth, pad.startButton, pad.selectButton,
+                pad.leftShoulder, pad.rightShoulder, pad.leftTrigger, pad.rightTrigger, pad.leftStickButton, pad.rightStickButton,
+                pad.dpad.up, pad.dpad.down, pad.dpad.left, pad.dpad.right
+            };
+        }
+
+        return cachedButtons;
     }
 
-    // Any key, mouse button or gamepad button, null-safe when a device is missing.
+    // Any key, mouse button or gamepad button held (or pressed this frame), null-safe when a device is missing. Allocation free.
     public static bool AnyInputDown()
     {
+        return ScanInput(false);
+    }
+
+    // True when any single key, mouse button or gamepad button went down this frame (a per-control press edge).
+    public static bool AnyInputPressedThisFrame()
+    {
+        return ScanInput(true);
+    }
+
+    private static bool ScanInput(bool edgeOnly)
+    {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && (keyboard.anyKey.isPressed || keyboard.anyKey.wasPressedThisFrame))
+        if (keyboard != null && (edgeOnly ? keyboard.anyKey.wasPressedThisFrame : (keyboard.anyKey.isPressed || keyboard.anyKey.wasPressedThisFrame)))
         {
             return true;
         }
 
         Mouse mouse = Mouse.current;
-        if (mouse != null && (mouse.leftButton.isPressed || mouse.rightButton.isPressed || mouse.middleButton.isPressed
-            || mouse.forwardButton.isPressed || mouse.backButton.isPressed))
+        if (mouse != null
+            && (Hit(mouse.leftButton, edgeOnly) || Hit(mouse.rightButton, edgeOnly) || Hit(mouse.middleButton, edgeOnly)
+                || Hit(mouse.forwardButton, edgeOnly) || Hit(mouse.backButton, edgeOnly)))
         {
             return true;
         }
@@ -315,15 +361,10 @@ public class CreditsRoll : MonoBehaviour
         Gamepad pad = Gamepad.current;
         if (pad != null)
         {
-            UnityEngine.InputSystem.Controls.ButtonControl[] buttons =
-            {
-                pad.buttonSouth, pad.buttonEast, pad.buttonWest, pad.buttonNorth, pad.startButton, pad.selectButton,
-                pad.leftShoulder, pad.rightShoulder, pad.leftTrigger, pad.rightTrigger, pad.leftStickButton, pad.rightStickButton,
-                pad.dpad.up, pad.dpad.down, pad.dpad.left, pad.dpad.right
-            };
+            UnityEngine.InputSystem.Controls.ButtonControl[] buttons = PadButtons(pad);
             for (int i = 0; i < buttons.Length; i++)
             {
-                if (buttons[i] != null && buttons[i].isPressed)
+                if (Hit(buttons[i], edgeOnly))
                 {
                     return true;
                 }
@@ -331,6 +372,11 @@ public class CreditsRoll : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static bool Hit(UnityEngine.InputSystem.Controls.ButtonControl button, bool edgeOnly)
+    {
+        return button != null && (edgeOnly ? button.wasPressedThisFrame : button.isPressed);
     }
 
     private void Exit()

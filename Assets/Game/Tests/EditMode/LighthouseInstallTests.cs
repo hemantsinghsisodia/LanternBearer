@@ -87,6 +87,7 @@ public class LighthouseInstallTests
             float range = new SerializedObject(lamp).FindProperty("interactRange").floatValue;
             float approach = (float)Installer().GetField("ApproachDistance").GetRawConstantValue();
             Assert.AreEqual(4.0f, approach, 1e-6f);
+            Assert.GreaterOrEqual(range, approach, "the interact range covers the approach distance");
 
             Vector3 axis = lamp.transform.position;
             Vector3 point = axis + SpanDirection() * approach;
@@ -141,6 +142,7 @@ public class LighthouseInstallTests
     [Test]
     public void InstallerIsIdempotent()
     {
+        UnityEditor.SceneManagement.SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
         Scene scene = Open(out bool opened);
         try
         {
@@ -162,7 +164,7 @@ public class LighthouseInstallTests
         {
             if (!opened)
             {
-                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+                EditorSceneManager.RestoreSceneManagerSetup(setup);
             }
             else
             {
@@ -261,6 +263,7 @@ public class LighthouseInstallTests
     [Test]
     public void BeamAppliesTheLowScalesOnLow()
     {
+        bool hadKey = PlayerPrefs.HasKey(GraphicsKey);
         int original = PlayerPrefs.GetInt(GraphicsKey, 0);
         Component beam = NewBeam(out GameObject go);
         try
@@ -279,7 +282,15 @@ public class LighthouseInstallTests
         }
         finally
         {
-            PlayerPrefs.SetInt(GraphicsKey, original);
+            if (hadKey)
+            {
+                PlayerPrefs.SetInt(GraphicsKey, original);
+            }
+            else
+            {
+                PlayerPrefs.DeleteKey(GraphicsKey);
+            }
+
             UnityEngine.Object.DestroyImmediate(go);
         }
     }

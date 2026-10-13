@@ -11,6 +11,8 @@ public class DawnSequence : MonoBehaviour
     [SerializeField] Vector3 dawnEuler = new Vector3(10f, 28f, 0f);
     [SerializeField] Volume lookVolume;
     [SerializeField] Volume dawnVolume;
+    // How far the dawn goes (1 = the full sunrise). Islands 1-4 end in a growing pre-dawn (PreDawnInstaller); the finale always runs at 1.
+    [SerializeField, Range(0f, 1f)] float reach = 1f;
 
     Color nightLightColor = new Color(0.75f, 0.84f, 1f);
     float nightIntensity = 0.85f;
@@ -37,6 +39,11 @@ public class DawnSequence : MonoBehaviour
     Color nightGrassTip;
 
     public bool IsPlaying { get; private set; }
+    // A reach of 0 would divide by zero in the pre-dawn light blend.
+    const float MinReach = 0.05f;
+    public float Reach => reach;
+    // The sun in the sky: 0 for a pre-dawn (reach < 1, no sun at all), the dawn progress for the full sunrise.
+    public float SkySunIntensity { get; private set; }
 
     // Finale-only overrides (Island 5). The defaults are the values the dawn always used, so Islands 1-4 are unchanged.
     [System.NonSerialized] public float FogDensityScale = 0.45f;
@@ -99,7 +106,7 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete, duration, false));
+        StartCoroutine(Run(onComplete, duration, false, Mathf.Clamp(reach, MinReach, 1f)));
     }
 
     // The Island 5 finale's sunrise: its own length, on unscaled time (the finale keeps running at timeScale 0). The other islands
@@ -111,11 +118,12 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled));
+        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled, 1f));
     }
 
-    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled)
+    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled, float runReach)
     {
+        bool preDawn = runReach < 0.999f;
         IsPlaying = true;
         CaptureNight();
         float elapsed = 0f;
@@ -201,22 +209,38 @@ public class DawnSequence : MonoBehaviour
         while (elapsed < runDuration)
         {
             elapsed += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / runDuration));
+            float u = PreDawn.Blend(elapsed / runDuration, runReach);
+            SkySunIntensity = preDawn ? 0f : u;
+            // A pre-dawn warms the horizon first and the rest of the world far less, so the night stays night: sky top, ambient, grass and the grade
+            // follow us, fog, water, silhouettes and light colour um, the horizon band uh. A full dawn uses u for all of them (unchanged).
+            float us = preDawn ? u * 0.2f : u;
+            float um = preDawn ? u * 0.35f : u;
+            float uh = preDawn ? Mathf.Clamp01(u * 1.8f) : u;
             if (sun != null)
             {
-                sun.color = Color.Lerp(nightLightColor, dawnLight, u);
-                sun.intensity = Mathf.Lerp(nightIntensity, 1.45f, u);
-                sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u);
+                if (preDawn)
+                {
+                    // The moon stays the light: a touch warmer and brighter, and barely turned, so no low sun throws long shadows.
+                    sun.color = Color.Lerp(nightLightColor, dawnLight, um);
+                    sun.intensity = Mathf.Lerp(nightIntensity, nightIntensity * 1.15f, u / runReach);
+                    sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u * 0.12f);
+                }
+                else
+                {
+                    sun.color = Color.Lerp(nightLightColor, dawnLight, u);
+                    sun.intensity = Mathf.Lerp(nightIntensity, 1.45f, u);
+                    sun.transform.rotation = Quaternion.Slerp(nightRotation, dawnRotation, u);
+                }
             }
 
-            RenderSettings.fogColor = Color.Lerp(nightFog, dawnFog, u);
-            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * FogDensityScale, u);
-            RenderSettings.ambientSkyColor = Color.Lerp(nightSky, dawnSky, u);
-            RenderSettings.ambientEquatorColor = Color.Lerp(nightEquator, dawnEquator, u);
-            RenderSettings.ambientGroundColor = Color.Lerp(nightGround, dawnGround, u);
+            RenderSettings.fogColor = Color.Lerp(nightFog, dawnFog, um);
+            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * FogDensityScale, um);
+            RenderSettings.ambientSkyColor = Color.Lerp(nightSky, dawnSky, us);
+            RenderSettings.ambientEquatorColor = Color.Lerp(nightEquator, dawnEquator, us);
+            RenderSettings.ambientGroundColor = Color.Lerp(nightGround, dawnGround, us);
             if (blendSky)
             {
-                RenderSettings.ambientIntensity = Mathf.Lerp(nightAmbient, nightAmbient + ambientBoost, u);
+                RenderSettings.ambientIntensity = Mathf.Lerp(nightAmbient, nightAmbient + ambientBoost, us);
             }
 
             if (skybox != null)
@@ -224,14 +248,25 @@ public class DawnSequence : MonoBehaviour
                 // NightSky lerps night to dawn itself from _Blend and _Dawn*, so writing here would compound the blend.
                 if (skybox.HasProperty("_Top") && !skybox.HasProperty("_DawnTop"))
                 {
-                    skybox.SetColor("_Top", Color.Lerp(skyTop, dawnTop, u));
-                    skybox.SetColor("_Horizon", Color.Lerp(skyHorizon, dawnHorizon, u));
-                    skybox.SetColor("_Ground", Color.Lerp(skyGround, dawnBottom, u));
+                    skybox.SetColor("_Top", Color.Lerp(skyTop, dawnTop, us));
+                    skybox.SetColor("_Horizon", Color.Lerp(skyHorizon, dawnHorizon, uh));
+                    skybox.SetColor("_Ground", Color.Lerp(skyGround, dawnBottom, us));
                 }
 
                 if (blendSky)
                 {
-                    skybox.SetFloat("_Blend", u);
+                    skybox.SetFloat("_Blend", us);
+                    if (preDawn && skybox.HasProperty("_HorizonBlend"))
+                    {
+                        skybox.SetFloat("_HorizonBlend", uh);
+                    }
+
+                    if (preDawn && skybox.HasProperty("_MoonAlpha"))
+                    {
+                        // The moon disc fades out over a pre-dawn, so it is never mistaken for a sun.
+                        skybox.SetFloat("_MoonAlpha", 1f - Mathf.Clamp01(u / runReach));
+                    }
+
                     float dawnExposure = nightExposure * 1.7f;
                     if (skybox.HasProperty("_DawnExposure"))
                     {
@@ -243,11 +278,11 @@ public class DawnSequence : MonoBehaviour
                     }
 
                     dawnExposure *= ExposureScale;
-                    skybox.SetFloat("_Exposure", Mathf.Lerp(nightExposure, dawnExposure, u));
-                    skybox.SetColor("_Tint", Color.Lerp(nightTint, dawnTint, u));
+                    skybox.SetFloat("_Exposure", Mathf.Lerp(nightExposure, dawnExposure, us));
+                    skybox.SetColor("_Tint", Color.Lerp(nightTint, dawnTint, us));
                     if (skybox.HasProperty("_HazeColor"))
                     {
-                        skybox.SetColor("_HazeColor", Color.Lerp(nightHaze, dawnHaze, u));
+                        skybox.SetColor("_HazeColor", Color.Lerp(nightHaze, dawnHaze, uh));
                     }
 
                     PushMoonDir();
@@ -257,27 +292,27 @@ public class DawnSequence : MonoBehaviour
             // The dawn grade takes over from the night grade, and the moon rim fades out with the moon.
             if (lookVolume != null)
             {
-                lookVolume.weight = Mathf.Lerp(nightLookWeight, 0f, u);
+                lookVolume.weight = Mathf.Lerp(nightLookWeight, 0f, us);
             }
 
             if (dawnVolume != null)
             {
-                dawnVolume.weight = u * DawnGradeWeight;
+                dawnVolume.weight = us * DawnGradeWeight;
             }
 
             Shader.SetGlobalFloat("_LKMoonRimStrength", Mathf.Lerp(nightRimStrength, 0f, u));
-            Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? u : 0f);
-            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, Color.Lerp(Color.white, dawnWater, WaterWarmth), u));
+            Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? (preDawn ? uh * 0.5f : u) : 0f);
+            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, Color.Lerp(Color.white, dawnWater, WaterWarmth), um));
             if (blendGrass)
             {
-                Shader.SetGlobalColor("_LKGrassRoot", Color.Lerp(nightGrassRoot, dawnGrassRoot, u));
-                Shader.SetGlobalColor("_LKGrassTip", Color.Lerp(nightGrassTip, dawnGrassTip, u));
+                Shader.SetGlobalColor("_LKGrassRoot", Color.Lerp(nightGrassRoot, dawnGrassRoot, us));
+                Shader.SetGlobalColor("_LKGrassTip", Color.Lerp(nightGrassTip, dawnGrassTip, us));
             }
-            Shader.SetGlobalColor("_SilhouetteTint", Color.Lerp(nightSilhouette, dawnSilhouette, u));
+            Shader.SetGlobalColor("_SilhouetteTint", Color.Lerp(nightSilhouette, dawnSilhouette, um));
 
             if (stars != null)
             {
-                stars.SetFade(1f - u);
+                stars.SetFade(preDawn ? 1f - u * 0.6f : 1f - u);
             }
 
             yield return null;

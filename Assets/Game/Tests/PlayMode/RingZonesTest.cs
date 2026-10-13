@@ -90,6 +90,7 @@ public class RingZonesTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         savedInts.Clear();
         savedFloats.Clear();
         for (int i = 0; i < IntKeys.Length; i++)
@@ -118,6 +119,7 @@ public class RingZonesTest
     [TearDown]
     public void TearDown()
     {
+        LitKeyGuard.Restore();
         foreach (KeyValuePair<string, int> pair in savedInts)
         {
             if (pair.Value < 0)
@@ -156,6 +158,7 @@ public class RingZonesTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }

@@ -29,6 +29,7 @@ public class HUD : MonoBehaviour
     readonly ScreenOverlays overlays = new ScreenOverlays();
     readonly TideFeed tideFeed = new TideFeed();
     readonly StormFeed stormFeed = new StormFeed();
+    readonly SurgeFeed surgeFeed = new SurgeFeed();
     readonly IntroFeed introFeed = new IntroFeed();
     HudPrompt prompt;
     PlayerController player;
@@ -38,6 +39,7 @@ public class HUD : MonoBehaviour
     bool buttonsBound;
     bool creditsBound;
     bool creditsMusicStarted;
+    MusicDirector creditsMusicDirector;
     bool missingResolved;
     bool lanternResolved;
     int shownSecond = int.MinValue;
@@ -85,6 +87,7 @@ public class HUD : MonoBehaviour
         UpdateFuelAndDrain();
         tideFeed.Update(tideChip, toasts);
         stormFeed.Update(stormChip, gameObject);
+        surgeFeed.Update(gameObject);
 
         GameManager manager = GameManager.Instance;
         if (manager == null)
@@ -392,7 +395,7 @@ public class HUD : MonoBehaviour
         }
 
         BeginResult(manager);
-        if (manager.HasFinale && credits != null)
+        if (manager.FinaleRuns && credits != null)
         {
             // Island 5: the credits roll over the dawn instead of the result panel, then the main menu.
             HideGameHud();
@@ -462,7 +465,12 @@ public class HUD : MonoBehaviour
             return;
         }
 
-        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (creditsMusicDirector == null)
+        {
+            creditsMusicDirector = FindAnyObjectByType<MusicDirector>();
+        }
+
+        MusicDirector music = creditsMusicDirector;
         if (music == null || !music.FinaleCueDone || MusicPlayer.Instance == null)
         {
             return;
@@ -474,7 +482,12 @@ public class HUD : MonoBehaviour
 
     void FadeMusicOut(float seconds)
     {
-        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (creditsMusicDirector == null)
+        {
+            creditsMusicDirector = FindAnyObjectByType<MusicDirector>();
+        }
+
+        MusicDirector music = creditsMusicDirector;
         if (music != null)
         {
             music.FadeOutForExit(seconds);

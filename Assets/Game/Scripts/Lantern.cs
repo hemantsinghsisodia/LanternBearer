@@ -166,7 +166,8 @@ public class Lantern : MonoBehaviour
     {
         int lit = GameManager.Instance != null ? GameManager.Instance.LitCount : 0;
         escalation = 1f + lit * GameSettings.BeaconDrainBonusPerLit;
-        inSafeLight = InsideAnySafeZone();
+        // Island 5: caught in the storm surge, no safe light protects (StormSurge.SafeLightSuppressed).
+        inSafeLight = !StormSurge.SafeLightSuppressed && InsideAnySafeZone();
         float safe = inSafeLight ? GameSettings.SafeZoneDrainMultiplier : 1f;
         CurrentDrainMultiplier = difficultyDrain * escalation * ModifierProduct() * safe;
         if (Mathf.Abs(escalation - loggedEscalation) > 0.001f)
@@ -236,6 +237,21 @@ public class Lantern : MonoBehaviour
 
         float before = fuel;
         CommitFuel(fuel + amount, true);
+        RaiseAdjusted(fuel - before);
+    }
+
+    // A strike or similar blow: removes up to `amount` fuel at once (never below 1 point). Reported as a discrete spend; running dry is
+    // handled by Update's next frame like any other drain.
+    public void Hit(float amount)
+    {
+        if (amount <= 0f || depleted)
+        {
+            return;
+        }
+
+        // A strike alone never kills: it leaves at least one point (the drain and the surge still can).
+        float before = fuel;
+        CommitFuel(Mathf.Max(fuel - amount, Mathf.Min(fuel, 1f)), true);
         RaiseAdjusted(fuel - before);
     }
 

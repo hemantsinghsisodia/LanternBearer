@@ -77,6 +77,7 @@ public class FinaleSequenceTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         savedInts.Clear();
         savedFloats.Clear();
         for (int i = 0; i < IntKeys.Length; i++)
@@ -104,6 +105,7 @@ public class FinaleSequenceTest
     [UnityTearDown]
     public IEnumerator TearDown()
     {
+        LitKeyGuard.Restore();
         Time.timeScale = previousScale;
         SetTestSpeed(1f);
         foreach (KeyValuePair<string, int> pair in savedInts)
@@ -149,6 +151,7 @@ public class FinaleSequenceTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }
@@ -370,7 +373,7 @@ public class FinaleSequenceTest
             Assert.IsTrue((bool)Call(root.GetChild(i).GetComponent(GameType("Beacon")), "TryLight"), "beacon " + i);
             if (i == count - 1)
             {
-                // After the last beacon's own stinger: what follows is the win stinger.
+                // Beacons play no stinger: what follows is the win stinger.
                 stingers = (int)Get(director, "StingerRequests");
             }
 

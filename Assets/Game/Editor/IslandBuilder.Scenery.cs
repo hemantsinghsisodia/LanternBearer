@@ -233,9 +233,14 @@ public static partial class IslandBuilder
             }
         }
 
-        if (lighthouseIslet != null)
+        if (lighthouseIslet != null && !config.spire)
         {
             PlaceLighthouse(lighthouseIslet, lighthouseTop, art);
+        }
+        else if (lighthouseIslet != null)
+        {
+            // Island 5 has the real lighthouse: no scenery tower, and no empty islet where it would stand.
+            Object.DestroyImmediate(lighthouseIslet.gameObject);
         }
 
         if (hazeShader != null)
@@ -909,6 +914,7 @@ public static partial class IslandBuilder
         Stage stage = new Stage();
         stage.waterY = waterY;
         CreateHorizon(config, art, stage);
+        HorizonLighthouseInstaller.Apply(scene);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("Rebuilt horizon in " + scenePath + " waterY=" + waterY.ToString("0.00"));

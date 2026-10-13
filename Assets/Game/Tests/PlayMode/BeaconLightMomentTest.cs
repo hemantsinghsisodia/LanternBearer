@@ -30,6 +30,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             problems.Clear();
             safeAtLit = -1f;
             litFired = false;
@@ -41,6 +42,7 @@ namespace LanternKeeper.Tests
         [TearDown]
         public void TearDown()
         {
+            LitKeyGuard.Restore();
             Application.logMessageReceived -= OnLog;
             Time.timeScale = previousScale;
             Time.captureDeltaTime = previousCaptureDelta;

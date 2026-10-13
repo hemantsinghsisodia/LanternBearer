@@ -24,6 +24,7 @@ public class ResultPanelTest
     [SetUp]
     public void SetUp()
     {
+        LitKeyGuard.Save();
         savedKeys.Clear();
         savedValues.Clear();
         for (int i = 0; i < Keys.Length; i++)
@@ -43,6 +44,7 @@ public class ResultPanelTest
     [TearDown]
     public void TearDown()
     {
+        LitKeyGuard.Restore();
         Time.timeScale = 1f;
         AudioListener.pause = false;
         for (int i = 0; i < Keys.Length; i++)

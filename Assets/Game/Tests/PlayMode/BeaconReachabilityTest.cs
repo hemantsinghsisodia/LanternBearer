@@ -72,6 +72,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             problems.Clear();
             failures.Clear();
             for (int i = 0; i < IntroKeys.Length; i++)
@@ -94,6 +95,7 @@ namespace LanternKeeper.Tests
         [TearDown]
         public void TearDown()
         {
+            LitKeyGuard.Restore();
             Application.logMessageReceived -= OnLog;
             for (int i = 0; i < IntroKeys.Length; i++)
             {
@@ -323,6 +325,7 @@ namespace LanternKeeper.Tests
                 yield return null;
             }
 
+            StormSurgeSwitch.DisableFor(island);
             yield return null;
             yield return null;
 

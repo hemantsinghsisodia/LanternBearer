@@ -75,6 +75,7 @@ namespace LanternKeeper.Tests
         [SetUp]
         public void SetUp()
         {
+            LitKeyGuard.Save();
             savedInts.Clear();
             savedFloats.Clear();
             for (int i = 0; i < IntKeys.Length; i++)
@@ -100,6 +101,7 @@ namespace LanternKeeper.Tests
         [TearDown]
         public void TearDown()
         {
+            LitKeyGuard.Restore();
             foreach (KeyValuePair<string, int> pair in savedInts)
             {
                 if (pair.Value < 0)
@@ -138,6 +140,7 @@ namespace LanternKeeper.Tests
                 yield return null;
             }
 
+            StormSurgeSwitch.DisableFor(scene);
             yield return null;
             yield return null;
         }
@@ -207,6 +210,10 @@ namespace LanternKeeper.Tests
             Component bridge = Bridge(0);
             Assert.AreEqual(0, (int)StaticProperty("LightBridge", "BuiltCount"), "no bridge is built at the start");
             Assert.IsFalse((bool)Get(bridge, "Walkable"));
+            int whooshes = 0;
+            Action<string> spy = cue => { if (cue == SoundCues.BeaconWhoosh) { whooshes++; } };
+            EventInfo cuePlayed = GameType("AudioManager").GetEvent("CuePlayed", BindingFlags.Public | BindingFlags.Static);
+            cuePlayed.AddEventHandler(null, spy);
             Assert.IsTrue(LightBeacon(1), "beacon 1 lights");
             float elapsed = 0f;
             while (!(bool)Get(bridge, "Walkable") && elapsed < 3.5f)
@@ -215,6 +222,8 @@ namespace LanternKeeper.Tests
                 elapsed += Time.deltaTime;
             }
 
+            cuePlayed.RemoveEventHandler(null, spy);
+            Assert.AreEqual(1, whooshes, "the bridge beam arc plays the whoosh");
             Assert.IsTrue((bool)Get(bridge, "Walkable"), "walkable after " + elapsed.ToString("F2") + " s");
             Assert.LessOrEqual(elapsed, 2.5f + 0.1f, "walkable within 2.5 s of lighting");
             Assert.AreEqual(1, (int)StaticProperty("LightBridge", "BuiltCount"));

@@ -98,6 +98,23 @@ public class Lightning : MonoBehaviour
         }
     }
 
+    // A hunting strike: a flash now (capped like any other, by the Reduce flashing setting) and the thunder crack with it.
+    public void StrikeFlash()
+    {
+        if (schedule == null)
+        {
+            return;
+        }
+
+        schedule.ForceFlash();
+        PlayThunder(LightningPhase.Flash, true);
+        Action handler = Flashed;
+        if (handler != null)
+        {
+            handler();
+        }
+    }
+
     void BindExposure()
     {
         if (volume == null)

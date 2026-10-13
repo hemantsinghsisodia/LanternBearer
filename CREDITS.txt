@@ -69,11 +69,6 @@ Assets/Game/Audio/Music/Tension_Island3_1.ogg
   https://opengameart.org/content/horror-atmosphere
   Licence: CC0
 
-Assets/Game/Audio/Stingers/Stinger_BeaconLit_1.ogg
-  Telos Strings with French Horn by Tozan
-  https://opengameart.org/content/telos-strings-with-french-horn
-  Licence: CC0
-
 Assets/Game/Audio/Stingers/Stinger_Win_1.ogg
   Victory Fanfare Short by cynicmusic
   https://opengameart.org/content/victory-fanfare-short
@@ -89,7 +84,7 @@ Sound effects and ambience (CC0)
 ------------------------------------------------------------------------
 
 Edited from the originals: trimmed, pitched, layered, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
-Synthesised sounds that have no recording (heartbeat, firefly arrival, moth whisper, Shade drone, beacon whoosh, wind bed) are generated in the project (ProceduralAudio).
+Synthesised sounds that have no recording (heartbeat, firefly arrival, moth whisper, Shade drone, bridge whoosh, wind bed) are generated in the project (ProceduralAudio).
 
 Assets/Game/Audio/UI/UI_Click_*, UI_Back_*, UI_PauseOpen_1, UI_PauseClose_1, UI_Toggle_*
   Interface Sounds by Kenney
@@ -116,7 +111,7 @@ Assets/Game/Audio/Sfx/Moth_Flutter_*, Shade_Steal_*
   https://opengameart.org/content/80-cc0-creature-sfx
   Licence: CC0
 
-Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Beacon_Ignite_*, Assets/Game/Audio/UI/UI_PageTurn_*
+Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Assets/Game/Audio/UI/UI_PageTurn_*
   80 CC0 RPG SFX by rubberduck
   https://opengameart.org/content/80-cc0-rpg-sfx
   Licence: CC0
@@ -134,6 +129,11 @@ Assets/Game/Audio/Sfx/Footstep_Grass_*, Footstep_Rock_*
 Assets/Game/Audio/Sfx/Lantern_Crackle_1, Lantern_Sputter_1, Beacon_Fire_1
   Fire Crackling (fire-1) by AntumDeluge
   https://opengameart.org/content/fire-crackling
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Beacon_Ignite_*
+  Gasoline fire #1 by Joseph Sardin
+  https://bigsoundbank.com/gasoline-fire-1-s1340.html
   Licence: CC0
 
 Assets/Game/Audio/Sfx/Firefly_Chime_*

@@ -713,15 +713,18 @@ public static partial class IslandBuilder
         }
     }
 
-    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the lighthouse, then the performance pass, then the finale,
-    // then the music director (Build wipes it, like on Islands 1-4).
+    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the lighthouse, then the removal of the scenery lighthouse, then the performance pass, then the finale, then the storm surge,
+    // then the hunting lightning with the beacon refund and half the swarms, then the music director (Build wipes it, like on Islands 1-4).
     public static readonly (string name, System.Action run)[] Island5PostSteps =
     {
         ("BridgeInstaller", BridgeInstaller.Install),
         ("RingInstaller", RingInstaller.Install),
         ("LighthouseInstaller", LighthouseInstaller.Install),
+        ("HorizonLighthouseInstaller", HorizonLighthouseInstaller.InstallIsland5),
         ("Island5PerfInstaller", Island5PerfInstaller.Install),
         ("FinaleInstaller", FinaleInstaller.Install),
+        ("StormSurgeInstaller", StormSurgeInstaller.Install),
+        ("LightningHunterInstaller", LightningHunterInstaller.Install),
         ("AudioInstaller", AudioInstaller.InstallIsland5)
     };
 
@@ -738,6 +741,9 @@ public static partial class IslandBuilder
         island5.windStrength = 0f;
         island5.shadeCount = 0;
         island5.lightning = false;
+        // Scarce fuel: the single source for the scene's LevelTuning (LightningHunterInstaller copies these).
+        island5.beaconRefund01 = 0.2f;
+        island5.drainMultiplier = 1.6f;
         island5.ridges = false;
         island5.lookProfile = EnsureIsland5Look();
         EditorUtility.SetDirty(island5);
