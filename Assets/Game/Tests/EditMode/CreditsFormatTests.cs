@@ -58,7 +58,7 @@ public class CreditsFormatTests
             "First Light Particles", "Ambient Relaxing Loop", "Mysterious Ambience (song21)", "Underwater Theme",
             "The World Fell Silent (loop version)", "Epic Endgame Cinematic", "Dark Cavern Ambient (file 002, continuous loop)",
             "Fantasy Orchestral Theme", "Lost in a bad place (horror ambience loop)", "Dark Sci-Fi Audio Pack: Airy",
-            "Paranoid Truth", "Horror Atmosphere (Post Apocalyptic Wastelands)", "Telos Strings with French Horn",
+            "Paranoid Truth", "Horror Atmosphere (Post Apocalyptic Wastelands)",
             "Victory Fanfare Short", "Game Over IV",
             "Interface Sounds", "Impact Sounds", "50 RPG sound effects", "100 CC0 SFX #2", "80 CC0 creature SFX",
             "80 CC0 RPG SFX", "40 CC0 water splash and slime SFX", "Fantozzi's Footsteps (Grass/Sand & Stone)",

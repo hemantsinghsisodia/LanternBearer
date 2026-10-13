@@ -77,14 +77,12 @@ public class MusicDirector : MonoBehaviour
 
     void OnEnable()
     {
-        Beacon.Lit += OnBeaconLit;
         listening = true;
     }
 
     void OnDisable()
     {
         listening = false;
-        Beacon.Lit -= OnBeaconLit;
         Unsubscribe();
         if (AudioManager.Instance != null)
         {
@@ -385,14 +383,6 @@ public class MusicDirector : MonoBehaviour
         finaleSource.loop = false;
         finaleSource.volume = MusicPlayer.IsMuted ? 0f : MusicPlayer.BaseVolume;
         finaleSource.Play();
-    }
-
-    void OnBeaconLit(Beacon beacon)
-    {
-        if (library != null)
-        {
-            PlayStinger(library.stingerBeaconLit);
-        }
     }
 
     void OnWon()

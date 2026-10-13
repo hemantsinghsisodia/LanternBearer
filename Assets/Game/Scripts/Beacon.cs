@@ -345,11 +345,8 @@ public class Beacon : MonoBehaviour
 
     IEnumerator Ignite()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlayBeacon(transform.position);
-        }
-        else if (whooshSource != null && whooshSource.clip != null)
+        // The fire recording (Beacon.Ignite) is played by BeaconVisual.PlayLightMoment.
+        if (AudioManager.Instance == null && whooshSource != null && whooshSource.clip != null)
         {
             whooshSource.Play();
         }

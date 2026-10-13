@@ -34,7 +34,6 @@ MonoBehaviour:
     track: {fileID: 8300000, guid: afa9282ffb39d4b4885102fff7c8cc65, type: 3}
     tension: {fileID: 8300000, guid: f7e4626139e9da741a73a86af777320c, type: 3}
     hush: {fileID: 8300000, guid: e6094a4ff928f5e4eb09cf4014dd9802, type: 3}
-  stingerBeaconLit: {fileID: 8300000, guid: e4a5ffaa97ece57429c0f1babf84ecca, type: 3}
   stingerWin: {fileID: 8300000, guid: 23beb2db81d5ea94ea2bdb0b3ee11b3f, type: 3}
   stingerLose: {fileID: 8300000, guid: 1aaf67439d661664b81e6df7c1c6e3be, type: 3}
   finaleCue: {fileID: 8300000, guid: 66374dcdbf9e61d47943db9c12b39248, type: 3}

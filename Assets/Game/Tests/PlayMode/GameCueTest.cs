@@ -210,6 +210,25 @@ public class GameCueTest
 
     [UnityTest]
     [Timeout(120000)]
+    public IEnumerator LightingBeaconPlaysFireRecordingNotSynthWhoosh()
+    {
+        yield return Load("Island1");
+        UnityEngine.Object[] found = UnityEngine.Object.FindObjectsByType(GameType("Beacon"), FindObjectsSortMode.None);
+        Component beacon = (Component)found[0];
+        UnityEngine.Object director = UnityEngine.Object.FindFirstObjectByType(GameType("MusicDirector"));
+        Assert.IsNotNull(director, "music director on Island1");
+        PropertyInfo requests = GameType("MusicDirector").GetProperty("StingerRequests");
+        int stingersBefore = (int)requests.GetValue(director);
+        played.Clear();
+        Assert.IsTrue((bool)beacon.GetType().GetMethod("TryLight").Invoke(beacon, null), "the beacon lights");
+        yield return new WaitForSeconds(0.5f);
+        Assert.AreEqual(stingersBefore, (int)requests.GetValue(director), "no music stinger on a beacon light");
+        Assert.GreaterOrEqual(Count(SoundCues.BeaconIgnite), 1, "the fire recording plays on light");
+        Assert.AreEqual(0, Count(SoundCues.BeaconWhoosh), "the synth whoosh no longer plays on a beacon");
+    }
+
+    [UnityTest]
+    [Timeout(120000)]
     public IEnumerator BeaconFireLoopIsGoneAfterSceneReload()
     {
         yield return Load("Island1");

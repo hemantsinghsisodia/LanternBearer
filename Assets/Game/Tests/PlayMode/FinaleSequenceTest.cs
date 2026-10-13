@@ -373,7 +373,7 @@ public class FinaleSequenceTest
             Assert.IsTrue((bool)Call(root.GetChild(i).GetComponent(GameType("Beacon")), "TryLight"), "beacon " + i);
             if (i == count - 1)
             {
-                // After the last beacon's own stinger: what follows is the win stinger.
+                // Beacons play no stinger: what follows is the win stinger.
                 stingers = (int)Get(director, "StingerRequests");
             }
 

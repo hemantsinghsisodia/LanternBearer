@@ -143,7 +143,6 @@ public class GreatLamp : MonoBehaviour
         StartCoroutine(Ignite());
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayBeacon(transform.position);
             AudioManager.Instance.PlayCue(SoundCues.BeaconIgnite, transform.position);
         }
 

@@ -950,12 +950,6 @@ public class AudioManager : MonoBehaviour
         PlayCue(SoundCues.FireflyArrive, position);
     }
 
-    // The ignition whoosh. The whoomp layer is the Beacon.Ignite cue, played by BeaconVisual.
-    public void PlayBeacon(Vector3 position)
-    {
-        PlayCue(SoundCues.BeaconWhoosh, position);
-    }
-
     // Surface index (0 grass, 1 dirt, 2 rock, 3 sand/shallow water) to its footstep cue.
     public static string FootstepCueFor(int surface)
     {
