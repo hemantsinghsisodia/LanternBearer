@@ -268,7 +268,7 @@ public class SettingsEffectTest
         System.Type dt = Game("DawnSequence");
         Object dawn = Object.FindAnyObjectByType(dt);
         Assert.IsNotNull(dawn, "DawnSequence in Island1");
-        dt.GetMethod("Play").Invoke(dawn, new object[] { null });
+        dt.GetMethod("Play", new[] { typeof(System.Action) }).Invoke(dawn, new object[] { null });
         for (int frame = 0; frame < 8; frame++)
         {
             yield return null;

@@ -195,6 +195,22 @@ public static class AudioInstaller
             }
         }
 
+        // Finale cue for the Island 5 ending (Finale_1.ogg); falls back to the menu track if the file is missing.
+        if (library.finaleCue == null)
+        {
+            AudioClip finale = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicFolder + "Finale_1.ogg");
+            if (finale == null)
+            {
+                finale = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicFolder + "Music_Menu_1.ogg");
+            }
+
+            if (finale != null)
+            {
+                library.finaleCue = finale;
+                changed = true;
+            }
+        }
+
         if (changed)
         {
             EditorUtility.SetDirty(library);

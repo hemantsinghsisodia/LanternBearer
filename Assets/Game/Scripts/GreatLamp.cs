@@ -6,13 +6,13 @@ namespace LanternKeeper
 {
 // The great lamp on the summit of Island 5. In H1 it is a large storm lantern; lighting it is the win. It can be lit only once the
 // SummitGate is Open (all beacons lit). Light() starts the win through GameManager.WinNow, whose WonGame event also plays the win
-// stinger (MusicDirector), so the lamp does not play it itself. H2 replaces this with the lighthouse and the finale.
+// stinger (MusicDirector), so the lamp does not play it itself. On Island 5 the visual is the lighthouse (LighthouseInstaller); TryLight also starts its GreatLampBeam.
 public class GreatLamp : MonoBehaviour
 {
     public const string PromptText = "E  Light the great lamp";
 
     [SerializeField] SummitGate gate;
-    [SerializeField] float interactRange = 3.4f;
+    [SerializeField] float interactRange = 4.5f;
     [SerializeField] float lightIntensity = 8f;
     [SerializeField] float lightRange = 34f;
 
@@ -25,6 +25,8 @@ public class GreatLamp : MonoBehaviour
     Light lampLight;
     Renderer glass;
     Renderer beams;
+    Renderer doorGlow;
+    GreatLampBeam lampBeam;
     MaterialPropertyBlock beamsBlock;
     MaterialPropertyBlock block;
     bool promptShown;
@@ -32,8 +34,32 @@ public class GreatLamp : MonoBehaviour
     int hintCount = -1;
     bool igniting;
     float litScale;
+    float flareStart = -1f;
+    float flarePeak = 1f;
+    float flareSeconds = 1f;
 
     public bool Lit { get; private set; }
+    public Light LampLight => lampLight;
+    public Transform Flame => flameRoot;
+
+    // The finale flare: the lamp light is multiplied by `peak`, falling back to 1 over `seconds` (unscaled).
+    public void Flare(float peak, float seconds)
+    {
+        flarePeak = Mathf.Max(1f, peak);
+        flareSeconds = Mathf.Max(0.01f, seconds);
+        flareStart = Time.unscaledTime;
+    }
+
+    float FlareFactor()
+    {
+        if (flareStart < 0f)
+        {
+            return 1f;
+        }
+
+        float k = Mathf.Clamp01((Time.unscaledTime - flareStart) / flareSeconds);
+        return 1f + (flarePeak - 1f) * (1f - k) * (1f - k);
+    }
 
     public void Configure(SummitGate summitGate)
     {
@@ -61,6 +87,9 @@ public class GreatLamp : MonoBehaviour
 
         Transform glassTransform = transform.Find("BeaconGlass");
         glass = glassTransform != null ? glassTransform.GetComponent<Renderer>() : null;
+        lampBeam = GetComponentInChildren<GreatLampBeam>(true);
+        Transform doorGlowTransform = transform.Find("LighthouseDoorGlow");
+        doorGlow = doorGlowTransform != null ? doorGlowTransform.GetComponent<Renderer>() : null;
         Transform beamsTransform = transform.Find("BeaconBeams");
         beams = beamsTransform != null ? beamsTransform.GetComponent<Renderer>() : null;
         if (beams != null)
@@ -106,6 +135,11 @@ public class GreatLamp : MonoBehaviour
         Lit = true;
         ClearPrompt();
         igniting = true;
+        if (lampBeam != null)
+        {
+            lampBeam.Begin(GreatLampBeam.DefaultRampSeconds);
+        }
+
         StartCoroutine(Ignite());
         if (AudioManager.Instance != null)
         {
@@ -201,12 +235,18 @@ public class GreatLamp : MonoBehaviour
     // The glass wakes with a slow pulse once the gate is open, and burns steadily when lit.
     void UpdateGlow()
     {
+        // The faint amber at the foot of the door says the lamp is waiting; it goes out when the lamp is lit.
+        if (doorGlow != null)
+        {
+            doorGlow.enabled = !Lit;
+        }
+
         if (glass == null)
         {
             return;
         }
 
-        float glow = Lit ? 1f : ((gate != null && gate.Open) ? 0.3f + 0.15f * Mathf.Sin(Time.time * 2.2f) : 0f);
+        float glow = Lit ? 1f : ((gate != null && gate.Open) ? 0.3f + 0.15f * Mathf.Sin(Time.unscaledTime * 2.2f) : 0f);
         if (block == null)
         {
             block = new MaterialPropertyBlock();
@@ -226,7 +266,7 @@ public class GreatLamp : MonoBehaviour
 
             bool low = GraphicsQuality.Current == GraphicsLevel.Low;
             beams.GetPropertyBlock(beamsBlock);
-            beamsBlock.SetFloat(BeamIntensityId, litScale * Mathf.Lerp(0.8f, 1f, Mathf.PerlinNoise(Time.time * 5f, 0.3f)) * (low ? BeaconVisual.BeamIntensityScaleLow : 1f));
+            beamsBlock.SetFloat(BeamIntensityId, litScale * Mathf.Lerp(0.8f, 1f, Mathf.PerlinNoise(Time.unscaledTime * 5f, 0.3f)) * (low ? BeaconVisual.BeamIntensityScaleLow : 1f));
             beamsBlock.SetFloat(BeamLengthId, low ? BeaconVisual.BeamLengthScaleLow : 1f);
             beams.SetPropertyBlock(beamsBlock);
         }
@@ -245,7 +285,7 @@ public class GreatLamp : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < growTime)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / growTime));
             float flash = Mathf.Sin(Mathf.Clamp01(elapsed / 0.4f) * Mathf.PI);
             litScale = u * (1f + flash * 0.5f * (1f - u));
@@ -256,7 +296,7 @@ public class GreatLamp : MonoBehaviour
 
             if (lampLight != null)
             {
-                lampLight.intensity = Mathf.Lerp(lightIntensity, lightIntensity * 3f, flash * (1f - u)) * u;
+                lampLight.intensity = Mathf.Lerp(lightIntensity, lightIntensity * 3f, flash * (1f - u)) * u * FlareFactor();
             }
 
             yield return null;
@@ -275,13 +315,13 @@ public class GreatLamp : MonoBehaviour
     {
         if (flameRoot != null && !igniting)
         {
-            float sway = Mathf.Sin(Time.time * 1.5f) * 6f;
+            float sway = Mathf.Sin(Time.unscaledTime * 1.5f) * 6f;
             flameRoot.localRotation = Quaternion.Euler(0f, 0f, sway);
         }
 
         if (lampLight != null && !igniting)
         {
-            lampLight.intensity = lightIntensity * Mathf.Lerp(0.85f, 1.12f, Mathf.PerlinNoise(Time.time * 6f, 0.7f));
+            lampLight.intensity = lightIntensity * Mathf.Lerp(0.85f, 1.12f, Mathf.PerlinNoise(Time.unscaledTime * 6f, 0.7f)) * FlareFactor();
         }
     }
 }

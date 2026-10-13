@@ -18,6 +18,7 @@ public class HUD : MonoBehaviour
     [SerializeField] StormChip stormChip;
     [SerializeField] IntroCard introCard;
     [SerializeField] ResultPanel resultPanel;
+    [SerializeField] CreditsRoll credits;
     [SerializeField] Toasts toasts;
     [SerializeField] TMP_Text promptText;
     [SerializeField] PauseScreen pauseScreen;
@@ -35,6 +36,8 @@ public class HUD : MonoBehaviour
     bool bound;
     bool lanternBound;
     bool buttonsBound;
+    bool creditsBound;
+    bool creditsMusicStarted;
     bool missingResolved;
     bool lanternResolved;
     int shownSecond = int.MinValue;
@@ -94,12 +97,13 @@ public class HUD : MonoBehaviour
         ShowTimer(manager.Elapsed);
         prompt.Refresh(manager, lantern);
         introFeed.Update(introCard, pauseScreen, manager);
+        UpdateCreditsMusic();
         if (resultPanel == null)
         {
             return;
         }
 
-        if (manager.Won && !resultPanel.IsShowing)
+        if (manager.Won && !resultPanel.IsShowing && !(credits != null && credits.Started))
         {
             ShowWin();
         }
@@ -175,6 +179,13 @@ public class HUD : MonoBehaviour
             resultPanel.Menu += GoMenu;
         }
 
+        if (credits != null && !creditsBound)
+        {
+            creditsBound = true;
+            credits.ExitStarted += FadeMusicOut;
+            credits.MenuRequested += GoMenu;
+        }
+
         if (bound || GameManager.Instance == null)
         {
             return;
@@ -203,6 +214,13 @@ public class HUD : MonoBehaviour
             resultPanel.Menu -= GoMenu;
         }
 
+        if (creditsBound && credits != null)
+        {
+            credits.ExitStarted -= FadeMusicOut;
+            credits.MenuRequested -= GoMenu;
+        }
+
+        creditsBound = false;
         buttonsBound = false;
         if (bound && GameManager.Instance != null)
         {
@@ -374,6 +392,14 @@ public class HUD : MonoBehaviour
         }
 
         BeginResult(manager);
+        if (manager.HasFinale && credits != null)
+        {
+            // Island 5: the credits roll over the dawn instead of the result panel, then the main menu.
+            HideGameHud();
+            credits.Begin();
+            return;
+        }
+
         resultPanel.ShowWin(manager.Elapsed, manager.BestTime, manager.NewBest, manager.LitCount, manager.BeaconsToWin, !string.IsNullOrEmpty(manager.NextLevelScene));
     }
 
@@ -408,6 +434,51 @@ public class HUD : MonoBehaviour
         Time.timeScale = 1f;
         AudioListener.pause = false;
         SceneManager.LoadScene(manager.NextLevelScene);
+    }
+
+    // The cluster, timer and island label would sit over the credits: make GameHud invisible (it keeps running, so nothing it drives is disabled).
+    void HideGameHud()
+    {
+        Transform gameHud = transform.Find("GameHud");
+        if (gameHud == null)
+        {
+            return;
+        }
+
+        CanvasGroup group = gameHud.GetComponent<CanvasGroup>();
+        if (group == null)
+        {
+            group = gameHud.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        group.alpha = 0f;
+    }
+
+    // The roll outlasts the finale cue: once the cue is over, the menu track fades in softly under the roll (2 s) so there is no silence.
+    void UpdateCreditsMusic()
+    {
+        if (creditsMusicStarted || credits == null || !credits.Started || credits.Exiting)
+        {
+            return;
+        }
+
+        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (music == null || !music.FinaleCueDone || MusicPlayer.Instance == null)
+        {
+            return;
+        }
+
+        creditsMusicStarted = true;
+        MusicPlayer.Instance.BeginMenuUnderlay(2f);
+    }
+
+    void FadeMusicOut(float seconds)
+    {
+        MusicDirector music = FindAnyObjectByType<MusicDirector>();
+        if (music != null)
+        {
+            music.FadeOutForExit(seconds);
+        }
     }
 
     void GoMenu()

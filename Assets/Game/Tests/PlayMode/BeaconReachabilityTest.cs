@@ -545,6 +545,8 @@ namespace LanternKeeper.Tests
 
             Assert.IsTrue(atLamp, island + ": the great lamp was not reached. Keeper at " + player.transform.position.ToString("F1") + ", waypoint " + waypoint + "/" + (route.Count - 1) + ", " + elapsed.ToString("F1") + " s of " + limit.ToString("F1") + " s. " + GameState());
             Invoke(lantern, "AddFuel", 100f);
+            // The Island 5 finale runs 52 s on unscaled time; the test speed makes it 6.5 s.
+            GameType("FinaleSequence").GetField("TestSpeed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, 8f);
             Assert.IsTrue((bool)Invoke(lamp, "TryLight"), island + ": the great lamp refused to light. " + GameState());
             Debug.Log("BeaconReachability " + island + " great lamp reached and lit at " + elapsed.ToString("F1") + " s (path " + length.ToString("F1") + " m, 0 jumps)");
             float waited = 0f;

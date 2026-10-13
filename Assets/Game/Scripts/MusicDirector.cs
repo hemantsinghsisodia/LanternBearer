@@ -37,6 +37,13 @@ public class MusicDirector : MonoBehaviour
     AudioSource hushSource;
     MusicLibrary.IslandMusic entryInUse;
     float elapsed;
+    // The Island 5 finale cue: seconds since PlayFinale (-1 before it), and its source.
+    const float FinaleFadeSeconds = 1.5f;
+    float finaleElapsed = -1f;
+    AudioSource finaleSource;
+    // The credits roll leaves for the main menu: everything this director plays fades to silence over exitSeconds.
+    float exitElapsed = -1f;
+    float exitSeconds = 1f;
 
     public float Threat => threat;
     // Storm tension never drops below this (Island 5 height rings). Zero on the other islands.
@@ -49,6 +56,10 @@ public class MusicDirector : MonoBehaviour
     public AudioSource Track => track;
     public AudioSource Tension => tension;
     public AudioSource StingerSource => stinger;
+    public bool FinalePlaying => finaleElapsed >= 0f;
+    // True once the finale cue has played out (or has no clip). The credits roll then brings the menu track in under it.
+    public bool FinaleCueDone => finaleElapsed > 0.5f && (finaleSource == null || !finaleSource.isPlaying);
+    public AudioSource FinaleSource => finaleSource;
 
     void Awake()
     {
@@ -104,6 +115,13 @@ public class MusicDirector : MonoBehaviour
         tensionFloor = 0f;
         hushed = false;
         hushElapsed = 0f;
+        finaleElapsed = -1f;
+        exitElapsed = -1f;
+        if (finaleSource != null)
+        {
+            finaleSource.Stop();
+        }
+
         entryInUse = null;
         if (hushSource != null)
         {
@@ -154,6 +172,16 @@ public class MusicDirector : MonoBehaviour
         if (hushed)
         {
             hushElapsed += dt;
+        }
+
+        if (finaleElapsed >= 0f)
+        {
+            finaleElapsed += dt;
+        }
+
+        if (exitElapsed >= 0f)
+        {
+            exitElapsed += dt;
         }
 
         ApplyVolumes();
@@ -244,14 +272,46 @@ public class MusicDirector : MonoBehaviour
         tension.volume = hasTension ? baseVolume * TensionGain * EffectiveThreat * hush : 0f;
         if (hushSource != null)
         {
-            hushSource.volume = hushed ? baseVolume * HushLevel * Mathf.Clamp01(hushElapsed / HushSeconds) : 0f;
+            hushSource.volume = hushed ? baseVolume * HushLevel * Mathf.Clamp01(hushElapsed / HushSeconds) * FinaleFade() * ExitFade() : 0f;
+        }
+
+        if (finaleSource != null)
+        {
+            // The cue plays at the base music level, un-ducked by mood or threat.
+            finaleSource.volume = baseVolume * ExitFade();
         }
     }
 
-    // 1 until the summit hush, then fades to 0 over HushSeconds.
+    // 1 until FadeOutForExit, then fades to 0.
+    float ExitFade()
+    {
+        return exitElapsed < 0f ? 1f : 1f - Mathf.Clamp01(exitElapsed / exitSeconds);
+    }
+
+    // The credits are leaving for the main menu: fades the track, tension, hush and finale cue out over `seconds` (unscaled).
+    // The sources go with the scene when the menu loads, so the menu track (MusicPlayer) never overlaps them.
+    public void FadeOutForExit(float seconds)
+    {
+        if (exitElapsed >= 0f)
+        {
+            return;
+        }
+
+        exitSeconds = Mathf.Max(0.05f, seconds);
+        exitElapsed = 0f;
+    }
+
+    // 1 until the summit hush, then fades to 0 over HushSeconds. The finale cue fades the track and tension out too.
     float HushScale()
     {
-        return hushed ? 1f - Mathf.Clamp01(hushElapsed / HushSeconds) : 1f;
+        float scale = hushed ? 1f - Mathf.Clamp01(hushElapsed / HushSeconds) : 1f;
+        return Mathf.Min(Mathf.Min(scale, FinaleFade()), ExitFade());
+    }
+
+    // 1 before the finale cue, then 0 after FinaleFadeSeconds.
+    float FinaleFade()
+    {
+        return finaleElapsed < 0f ? 1f : 1f - Mathf.Clamp01(finaleElapsed / FinaleFadeSeconds);
     }
 
     // Island 5 height rings: the storm never sounds calmer than this once the keeper has climbed.
@@ -290,6 +350,43 @@ public class MusicDirector : MonoBehaviour
         hushSource.Play();
     }
 
+    // The Island 5 finale: the track, tension and hush fade out over 1.5 s and the finale cue plays once on the music bus.
+    public void PlayFinale()
+    {
+        if (finaleElapsed >= 0f)
+        {
+            return;
+        }
+
+        // Win() ducked the mix (-8 dB) for the short dawn; the finale cue must play at full music level.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.TransitionMix(false, "finale");
+        }
+
+        finaleElapsed = 0f;
+        AudioClip clip = library != null ? library.finaleCue : null;
+        if (clip == null)
+        {
+            return;
+        }
+
+        if (finaleSource == null)
+        {
+            finaleSource = NewSource(false);
+            AudioManager audio = AudioManager.Instance;
+            if (audio != null && audio.MusicGroup != null)
+            {
+                finaleSource.outputAudioMixerGroup = audio.MusicGroup;
+            }
+        }
+
+        finaleSource.clip = clip;
+        finaleSource.loop = false;
+        finaleSource.volume = MusicPlayer.IsMuted ? 0f : MusicPlayer.BaseVolume;
+        finaleSource.Play();
+    }
+
     void OnBeaconLit(Beacon beacon)
     {
         if (library != null)
@@ -300,6 +397,12 @@ public class MusicDirector : MonoBehaviour
 
     void OnWon()
     {
+        // Island 5 has the finale cue instead of the win stinger.
+        if (GameManager.Instance != null && GameManager.Instance.HasFinale)
+        {
+            return;
+        }
+
         if (library != null)
         {
             PlayStinger(library.stingerWin);

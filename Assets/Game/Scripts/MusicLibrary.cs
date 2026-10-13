@@ -21,6 +21,8 @@ public class MusicLibrary : ScriptableObject
     public AudioClip stingerBeaconLit;
     public AudioClip stingerWin;
     public AudioClip stingerLose;
+    // Island 5 ending cinematic: unlooped, plays from the lamp ignition.
+    public AudioClip finaleCue;
 
     public IslandMusic For(string scene)
     {

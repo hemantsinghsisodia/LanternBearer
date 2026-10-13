@@ -1170,6 +1170,65 @@ public static partial class SceneWiring
             }
         }
 
+        // H2 finale: the sequence, its wiring into GameManager, the lighthouse beam, the credits and the distant-island silhouettes.
+        FinaleSequence finaleSeq = Object.FindAnyObjectByType<FinaleSequence>(FindObjectsInactive.Include);
+        if (finaleSeq == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing FinaleSequence");
+            }
+        }
+
+        GameManager manager = Object.FindAnyObjectByType<GameManager>(FindObjectsInactive.Include);
+        if (manager == null || !manager.HasFinale)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " GameManager finale not wired");
+            }
+        }
+
+        if (Object.FindAnyObjectByType<GreatLampBeam>(FindObjectsInactive.Include) == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing GreatLampBeam");
+            }
+        }
+
+        if (Object.FindAnyObjectByType<CreditsRoll>(FindObjectsInactive.Include) == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing CreditsRoll");
+            }
+        }
+
+        FinaleIslands finaleIslands = Object.FindAnyObjectByType<FinaleIslands>(FindObjectsInactive.Include);
+        if (finaleIslands != null)
+        {
+            for (int i = 0; i < finaleIslands.Count; i++)
+            {
+                FinaleIslands.Entry entry = finaleIslands.EntryAt(i);
+                Renderer sil = entry != null ? entry.silhouette : null;
+                MeshFilter filter = sil != null ? sil.GetComponent<MeshFilter>() : null;
+                if (filter == null || filter.sharedMesh == null)
+                {
+                    problems++;
+                    if (!quiet)
+                    {
+                        string n = entry != null && entry.root != null ? entry.root.name : (sil != null ? sil.name : i.ToString());
+                        Debug.LogWarning(sceneName + " silhouette '" + n + "' has no mesh");
+                    }
+                }
+            }
+        }
+
         return problems;
     }
 

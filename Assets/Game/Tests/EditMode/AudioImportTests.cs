@@ -35,5 +35,17 @@ public class AudioImportTests
         Assert.Greater(streamed, 0, "No Music or Ambience clips found");
         Assert.Greater(decoded, 0, "No Sfx, UI or Stingers clips found");
     }
+
+    [Test]
+    public void FinaleCueAssigned()
+    {
+        // MusicLibrary lives in Assembly-CSharp, which this assembly can't reference: read it through SerializedObject.
+        ScriptableObject library = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/Game/Resources/MusicLibrary.asset");
+        Assert.IsNotNull(library, "MusicLibrary missing");
+        AudioClip cue = new SerializedObject(library).FindProperty("finaleCue").objectReferenceValue as AudioClip;
+        Assert.IsNotNull(cue, "finaleCue is not assigned");
+        Assert.GreaterOrEqual(cue.length, 45f);
+        Assert.LessOrEqual(cue.length, 95f);
+    }
 }
 }

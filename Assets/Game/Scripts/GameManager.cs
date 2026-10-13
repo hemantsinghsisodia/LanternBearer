@@ -22,6 +22,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] float restartGrace = 0.5f;
     [SerializeField] HUD hud;
     [SerializeField] DawnSequence dawn;
+    // Island 5: the finale cinematic plays instead of the 6 s dawn (it runs the dawn itself, on unscaled time, as its sunrise).
+    [SerializeField] FinaleSequence finale;
     // Island 5: lighting every beacon does not win; the great lamp's WinNow does.
     [SerializeField] bool deferWinToGreatLamp;
 
@@ -50,6 +52,7 @@ public class GameManager : MonoBehaviour
     public Beacon NearestBeacon => nearestBeacon;
     public bool ShowInteractPrompt => (nearestBeacon != null || customPrompt != null) && !roundOver && !paused;
     public bool DeferWinToGreatLamp => deferWinToGreatLamp;
+    public bool HasFinale => finale != null;
     // A prompt line for something other than a beacon (the great lamp). Shown by HudPrompt when no beacon is in range.
     public string CustomPrompt => customPrompt;
     public bool IsRoundOver => roundOver;
@@ -562,6 +565,13 @@ public class GameManager : MonoBehaviour
         }
 
         ResolveSceneRefs();
+        if (finale != null)
+        {
+            DawnPlaying = true;
+            finale.Play(FinishWin);
+            return;
+        }
+
         if (dawn != null)
         {
             DawnPlaying = true;

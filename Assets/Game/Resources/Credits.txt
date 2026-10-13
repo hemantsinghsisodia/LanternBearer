@@ -1,0 +1,303 @@
+Lantern Keeper
+Credits and licences for the public build
+
+Made with Unity. This game was built in Unity 6 (6000.6.3f1) with the Universal Render Pipeline.
+
+------------------------------------------------------------------------
+Music and stingers (CC0)
+------------------------------------------------------------------------
+
+Edited from the originals: trimmed, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
+
+Assets/Game/Audio/Music/Music_Menu_1.ogg
+  First Light Particles by Yoiyami
+  https://opengameart.org/content/first-light-particles-%E2%80%93-cc0-atmospheric-pianoambient-track
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island1_1.ogg
+  Ambient Relaxing Loop by isaiah658
+  https://opengameart.org/content/ambient-relaxing-loop
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island2_1.ogg
+  Mysterious Ambience (song21) by cynicmusic
+  https://opengameart.org/content/mysterious-ambience-song21
+  Licence: CC0 (one of the licences the page offers)
+
+Assets/Game/Audio/Music/Music_Island3_1.ogg
+  Underwater Theme by Cleyton Kauffman
+  https://opengameart.org/content/underwater-theme
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island4_1.ogg
+  The World Fell Silent (loop version) by Tsorthan Grove
+  https://opengameart.org/content/the-world-fell-silent
+  Licence: CC0
+
+Assets/Game/Audio/Music/Music_Island5_1.ogg
+  Epic Endgame Cinematic by cynicmusic (first 83 s, looped with a 2.5 s crossfade)
+  https://opengameart.org/content/epic-endgame-cinematic
+  Licence: CC0
+
+Assets/Game/Audio/Music/Hush_Island5_1.ogg
+  Dark Cavern Ambient (file 002, continuous loop) by Paul Wortmann
+  https://opengameart.org/content/dark-cavern-ambient
+  Licence: CC0
+
+Assets/Game/Audio/Music/Finale_1.ogg
+  Fantasy Orchestral Theme by Joth (first 81 s, 4 s fade-out)
+  https://opengameart.org/content/fantasy-orchestral-theme
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island5_1.ogg
+  Lost in a bad place (horror ambience loop) by congusbongus
+  https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island1_1.ogg
+  Dark Sci-Fi Audio Pack: Airy by SRG774
+  https://opengameart.org/content/dark-sci-fi-audio-pack
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island2_1.ogg  (also the Island4 tension loop)
+  Paranoid Truth by Tsorthan Grove
+  https://opengameart.org/content/paranoid-truth
+  Licence: CC0
+
+Assets/Game/Audio/Music/Tension_Island3_1.ogg
+  Horror Atmosphere (Post Apocalyptic Wastelands) by SubspaceAudio (Juhani Junkala)
+  https://opengameart.org/content/horror-atmosphere
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_BeaconLit_1.ogg
+  Telos Strings with French Horn by Tozan
+  https://opengameart.org/content/telos-strings-with-french-horn
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_Win_1.ogg
+  Victory Fanfare Short by cynicmusic
+  https://opengameart.org/content/victory-fanfare-short
+  Licence: CC0
+
+Assets/Game/Audio/Stingers/Stinger_Lose_1.ogg
+  Game Over IV by Kistol
+  https://opengameart.org/content/game-over-iv
+  Licence: CC0
+
+------------------------------------------------------------------------
+Sound effects and ambience (CC0)
+------------------------------------------------------------------------
+
+Edited from the originals: trimmed, pitched, layered, looped, loudness-normalised and converted to OGG (ArtSource/Audio/process_audio.py).
+Synthesised sounds that have no recording (heartbeat, firefly arrival, moth whisper, Shade drone, beacon whoosh, wind bed) are generated in the project (ProceduralAudio).
+
+Assets/Game/Audio/UI/UI_Click_*, UI_Back_*, UI_PauseOpen_1, UI_PauseClose_1, UI_Toggle_*
+  Interface Sounds by Kenney
+  https://opengameart.org/content/interface-sounds  (https://kenney.nl/assets/interface-sounds)
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Keeper_Hit_*
+  Impact Sounds by Kenney
+  https://kenney.nl/assets/impact-sounds
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Dirt_*, Keeper_Interact_*
+  50 RPG sound effects by Kenney
+  https://opengameart.org/content/50-rpg-sound-effects
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Thunder_Crack_*, Thunder_Rumble_*, Beacon_Fizzle_2
+  100 CC0 SFX #2 by rubberduck
+  https://opengameart.org/content/100-cc0-sfx-2
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Moth_Flutter_*, Shade_Steal_*
+  80 CC0 creature SFX by rubberduck
+  https://opengameart.org/content/80-cc0-creature-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Lantern_Refuel_*, Lantern_Sputter_2, Lantern_DeathGutter_*, Beacon_Ignite_*, Assets/Game/Audio/UI/UI_PageTurn_*
+  80 CC0 RPG SFX by rubberduck
+  https://opengameart.org/content/80-cc0-rpg-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Water_*, Water_Splash_*, Beacon_Fizzle_1
+  40 CC0 water splash and slime SFX by rubberduck
+  https://opengameart.org/content/40-cc0-water-splash-slime-sfx
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Footstep_Grass_*, Footstep_Rock_*
+  Fantozzi's Footsteps (Grass/Sand & Stone) by Fantozzi
+  https://opengameart.org/content/fantozzis-footsteps-grasssand-stone
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Lantern_Crackle_1, Lantern_Sputter_1, Beacon_Fire_1
+  Fire Crackling (fire-1) by AntumDeluge
+  https://opengameart.org/content/fire-crackling
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Firefly_Chime_*
+  Pleasing Bell Sound Effect by Spring Spring
+  https://opengameart.org/content/pleasing-bell-sound-effect
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1, Island2_1, Island3_1, Tide_1 (surf layers)
+  Beach Ocean Waves by jasinski
+  https://opengameart.org/content/beach-ocean-waves
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Rain_1, Ambience_Rain_2
+  Rain (loopable) by Ylmir
+  https://opengameart.org/content/rain-loopable
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1, Island2_1 (insect layer)
+  Crickets Ambient Noise - loopable by Wolfgang_
+  https://opengameart.org/content/crickets-ambient-noise-loopable
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island1_1 (wind layer)
+  Short wind sound by remaxim
+  https://opengameart.org/content/short-wind-sound
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Gust_1
+  wind whoosh loop by SketchMan3
+  https://opengameart.org/content/wind-whoosh-loop
+  Licence: CC0
+
+Assets/Game/Audio/Sfx/Ambience_Owl_1
+  Tawny Owl #1 by Joseph SARDIN (BigSoundBank)
+  https://bigsoundbank.com/tawny-owl-1-s1763.html
+  Licence: CC0
+
+Assets/Game/Audio/Ambience/Ambience_Island4_1
+  Strong Wind in a Village by Joseph SARDIN (BigSoundBank)
+  https://bigsoundbank.com/strong-wind-in-a-village-s0625.html
+  Licence: CC0
+
+------------------------------------------------------------------------
+Character (CC0 1.0)
+------------------------------------------------------------------------
+
+"Hooded Adventurer" by Quaternius, via Poly Pizza
+https://poly.pizza/m/y9KWOVG21R
+https://creativecommons.org/publicdomain/zero/1.0/
+File: Assets/Game/Models/Keeper/Keeper.fbx
+Animations used by the keeper are the clips shipped inside that file.
+
+------------------------------------------------------------------------
+Poly Haven models, textures, and HDRIs (CC0)
+------------------------------------------------------------------------
+
+https://polyhaven.com
+All of the following are CC0 from Poly Haven.
+
+Models (also under Assets/Game/Models/PolyHaven and Assets/Game/Prefabs/PolyHaven):
+
+- pine_tree_01, fir_tree_01, pine_sapling_medium, pine_sapling_small, fir_sapling, fir_sapling_medium, fern_02, grass_medium_01, dandelion_01, celandine_01, jacaranda_tree, island_tree_02, nettle_plant, anthurium_botany_01, weed_plant_02 — Rico Cilliers, Rob Tuytel
+- tree_small_02, shrub_01, shrub_02, shrub_03, shrub_04, shrub_sorrel_01, boulder_01, dry_branches_medium_01, grass_medium_02, grass_bermuda_01 — Rico Cilliers
+- tree_stump_01, tree_stump_02, dead_tree_trunk, pine_roots, moss_01 — Rob Tuytel
+- dead_tree_trunk_02 — Jenelle van Heerden, Rico Cilliers
+- rock_07, rock_09, namaqualand_boulder_04, didelta_spinosa, leipoldtia_schultzei, flower_heliophila — Jenelle van Heerden
+- periwinkle_plant — Amal Kumar
+- rock_moss_set_02 — Kless Gyzen
+- namaqualand_boulder_02, dry_quiver_leaf — Greg Zaal, Rico Cilliers
+- namaqualand_boulder_03, namaqualand_boulder_05 — Dario Barresi, Jenelle van Heerden
+- namaqualand_cliff_02, quiver_tree_02 — Dario Barresi, Rico Cilliers
+- namaqualand_boulder_06, namaqualand_boulders_01, namaqualand_rocks_01, namaqualand_stones_01, bark_debris_01 — Greg Zaal, Jenelle van Heerden
+- namaqualand_cliff_01 — Jenelle van Heerden, Rico Cilliers
+- quiver_tree_01, dead_quiver_trunk — Dario Barresi, James Ray Cock, Rico Cilliers
+- wild_rooibos_bush, cheiridopsis_succulent, crystalline_iceplant, flower_gazania — James Ray Cock, Jenelle van Heerden
+- flower_ursinia, flower_empodium, flower_stinkkruid — Jenelle van Heerden, Rico Cilliers
+
+Terrain textures (Assets/Game/Textures/PolyHaven):
+
+- Coast Sand 01 (coast_sand_01) by Rob Tuytel
+- Forrest Ground 01 (forrest_ground_01) by Rob Tuytel
+- Stony Dirt Path (stony_dirt_path) by eye-candy.xyz
+- Rock Face 03 (rock_face_03) by Dario Barresi and Rico Cilliers
+- Forest Leaves 02 (forest_leaves_02) by Rob Tuytel
+
+HDRIs (Assets/Game/Textures/Sky):
+
+- Qwantani Moonrise Pure Sky by Greg Zaal and Jarod Guest
+  https://polyhaven.com/a/qwantani_moonrise_puresky
+- Qwantani Dawn Pure Sky by Greg Zaal and Jarod Guest
+  https://polyhaven.com/a/qwantani_dawn_puresky
+
+------------------------------------------------------------------------
+Stylized Nature MegaKit (CC0)
+------------------------------------------------------------------------
+
+Stylized Nature MegaKit by Quaternius (CC0) — https://quaternius.com
+Used models and textures: Assets/Game/Art/Environment/Nature
+
+------------------------------------------------------------------------
+Made for this project
+------------------------------------------------------------------------
+
+Water textures, grass tuft mesh and texture: generated by the project.
+
+- WaterRippleNormalA.png, WaterRippleNormalB.png, WaterFoam.png
+  (WaterTextureGenerator)
+- GrassTuft.asset and Grass/GrassBlade.png
+- Other masks, icons, and terrain-detail textures written by the island
+  builder (smoothness masks, lantern icon, compass arrow, soft circle,
+  reed blade, and similar)
+
+------------------------------------------------------------------------
+Font (SIL Open Font License 1.1)
+------------------------------------------------------------------------
+
+Liberation Sans
+Digitized data copyright (c) 2010 Google Corporation
+with Reserved Font Name Arimo, Tinos and Cousine.
+Copyright (c) 2012 Red Hat, Inc.
+with Reserved Font Name Liberation.
+
+Ships with TextMesh Pro as LiberationSans.ttf and the SDF font assets.
+This is not CC0. It is used under the SIL Open Font License, Version 1.1.
+The font is not sold by itself. The full licence text is in:
+Assets/TextMesh Pro/Fonts/LiberationSans - OFL.txt
+https://scripts.sil.org/OFL
+
+------------------------------------------------------------------------
+Unity
+------------------------------------------------------------------------
+
+Made with Unity.
+Unity Technologies. Unity 6, the Universal Render Pipeline, the Input
+System, AI Navigation, Timeline, uGUI, and TextMesh Pro are Unity
+packages used to make and run the game.
+
+------------------------------------------------------------------------
+Fonts (SIL Open Font License 1.1)
+------------------------------------------------------------------------
+
+Cormorant Garamond by the Cormorant Project Authors (Christian Thalmann).
+Used for titles (Bold, SemiBold). SIL OFL 1.1.
+https://github.com/CatharsisFonts/Cormorant
+Source: https://fonts.google.com/specimen/Cormorant+Garamond
+Files: Assets/Game/Art/UI/Fonts/CormorantGaramond-*.ttf, licence in OFL-CormorantGaramond.txt
+
+Spectral by Production Type.
+Used for flavour text (Italic, Regular). SIL OFL 1.1.
+https://github.com/productiontype/Spectral
+Source: https://github.com/google/fonts/tree/main/ofl/spectral
+Files: Assets/Game/Art/UI/Fonts/Spectral-*.ttf, licence in OFL-Spectral.txt
+
+Inter by The Inter Project Authors (Rasmus Andersson).
+Used for UI and numbers (Regular, SemiBold; the 18pt static cut). SIL OFL 1.1.
+https://github.com/rsms/inter
+Source: https://fonts.google.com/specimen/Inter
+Files: Assets/Game/Art/UI/Fonts/Inter-*.ttf, licence in OFL-Inter.txt
+
+------------------------------------------------------------------------
+Editor only (not part of the game)
+------------------------------------------------------------------------
+
+MCP for Unity (com.coplaydev.unity-mcp) by CoplayDev.
+MIT License. Copyright (c) 2025 CoplayDev.
+https://github.com/CoplayDev/unity-mcp
+Used to drive the Unity Editor. It is not gameplay content.

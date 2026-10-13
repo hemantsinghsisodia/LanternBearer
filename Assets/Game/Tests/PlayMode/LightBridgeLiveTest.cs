@@ -332,6 +332,8 @@ namespace LanternKeeper.Tests
             Assert.IsTrue(MidSpanHitsBridge(span), "summit mid-span ray");
             Assert.IsFalse((bool)Get(manager, "Won"));
 
+            // The Island 5 finale runs 52 s on unscaled time; the test speed makes it 6.5 s.
+            GameType("FinaleSequence").GetField("TestSpeed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, 8f);
             Call(lamp, "Light");
             Assert.IsTrue((bool)Get(lamp, "Lit"), "lamp lit after Light()");
             float waited = 0f;

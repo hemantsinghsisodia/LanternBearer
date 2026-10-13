@@ -38,6 +38,17 @@ public class DawnSequence : MonoBehaviour
 
     public bool IsPlaying { get; private set; }
 
+    // Finale-only overrides (Island 5). The defaults are the values the dawn always used, so Islands 1-4 are unchanged.
+    [System.NonSerialized] public float FogDensityScale = 0.45f;
+    [System.NonSerialized] public float DawnGradeWeight = 1f;
+    [System.NonSerialized] public float WaterWarmth = 1f;
+    // Alpha 0 = no override. SkyTop and Horizon replace the dawn sky colours (and the dawn fog follows Horizon); Ambient replaces the dawn ambient sky and equator.
+    [System.NonSerialized] public Color SkyTopOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public Color HorizonOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public Color AmbientOverride = new Color(0f, 0f, 0f, 0f);
+    [System.NonSerialized] public float ExposureScale = 1f;
+    [System.NonSerialized] public Color WaterTintOverride = new Color(0f, 0f, 0f, 0f);
+
     public static void ApplyNightGlobals()
     {
         Shader.SetGlobalColor("_WaterTint", new Color(0.72f, 0.84f, 1f, 1f));
@@ -88,10 +99,22 @@ public class DawnSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(Run(onComplete));
+        StartCoroutine(Run(onComplete, duration, false));
     }
 
-    System.Collections.IEnumerator Run(System.Action onComplete)
+    // The Island 5 finale's sunrise: its own length, on unscaled time (the finale keeps running at timeScale 0). The other islands
+    // call Play(Action) above, which is unchanged: the serialized duration on scaled time.
+    public void Play(System.Action onComplete, float durationSeconds, bool unscaled)
+    {
+        if (IsPlaying)
+        {
+            return;
+        }
+
+        StartCoroutine(Run(onComplete, Mathf.Max(0.01f, durationSeconds), unscaled));
+    }
+
+    System.Collections.IEnumerator Run(System.Action onComplete, float runDuration, bool unscaled)
     {
         IsPlaying = true;
         CaptureNight();
@@ -122,9 +145,34 @@ public class DawnSequence : MonoBehaviour
             ambientBoost = look.dawnAmbientBoost;
         }
 
+        if (HorizonOverride.a > 0f)
+        {
+            dawnFog = HorizonOverride;
+            dawnHorizon = HorizonOverride;
+            if (skybox != null && skybox.HasProperty("_DawnHorizon"))
+            {
+                skybox.SetColor("_DawnHorizon", HorizonOverride);
+            }
+        }
+
+        if (SkyTopOverride.a > 0f && skybox != null && skybox.HasProperty("_DawnTop"))
+        {
+            skybox.SetColor("_DawnTop", SkyTopOverride);
+        }
+
+        if (AmbientOverride.a > 0f)
+        {
+            dawnSky = AmbientOverride;
+            dawnEquator = AmbientOverride;
+        }
+
         Color dawnHaze = new Color(1f, 0.64f, 0.42f, 1f);
         Color dawnTint = new Color(1f, 0.94f, 0.86f, 1f);
         Color dawnWater = new Color(1f, 0.7f, 0.5f, 1f);
+        if (WaterTintOverride.a > 0f)
+        {
+            dawnWater = WaterTintOverride;
+        }
         Color dawnSilhouette = new Color(1f, 0.64f, 0.46f, 1f);
         bool blendSky = skybox != null && skybox.HasProperty("_Blend");
 
@@ -150,10 +198,10 @@ public class DawnSequence : MonoBehaviour
             }
         }
 
-        while (elapsed < duration)
+        while (elapsed < runDuration)
         {
-            elapsed += Time.deltaTime;
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            elapsed += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / runDuration));
             if (sun != null)
             {
                 sun.color = Color.Lerp(nightLightColor, dawnLight, u);
@@ -162,7 +210,7 @@ public class DawnSequence : MonoBehaviour
             }
 
             RenderSettings.fogColor = Color.Lerp(nightFog, dawnFog, u);
-            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * 0.45f, u);
+            RenderSettings.fogDensity = Mathf.Lerp(nightFogDensity, nightFogDensity * FogDensityScale, u);
             RenderSettings.ambientSkyColor = Color.Lerp(nightSky, dawnSky, u);
             RenderSettings.ambientEquatorColor = Color.Lerp(nightEquator, dawnEquator, u);
             RenderSettings.ambientGroundColor = Color.Lerp(nightGround, dawnGround, u);
@@ -194,6 +242,7 @@ public class DawnSequence : MonoBehaviour
                         }
                     }
 
+                    dawnExposure *= ExposureScale;
                     skybox.SetFloat("_Exposure", Mathf.Lerp(nightExposure, dawnExposure, u));
                     skybox.SetColor("_Tint", Color.Lerp(nightTint, dawnTint, u));
                     if (skybox.HasProperty("_HazeColor"))
@@ -213,12 +262,12 @@ public class DawnSequence : MonoBehaviour
 
             if (dawnVolume != null)
             {
-                dawnVolume.weight = u;
+                dawnVolume.weight = u * DawnGradeWeight;
             }
 
             Shader.SetGlobalFloat("_LKMoonRimStrength", Mathf.Lerp(nightRimStrength, 0f, u));
             Shader.SetGlobalFloat("_LanternSkyBlend", blendSky ? u : 0f);
-            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, dawnWater, u));
+            Shader.SetGlobalColor("_WaterTint", Color.Lerp(nightWater, Color.Lerp(Color.white, dawnWater, WaterWarmth), u));
             if (blendGrass)
             {
                 Shader.SetGlobalColor("_LKGrassRoot", Color.Lerp(nightGrassRoot, dawnGrassRoot, u));
