@@ -158,6 +158,7 @@ public class RingZonesTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }

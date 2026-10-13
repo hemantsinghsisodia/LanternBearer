@@ -166,7 +166,8 @@ public class Lantern : MonoBehaviour
     {
         int lit = GameManager.Instance != null ? GameManager.Instance.LitCount : 0;
         escalation = 1f + lit * GameSettings.BeaconDrainBonusPerLit;
-        inSafeLight = InsideAnySafeZone();
+        // Island 5: caught in the storm surge, no safe light protects (StormSurge.SafeLightSuppressed).
+        inSafeLight = !StormSurge.SafeLightSuppressed && InsideAnySafeZone();
         float safe = inSafeLight ? GameSettings.SafeZoneDrainMultiplier : 1f;
         CurrentDrainMultiplier = difficultyDrain * escalation * ModifierProduct() * safe;
         if (Mathf.Abs(escalation - loggedEscalation) > 0.001f)

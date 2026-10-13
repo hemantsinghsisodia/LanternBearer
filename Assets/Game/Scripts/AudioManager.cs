@@ -62,6 +62,8 @@ public class AudioManager : MonoBehaviour
     AudioSource[] pool;
     int poolCursor;
     bool heartOn;
+    // Island 5's storm surge: the lantern heartbeat plays while the keeper is caught in it, whatever the fuel.
+    public bool HeartbeatOverride { get; set; }
     bool lanternResolved;
     bool routed;
     bool crackleHooked;
@@ -505,7 +507,7 @@ public class AudioManager : MonoBehaviour
         }
 
         ApplyCrackle(true);
-        bool low = lantern != null && lantern.FuelNormalized > 0f && lantern.FuelNormalized < 0.2f
+        bool low = ((lantern != null && lantern.FuelNormalized > 0f && lantern.FuelNormalized < 0.2f) || HeartbeatOverride)
             && (GameManager.Instance == null || !GameManager.Instance.IsRoundOver);
         if (low == heartOn)
         {

@@ -1209,6 +1209,38 @@ public static partial class SceneWiring
             }
         }
 
+        // H3 rising storm: the surge with its material, and the HUD chip that reads it.
+        StormSurge stormSurge = Object.FindAnyObjectByType<StormSurge>(FindObjectsInactive.Include);
+        if (stormSurge == null)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing StormSurge");
+            }
+        }
+        else
+        {
+            SerializedProperty surgeMaterial = new SerializedObject(stormSurge).FindProperty("material");
+            if (surgeMaterial == null || surgeMaterial.objectReferenceValue == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " StormSurge has no material");
+                }
+            }
+
+            if (Object.FindAnyObjectByType<SurgeChip>(FindObjectsInactive.Include) == null)
+            {
+                problems++;
+                if (!quiet)
+                {
+                    Debug.LogWarning(sceneName + " StormSurge has no SurgeChip in the HUD");
+                }
+            }
+        }
+
         FinaleIslands finaleIslands = Object.FindAnyObjectByType<FinaleIslands>(FindObjectsInactive.Include);
         if (finaleIslands != null)
         {

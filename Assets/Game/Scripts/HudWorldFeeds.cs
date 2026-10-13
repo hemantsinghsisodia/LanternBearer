@@ -170,4 +170,45 @@ sealed class StormFeed
         chip.Show(true, angle, strength, thunder);
     }
 }
+
+// Reads Island 5's storm surge into the surge chip ("Storm rising: N m below" once it is within 25 m). Other islands have no StormSurge and
+// no chip: the feed costs one static null check per frame there.
+sealed class SurgeFeed
+{
+    SurgeChip chip;
+    bool searched;
+
+    public void Update(GameObject host)
+    {
+        StormSurge surge = StormSurge.Instance;
+        if (surge == null)
+        {
+            if (chip != null)
+            {
+                chip.Show(false, string.Empty, 0f);
+            }
+
+            return;
+        }
+
+        if (chip == null)
+        {
+            if (searched)
+            {
+                return;
+            }
+
+            searched = true;
+            chip = host.GetComponentInChildren<SurgeChip>(true);
+            if (chip == null)
+            {
+                return;
+            }
+        }
+
+        float gap = surge.Gap;
+        bool show = surge.Active && gap < 900f && StormSurgeLogic.ChipVisible(gap);
+        chip.Show(show, show ? StormSurgeLogic.ChipText(gap) : string.Empty, 1f - Mathf.Clamp01(gap / StormSurgeLogic.ChipGap));
+    }
+}
 }

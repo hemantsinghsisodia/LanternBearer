@@ -29,6 +29,7 @@ public class HUD : MonoBehaviour
     readonly ScreenOverlays overlays = new ScreenOverlays();
     readonly TideFeed tideFeed = new TideFeed();
     readonly StormFeed stormFeed = new StormFeed();
+    readonly SurgeFeed surgeFeed = new SurgeFeed();
     readonly IntroFeed introFeed = new IntroFeed();
     HudPrompt prompt;
     PlayerController player;
@@ -86,6 +87,7 @@ public class HUD : MonoBehaviour
         UpdateFuelAndDrain();
         tideFeed.Update(tideChip, toasts);
         stormFeed.Update(stormChip, gameObject);
+        surgeFeed.Update(gameObject);
 
         GameManager manager = GameManager.Instance;
         if (manager == null)

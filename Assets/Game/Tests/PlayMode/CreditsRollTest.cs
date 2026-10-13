@@ -161,6 +161,7 @@ public class CreditsRollTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }

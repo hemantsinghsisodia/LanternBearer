@@ -151,6 +151,7 @@ public class FinaleSequenceTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }

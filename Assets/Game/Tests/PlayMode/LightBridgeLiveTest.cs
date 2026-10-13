@@ -140,6 +140,7 @@ namespace LanternKeeper.Tests
                 yield return null;
             }
 
+            StormSurgeSwitch.DisableFor(scene);
             yield return null;
             yield return null;
         }

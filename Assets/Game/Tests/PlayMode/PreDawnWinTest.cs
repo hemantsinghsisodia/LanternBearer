@@ -120,6 +120,7 @@ public class PreDawnWinTest
             yield return null;
         }
 
+        StormSurgeSwitch.DisableFor(scene);
         yield return null;
         yield return null;
     }

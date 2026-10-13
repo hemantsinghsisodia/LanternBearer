@@ -325,6 +325,7 @@ namespace LanternKeeper.Tests
                 yield return null;
             }
 
+            StormSurgeSwitch.DisableFor(island);
             yield return null;
             yield return null;
 
