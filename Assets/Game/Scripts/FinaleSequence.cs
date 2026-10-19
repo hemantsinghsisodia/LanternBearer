@@ -67,6 +67,8 @@ public class FinaleSequence : MonoBehaviour
 
     public bool IsPlaying { get; private set; }
     // Finale seconds since Play.
+    // The finale's additive and soft elements (columns, glows, sun, lamp beam) draw in this queue: after the sea (Transparent, 3000), before the clouds (3010+).
+    public const int AfterSeaQueue = 3005;
     public float Elapsed { get; private set; }
     public FinalePhase Phase { get; private set; }
     public bool Finished { get; private set; }
@@ -114,6 +116,10 @@ public class FinaleSequence : MonoBehaviour
         float speed = Mathf.Max(0.01f, TestSpeed);
         Elapsed = 0f;
         Phase = FinalePhase.Ignition;
+        if (beam != null)
+        {
+            beam.SetRenderQueue(AfterSeaQueue);
+        }
 
         MusicDirector music = FindAnyObjectByType<MusicDirector>();
         if (music != null)

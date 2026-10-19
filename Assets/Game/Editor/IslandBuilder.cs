@@ -294,6 +294,7 @@ public static partial class IslandBuilder
         public float waterY;
         public float walkwayClear = 1.3f;   // cladding keeps this far from a trail (the spire widens it so the walkway stays visible from below)
         public float highWaterY;
+        public List<Vector2> clearBand;     // Island 5 only: SpireLayout path samples whose (path width + 1 m) band props and set pieces keep clear
         public float worldSize;
         public Vector3 spawn;
         public Light sun;
@@ -1302,6 +1303,11 @@ public static partial class IslandBuilder
         }
 
         if (NearSpot(stage.beaconSpots, x, z, beaconClear))
+        {
+            return true;
+        }
+
+        if (stage.clearBand != null && Island5ClearanceInstaller.NearAny(stage.clearBand, new Vector2(x, z), Island5ClearanceInstaller.BandHalfWidth + 1f))
         {
             return true;
         }

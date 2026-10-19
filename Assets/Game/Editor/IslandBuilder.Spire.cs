@@ -691,6 +691,12 @@ public static partial class IslandBuilder
                         continue;
                     }
 
+                    // Keep the walkway band (path width + 1 m, plus the rock's own reach) clear.
+                    if (stage.clearBand != null && Island5ClearanceInstaller.NearAny(stage.clearBand, xz, Island5ClearanceInstaller.BandHalfWidth + 1.4f))
+                    {
+                        continue;
+                    }
+
                     GameObject rock = PlacePrefab(((a + o) % 2 == 0) ? art.rockA : art.rockB, piece, pos, Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f));
                     float scale = 1.5f + (float)random.NextDouble() * 0.9f;
                     rock.transform.localScale = new Vector3(scale, scale * (g == 3 ? 1.9f : 1.4f), scale);
@@ -713,13 +719,14 @@ public static partial class IslandBuilder
         }
     }
 
-    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the lighthouse, then the removal of the scenery lighthouse, then the performance pass, then the finale, then the storm surge,
+    // The installers BuildIsland5 runs after Build, in order: bridges (with gate and lamp), then rings, then the lighthouse, then the walkway clearance band (props and set pieces off the path), then the removal of the scenery lighthouse, then the performance pass, then the finale, then the storm surge,
     // then the hunting lightning with the beacon refund and half the swarms, then the music director (Build wipes it, like on Islands 1-4).
     public static readonly (string name, System.Action run)[] Island5PostSteps =
     {
         ("BridgeInstaller", BridgeInstaller.Install),
         ("RingInstaller", RingInstaller.Install),
         ("LighthouseInstaller", LighthouseInstaller.Install),
+        ("Island5ClearanceInstaller", Island5ClearanceInstaller.Install),
         ("HorizonLighthouseInstaller", HorizonLighthouseInstaller.InstallIsland5),
         ("Island5PerfInstaller", Island5PerfInstaller.Install),
         ("FinaleInstaller", FinaleInstaller.Install),

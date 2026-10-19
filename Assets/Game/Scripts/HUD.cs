@@ -101,6 +101,7 @@ public class HUD : MonoBehaviour
         prompt.Refresh(manager, lantern);
         introFeed.Update(introCard, pauseScreen, manager);
         UpdateCreditsMusic();
+        UpdateGameHudFade(manager);
         if (resultPanel == null)
         {
             return;
@@ -439,22 +440,68 @@ public class HUD : MonoBehaviour
         SceneManager.LoadScene(manager.NextLevelScene);
     }
 
-    // The cluster, timer and island label would sit over the credits: make GameHud invisible (it keeps running, so nothing it drives is disabled).
-    void HideGameHud()
+    const float FinaleHudFadeSeconds = 0.5f;
+    CanvasGroup gameHudGroup;
+    float gameHudAlpha = 1f;
+
+    // 1 while the gameplay HUD shows; 0 once it has faded out for the finale (and stays 0 through the credits).
+    public float GameHudAlpha => gameHudAlpha;
+
+    CanvasGroup GameHudGroup()
     {
+        if (gameHudGroup != null)
+        {
+            return gameHudGroup;
+        }
+
         Transform gameHud = transform.Find("GameHud");
         if (gameHud == null)
+        {
+            return null;
+        }
+
+        gameHudGroup = gameHud.GetComponent<CanvasGroup>();
+        if (gameHudGroup == null)
+        {
+            gameHudGroup = gameHud.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        return gameHudGroup;
+    }
+
+    // On a finale island the gameplay HUD (the cluster, timer, island label, chips, toasts) fades out over half a second as the finale starts and stays
+    // hidden through the credits, which have their own overlay. Islands 1 to 4 (dawn, result panel) are untouched. GameHud keeps running, so nothing it
+    // drives is disabled; the prompt and the compass already hide themselves once the round is over.
+    void UpdateGameHudFade(GameManager manager)
+    {
+        if (!manager.FinaleRuns || !(manager.WinStarted || manager.Won))
         {
             return;
         }
 
-        CanvasGroup group = gameHud.GetComponent<CanvasGroup>();
-        if (group == null)
+        prompt.Hide();
+        if (gameHudAlpha <= 0f)
         {
-            group = gameHud.gameObject.AddComponent<CanvasGroup>();
+            return;
         }
 
-        group.alpha = 0f;
+        gameHudAlpha = Mathf.MoveTowards(gameHudAlpha, 0f, Time.unscaledDeltaTime / FinaleHudFadeSeconds);
+        CanvasGroup group = GameHudGroup();
+        if (group != null)
+        {
+            group.alpha = gameHudAlpha;
+        }
+    }
+
+    // The cluster, timer and island label would sit over the credits: make GameHud invisible (it keeps running, so nothing it drives is disabled).
+    void HideGameHud()
+    {
+        gameHudAlpha = 0f;
+        CanvasGroup group = GameHudGroup();
+        if (group != null)
+        {
+            group.alpha = 0f;
+        }
     }
 
     // The roll outlasts the finale cue: once the cue is over, the menu track fades in softly under the roll (2 s) so there is no silence.

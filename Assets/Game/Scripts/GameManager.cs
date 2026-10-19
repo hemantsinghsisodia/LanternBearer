@@ -69,6 +69,8 @@ public class GameManager : MonoBehaviour
     // On a finale island the only way out after the win is the credits -> menu, so R never restarts once won.
     public bool RestartAllowed => roundOver && !paused && !DawnPlaying && !dying && !(FinaleRuns && won) && Time.unscaledTime >= restartUnlockTime;
     public bool DawnPlaying { get; private set; }
+    // The round has been won and its dawn or finale is playing (or has played): the low-fuel effects and the finale HUD key off this. False on a loss.
+    public bool WinStarted => won || DawnPlaying;
     public float Elapsed => elapsed;
     public bool Won => won;
     // True when this win set a new best time for the level (a tie is not a new best).

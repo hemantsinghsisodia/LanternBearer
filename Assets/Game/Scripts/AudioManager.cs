@@ -64,6 +64,8 @@ public class AudioManager : MonoBehaviour
     bool heartOn;
     // Island 5's storm surge: the lantern heartbeat plays while the keeper is caught in it, whatever the fuel.
     public bool HeartbeatOverride { get; set; }
+    // The low-fuel heartbeat loop is sounding (it stops once the round is over).
+    public bool HeartbeatPlaying => heartbeat != null && heartbeat.isPlaying;
     bool lanternResolved;
     bool routed;
     bool crackleHooked;
