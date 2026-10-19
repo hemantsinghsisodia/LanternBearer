@@ -48,6 +48,19 @@ public class GreatLampBeam : MonoBehaviour
         }
     }
 
+    // The finale draws the beam after the sea (the sea can sort nearer and cover it): a private material copy with a later render queue. Only the
+    // Island 5 finale calls this; the horizon Great Lights on Islands 1 to 4 keep the shared material.
+    public void SetRenderQueue(int queue)
+    {
+        if (beamRenderer == null)
+        {
+            return;
+        }
+
+        Material own = beamRenderer.material;
+        own.renderQueue = queue;
+    }
+
     public void Begin(float rampSeconds)
     {
         ramp = Mathf.Max(0f, rampSeconds);
