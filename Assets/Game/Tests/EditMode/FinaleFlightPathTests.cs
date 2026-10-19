@@ -107,15 +107,15 @@ public class FinaleFlightPathTests
             float t = FinaleTimeline.IslandFlareTime(i);
             Vector3 flare = FinaleFlightPath.FlarePoint(i);
             float distance = (flare - FinaleFlightPath.Position(t)).magnitude;
-            Assert.GreaterOrEqual(distance, 80f, "island " + (i + 1) + " is not too close");
-            Assert.LessOrEqual(distance, 150f, "island " + (i + 1) + " is not too far");
+            Assert.GreaterOrEqual(distance, 150f, "island " + (i + 1) + " is not too close");
+            Assert.LessOrEqual(distance, 220f, "island " + (i + 1) + " is not too far");
             Vector3 aim = flare + Vector3.up * (FinaleFlightPath.AimHeight * 0.5f);
             Assert.Less(AngleTo(t, aim), 12f, "island " + (i + 1) + " is centred-ish");
             Assert.IsTrue(InFrame(t, flare), "the beacon of island " + (i + 1) + " is in the frame");
             Assert.IsTrue(InFrame(t, flare + Vector3.up * 60f), "and so is its light column");
             float height = FinaleFlightPath.Position(t).y + 40f;
-            Assert.GreaterOrEqual(height, 40f, "above the sea by 40 m or more");
-            Assert.LessOrEqual(height, 80f, "and by 80 m or less");
+            Assert.GreaterOrEqual(height, 60f, "above the sea by 60 m or more");
+            Assert.LessOrEqual(height, 90f, "and by 90 m or less");
         }
     }
 

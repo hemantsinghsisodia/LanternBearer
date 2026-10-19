@@ -147,7 +147,11 @@ public static class FinaleIslandMesher
 
                 float variation = 1f + (Hash(i, j) - 0.5f) * 0.12f;
                 float wet = Mathf.Lerp(1f, 0.55f, Mathf.Clamp01(-y / 1.5f));
-                float k = variation * wet;
+                // Relief: a baked hill-shade (light from the north-west, low) plus a little darkening on steep ground, so the land reads as hills from afar.
+                Vector3 normal = new Vector3(-dx, 1f, -dz).normalized;
+                float lit = Mathf.Clamp01(Vector3.Dot(normal, new Vector3(-0.5f, 0.6f, 0.55f).normalized));
+                float relief = Mathf.Lerp(0.62f, 1.18f, lit) * Mathf.Lerp(1f, 0.82f, Mathf.Clamp01(slope - 0.4f));
+                float k = variation * wet * relief;
                 colors[j * n + i] = ToVertexColor(new Color(color.r * k, color.g * k, color.b * k, 1f));
             }
         }

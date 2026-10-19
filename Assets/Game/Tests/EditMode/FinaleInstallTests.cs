@@ -115,7 +115,7 @@ public class FinaleInstallTests
                 }
             }
 
-            Assert.LessOrEqual(totalTriangles, 25000, "island " + island + " stays within its triangle budget");
+            Assert.LessOrEqual(totalTriangles, 35000, "island " + island + " stays within its triangle budget");
 
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath(island, "Terrain"));
             Mesh low = AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath(island, "TerrainLow"));

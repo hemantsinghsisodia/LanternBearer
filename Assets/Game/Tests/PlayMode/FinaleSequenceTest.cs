@@ -259,7 +259,7 @@ public class FinaleSequenceTest
         Assert.LessOrEqual(wonAt - start, 66f / 8f + 1f);
     }
 
-    // The cinematic flight on the real camera: the lamp is in the frame at the checkpoints, each island is passed 80-150 m away at its flare
+    // The cinematic flight on the real camera: the lamp is in the frame at the checkpoints, each island is passed 150-220 m away at its flare
     // time, the pitch is never steeper than 20 degrees down, the lens stays the gameplay one and the far plane is raised.
     [UnityTest]
     [Timeout(300000)]
@@ -301,7 +301,7 @@ public class FinaleSequenceTest
             Vector3 flareLocal = (Vector3)entry.GetType().GetField("flareLocal").GetValue(entry);
             Vector3 flare = root.TransformPoint(flareLocal);
             float distance = Vector3.Distance(cam.transform.position, flare);
-            Assert.That(distance, Is.InRange(80f, 150f), "island " + (i + 1) + " is passed at a pleasing distance at " + t + " s");
+            Assert.That(distance, Is.InRange(150f, 220f), "island " + (i + 1) + " is passed at a pleasing distance at " + t + " s");
             Vector3 view = cam.WorldToViewportPoint(flare);
             Assert.That(view.x, Is.InRange(0.2f, 0.8f), "island " + (i + 1) + " is centred-ish at " + t + " s");
             Assert.That(view.y, Is.InRange(0.03f, 0.97f), "and its beacon is in the frame");
@@ -361,7 +361,7 @@ public class FinaleSequenceTest
         {
             int x = Mathf.RoundToInt(960f * (0.15f + 0.35f * column));
             float prev = -1f;
-            for (int row = horizonRow - 8; row > Mathf.Max(4, horizonRow - 90); row -= 1)
+            for (int row = horizonRow - 20; row > Mathf.Max(4, horizonRow - 100); row -= 1)
             {
                 Color c = tex.GetPixel(x, row);
                 float luma = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;

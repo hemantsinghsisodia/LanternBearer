@@ -12,7 +12,7 @@ namespace LanternKeeper
 //   0-6 s     the lantern room, a slow 3/4 view (the ignition)
 //   6-15 s    rises and swings round the far side of the lighthouse, the storm breaking around the lit beam
 //   15-21 s   sweeps off to the island chain, looking from the lamp to Island 1
-//   21-39 s   glides along the inner arc past Islands 1-4, each one centred in turn as its beacons flare (80-150 m away, 50-70 m above the sea)
+//   21-39 s   glides along the inner arc past Islands 1-4, each one centred in turn as its beacons flare (150-220 m away, 60-90 m above the sea)
 //   39-60 s   swings back to the south-west of the lighthouse and turns to the dawn: the lighthouse in the foreground against the sun
 //   60-66 s   a slow push-in, the lighthouse low in the frame, silhouetted against the sun
 public static class FinaleFlightPath
@@ -38,11 +38,11 @@ public static class FinaleFlightPath
         new Vector3(-4.4f, 26f, 49.8f),
         new Vector3(79f, 28f, -14f),
         new Vector3(35f, 22f, -85f),
-        new Vector3(-48.1f, 14f, -163f),
-        new Vector3(-206.7f, 12f, -111.8f),
-        new Vector3(-108f, 18f, 33.3f),
-        new Vector3(-59.9f, 16f, 134.3f),
-        new Vector3(-133f, 24f, 75f),
+        new Vector3(-37f, 26f, -122f),
+        new Vector3(-152f, 28f, -178f),
+        new Vector3(-108f, 26f, -85f),
+        new Vector3(-39f, 28f, 87f),
+        new Vector3(-133f, 28f, 75f),
         new Vector3(-96.6f, 22f, -25.9f),
         new Vector3(-40f, 4f, -57.3f),
         new Vector3(-32.1f, 3.5f, -45.9f),

@@ -19,13 +19,11 @@ public static partial class FinaleInstaller
     public const int MaxProps = 80;
     const int MaxTrees = 45;
     // Triangles an island may have in all (terrain + props + beacons).
-    public const int TriangleBudget = 25000;
-    const int TriangleTarget = 24000;
+    public const int TriangleBudget = 35000;
+    const int TriangleTarget = 34000;
     const float FlameWidth = 1.1f;
     const float FlameHeight = 1.7f;
     const float FlameFootY = 1.7f;
-    const float CairnCell = 0.45f;
-    const float IronCell = 0.12f;
 
     public static string IslandMeshPath(int island, string part)
     {
@@ -290,9 +288,9 @@ public static partial class FinaleInstaller
         Color cairnColour = MultiplyLinear(AverageColour(cairn.GetTexture("_BaseMap")), rockTint);
         Color ironColour = iron.GetColor("_BaseColor");
 
-        // The beacon model is far too detailed at 300 m: cluster its vertices to a coarse grid (one simplified copy per island, shared by every beacon).
-        FinaleIslandMesher.Simplify(cairnMesh.vertices, cairnMesh.triangles, CairnCell, out Vector3[] cairnVertices, out int[] cairnTriangles);
-        FinaleIslandMesher.Simplify(ironMesh.vertices, ironMesh.triangles, IronCell, out Vector3[] ironVertices, out int[] ironTriangles);
+        // The real LOD1 cairn and iron are used as they are (the finale flies past at 150-220 m, where a clustered copy reads as a crude box).
+        Vector3[] cairnVertices = cairnMesh.vertices, ironVertices = ironMesh.vertices;
+        int[] cairnTriangles = cairnMesh.triangles, ironTriangles = ironMesh.triangles;
 
         FinaleMeshBuilder body = new FinaleMeshBuilder();
         FinaleMeshBuilder glass = new FinaleMeshBuilder();
