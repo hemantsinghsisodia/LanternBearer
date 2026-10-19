@@ -38,6 +38,8 @@ public class StormRing : MonoBehaviour
     float open;
     float gapCenter;
     float warm;
+    // 1 = as in play. The finale fades the ring out (FinaleClouds replace it) with SetFade; nothing else touches this.
+    float fade = 1f;
     // Last values written to the material (write only on change).
     float wOpen = -1f, wGap = -1f, wFlash = -1f, wAngle = -1f, wDensity = -1f, wWarm = -1f;
     bool low;
@@ -48,6 +50,8 @@ public class StormRing : MonoBehaviour
     // 0 closed, 1 fully open (the renderer is then switched off).
     public float Open => open;
     public float GapCenter => gapCenter;
+    internal float Fade => fade;
+    internal bool RendererEnabled => ringRenderer != null && ringRenderer.enabled;
     public Mesh ActiveMesh => meshFilter != null ? meshFilter.sharedMesh : null;
 
     void Awake()
@@ -122,6 +126,12 @@ public class StormRing : MonoBehaviour
         gapCenter = Mathf.Repeat(bearing01, 1f);
     }
 
+    // The finale's cross-fade to the cloud banks: 1 (the default, as in play) .. 0 (gone, the renderer is switched off).
+    public void SetFade(float fade01)
+    {
+        fade = Mathf.Clamp01(fade01);
+    }
+
     // Sunrise tint 0..1 (the wall is gone by then in the finale; kept for a partial open).
     public void SetWarm(float warm01)
     {
@@ -141,7 +151,7 @@ public class StormRing : MonoBehaviour
             return;
         }
 
-        bool gone = open >= 1f;
+        bool gone = open >= 1f || fade <= 0f;
         if (ringRenderer.enabled == gone)
         {
             ringRenderer.enabled = !gone;
@@ -172,7 +182,7 @@ public class StormRing : MonoBehaviour
         Write(GapCenterId, gapCenter, ref wGap);
         Write(FlashId, schedule.Flash01 * SettingsMath.FlashCap(UserSettings.ReduceFlashing), ref wFlash);
         Write(FlashAngleId, flashAngle, ref wAngle);
-        Write(DensityId, density, ref wDensity);
+        Write(DensityId, density * fade, ref wDensity);
         Write(WarmId, warm, ref wWarm);
     }
 

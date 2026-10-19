@@ -2,9 +2,11 @@ using UnityEngine;
 
 namespace LanternKeeper
 {
-// The finale's distant Islands 1-4: low-poly silhouettes of each island's terrain (baked by FinaleInstaller from the TerrainData, not
-// loaded scenes) standing round Island 5 at FinaleLayout positions. They fade in during the Islands phase; at FinaleTimeline.IslandFlareTime(i)
-// the beacon cluster on island i flares: five BeaconBeam card clusters and one additive glow sprite. No realtime lights.
+// The finale's distant Islands 1-4: detailed miniatures (baked by FinaleInstaller from the TerrainData and the island scenes' props, never
+// loaded in play): a 128x128 terrain in the island's own colours (64x64 on Low), its biggest trees and rocks merged into one mesh (none on Low),
+// and the real beacon models. They stand round Island 5 at FinaleLayout positions and fade in (dithered) during the Islands phase. At the flare
+// time of island i its beacons ignite: the lantern glass blazes, the BeaconBeam cards and an amber flame card light up, the ground round the
+// beacons is lit warm, and a glow sprite and a tall column read from far. No realtime lights.
 // Everything is switched off until the finale reaches it, so the objects cost nothing in play. FinaleSequence calls Tick(t) every frame
 // with the finale time; Tick does no allocation (one shared MaterialPropertyBlock).
 public class FinaleIslands : MonoBehaviour
@@ -15,21 +17,35 @@ public class FinaleIslands : MonoBehaviour
     public const float ColumnSeconds = 1f;
     public const float ColumnHeight = 120f;
     public const float ColumnWidth = 14f;
+    // Radius (metres at island scale 1) of the warm light a flare throws on the ground and trees.
+    public const float FlareRadius = 38f;
     const float PopSeconds = 0.4f;
     const float PopPeak = 3f;
-    const float SteadyFlare = 1.2f;
+    const float SteadyFlare = 0.4f;
     const float SettleSeconds = 2.2f;
 
     static readonly int FadeId = Shader.PropertyToID("_Fade");
     static readonly int IntensityId = Shader.PropertyToID("_Intensity");
     static readonly int LenScaleId = Shader.PropertyToID("_LenScale");
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    static readonly int GlowId = Shader.PropertyToID("_Glow");
+    static readonly int FlareId = Shader.PropertyToID("_Flare");
+    static readonly int FlareCenterId = Shader.PropertyToID("_FlareCenter");
 
     [System.Serializable]
     public class Entry
     {
         public Transform root;
+        // The terrain (the field keeps its old name so scenes and the wiring check keep working).
         public Renderer silhouette;
+        public Mesh terrainFull;
+        public Mesh terrainLow;
+        public Renderer props;
+        public Renderer beaconBase;
+        public Renderer glass;
+        public Renderer flame;
+        // Island local position of the flare's centre (the highest beacon).
+        public Vector3 flareLocal;
         public Renderer[] beams;
         public Transform glow;
         public Renderer glowRenderer;
@@ -46,7 +62,7 @@ public class FinaleIslands : MonoBehaviour
     [SerializeField] Color sunColor = new Color(1f, 0.74f, 0.38f, 1f);
 
     static MaterialPropertyBlock block;
-    // The Horizon hills (Range*, Islet*, Ridge*, and the additive Haze* rings, which turn the distant sea gold at dawn) hide the silhouettes and read as stepped rings of terrain from the low camera.
+    // The Horizon hills (Range*, Islet*, Ridge*, and the additive Haze* rings, which turn the distant sea gold at dawn) hide the islands and read as stepped rings of terrain from the low camera.
     // They sink flat as the storm opens: SinkInnerHorizon(0..1). Done once they are gone.
     bool sunk;
     Transform[] inner;
@@ -59,18 +75,29 @@ public class FinaleIslands : MonoBehaviour
     public int Count => entries != null ? entries.Length : 0;
     public Entry EntryAt(int island) { return entries[island]; }
 
-    // 0..1: the silhouette of island i (0..3) fades in just before its beacons flare (never before the Islands phase).
+    // 0..1: island i (0..3) fades in just before its beacons flare (never before the Islands phase).
     public static float FadeAt(int island, float t)
     {
-        float flare = FinaleTimeline.IslandFlareTime(island);
-        float start = Mathf.Max(FinaleTimeline.IslandsStart, flare - FadeSeconds - 0.3f);
+        return FadeFor(FinaleTimeline.IslandFlareTime(island), t);
+    }
+
+    // The same for an island whose beacons flare at `flareTime` (finale seconds).
+    public static float FadeFor(float flareTime, float t)
+    {
+        float start = Mathf.Max(FinaleTimeline.IslandsStart, flareTime - FadeSeconds - 0.3f);
         return Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - start) / FadeSeconds));
     }
 
-    // The beacon cluster's brightness: 0 before the flare, a quick pop to PopPeak, then settling to a steady glow.
+    // The beacons' brightness: 0 before the flare, a quick pop to PopPeak, then settling to a steady glow.
     public static float FlareAt(int island, float t)
     {
-        float age = t - FinaleTimeline.IslandFlareTime(island);
+        return FlareFor(FinaleTimeline.IslandFlareTime(island), t);
+    }
+
+    // The same for a flare that starts at `startTime` (finale seconds).
+    public static float FlareFor(float startTime, float t)
+    {
+        float age = t - startTime;
         if (age < 0f)
         {
             return 0f;
@@ -88,6 +115,7 @@ public class FinaleIslands : MonoBehaviour
     {
         low = GraphicsQuality.Current == GraphicsLevel.Low;
         FindInnerHorizon();
+        ApplyTerrainDetail();
         SetAll(false);
         ready = true;
     }
@@ -162,9 +190,30 @@ public class FinaleIslands : MonoBehaviour
     void OnQuality(GraphicsProfile profile)
     {
         low = GraphicsQuality.Current == GraphicsLevel.Low;
+        ApplyTerrainDetail();
         if (lastTime >= 0f)
         {
             Tick(lastTime);
+        }
+    }
+
+    // 128x128 terrain, or the 64x64 one on Low.
+    void ApplyTerrainDetail()
+    {
+        for (int i = 0; entries != null && i < entries.Length; i++)
+        {
+            Entry e = entries[i];
+            MeshFilter filter = e != null && e.silhouette != null ? e.silhouette.GetComponent<MeshFilter>() : null;
+            if (filter == null)
+            {
+                continue;
+            }
+
+            Mesh wanted = low && e.terrainLow != null ? e.terrainLow : e.terrainFull;
+            if (wanted != null && filter.sharedMesh != wanted)
+            {
+                filter.sharedMesh = wanted;
+            }
         }
     }
 
@@ -181,6 +230,10 @@ public class FinaleIslands : MonoBehaviour
             }
 
             if (e.silhouette != null) e.silhouette.enabled = on;
+            if (e.props != null) e.props.enabled = on;
+            if (e.beaconBase != null) e.beaconBase.enabled = on;
+            if (e.glass != null) e.glass.enabled = on;
+            if (e.flame != null) e.flame.enabled = on;
             if (e.glowRenderer != null) e.glowRenderer.enabled = on;
             if (e.columnRenderer != null) e.columnRenderer.enabled = on;
             for (int b = 0; e.beams != null && b < e.beams.Length; b++)
@@ -190,35 +243,34 @@ public class FinaleIslands : MonoBehaviour
         }
     }
 
+    // The sun glow card and the sun path card are retired: the sun is now a disc and halo in the sky shader (FinaleSequence drives it) and the
+    // sun path lives in the water shader. The cards were additive quads whose straight angled edges showed as a lighter band at the horizon.
     void TickSun(float t)
     {
-        float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - FinaleTimeline.SunriseStart + 3f) / (FinaleTimeline.SunriseLength - 2f)));
-        bool on = u > 0.001f;
-        if (sunGlowRenderer != null)
+        if (sunGlowRenderer != null && sunGlowRenderer.enabled) sunGlowRenderer.enabled = false;
+        if (sunPathRenderer != null && sunPathRenderer.enabled) sunPathRenderer.enabled = false;
+    }
+
+    // Fade (dithered) and the flare light on one of an island's lit bodies.
+    static void TickBody(Renderer r, bool visible, float fade, float flare, Vector3 flareWorld, float radius)
+    {
+        if (r == null)
         {
-            if (sunGlowRenderer.enabled != on) sunGlowRenderer.enabled = on;
-            if (on)
-            {
-                if (viewer != null && sunGlow != null) sunGlow.rotation = viewer.transform.rotation;
-                Color c = sunColor;
-                c.a = 0.95f * u;
-                sunGlowRenderer.GetPropertyBlock(block);
-                block.SetColor(BaseColorId, c);
-                sunGlowRenderer.SetPropertyBlock(block);
-            }
+            return;
         }
 
-        if (sunPathRenderer != null)
+        if (r.enabled != visible)
         {
-            if (sunPathRenderer.enabled != on) sunPathRenderer.enabled = on;
-            if (on)
-            {
-                Color c = sunColor;
-                c.a = 0.8f * u;
-                sunPathRenderer.GetPropertyBlock(block);
-                block.SetColor(BaseColorId, c);
-                sunPathRenderer.SetPropertyBlock(block);
-            }
+            r.enabled = visible;
+        }
+
+        if (visible)
+        {
+            r.GetPropertyBlock(block);
+            block.SetFloat(FadeId, fade);
+            block.SetFloat(FlareId, flare);
+            block.SetVector(FlareCenterId, new Vector4(flareWorld.x, flareWorld.y, flareWorld.z, radius));
+            r.SetPropertyBlock(block);
         }
     }
 
@@ -251,23 +303,15 @@ public class FinaleIslands : MonoBehaviour
                 continue;
             }
 
-            float fade = FadeAt(i, t);
-            float flare = FlareAt(i, t);
-            if (e.silhouette != null)
-            {
-                bool visible = fade > 0.001f;
-                if (e.silhouette.enabled != visible)
-                {
-                    e.silhouette.enabled = visible;
-                }
-
-                if (visible)
-                {
-                    e.silhouette.GetPropertyBlock(block);
-                    block.SetFloat(FadeId, fade);
-                    e.silhouette.SetPropertyBlock(block);
-                }
-            }
+            float flareTime = FinaleTimeline.IslandFlareTime(i);
+            float fade = FadeFor(flareTime, t);
+            float flare = FlareFor(flareTime, t);
+            bool visible = fade > 0.001f;
+            float scale = e.root != null ? e.root.lossyScale.x : 1f;
+            Vector3 flareWorld = e.root != null ? e.root.TransformPoint(e.flareLocal) : e.flareLocal;
+            TickBody(e.silhouette, visible, fade, flare, flareWorld, FlareRadius * scale);
+            TickBody(e.props, visible && !low, fade, flare, flareWorld, FlareRadius * scale);
+            TickBody(e.beaconBase, visible, fade, flare, flareWorld, FlareRadius * scale);
 
             bool lit = flare > 0.001f;
             // A gentle shimmer on the steady glow, like the beacon beams.
@@ -294,11 +338,45 @@ public class FinaleIslands : MonoBehaviour
                 }
             }
 
+            // The lantern glass is dark until the island is faded in, then blazes with the flare.
+            if (e.glass != null)
+            {
+                bool glassOn = fade >= 0.95f || lit;
+                if (e.glass.enabled != glassOn)
+                {
+                    e.glass.enabled = glassOn;
+                }
+
+                if (glassOn)
+                {
+                    e.glass.GetPropertyBlock(block);
+                    block.SetFloat(GlowId, flare * shimmer);
+                    e.glass.SetPropertyBlock(block);
+                }
+            }
+
+            // The flame cards inside the lanterns: warm, additive, with the same shimmer.
+            if (e.flame != null)
+            {
+                if (e.flame.enabled != lit)
+                {
+                    e.flame.enabled = lit;
+                }
+
+                if (lit)
+                {
+                    Color c = glowColor;
+                    c.a = Mathf.Min(1f, flare * 0.55f) * shimmer;
+                    e.flame.GetPropertyBlock(block);
+                    block.SetColor(BaseColorId, c);
+                    e.flame.SetPropertyBlock(block);
+                }
+            }
 
             // The tall amber column rises over ColumnSeconds from the flare and lingers (a little lower once it has settled).
             if (e.columnRenderer != null && e.column != null)
             {
-                float age = t - FinaleTimeline.IslandFlareTime(i);
+                float age = t - flareTime;
                 bool on = age >= 0f;
                 if (e.columnRenderer.enabled != on)
                 {

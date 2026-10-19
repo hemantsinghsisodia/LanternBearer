@@ -132,6 +132,19 @@ public class GreatLamp : MonoBehaviour
             return false;
         }
 
+        EnsureLit();
+        return true;
+    }
+
+    // The visual lighting: the lit state, the beam, the flame and the ignite cue. A no-op if already lit. TryLight does it once the win has
+    // started; FinaleSequence.Play calls it too, so the cinematic always shows the lamp lit (the win is already under way: no WinNow here).
+    public void EnsureLit()
+    {
+        if (Lit)
+        {
+            return;
+        }
+
         Lit = true;
         ClearPrompt();
         igniting = true;
@@ -145,8 +158,6 @@ public class GreatLamp : MonoBehaviour
         {
             AudioManager.Instance.PlayCue(SoundCues.BeaconIgnite, transform.position);
         }
-
-        return true;
     }
 
     public void Light()

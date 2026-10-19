@@ -1209,6 +1209,58 @@ public static partial class SceneWiring
             }
         }
 
+        // H4 dramatic clouds: three banks and the god rays, each with a renderer and a material, wired into the sequence.
+        FinaleClouds finaleClouds = Object.FindAnyObjectByType<FinaleClouds>(FindObjectsInactive.Include);
+        bool cloudsOk = finaleClouds != null && finaleClouds.LayerCount == FinaleCloudMath.FullLayers && finaleClouds.RaysRenderer != null && finaleClouds.RaysRenderer.sharedMaterial != null;
+        for (int i = 0; cloudsOk && i < finaleClouds.LayerCount; i++)
+        {
+            cloudsOk = finaleClouds.LayerRenderer(i) != null && finaleClouds.LayerRenderer(i).sharedMaterial != null;
+        }
+
+        if (!cloudsOk)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing FinaleClouds (3 cloud layers and the god rays)");
+            }
+        }
+        else if (finaleSeq != null && new SerializedObject(finaleSeq).FindProperty("clouds").objectReferenceValue != finaleClouds)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " FinaleSequence.clouds is not wired");
+            }
+        }
+
+        // H4 finale grade: the global volume (weight 0 until the sunrise, its own profile) wired into the sequence.
+        UnityEngine.Rendering.Volume gradeVolume = null;
+        foreach (UnityEngine.Rendering.Volume candidate in Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsInactive.Include))
+        {
+            if (candidate.name == FinaleInstaller.GradeVolumeName)
+            {
+                gradeVolume = candidate;
+            }
+        }
+
+        if (gradeVolume == null || gradeVolume.sharedProfile == null || !gradeVolume.isGlobal || gradeVolume.weight != 0f)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " missing the finale grade volume (global, weight 0, with its profile)");
+            }
+        }
+        else if (finaleSeq != null && new SerializedObject(finaleSeq).FindProperty("finaleGrade").objectReferenceValue != gradeVolume)
+        {
+            problems++;
+            if (!quiet)
+            {
+                Debug.LogWarning(sceneName + " FinaleSequence.finaleGrade is not wired");
+            }
+        }
+
         // H3 rising storm: the surge with its material, and the HUD chip that reads it.
         StormSurge stormSurge = Object.FindAnyObjectByType<StormSurge>(FindObjectsInactive.Include);
         if (stormSurge == null)
@@ -1296,15 +1348,31 @@ public static partial class SceneWiring
             for (int i = 0; i < finaleIslands.Count; i++)
             {
                 FinaleIslands.Entry entry = finaleIslands.EntryAt(i);
-                Renderer sil = entry != null ? entry.silhouette : null;
-                MeshFilter filter = sil != null ? sil.GetComponent<MeshFilter>() : null;
-                if (filter == null || filter.sharedMesh == null)
+                string n = entry != null && entry.root != null ? entry.root.name : i.ToString();
+                // Terrain (full and Low meshes), props, beacon bases, glass, beams and flames: each needs a mesh.
+                Renderer[] parts = entry != null
+                    ? new[] { entry.silhouette, entry.props, entry.beaconBase, entry.glass, entry.flame, entry.beams != null && entry.beams.Length > 0 ? entry.beams[0] : null }
+                    : new Renderer[6];
+                string[] labels = { "terrain", "props", "beacon bases", "beacon glass", "beacon flames", "beacon beams" };
+                for (int p = 0; p < parts.Length; p++)
+                {
+                    MeshFilter filter = parts[p] != null ? parts[p].GetComponent<MeshFilter>() : null;
+                    if (filter == null || filter.sharedMesh == null)
+                    {
+                        problems++;
+                        if (!quiet)
+                        {
+                            Debug.LogWarning(sceneName + " finale island '" + n + "' has no " + labels[p] + " mesh");
+                        }
+                    }
+                }
+
+                if (entry == null || entry.terrainFull == null || entry.terrainLow == null)
                 {
                     problems++;
                     if (!quiet)
                     {
-                        string n = entry != null && entry.root != null ? entry.root.name : (sil != null ? sil.name : i.ToString());
-                        Debug.LogWarning(sceneName + " silhouette '" + n + "' has no mesh");
+                        Debug.LogWarning(sceneName + " finale island '" + n + "' lacks its 128x128 or 64x64 terrain mesh");
                     }
                 }
             }

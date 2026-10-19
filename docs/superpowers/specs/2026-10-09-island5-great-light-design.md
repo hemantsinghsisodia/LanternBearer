@@ -132,7 +132,7 @@ Each sub-phase gets its own plan, reviews and playable build. This spec covers b
 4. **Sunrise:** the first sunrise in the game. The sky warms from violet to gold, and the sea catches the light.
 5. **Credits:** a short credits roll over the dawn. It is skippable with any key or button and returns to the main menu. Credits list the CC0 sources from `CREDITS.txt`.
 
-- **Length:** about 45–60 s before the credits.
+- **Length:** about 66 s before the credits (H4: 0-6 ignition, 6-18 beam and storm break, 18-42 island flyby with flares at 21, 27, 33 and 39 s, 42-60 sunrise, 60-66 hold).
 - **Unscaled time:** the sequence runs on unscaled time.
 - **Gameplay:** input is disabled while it plays.
 

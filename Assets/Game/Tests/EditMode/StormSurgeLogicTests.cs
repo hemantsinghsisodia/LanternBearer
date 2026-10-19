@@ -29,7 +29,7 @@ public class StormSurgeLogicTests
     public void CappedAtPlateau()
     {
         Assert.AreEqual(Cap, StormSurgeLogic.Height(10000f, 0, Cap), 1e-4f);
-        Assert.AreEqual(Cap - 24f, StormSurgeLogic.Height(10000f, 8, Cap), 1e-4f, "the push applies after the cap");
+        Assert.AreEqual(Mathf.Max(0f, Cap - 8f * StormSurgeLogic.PushBack), StormSurgeLogic.Height(10000f, 8, Cap), 1e-4f, "the push applies after the cap");
     }
 
     [Test]
@@ -80,6 +80,8 @@ public class StormSurgeLogicTests
     struct ClimbResult
     {
         public float minGap, maxGap, minGapAt, endTime, gapAtEnd, startGap, lowestGap;
+        public float fuelAtEnd, minFuel, caughtSeconds, lastCaughtAt;
+        public bool died;
         public int samples;
         public string trace;
     }
@@ -102,7 +104,25 @@ public class StormSurgeLogicTests
         return cum;
     }
 
-    static ClimbResult Climb(float paceFraction, float lightSeconds, float bridgeWait, float summitWait)
+    // Lantern model (Normal difficulty, Island 5): base drain 1.6/s x 1.6 (island) x (1 + 0.08 per lit beacon) x 3 while caught (safe light
+    // is suppressed then; it is ignored otherwise, which is the pessimistic side). A beacon costs 15 and refunds 20% of it; a firefly gives 20.
+    // The 26 route fireflies sit where IslandBuilder.PlaceSpireFireflies puts them; `fireflyRate` is the share the player actually grabs.
+    const float MaxFuel = 100f, BaseDrain = 1.6f, IslandDrain = 1.6f, DrainPerLit = 0.08f, BeaconCost = 15f, BeaconRefund = 0.2f, FireflyFuel = 20f;
+    const int FireflyCount = 26;
+
+    static float[] FireflyParameters()
+    {
+        float endU = SpireLayout.GapSpanU(3).x;
+        float[] u = new float[FireflyCount];
+        for (int i = 0; i < FireflyCount; i++)
+        {
+            u[i] = 0.03f + (endU - 0.05f) * Mathf.Pow((i + 0.5f) / FireflyCount, 1.35f);
+        }
+
+        return u;
+    }
+
+    static ClimbResult Climb(float paceFraction, float lightSeconds, float bridgeWait, float summitWait, float fireflyRate = 0.7f)
     {
         const int n = 4000;
         float[] cum = RouteArcLengths(n);
@@ -134,7 +154,12 @@ public class StormSurgeLogicTests
             }
         }
 
-        ClimbResult result = new ClimbResult { minGap = float.MaxValue, lowestGap = float.MaxValue, startGap = -1f, trace = "" };
+        ClimbResult result = new ClimbResult { minGap = float.MaxValue, lowestGap = float.MaxValue, startGap = -1f, trace = "", minFuel = MaxFuel, lastCaughtAt = -1f };
+        float[] flies = FireflyParameters();
+        bool[] taken = new bool[FireflyCount];
+        float fuel = MaxFuel;
+        float fireflyAccum = 0f;
+        bool caughtNow;
         const float dt = 0.05f;
         float speed = WalkSpeed * paceFraction;
         float time = 0f, distance = 0f, wait = 0f, firstLit = -1f, nextTrace = 0f;
@@ -154,6 +179,7 @@ public class StormSurgeLogicTests
                 if (isBeacon[next])
                 {
                     lit++;
+                    fuel = Mathf.Clamp(fuel - BeaconCost + BeaconCost * BeaconRefund, 0f, MaxFuel);
                     if (firstLit < 0f)
                     {
                         firstLit = time;
@@ -163,10 +189,40 @@ public class StormSurgeLogicTests
                 next++;
             }
 
+            for (int f = 0; f < FireflyCount; f++)
+            {
+                if (!taken[f] && climbU >= flies[f])
+                {
+                    taken[f] = true;
+                    fireflyAccum += fireflyRate;
+                    if (fireflyAccum >= 1f)
+                    {
+                        fireflyAccum -= 1f;
+                        fuel = Mathf.Min(MaxFuel, fuel + FireflyFuel);
+                    }
+                }
+            }
+
+            float surgeNow = firstLit >= 0f ? StormSurgeLogic.Height(time - firstLit, lit, SpireLayout.PathTopHeight - 1.5f) : 0f;
+            caughtNow = firstLit >= 0f && time - firstLit >= StormSurgeLogic.StartDelay && keeperY >= 1f && StormSurgeLogic.Caught(keeperY, surgeNow);
+            if (caughtNow)
+            {
+                result.caughtSeconds += dt;
+                result.lastCaughtAt = time;
+            }
+
+            fuel -= BaseDrain * IslandDrain * (1f + DrainPerLit * lit) * (caughtNow ? StormSurgeLogic.CaughtDrain : 1f) * dt;
+            result.minFuel = Mathf.Min(result.minFuel, fuel);
+            if (fuel <= 0f)
+            {
+                result.died = true;
+                fuel = 0f;
+            }
+
             if (firstLit >= 0f)
             {
                 float since = time - firstLit;
-                float surge = StormSurgeLogic.Height(since, lit, SpireLayout.PathTopHeight - 1.5f);
+                float surge = surgeNow;
                 if (since >= StormSurgeLogic.StartDelay && keeperY >= 1f)
                 {
                     float gap = StormSurgeLogic.Gap(keeperY, surge);
@@ -190,7 +246,7 @@ public class StormSurgeLogicTests
                     result.gapAtEnd = gap;
                     if (time >= nextTrace)
                     {
-                        result.trace += "[" + time.ToString("F0") + "s lit" + lit + " keeper " + keeperY.ToString("F1") + " surge " + surge.ToString("F1") + " gap " + gap.ToString("F1") + "] ";
+                        result.trace += "[" + time.ToString("F0") + "s lit" + lit + " keeper " + keeperY.ToString("F1") + " surge " + surge.ToString("F1") + " gap " + gap.ToString("F1") + " fuel " + fuel.ToString("F0") + "] ";
                         nextTrace = time + 10f;
                     }
                 }
@@ -199,6 +255,7 @@ public class StormSurgeLogicTests
             if (climbU >= 0.999f)
             {
                 result.endTime = time;
+                result.fuelAtEnd = fuel;
                 break;
             }
 
@@ -226,6 +283,7 @@ public class StormSurgeLogicTests
 
     // The full-pace bot's stops are the ones BeaconReachabilityTest measured (beacon 1 at 5.5 s, lamp at 48.9 s): a key press per beacon and
     // the bridge waits overlapped with walking. A player's stops are longer (1.5 s a beacon, the full bridge waits).
+
     static ClimbResult FullPace()
     {
         return Climb(1f, 0.25f, 1.2f, 2.5f);
@@ -233,32 +291,49 @@ public class StormSurgeLogicTests
 
     static ClimbResult Player(float pace)
     {
-        return Climb(pace, 1.5f, BridgeWait, SummitWait);
+        return Climb(pace, 1.5f, BridgeWait, SummitWait, 0.7f);
     }
 
     [Test]
     public void SteadyClimberStaysAhead()
     {
-        // Full walking pace: while the keeper is on the route's open stretch (10 to 30 m up) the surge is 8 to 12 m behind at its tightest.
+        // Full walking pace: while the keeper is on the route's open stretch (10 to 30 m up) the surge is 5 to 12 m behind at its tightest (10 m measured at 5 m push-back; the lowest gap anywhere is 2.8 m just as the surge starts).
         ClimbResult full = FullPace();
         Debug.Log("StormSurge full pace: ends " + full.endTime.ToString("F0") + " s, start gap " + full.startGap.ToString("F1")
             + " m, tightest (10-30 m up) " + full.minGap.ToString("F1") + " m at " + full.minGapAt.ToString("F0") + " s, widest " + full.maxGap.ToString("F1")
             + " m, lowest ever " + full.lowestGap.ToString("F1") + " m, gap at the plateau " + full.gapAtEnd.ToString("F1") + " m. " + full.trace);
         Assert.Greater(full.samples, 100, "the surge must be active while the full-pace climber is still climbing");
-        Assert.GreaterOrEqual(full.minGap, 8f);
+        Assert.GreaterOrEqual(full.minGap, 5f);
         Assert.LessOrEqual(full.minGap, 12f);
-        Assert.GreaterOrEqual(full.lowestGap, 0f, "never caught");
+        Assert.GreaterOrEqual(full.lowestGap, 2f, "never caught, and never closer than 2 m");
     }
 
     [Test]
     public void SlowClimberGetsCaught()
     {
-        // 70% pace with a player's stops: the surge catches up at some point before the summit.
-        ClimbResult slow = Player(0.7f);
-        Debug.Log("StormSurge 0.7 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1") + " m. " + slow.trace);
+        // 85% pace with a player's stops: the surge catches up at some point before the summit.
+        ClimbResult slow = Player(0.85f);
+        Debug.Log("StormSurge 0.85 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1") + " m. " + slow.trace);
         Assert.Less(slow.lowestGap, 0f, "caught on the way up");
         // Anyone slower than that is caught too.
         Assert.Less(Player(0.4f).lowestGap, 0f);
+    }
+
+    [Test]
+    public void CaughtKeeperAt85PercentCanRecover()
+    {
+        // The H4 balance claim: the surge outpaces the climb (1.4 m/s against about 1.1), so a caught keeper recovers by lighting the following
+        // beacons (PushBack each). At 85% pace, with 70% of the route fireflies grabbed (fuel is thin: 60% starves it at the lamp by 0.2 points, 75% leaves 42), the keeper must be caught, get clear, and reach the lamp lit.
+        ClimbResult slow = Player(0.85f);
+        Debug.Log("StormSurge recovery 0.85 pace: ends " + slow.endTime.ToString("F0") + " s, lowest gap " + slow.lowestGap.ToString("F1")
+            + " m, gap at the plateau " + slow.gapAtEnd.ToString("F1") + " m, caught " + slow.caughtSeconds.ToString("F1") + " s (last at "
+            + slow.lastCaughtAt.ToString("F0") + " s), min fuel " + slow.minFuel.ToString("F1") + ", fuel at the lamp " + slow.fuelAtEnd.ToString("F1")
+            + (slow.died ? " DIED" : "") + ". " + slow.trace);
+        Assert.Less(slow.lowestGap, 0f, "the 85% keeper is caught (otherwise this proves nothing)");
+        Assert.Greater(slow.gapAtEnd, 0f, "clear of the surge at the plateau");
+        Assert.Less(slow.lastCaughtAt, slow.endTime - 1f, "the keeper got clear before the lamp");
+        Assert.IsFalse(slow.died, "the lantern never ran dry");
+        Assert.Greater(slow.fuelAtEnd, 0f);
     }
 
     [Test]

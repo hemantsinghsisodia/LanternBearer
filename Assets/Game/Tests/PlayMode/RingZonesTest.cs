@@ -273,7 +273,7 @@ public class RingZonesTest
         return ((System.Collections.ICollection)all.GetValue(null)).Count;
     }
 
-    // The Island 5 finale runs 52 s on unscaled time; the test speed makes it 6.5 s (FinaleSequence resets it when the scene unloads).
+    // The Island 5 finale runs 66 s on unscaled time; the test speed makes it 8.25 s (FinaleSequence resets it when the scene unloads).
     static void FastFinale()
     {
         GameType("FinaleSequence").GetField("TestSpeed", BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, 8f);
