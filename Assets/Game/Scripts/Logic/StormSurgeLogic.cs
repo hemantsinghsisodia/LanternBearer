@@ -13,16 +13,20 @@ namespace LanternKeeper
 //    logs 255.9 m) and climbs 38 m; walking flat out the open stretch climbs at up to about 1.1 m/s.
 //  - The full-pace bot (measured): first beacon at 5.5 s, lamp at 48.9 s. The surge starts 8 s after the first beacon, so it is on the
 //    mountain for the whole climb. The sim uses a key press per beacon (0.25 s) and the bridge waits that overlap walking (1.2 s, summit 2.5 s).
-//  - H4 retune: RisePerSecond 1.0 -> 1.4, PushBack 3 -> 4 (StartDelay, drain and cap unchanged). The surge now outpaces the steepest
-//    climb rate (about 1.1 m/s), so a caught keeper no longer out-climbs it: recovery is by lighting the next beacon (4 m push-back).
+//  - H4 retune: RisePerSecond 1.0 -> 1.4, PushBack 3 -> 5 (StartDelay, drain and cap unchanged). The surge now outpaces the steepest
+//    climb rate (about 1.1 m/s), so a caught keeper no longer out-climbs it: recovery is by lighting the next beacons (5 m push-back each).
+//    StormSurgeLogicTests.CaughtKeeperAt85PercentCanRecover proves it with a fuel model (Normal x island 1.6 drain, x3 while caught, 15 point
+//    beacon cost with a 3 point refund, route fireflies): at 4 m the 85% keeper is caught for 16 s and the x3 drain empties the lantern before the
+//    lamp; at 5 m it is caught for 5 s, clears the surge by beacon 5 and reaches the lamp with fuel left; at 6 m it is never caught (which would
+//    break SlowClimberGetsCaught). Fuel is thin for a slow keeper: with 60% of the fireflies grabbed it starves 0.2 points short of the lamp.
 //  - The surge starts at the sea, so the first seconds are close: the full-pace keeper is only 2.8 m up when it starts (the lowest gap
-//    anywhere). With the 4 m push-back per beacon, 1.4 m/s keeps full pace 8.1 m ahead at the tightest point of the open stretch
-//    (10-30 m up), widening to 16.9 m there and 33 m at the plateau; never caught.
-//  - A keeper at 85% pace with a player's stops (1.5 s a beacon, the full bridge waits) is caught around the second to fourth beacon
-//    (lowest gap -7 m) and recovers by lighting the next beacon.
+//    anywhere). With the 5 m push-back per beacon, 1.4 m/s keeps full pace 10 m ahead at the tightest point of the open stretch
+//    (10-30 m up), widening to 29 m there and 38 m at the plateau; never caught.
+//  - A keeper at 85% pace with a player's stops (1.5 s a beacon, the full bridge waits) is caught around the third or fourth beacon
+//    (lowest gap -3 m) and recovers by lighting the next beacons.
 public static class StormSurgeLogic
 {
-    public const float StartDelay = 8f, PushBack = 4f, CaughtDrain = 3f;
+    public const float StartDelay = 8f, PushBack = 5f, CaughtDrain = 3f;
     public const float ChipGap = 25f;
     public const float MusicGap = 15f;
     public const float MusicFloorFar = 0.6f, MusicFloorNear = 0.9f;

@@ -72,6 +72,15 @@ public class FinaleSequence : MonoBehaviour
     public bool Finished { get; private set; }
     public Volume FinaleGrade => finaleGrade;
 
+    void Awake()
+    {
+        // The grade volume stays out of the volume stack for the whole of the game and the first 42 s of the finale (see Step).
+        if (finaleGrade != null)
+        {
+            finaleGrade.enabled = false;
+        }
+    }
+
     void OnDestroy()
     {
         TestSpeed = 1f;
@@ -178,6 +187,7 @@ public class FinaleSequence : MonoBehaviour
         if (finaleGrade != null)
         {
             finaleGrade.weight = 0f;
+            finaleGrade.enabled = false;
         }
 
         // The Rain follows the camera; the wall tears open at the end of it.
@@ -223,6 +233,8 @@ public class FinaleSequence : MonoBehaviour
 
     // The sea is a 1280 m square: from the finale camera its edge shows as a line and a corner. The far plane goes out and the plane scales up, so the
     // water (which fades to the fog colour, the dawn horizon colour) runs to the horizon.
+    // Not undone: the far plane, the sea scale and floor, and the private water and floor material instances belong to the Island 5 scene, which is
+    // unloaded when the finale ends (credits or menu); nothing replays the finale in the same scene load, so there is nothing to restore.
     void MakeSeaSeamless()
     {
         Camera camera = Camera.main;
@@ -392,6 +404,7 @@ public class FinaleSequence : MonoBehaviour
 
             if (finaleGrade != null)
             {
+                finaleGrade.enabled = true;
                 finaleGrade.weight = GradeTarget * sunrise;
             }
         }

@@ -184,6 +184,49 @@ public class FinaleSequenceTest
         Assert.IsTrue((bool)Get(lamp, "Lit"), "the great lamp is lit");
     }
 
+    // The real E-press path (TryLight -> WinNow -> FinaleSequence.Play -> EnsureLit) plays exactly one ignite cue for the great lamp, and a
+    // second press is refused without another cue.
+    [UnityTest]
+    [Timeout(300000)]
+    public IEnumerator LightingTheLampPlaysExactlyOneIgniteCue()
+    {
+        yield return Load("Island5");
+        SetTestSpeed(8f);
+        LightAllBeacons();
+        Refuel();
+        int ignites = 0;
+        Action<string> spy = cue =>
+        {
+            if (cue == "Beacon.Ignite")
+            {
+                ignites++;
+            }
+        };
+        EventInfo cuePlayed = GameType("AudioManager").GetEvent("CuePlayed", BindingFlags.Public | BindingFlags.Static);
+        cuePlayed.AddEventHandler(null, spy);
+        try
+        {
+            Component lamp = (Component)Find("GreatLamp");
+            Assert.IsTrue((bool)Call(lamp, "TryLight"), "the first press lights the lamp");
+            for (int i = 0; i < 20; i++)
+            {
+                yield return null;
+            }
+
+            Assert.IsFalse((bool)Call(lamp, "TryLight"), "a second press is refused");
+            for (int i = 0; i < 20; i++)
+            {
+                yield return null;
+            }
+        }
+        finally
+        {
+            cuePlayed.RemoveEventHandler(null, spy);
+        }
+
+        Assert.AreEqual(1, ignites, "one ignite cue for the lamp");
+    }
+
     void Subscribe(Component manager)
     {
         EventInfo won = manager.GetType().GetEvent("WonGame");
@@ -300,6 +343,9 @@ public class FinaleSequenceTest
             Transform root = (Transform)entry.GetType().GetField("root").GetValue(entry);
             Vector3 flareLocal = (Vector3)entry.GetType().GetField("flareLocal").GetValue(entry);
             Vector3 flare = root.TransformPoint(flareLocal);
+            // FinaleFlightPath.FlarePoint is a measured constant (relative to the lamp base): it must still match the installed island, or the flight misses it.
+            Vector3 lampBase = flame.position - Vector3.up * 11.9f;
+            Assert.Less(Vector3.Distance(flare - lampBase, FinaleFlightPath.FlarePoint(i)), 6f, "FlightPath flare point " + (i + 1) + " matches the installed island: installed " + (flare - lampBase) + " vs path " + FinaleFlightPath.FlarePoint(i));
             float distance = Vector3.Distance(cam.transform.position, flare);
             Assert.That(distance, Is.InRange(150f, 220f), "island " + (i + 1) + " is passed at a pleasing distance at " + t + " s");
             Vector3 view = cam.WorldToViewportPoint(flare);
@@ -316,7 +362,7 @@ public class FinaleSequenceTest
     // not the sun before it rises) and a column of pixels from the sea up to the horizon has no hard step in it.
     [UnityTest]
     [Timeout(300000)]
-    public IEnumerator FarSeaIsSolidAndHidesTheSun()
+    public IEnumerator FarSeaIsOneSolidGradientToTheHorizon()
     {
         yield return Load("Island5");
         SetTestSpeed(8f);
@@ -332,13 +378,31 @@ public class FinaleSequenceTest
         yield return new WaitForEndOfFrame();
         Renderer water = GameObject.Find("Water").GetComponent<Renderer>();
         Assert.IsTrue(water.material.HasProperty("_FarSolid"), "the water shader has the far-solid switch");
-        Assert.AreEqual(1f, water.material.GetFloat("_FarSolid"), 0.001f, "the finale sea is solid in the distance");
-        Assert.GreaterOrEqual(water.material.GetFloat("_FadeEnd"), 3800f, "the fade ring is out at the horizon");
 
         // Pixel check at the 44 s pose: the sun is still below the horizon, so nothing bright may show under the horizon line.
         // (The cloud banks and the island miniatures are switched off for the capture: only the sea, the sky and the sun are being judged.)
         finale.GetComponentInChildren(GameType("FinaleClouds"), true).gameObject.SetActive(false);
         finale.GetComponentInChildren(GameType("FinaleIslands"), true).gameObject.SetActive(false);
+        float worst, maxLuma;
+        MeasureSeaBelowHorizon(cam, out worst, out maxLuma);
+        Assert.Less(worst, 0.07f, "no hard line in the sea below the horizon (largest step between rows)");
+        Assert.Less(maxLuma, 0.5f, "the sea is not lit up by anything showing through it");
+
+        // Negative control: the same pose with the far-solid switch off must look different (a hard edge or a lit-up far sea), otherwise the
+        // check above would pass for any water and prove nothing.
+        float solid = water.material.GetFloat("_FarSolid");
+        water.material.SetFloat("_FarSolid", 0f);
+        float controlWorst, controlLuma;
+        MeasureSeaBelowHorizon(cam, out controlWorst, out controlLuma);
+        water.material.SetFloat("_FarSolid", solid);
+        Debug.Log("FarSea control: solid worst " + worst.ToString("F4") + " luma " + maxLuma.ToString("F3") + "; control worst " + controlWorst.ToString("F4") + " luma " + controlLuma.ToString("F3"));
+        Assert.IsTrue(controlWorst > worst + 0.005f || controlLuma > maxLuma + 0.01f, "with _FarSolid = 0 the far sea looks different, so the check can fail");
+    }
+
+    // Renders the camera and returns the largest luma step between neighbouring rows, and the brightest luma, in three columns from 20 to 100 rows
+    // above the horizon line (the sea just below the horizon, in the view's own orientation).
+    static void MeasureSeaBelowHorizon(Camera cam, out float worst, out float maxLuma)
+    {
         RenderTexture rt = new RenderTexture(960, 540, 24, RenderTextureFormat.ARGB32);
         RenderTexture previous = cam.targetTexture;
         cam.targetTexture = rt;
@@ -355,8 +419,8 @@ public class FinaleSequenceTest
         Vector3 horizon = cam.WorldToViewportPoint(cam.transform.position + flat * 3500f);
         int horizonRow = Mathf.RoundToInt(horizon.y * 540f);
         Assert.Greater(horizonRow, 40, "the horizon is in the frame");
-        float worst = 0f;
-        float maxLuma = 0f;
+        worst = 0f;
+        maxLuma = 0f;
         for (int column = 0; column < 3; column++)
         {
             int x = Mathf.RoundToInt(960f * (0.15f + 0.35f * column));
@@ -378,8 +442,6 @@ public class FinaleSequenceTest
         UnityEngine.Object.Destroy(tex);
         rt.Release();
         UnityEngine.Object.Destroy(rt);
-        Assert.Less(worst, 0.07f, "no hard line in the sea below the horizon (largest step between rows)");
-        Assert.Less(maxLuma, 0.5f, "the sea is not lit up by anything showing through it");
     }
 
     static IEnumerator ShadersFor(GraphicsLevelValue level)
@@ -505,6 +567,7 @@ public class FinaleSequenceTest
         Assert.IsNotNull(grade, "Island 5 has the finale grade volume");
         Assert.AreEqual(FinaleGradeName, grade.name);
         Assert.AreEqual(0f, grade.weight, 1e-6f, "weight 0 before the finale");
+        Assert.IsFalse(grade.enabled, "the grade volume is disabled (out of the volume stack) before the finale");
         Assert.IsTrue(grade.isGlobal);
         VolumeProfile profile = grade.sharedProfile;
         Assert.IsNotNull(profile);
@@ -517,6 +580,7 @@ public class FinaleSequenceTest
         float target = Convert.ToSingle(GameType("FinaleSequence").GetField("GradeTarget").GetRawConstantValue());
         LightTheLamp();
         float maxBefore = 0f;
+        bool enabledBefore = false;
         float maxAny = 0f;
         float start = Time.realtimeSinceStartup;
         while (wonCount == 0 && Time.realtimeSinceStartup - start < 66f / 8f + 4f)
@@ -525,6 +589,7 @@ public class FinaleSequenceTest
             if (t < 42f)
             {
                 maxBefore = Mathf.Max(maxBefore, grade.weight);
+                enabledBefore |= grade.enabled;
             }
 
             maxAny = Mathf.Max(maxAny, grade.weight);
@@ -534,6 +599,8 @@ public class FinaleSequenceTest
         yield return null;
         Assert.AreEqual(1, wonCount, "the finale ran");
         Assert.AreEqual(0f, maxBefore, 1e-6f, "the grade stays at weight 0 until the sunrise");
+        Assert.IsFalse(enabledBefore, "and stays disabled until the sunrise blend starts");
+        Assert.IsTrue(grade.enabled, "the volume is enabled once the sunrise blends it in");
         Assert.AreEqual(target, grade.weight, 0.01f, "the grade reaches its target at the end of the sunrise");
         Assert.LessOrEqual(maxAny, target + 1e-4f);
     }

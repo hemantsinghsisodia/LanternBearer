@@ -364,7 +364,7 @@ public class StormSurgeTest
     }
 
     // No softlock: the surge now rises faster than the keeper can climb, so a keeper caught low recovers by lighting the next beacon;
-    // its 4 m push-back lifts the keeper clear and the drain is normal again.
+    // its push-back lifts the keeper clear and the drain is normal again.
     [UnityTest]
     [Timeout(300000)]
     public IEnumerator CaughtKeeperRecoversByLightingABeacon()
@@ -375,6 +375,8 @@ public class StormSurgeTest
         Component surge = Surge();
         Teleport(Walkway(7.5f));
         yield return Wait(0.5f);
+        // The calm drain, with the beacon count and the safe-ring discount taken out, to compare once the keeper is free again.
+        float calmBase = (float)Get(lantern, "DrainRelative") / (float)Get(lantern, "EscalationMultiplier") / ((bool)Get(lantern, "InSafeLight") ? 0.35f : 1f);
         // A real (not held) surge 1.6 m above the keeper with one beacon lit: seconds = delay + (height + one push-back) / rise rate.
         float surgeHeight = KeeperHeight() + 1.6f;
         Call(surge, "SetElapsedForTests", StormSurgeLogic.StartDelay + (surgeHeight + StormSurgeLogic.PushBack) / StormSurgeLogic.RisePerSecond);
@@ -382,21 +384,25 @@ public class StormSurgeTest
         Assert.IsTrue(Caught(), "caught at " + KeeperHeight().ToString("F1") + " m under a surge at " + Height().ToString("F1") + " m");
         Assert.AreEqual(StormSurgeLogic.CaughtDrain, (float)Call(lantern, "GetDrainModifier", surge), 1e-4f);
 
-        // Lighting the next beacon takes 4 m off the surge.
+        // Lighting the next beacon takes PushBack off the surge target; the visible surge follows it down at PushFollowRate while the target keeps
+        // rising, so it needs at most PushBack / (PushFollowRate - RisePerSecond) of game time to settle, which bounds the wait (plus one second for frame hitches).
+        float followRate = (float)surge.GetType().GetField("PushFollowRate", BindingFlags.NonPublic | BindingFlags.Static).GetRawConstantValue();
+        float limit = StormSurgeLogic.PushBack / (followRate - StormSurgeLogic.RisePerSecond) + 1f;
         Assert.IsTrue(LightBeacon(1));
         float elapsed = 0f;
-        while (elapsed < 3f && Caught())
+        while (elapsed < limit && Caught())
         {
             Refuel();
             yield return null;
             elapsed += Time.deltaTime;
         }
 
-        Assert.IsFalse(Caught(), "the push-back freed the keeper (keeper " + KeeperHeight().ToString("F1") + " m, surge " + Height().ToString("F1") + " m)");
+        Assert.IsFalse(Caught(), "the push-back freed the keeper within " + limit.ToString("F1") + " s, waited " + elapsed.ToString("F2") + " s (keeper " + KeeperHeight().ToString("F1") + " m, surge " + Height().ToString("F1") + " m)");
         yield return Wait(0.3f);
         Assert.AreEqual(1f, (float)Call(lantern, "GetDrainModifier", surge), 1e-4f, "the drain is back to normal above the surge");
         Assert.IsFalse((bool)StaticProperty("StormSurge", "SafeLightSuppressed"));
-        Assert.Less((float)Get(lantern, "DrainRelative"), 3f);
+        float freeBase = (float)Get(lantern, "DrainRelative") / (float)Get(lantern, "EscalationMultiplier") / ((bool)Get(lantern, "InSafeLight") ? 0.35f : 1f);
+        Assert.AreEqual(calmBase, freeBase, 0.05f * calmBase, "the total drain is back to the calm drain, not x3 (calm " + calmBase.ToString("F2") + ", now " + freeBase.ToString("F2") + ")");
     }
 
     [UnityTest]
@@ -454,7 +460,7 @@ public class StormSurgeTest
         yield return null;
         Assert.IsTrue((bool)Get(surge, "Active"), "the surge is running");
         float height = Height();
-        Assert.Greater(height, 3f, "the cap minus eight push-backs still leaves a surge");
+        Assert.AreEqual(Mathf.Max(0f, (float)Get(surge, "CapHeight") - 8f * StormSurgeLogic.PushBack), height, 0.1f, "the cap minus eight push-backs (all eight lit pushes the surge back down to the sea at 5 m each)");
         // Caught: stand low under a held surge, then light the lamp.
         Teleport(Walkway(3f));
         yield return Wait(0.5f);

@@ -722,6 +722,7 @@ public static partial class FinaleInstaller
         volume.isGlobal = true;
         volume.priority = 2f;
         volume.weight = 0f;
+        volume.enabled = false;
         volume.sharedProfile = profile;
         volumeObject.AddComponent<LookVolumeQuality>();
         return volume;

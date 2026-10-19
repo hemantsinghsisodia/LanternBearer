@@ -24,13 +24,13 @@ public class FinaleCloudsTest
     static object Get(object target, string member)
     {
         Type type = target.GetType();
-        PropertyInfo property = type.GetProperty(member, BindingFlags.Public | BindingFlags.Instance);
+        PropertyInfo property = type.GetProperty(member, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         if (property != null)
         {
             return property.GetValue(target);
         }
 
-        FieldInfo field = type.GetField(member, BindingFlags.Public | BindingFlags.Instance);
+        FieldInfo field = type.GetField(member, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.IsNotNull(field, type.Name + "." + member + " not found");
         return field.GetValue(target);
     }

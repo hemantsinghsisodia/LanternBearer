@@ -71,7 +71,9 @@ public static class FinaleFlightPath
         return FlarePoint(island) + Vector3.up * AimHeight;
     }
 
-    // The flare point (the highest beacon) of island 0..3, relative to the lamp base (measured from the baked finale islands).
+    // The flare point (the highest beacon) of island 0..3, relative to the lamp base (measured from the baked finale islands). These are measured
+    // constants, not derived from FinaleLayout (the bake decides which beacon is highest): FinaleSequenceTest.FlightFramesTheLampAndPassesEachIsland
+    // compares each against the installed island within 6 m, so a layout or bake change fails there instead of silently missing an island.
     public static Vector3 FlarePoint(int island)
     {
         switch (island)

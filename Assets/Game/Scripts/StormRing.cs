@@ -50,8 +50,8 @@ public class StormRing : MonoBehaviour
     // 0 closed, 1 fully open (the renderer is then switched off).
     public float Open => open;
     public float GapCenter => gapCenter;
-    public float Fade => fade;
-    public bool RendererEnabled => ringRenderer != null && ringRenderer.enabled;
+    internal float Fade => fade;
+    internal bool RendererEnabled => ringRenderer != null && ringRenderer.enabled;
     public Mesh ActiveMesh => meshFilter != null ? meshFilter.sharedMesh : null;
 
     void Awake()

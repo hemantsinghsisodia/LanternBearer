@@ -18,7 +18,7 @@ The current finale (`FinaleSequence`, 52 s) shows:
 - a camera that pulls back from the lighthouse and pans.
 
 **Your choices:**
-- **Storm:** 1.4 m/s, the harsh option. The beacon push-back goes up to 4 m so a caught keeper can still recover.
+- **Storm:** 1.4 m/s, the harsh option. The beacon push-back goes up to 5 m so a caught keeper can still recover (4 m failed the fuel-aware test).
 - **Finale, all four upgrades:**
   - detailed islands;
   - dramatic clouds;
@@ -42,16 +42,16 @@ Merge only on "merge in main and push".
 
 ### Task 1: Storm at 1.4 m/s
 **Changes:**
-- `Assets/Game/Scripts/Logic/StormSurgeLogic.cs`: `RisePerSecond` 1.0 → 1.4, `PushBack` 3 → 4.
+- `Assets/Game/Scripts/Logic/StormSurgeLogic.cs`: `RisePerSecond` 1.0 → 1.4, `PushBack` 3 → 5.
 - Spec addendum and plan constraints.
 
 **Retune the tests:**
 - `SteadyClimberStaysAhead`: the full-pace bot is never caught; measured: 8.1 m ahead at the tightest point of the open stretch (10–30 m up), 2.8 m as the surge starts (the lowest gap). The test asserts 5–12 m and a lowest gap of at least 2 m.
 - `SlowClimberGetsCaught`: 85% pace is caught.
-- `CaughtKeeperCanClimbOut` becomes `CaughtKeeperRecoversByLightingABeacon`. The rise is now faster than the steepest climb rate, so recovery is through the 4 m push-back.
+- `CaughtKeeperCanClimbOut` becomes `CaughtKeeperRecoversByLightingABeacon`. The rise is now faster than the steepest climb rate, so recovery is through the 5 m push-back.
 - Keep the PlayMode `SteadyBotReachesLamp`: everything on, fuel within 25–40%, never caught.
 
-**If the full-pace bot gets caught at 1.4:** shorten nothing else. Raise the push-back to 5 m, and report it. Result: 4 m was enough, no change needed.
+**If the full-pace bot gets caught at 1.4:** shorten nothing else. Raise the push-back to 5 m, and report it. Result: the full-pace bot was never caught at 4 m, but the fuel-aware `CaughtKeeperAt85PercentCanRecover` failed at 4 m, so the final push-back is 5 m.
 
 **Unchanged:** the 8 s start delay, the ×3 caught drain and the cap.
 

@@ -7,7 +7,7 @@ Parents: `2026-10-13-h3-polish-design.md` and `2026-10-09-island5-great-light-de
 ## Decisions (user)
 1. **Rising storm (Island 5).**
    - Rise 1.4 m/s (was 1.0).
-   - Beacon push-back 4 m (was 3). If a full-pace climber is caught at 4 m, it becomes 5 m.
+   - Beacon push-back 5 m (was 3). 4 m failed the fuel-aware recovery test (an 85% keeper is caught for 16 s and the x3 drain empties the lantern before the lamp), 5 m passes, 6 m means an 85% keeper is never caught.
    - Unchanged: the 8 s start delay, the ×3 caught drain and the cap.
    - A caught keeper recovers by lighting the next beacon. Out-climbing the surge is no longer guaranteed.
 2. **The finale gets four upgrades:**
