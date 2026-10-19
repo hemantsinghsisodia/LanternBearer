@@ -32,7 +32,12 @@ public static partial class FinaleInstaller
     const string SunMaterialPath = Folder + "/FinaleSun.mat";
     const string ColumnMeshPath = Folder + "/FinaleColumn.asset";
     const string ColumnMaterialPath = Folder + "/FinaleColumn.mat";
-    public const float ColumnAlpha = 0.9f;
+    public const float ColumnAlpha = 0.5f;
+    const string BeamMaterialPath = Folder + "/FinaleBeaconBeam.mat";
+    // The sea (Water.shader) is Transparent (3000) and the finale scales it x8, so within queue 3000 URP often sorts it nearer than a distant column and
+    // draws it over the column. Every additive or soft element of the finale draws in this later queue: after the sea, before the cloud layers (3010 to
+    // 3012) and the god rays (3020), which keep covering them as before.
+    public const int AfterSeaQueue = 3005;
     const string SoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
     // IslandBuilder.WaterFraction: the sea stands at 20% of the terrain height.
     const float WaterFraction = 0.2f;
@@ -147,22 +152,35 @@ public static partial class FinaleInstaller
         Material glowMaterial = EnsureMaterial(GlowMaterialPath, additive, "FinaleGlow");
         glowMaterial.SetTexture("_BaseMap", soft);
         glowMaterial.SetColor("_BaseColor", new Color(1f, 0.694f, 0.361f, 0.8f));
+        glowMaterial.renderQueue = AfterSeaQueue;
         EditorUtility.SetDirty(glowMaterial);
+
+        // The miniature islands' beacon beams and the Great Lamp's beam get a finale-only copy of BeaconBeam.mat in the later queue; the gameplay
+        // BeaconBeam.mat (Islands 1 to 5 beacons) keeps its queue.
+        Material finaleBeamMaterial = EnsureMaterial(BeamMaterialPath, beamMaterial.shader, "FinaleBeaconBeam");
+        finaleBeamMaterial.CopyPropertiesFromMaterial(beamMaterial);
+        finaleBeamMaterial.renderQueue = AfterSeaQueue;
+        EditorUtility.SetDirty(finaleBeamMaterial);
+        MeshRenderer lampBeamRenderer = beam.GetComponent<MeshRenderer>();
+        if (lampBeamRenderer != null)
+        {
+            lampBeamRenderer.sharedMaterial = finaleBeamMaterial;
+            EditorUtility.SetDirty(lampBeamRenderer);
+        }
 
         Mesh stormFull = EnsureMesh(StormFullPath, "StormRing_Full", BuildStormMesh(StormLayersFull, 5505));
         Mesh stormLow = EnsureMesh(StormLowPath, "StormRing_Low", BuildStormMesh(StormLayersLow, 5505));
         Material columnMaterial = EnsureMaterial(ColumnMaterialPath, additive, "FinaleColumn");
         columnMaterial.SetTexture("_BaseMap", soft);
-        // Over the pale sunrise sky pure additive amber washes out to a faint pink-white, while over the dark sea it reads as strong amber: the shaft looks
-        // cut at the horizon. Premultiplied alpha (_AlphaMix 1) tints both backgrounds the same amber, so it stays one shaft. Everything else that uses
-        // AdditiveUnlit keeps _AlphaMix 0 (purely additive).
+        // Purely additive amber (the shaft was never cut by the sky: the sea was drawn over it, see AfterSeaQueue).
         columnMaterial.SetColor("_BaseColor", new Color(1f, 0.78f, 0.45f, ColumnAlpha));
-        columnMaterial.SetFloat("_AlphaMix", 1f);
+        columnMaterial.renderQueue = AfterSeaQueue;
         EditorUtility.SetDirty(columnMaterial);
         Mesh columnMesh = EnsureMesh(ColumnMeshPath, "FinaleColumn", BuildColumn());
         Material sunMaterial = EnsureMaterial(SunMaterialPath, additive, "FinaleSun");
         sunMaterial.SetTexture("_BaseMap", soft);
         sunMaterial.SetColor("_BaseColor", new Color(1f, 0.74f, 0.38f, 0.9f));
+        sunMaterial.renderQueue = AfterSeaQueue;
         EditorUtility.SetDirty(sunMaterial);
         Mesh sunPathMesh = EnsureMesh(SunPathMeshPath, "FinaleSunPath", BuildSunPath());
         Mesh glowQuad = EnsureMesh(GlowQuadPath, "FinaleGlowQuad", BuildQuad());
@@ -253,7 +271,7 @@ public static partial class FinaleInstaller
             MeshRenderer propsRenderer = AddPart(island.transform, "MiniProps", bake.props, islandMaterial);
             MeshRenderer baseRenderer = AddPart(island.transform, "MiniBeaconBases", bake.beaconBase, islandMaterial);
             MeshRenderer glassRenderer = AddPart(island.transform, "MiniBeaconGlass", bake.glass, glassMaterial);
-            MeshRenderer beamsRenderer = AddPart(island.transform, "MiniBeaconBeams", bake.beams, beamMaterial);
+            MeshRenderer beamsRenderer = AddPart(island.transform, "MiniBeaconBeams", bake.beams, finaleBeamMaterial);
             MeshRenderer flameRenderer = AddPart(island.transform, "MiniBeaconFlames", bake.flame, glowMaterial);
 
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
