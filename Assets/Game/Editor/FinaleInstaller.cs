@@ -32,6 +32,7 @@ public static partial class FinaleInstaller
     const string SunMaterialPath = Folder + "/FinaleSun.mat";
     const string ColumnMeshPath = Folder + "/FinaleColumn.asset";
     const string ColumnMaterialPath = Folder + "/FinaleColumn.mat";
+    public const float ColumnAlpha = 0.9f;
     const string SoftTexturePath = "Assets/Game/Art/Look/Mist/MistSoft.png";
     // IslandBuilder.WaterFraction: the sea stands at 20% of the terrain height.
     const float WaterFraction = 0.2f;
@@ -152,7 +153,11 @@ public static partial class FinaleInstaller
         Mesh stormLow = EnsureMesh(StormLowPath, "StormRing_Low", BuildStormMesh(StormLayersLow, 5505));
         Material columnMaterial = EnsureMaterial(ColumnMaterialPath, additive, "FinaleColumn");
         columnMaterial.SetTexture("_BaseMap", soft);
-        columnMaterial.SetColor("_BaseColor", new Color(1f, 0.78f, 0.45f, 0.5f));
+        // Over the pale sunrise sky pure additive amber washes out to a faint pink-white, while over the dark sea it reads as strong amber: the shaft looks
+        // cut at the horizon. Premultiplied alpha (_AlphaMix 1) tints both backgrounds the same amber, so it stays one shaft. Everything else that uses
+        // AdditiveUnlit keeps _AlphaMix 0 (purely additive).
+        columnMaterial.SetColor("_BaseColor", new Color(1f, 0.78f, 0.45f, ColumnAlpha));
+        columnMaterial.SetFloat("_AlphaMix", 1f);
         EditorUtility.SetDirty(columnMaterial);
         Mesh columnMesh = EnsureMesh(ColumnMeshPath, "FinaleColumn", BuildColumn());
         Material sunMaterial = EnsureMaterial(SunMaterialPath, additive, "FinaleSun");
