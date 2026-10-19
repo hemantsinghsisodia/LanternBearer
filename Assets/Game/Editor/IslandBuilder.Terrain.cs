@@ -14,6 +14,7 @@ public static partial class IslandBuilder
         const int alphaResolution = 512;
         stage.worldSize = config.spire ? SpireWorldSize : config.islandRadius * 2f;
         stage.walkwayClear = config.spire ? 3.2f : 1.3f;
+        stage.clearBand = config.spire ? Island5ClearanceInstaller.BandSamples() : null;
         List<Vector2> isletXZ = new List<Vector2>();
         List<Vector2> beaconXZ = config.spire ? new List<Vector2>(SpireLayout.BeaconXZ()) : PlanBeaconXZ(config, out isletXZ);
         for (int i = 0; i < isletXZ.Count; i++)

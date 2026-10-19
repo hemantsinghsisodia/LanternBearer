@@ -49,6 +49,8 @@ public class PlayerController : MonoBehaviour
     bool wasSlowing;
 
     public bool IsSprinting { get; private set; }
+    // True while the player is pushing the stick or keys (the StuckRecovery safety net reads it).
+    public bool MoveInputHeld { get; private set; }
     public float HorizontalSpeed { get; private set; }
     public float CurrentSpeed { get; private set; }
     public float PlanarSpeed => planarVelocity.magnitude;
@@ -81,9 +83,41 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        distance = FreeKnockDistance(direction.normalized, distance);
+        if (distance <= 0.01f)
+        {
+            return;
+        }
+
         // Linear decay over KnockSeconds covers speed * KnockSeconds / 2.
         knockVelocity = direction.normalized * (2f * distance / KnockSeconds);
         knockLeft = KnockSeconds;
+    }
+
+    // How far a knock-back along `direction` (unit, horizontal) can travel before the keeper's capsule meets a wall or rock:
+    // a CapsuleCast the size of the CharacterController, stopping a skin short of the first hit, so a strike beside a wall
+    // never drives the controller into it.
+    public float FreeKnockDistance(Vector3 direction, float distance)
+    {
+        if (controller == null)
+        {
+            return distance;
+        }
+
+        float radius = controller.radius;
+        float half = Mathf.Max(controller.height * 0.5f - radius, 0f);
+        Vector3 centre = transform.TransformPoint(controller.center);
+        // Start the capsule a step above the feet so the ground and small steps do not stop the push.
+        Vector3 lift = Vector3.up * controller.stepOffset;
+        Vector3 top = centre + Vector3.up * half + lift;
+        Vector3 bottom = centre - Vector3.up * half + lift;
+        RaycastHit hit;
+        if (Physics.CapsuleCast(bottom, top, radius * 0.95f, direction, out hit, distance + 0.1f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            return Mathf.Max(0f, hit.distance - 0.1f);
+        }
+
+        return distance;
     }
     public static bool ExternalSprint;
     public static bool ExternalJump;
@@ -106,6 +140,12 @@ public class PlayerController : MonoBehaviour
 
         controller.slopeLimit = 50f;
         controller.stepOffset = 0.45f;
+        // Every island's keeper gets the stuck safety net at runtime, so the Islands 1-4 scenes stay untouched.
+        if (GetComponent<StuckRecovery>() == null)
+        {
+            gameObject.AddComponent<StuckRecovery>();
+        }
+
         lastPosition = transform.position;
         LastSafePosition = transform.position;
     }
@@ -159,6 +199,7 @@ public class PlayerController : MonoBehaviour
             ClearKnock();
             ExternalJump = false;
             IsSprinting = false;
+            MoveInputHeld = false;
             HorizontalSpeed = 0f;
             CurrentSpeed = 0f;
             planarVelocity = Vector3.zero;
@@ -228,6 +269,7 @@ public class PlayerController : MonoBehaviour
         }
 
         Vector3 input = new Vector3(inputX, 0f, inputZ);
+        MoveInputHeld = input.sqrMagnitude > 0.04f && !roundOver;
         if (input.sqrMagnitude > 1f)
         {
             input.Normalize();

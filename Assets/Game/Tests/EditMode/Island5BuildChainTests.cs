@@ -23,16 +23,17 @@ public class Island5BuildChainTests
         FieldInfo field = Builder().GetField("Island5PostSteps", BindingFlags.Public | BindingFlags.Static);
         Assert.IsNotNull(field, "IslandBuilder.Island5PostSteps");
         var steps = (ValueTuple<string, Action>[])field.GetValue(null);
-        Assert.AreEqual(9, steps.Length);
+        Assert.AreEqual(10, steps.Length);
         Assert.AreEqual("BridgeInstaller", steps[0].Item1);
         Assert.AreEqual("RingInstaller", steps[1].Item1);
         Assert.AreEqual("LighthouseInstaller", steps[2].Item1);
-        Assert.AreEqual("HorizonLighthouseInstaller", steps[3].Item1);
-        Assert.AreEqual("Island5PerfInstaller", steps[4].Item1);
-        Assert.AreEqual("FinaleInstaller", steps[5].Item1);
-        Assert.AreEqual("StormSurgeInstaller", steps[6].Item1);
-        Assert.AreEqual("LightningHunterInstaller", steps[7].Item1);
-        Assert.AreEqual("AudioInstaller", steps[8].Item1);
+        Assert.AreEqual("Island5ClearanceInstaller", steps[3].Item1);
+        Assert.AreEqual("HorizonLighthouseInstaller", steps[4].Item1);
+        Assert.AreEqual("Island5PerfInstaller", steps[5].Item1);
+        Assert.AreEqual("FinaleInstaller", steps[6].Item1);
+        Assert.AreEqual("StormSurgeInstaller", steps[7].Item1);
+        Assert.AreEqual("LightningHunterInstaller", steps[8].Item1);
+        Assert.AreEqual("AudioInstaller", steps[9].Item1);
         for (int i = 0; i < steps.Length; i++)
         {
             Assert.IsNotNull(steps[i].Item2, steps[i].Item1);
