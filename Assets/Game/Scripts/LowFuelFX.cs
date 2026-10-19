@@ -20,6 +20,9 @@ public class LowFuelFX : MonoBehaviour
     Color pulseColour;
     static bool loggedFallback;
     const float MothPulseStrength = 0.45f;
+    // Once the round is won (the dawn or the finale plays) every low-fuel effect fades to its calm value over this long and stays off.
+    const float WinCalmSeconds = 0.5f;
+    float winCalm;
     static readonly Color DrainViolet = LookPalette.FromHex(LookPalette.DrainViolet);
 
     void Awake()
@@ -93,6 +96,11 @@ public class LowFuelFX : MonoBehaviour
     }
 
     public float EdgePulseAmount => edgePulse;
+    // 0 while the effects run, 1 once they have faded out after a win.
+    public float WinCalm => winCalm;
+    // Whether the fuel vignette and the desaturation are currently overriding the look volume (false at the calm, full-fuel look).
+    public bool VignetteOverridden => vignette != null && vignette.intensity.overrideState;
+    public bool SaturationOverridden => color != null && color.saturation.overrideState;
     // How many moth drain pulses have been requested (tests read it).
     public int MothPulsesRequested { get; private set; }
 
@@ -150,10 +158,25 @@ public class LowFuelFX : MonoBehaviour
             return;
         }
 
-        UpdateMothPulse();
+        // After a win the fuel vignette, the low-fuel pulse, the moth and storm pulses and the proximity dim all fade out and stay off (the death
+        // sequence is not a win, so it keeps its own look).
+        GameManager manager = GameManager.Instance;
+        bool won = manager != null && manager.WinStarted;
+        winCalm = Mathf.MoveTowards(winCalm, won ? 1f : 0f, Time.unscaledDeltaTime / WinCalmSeconds);
+        if (winCalm >= 1f)
+        {
+            edgePulse = 0f;
+            tinted = false;
+            mothClock = 0f;
+        }
+        else
+        {
+            UpdateMothPulse();
+        }
+
         float fuel = lantern.FuelNormalized;
         float amount = Mathf.Lerp(0.55f, 0.18f, fuel);
-        if (fuel < 0.2f)
+        if (fuel < 0.2f && winCalm < 1f)
         {
             // Reduce flashing halves the pulse rate. The phase is accumulated so a rate change does not jump.
             pulsePhase += Time.deltaTime * SettingsMath.LowFuelPulseRate(6f, UserSettings.ReduceFlashing);
@@ -167,6 +190,10 @@ public class LowFuelFX : MonoBehaviour
             amount += edgePulse * 0.4f;
             edgePulse = Mathf.MoveTowards(edgePulse, 0f, Time.deltaTime / 0.8f);
         }
+
+        // The win blends everything above back to the full-fuel look.
+        amount = Mathf.Lerp(amount, LookMapping.FullFuelVignette, winCalm);
+        tintNow &= winCalm < 1f;
 
         // The tint is overridden only while a tinted pulse is on screen; afterwards the look volume's vignette colour shows again.
         vignette.color.overrideState = tintNow;
@@ -182,7 +209,7 @@ public class LowFuelFX : MonoBehaviour
         if (color != null)
         {
             // At full fuel the override is released so the look volume's grade shows through.
-            float saturation = Mathf.Lerp(-45f, 0f, fuel);
+            float saturation = Mathf.Lerp(Mathf.Lerp(-45f, 0f, fuel), 0f, winCalm);
             color.saturation.overrideState = Mathf.Abs(saturation) > 0.01f;
             color.saturation.value = saturation;
         }
