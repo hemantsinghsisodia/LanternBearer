@@ -45,13 +45,16 @@ public static class WebBuildSetup
         Debug.Log("Web renderer and quality levels ready.");
     }
 
-    // PC_Renderer without the SSAO feature. Forward+ stays (URP 17.6 supports it on WebGL2; the light cap there is the
-    // mobile/GLES value, 32 visible additional lights, chosen by importance). MoonRim stays: it needs only the depth texture.
+    // PC_Renderer without the SSAO feature, switched to plain Forward. Forward+ must not be used on WebGL: its lit fragment
+    // shaders (cluster loops over urp_ZBins/urp_Tiles, about 70 KB of GLSL) make the browser's ANGLE/D3D11 shader compile
+    // kill the GPU process, so the WebGL context is lost and the canvas stays black. MoonRim stays: it needs only the depth texture.
+    const int ForwardRenderingMode = 0;
     static ScriptableRendererData EnsureWebRenderer()
     {
         ScriptableRendererData existing = AssetDatabase.LoadAssetAtPath<ScriptableRendererData>(WebRendererPath);
         if (existing != null)
         {
+            SetForwardRendering(existing);
             return existing;
         }
         if (!AssetDatabase.CopyAsset(PcRendererPath, WebRendererPath))
@@ -98,9 +101,22 @@ public static class WebBuildSetup
             map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
         }
         so.ApplyModifiedPropertiesWithoutUndo();
+        SetForwardRendering(data);
         EditorUtility.SetDirty(data);
         AssetDatabase.SaveAssets();
         return data;
+    }
+
+    static void SetForwardRendering(ScriptableRendererData data)
+    {
+        SerializedObject so = new SerializedObject(data);
+        SerializedProperty mode = so.FindProperty("m_RenderingMode");
+        if (mode != null && mode.intValue != ForwardRenderingMode)
+        {
+            mode.intValue = ForwardRenderingMode;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(data);
+        }
     }
 
     static UniversalRenderPipelineAsset EnsureWebPipeline(string path, string sourcePath, ScriptableRendererData renderer, bool low)

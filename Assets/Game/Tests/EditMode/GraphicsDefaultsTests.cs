@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace LanternKeeper.Tests
@@ -21,6 +22,17 @@ public class GraphicsDefaultsTests
     {
         Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(platform));
         Assert.AreEqual(1, GraphicsDefaults.For(platform));
+    }
+
+    // Forward+ lit shaders crash the browser GPU process on WebGL (black canvas, lost context); the web renderer must stay Forward.
+    [Test]
+    public void WebRendererUsesForwardNotForwardPlus()
+    {
+        Object renderer = AssetDatabase.LoadAssetAtPath<Object>("Assets/Settings/Web_Renderer.asset");
+        Assert.IsNotNull(renderer);
+        SerializedProperty mode = new SerializedObject(renderer).FindProperty("m_RenderingMode");
+        Assert.IsNotNull(mode);
+        Assert.AreEqual(0, mode.intValue, "Web_Renderer rendering mode must be Forward (0)");
     }
 
     [Test]
