@@ -145,6 +145,17 @@ public class MusicDirector : MonoBehaviour
         track.clip = trackClip;
         // The tension loop is a separate piece of music and need not match the track's length: both start at the same DSP
         // time, then each loops on its own.
+#if UNITY_WEBGL
+        // The browser audio backend has no DSP clock: AudioSettings.dspTime and PlayScheduled make Unity's FMOD layer log
+        // "FMOD returns error code ..." lines. Both layers start in the same frame instead.
+        track.Play();
+        if (tensionClip != null)
+        {
+            tension.clip = tensionClip;
+            tension.Play();
+            hasTension = true;
+        }
+#else
         double start = AudioSettings.dspTime + StartDelay;
         track.PlayScheduled(start);
         if (tensionClip != null)
@@ -153,6 +164,7 @@ public class MusicDirector : MonoBehaviour
             tension.PlayScheduled(start);
             hasTension = true;
         }
+#endif
 
         routed = false;
         ApplyVolumes();
