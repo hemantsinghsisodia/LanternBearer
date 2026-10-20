@@ -67,3 +67,6 @@ ArtSource/Audio/work/
 # Unity scene auto-recovery backups (created after a crash or unclean close)
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Burst output folder that each WebGL build leaves at the repo root (root only)
+/Data/
