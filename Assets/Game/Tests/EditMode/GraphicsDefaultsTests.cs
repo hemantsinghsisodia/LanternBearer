@@ -7,10 +7,10 @@ namespace LanternKeeper.Tests
 public class GraphicsDefaultsTests
 {
     [Test]
-    public void WebDefaultsToHigh()
+    public void WebDefaultsToMedium()
     {
-        Assert.AreEqual(GraphicsDefaults.HighLevel, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
-        Assert.AreEqual(2, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
+        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
+        Assert.AreEqual(1, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
     }
 
     [TestCase(RuntimePlatform.WindowsPlayer)]

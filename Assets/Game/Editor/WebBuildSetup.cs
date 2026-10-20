@@ -202,14 +202,14 @@ public static class WebBuildSetup
             }
         }
 
-        // The default web level is High (index 2 of the four web levels). Desktop defaults are untouched.
+        // The default web level is Medium (index 1 of the four web levels). Desktop defaults are untouched.
         SerializedProperty platforms = so.FindProperty("m_PerPlatformDefaultQuality");
         for (int i = 0; i < platforms.arraySize; i++)
         {
             SerializedProperty pair = platforms.GetArrayElementAtIndex(i);
             if (pair.FindPropertyRelative("first").stringValue == "WebGL")
             {
-                pair.FindPropertyRelative("second").intValue = GraphicsDefaults.HighLevel;
+                pair.FindPropertyRelative("second").intValue = GraphicsDefaults.MediumLevel;
             }
         }
 

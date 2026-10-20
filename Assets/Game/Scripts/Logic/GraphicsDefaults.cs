@@ -9,10 +9,10 @@ public static class GraphicsDefaults
     public const int MediumLevel = 1;
     public const int HighLevel = 2;
 
-    // The preset used when the player has no saved choice. Browsers default to High, everything else to Medium.
+    // The preset used when the player has no saved choice. Every platform, browsers included, defaults to Medium.
     public static int For(RuntimePlatform platform)
     {
-        return IsWeb(platform) ? HighLevel : MediumLevel;
+        return MediumLevel;
     }
 
     public static bool IsWeb(RuntimePlatform platform)

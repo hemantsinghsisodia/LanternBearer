@@ -96,7 +96,10 @@
       function unlockAudio() {
         try {
           var m = unityInstanceRef && unityInstanceRef.Module;
-          var ctx = m && m.WEBAudio && m.WEBAudio.audioContext;
+          // Development builds define an assertion getter on unexported Module names; merely reading Module.WEBAudio there
+          // aborts the runtime. Only read it when it is a plain data property (release builds), never through a getter.
+          var d = m && Object.getOwnPropertyDescriptor(m, "WEBAudio");
+          var ctx = d && d.get === undefined && d.value && d.value.audioContext;
           if (ctx && ctx.state !== "running") { ctx.resume(); }
         } catch (e) { }
         try {
