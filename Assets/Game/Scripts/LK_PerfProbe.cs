@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL // Command-line driven profiling harness: no command line, files or threads in a browser.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -771,3 +772,4 @@ public class LK_PerfProbe : MonoBehaviour
     }
 }
 }
+#endif

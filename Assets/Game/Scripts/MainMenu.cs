@@ -113,6 +113,9 @@ public class MainMenu : MonoBehaviour
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
+#elif UNITY_WEBGL
+        // A browser tab cannot be closed by the game. Save and do nothing.
+        PlayerPrefs.Save();
 #else
         Application.Quit();
 #endif

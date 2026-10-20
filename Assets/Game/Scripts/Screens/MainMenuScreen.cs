@@ -25,6 +25,9 @@ public class MainMenuScreen : MonoBehaviour
     private int selected;
     private bool initialised;
 
+    // False in a browser: a tab cannot be quit from inside the game, so the Quit button is hidden there.
+    private static bool QuitAvailable { get { return GraphicsDefaults.CanQuit(Application.platform); } }
+
     public ThemedButton PlayButton { get { return playButton; } }
     public IslandList Islands { get { return islandList; } }
     public int SelectedIndex { get { return selected; } }
@@ -51,6 +54,7 @@ public class MainMenuScreen : MonoBehaviour
         logButton.onClick.AddListener(OpenLog);
         settingsButton.onClick.AddListener(OpenSettings);
         quitButton.onClick.AddListener(Quit);
+        quitButton.gameObject.SetActive(QuitAvailable);
         islandList.Chosen += OnIslandChosen;
         difficultyRow.IndexChanged += OnDifficultyChanged;
         Refresh();
@@ -171,7 +175,9 @@ public class MainMenuScreen : MonoBehaviour
 
     private void LinkNavigation()
     {
-        Button[] actions = { playButton, logButton, settingsButton, quitButton };
+        Button[] actions = QuitAvailable
+            ? new Button[] { playButton, logButton, settingsButton, quitButton }
+            : new Button[] { playButton, logButton, settingsButton };
         Selectable target = islandList.RowSelectable(selected);
         for (int i = 0; i < actions.Length; i++)
         {
