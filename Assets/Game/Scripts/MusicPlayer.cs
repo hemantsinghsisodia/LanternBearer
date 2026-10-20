@@ -32,6 +32,7 @@ public class MusicPlayer : MonoBehaviour
     bool fading;
     bool sceneRefsResolved;
     bool mixerRouted;
+    bool webAudioUnlocked;
 
     public static MusicPlayer Instance { get; private set; }
     public AudioSource FirstMusic => sourceA;
@@ -122,6 +123,10 @@ public class MusicPlayer : MonoBehaviour
             ToggleMute();
         }
 
+#if UNITY_WEBGL
+        UnlockWebAudio();
+#endif
+
         if (!sceneRefsResolved)
         {
             ResolveSceneRefs();
@@ -130,6 +135,40 @@ public class MusicPlayer : MonoBehaviour
         TickFade();
         ApplyVolumes();
         RouteMixer();
+    }
+
+    // Browsers keep the audio context suspended until the first click or key press (the page template's "Click to start" is that
+    // gesture). On the first input of any kind, make sure the track that should be playing is playing, so the menu music is
+    // never left silent. Unity resumes the context itself on the same event.
+    void UnlockWebAudio()
+    {
+        if (webAudioUnlocked)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        Mouse mouse = Mouse.current;
+        Touchscreen touch = Touchscreen.current;
+        bool input = (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+            || (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+            || (touch != null && touch.primaryTouch.press.wasPressedThisFrame);
+        if (!input)
+        {
+            return;
+        }
+
+        webAudioUnlocked = true;
+        AudioListener.pause = false;
+        if (active == null)
+        {
+            ApplyScene(SceneManager.GetActiveScene().name);
+        }
+
+        if (active != null && active.clip != null && !active.isPlaying)
+        {
+            active.Play();
+        }
     }
 
     void RouteMixer()

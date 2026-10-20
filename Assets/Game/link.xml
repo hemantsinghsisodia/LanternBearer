@@ -1,0 +1,11 @@
+<linker>
+  <!-- Managed stripping is Medium for the WebGL player. The game itself uses no reflection at runtime (tests only), but its
+       MonoBehaviours and ScriptableObjects (SoundBank, GraphicsProfileSet, MusicLibrary, LevelConfig and the UI kit) are
+       created by the serializer and by AddComponent, so every game assembly is kept whole. Game code is a small share of the
+       build; the size savings come from engine stripping, textures and audio. -->
+  <assembly fullname="Assembly-CSharp" preserve="all"/>
+  <assembly fullname="LanternKeeper.Logic" preserve="all"/>
+  <assembly fullname="LanternKeeper.Look" preserve="all"/>
+  <assembly fullname="LanternKeeper.UI" preserve="all"/>
+  <assembly fullname="LanternKeeper.Hud" preserve="all"/>
+</linker>

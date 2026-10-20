@@ -30,7 +30,7 @@ public static class GraphicsQuality
                 return commandLineLevel;
             }
 
-            int value = PlayerPrefs.GetInt(PrefsKey, (int)GraphicsLevel.Medium);
+            int value = PlayerPrefs.GetInt(PrefsKey, GraphicsDefaults.For(Application.platform));
             if (value < 0 || value > (int)GraphicsLevel.Ultra)
             {
                 return GraphicsLevel.Medium;
@@ -127,12 +127,51 @@ public static class GraphicsQuality
         for (int i = 0; i < QualitySettings.names.Length; i++)
         {
             UniversalRenderPipelineAsset asset = QualitySettings.GetRenderPipelineAssetAt(i) as UniversalRenderPipelineAsset;
-            GraphicsProfile profile = set.Get(Clamp(i));
+            GraphicsProfile profile = set.Get(LevelOfIndex(i));
             if (asset != null && profile != null && !Mathf.Approximately(asset.renderScale, profile.renderScale))
             {
                 asset.renderScale = profile.renderScale;
             }
         }
+    }
+
+    // The browser build has its own four quality levels ("Web Low" .. "Web Ultra"; see WebBuildSetup). On a player the other
+    // platform's levels are stripped, so the index is the level itself; looking the level up by name also keeps the editor right,
+    // where every level is listed.
+    static string QualityName(GraphicsLevel level)
+    {
+        return (GraphicsDefaults.IsWeb(Application.platform) ? "Web " : "") + level;
+    }
+
+    static int IndexOfLevel(GraphicsLevel level)
+    {
+        string wanted = QualityName(level);
+        string[] names = QualitySettings.names;
+        for (int i = 0; i < names.Length; i++)
+        {
+            if (names[i] == wanted)
+            {
+                return i;
+            }
+        }
+
+        return (int)level;
+    }
+
+    static GraphicsLevel LevelOfIndex(int index)
+    {
+        string[] names = QualitySettings.names;
+        if (index >= 0 && index < names.Length)
+        {
+            string name = names[index].StartsWith("Web ", StringComparison.Ordinal) ? names[index].Substring(4) : names[index];
+            GraphicsLevel parsed;
+            if (Enum.TryParse(name, out parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return Clamp(index);
     }
 
     static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -143,7 +182,7 @@ public static class GraphicsQuality
 
     static void Apply(GraphicsLevel level, bool raise)
     {
-        int index = (int)Clamp(level);
+        int index = IndexOfLevel(Clamp(level));
         if (index >= 0 && index < QualitySettings.names.Length)
         {
             QualitySettings.SetQualityLevel(index, true);
@@ -218,7 +257,11 @@ public static class GraphicsQuality
         }
 
         commandLineChecked = true;
+#if UNITY_WEBGL
+        string[] args = new string[0];
+#else
         string[] args = Environment.GetCommandLineArgs();
+#endif
         for (int i = 0; i < args.Length; i++)
         {
             string value = null;

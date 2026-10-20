@@ -159,6 +159,15 @@ public class GameManager : MonoBehaviour
         return pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
     }
 
+    // A browser tab can be hidden or closed without a quit event, so flush saves whenever the app is paused too.
+    void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            PlayerPrefs.Save();
+        }
+    }
+
     void OnApplicationQuit()
     {
         PlayerPrefs.Save();

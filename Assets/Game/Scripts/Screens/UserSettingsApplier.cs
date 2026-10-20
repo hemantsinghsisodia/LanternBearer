@@ -375,6 +375,10 @@ public class UserSettingsApplier : MonoBehaviour
     // Calls Screen.SetResolution only when the wanted size, refresh rate or window mode differs from the last request.
     private void ApplyScreen()
     {
+        if (!GraphicsDefaults.HasDisplayModeOptions(Application.platform))
+        {
+            return;
+        }
         // Until the player has chosen a size or window mode the game leaves the screen alone.
         if (!UserSettings.HasSavedDisplay)
         {

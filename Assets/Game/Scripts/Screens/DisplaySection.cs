@@ -64,6 +64,12 @@ public class DisplaySection : MonoBehaviour
 
     public void Refresh()
     {
+        // In a browser the page owns the window: no resolution list and no window mode (the page has a fullscreen button).
+        if (!GraphicsDefaults.HasDisplayModeOptions(Application.platform))
+        {
+            resolutionRow.gameObject.SetActive(false);
+            windowRow.gameObject.SetActive(false);
+        }
         float ev = SettingsMath.BrightnessToEv(UserSettings.Brightness);
         brightnessRow.SetValueWithoutNotify((ev + 1f) * 0.5f);
         PaintCard(ev);
