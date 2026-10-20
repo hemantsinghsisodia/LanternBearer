@@ -58,3 +58,6 @@ Choose what fits: **No payments** (free), **Pay what you want** (with a minimum 
 - Exact labels for the embed options and the platform checkboxes (itch.io renames these occasionally).
 - Whether the first load is acceptable on a slow connection. The web zip is about 100 MB, so the first visit takes a while. Later visits use the browser cache.
 - Browsers that already ran a test build keep any graphics choice they saved. The default of Medium applies only to fresh browsers.
+
+## Rebuilding the browser build
+Switch the Editor to the **WebGL** platform first (Lantern Keeper > Web > Switch To WebGL, or File > Build Profiles > Web > Switch Platform), wait for the reimport and compile to finish, then build. A WebGL player built while Windows is the active platform comes out with its lit surfaces invisible (terrain, trees, rocks and keeper wash into the fog colour, some objects turn magenta) and no build error. A build guard (`WebBuildGuard`) now refuses that build. Switch back to Windows afterwards.
