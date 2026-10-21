@@ -70,3 +70,11 @@ ArtSource/Audio/work/
 
 # Burst output folder that each WebGL build leaves at the repo root (root only)
 /Data/
+
+# Unity 6 Build Profiles: local editor state created by platform switches
+/[Aa]ssets/Settings/Build Profiles/
+/[Aa]ssets/Settings/Build Profiles.meta
+
+# Empty Resources folder that builds leave behind (the project has no Resources assets)
+/[Aa]ssets/Resources/
+/[Aa]ssets/Resources.meta
