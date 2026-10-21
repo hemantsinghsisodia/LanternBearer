@@ -127,6 +127,7 @@ public class CameraFollow : MonoBehaviour
         ApplyCursor(menu);
         if (target == null || menu)
         {
+            ExternalLookDelta = Vector2.zero;
             return;
         }
 

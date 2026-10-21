@@ -2,21 +2,36 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+namespace LanternKeeper
+{
 /// <summary>
-/// Single place for the button-style actions that keyboard and touch share. Touch presses are stamped with the frame they
-/// happened in: every reader in that frame sees the press, and it is gone the next frame (no consume-once, so script
-/// order between readers does not matter). The touch overlay must therefore set presses before the readers run.
+/// Single place for the button-style actions that keyboard and touch share. A touch press stays pending until the first
+/// reader looks at it; every reader in that frame sees it, and it is consumed on any later frame. The setter may run
+/// before or after the readers (Update order, LateUpdate, callbacks). A press nobody reads within PressLifetime
+/// seconds expires, so a tap made while nothing listens does not fire later.
 /// </summary>
 public static class GameInput
 {
+    public const float PressLifetime = 0.25f;
+
     /// <summary>Frame counter source. Replaced by tests.</summary>
     public static Func<int> FrameSource = DefaultFrame;
 
+    /// <summary>Real-time clock source (seconds). Replaced by tests.</summary>
+    public static Func<float> TimeSource = DefaultTime;
+
     const int None = int.MinValue;
 
-    static int interactFrame = None;
-    static int pauseFrame = None;
-    static int jumpFrame = None;
+    struct Press
+    {
+        public bool Pending;
+        public int SeenFrame;
+        public float SetTime;
+    }
+
+    static Press interact;
+    static Press pause;
+    static Press jump;
     static bool touchSprint;
 
     static int DefaultFrame()
@@ -24,19 +39,59 @@ public static class GameInput
         return Time.frameCount;
     }
 
+    static float DefaultTime()
+    {
+        return Time.realtimeSinceStartup;
+    }
+
+    static void Set(ref Press press)
+    {
+        press.Pending = true;
+        press.SeenFrame = None;
+        press.SetTime = TimeSource();
+    }
+
+    static bool Read(ref Press press)
+    {
+        if (!press.Pending)
+        {
+            return false;
+        }
+
+        int now = FrameSource();
+        if (press.SeenFrame == None)
+        {
+            if (TimeSource() - press.SetTime > PressLifetime)
+            {
+                press = default(Press);
+                return false;
+            }
+
+            press.SeenFrame = now;
+        }
+
+        if (now == press.SeenFrame)
+        {
+            return true;
+        }
+
+        press = default(Press);
+        return false;
+    }
+
     public static void PressInteract()
     {
-        interactFrame = FrameSource();
+        Set(ref interact);
     }
 
     public static void PressPause()
     {
-        pauseFrame = FrameSource();
+        Set(ref pause);
     }
 
     public static void PressJump()
     {
-        jumpFrame = FrameSource();
+        Set(ref jump);
     }
 
     public static void SetTouchSprint(bool held)
@@ -47,34 +102,22 @@ public static class GameInput
     public static bool InteractPressed()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
-        {
-            return true;
-        }
-
-        return interactFrame == FrameSource();
+        bool key = keyboard != null && keyboard.eKey.wasPressedThisFrame;
+        return Read(ref interact) || key;
     }
 
     public static bool PausePressed()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame))
-        {
-            return true;
-        }
-
-        return pauseFrame == FrameSource();
+        bool key = keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame);
+        return Read(ref pause) || key;
     }
 
     public static bool JumpPressed()
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
-        {
-            return true;
-        }
-
-        return jumpFrame == FrameSource();
+        bool key = keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
+        return Read(ref jump) || key;
     }
 
     public static bool SprintHeld()
@@ -88,13 +131,15 @@ public static class GameInput
         return touchSprint;
     }
 
-    /// <summary>Test hook: clears all touch state and restores the real frame source.</summary>
+    /// <summary>Test hook: clears all touch state and restores the real frame and time sources.</summary>
     public static void ResetForTests()
     {
         FrameSource = DefaultFrame;
-        interactFrame = None;
-        pauseFrame = None;
-        jumpFrame = None;
+        TimeSource = DefaultTime;
+        interact = default(Press);
+        pause = default(Press);
+        jump = default(Press);
         touchSprint = false;
     }
+}
 }

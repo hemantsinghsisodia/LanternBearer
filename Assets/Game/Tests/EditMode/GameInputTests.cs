@@ -5,13 +5,16 @@ namespace LanternKeeper.Tests
 public class GameInputTests
 {
     int frame;
+    float time;
 
     [SetUp]
     public void SetUp()
     {
         GameInput.ResetForTests();
         frame = 100;
+        time = 10f;
         GameInput.FrameSource = () => frame;
+        GameInput.TimeSource = () => time;
     }
 
     [TearDown]
@@ -37,6 +40,8 @@ public class GameInputTests
         Assert.IsTrue(GameInput.InteractPressed());
         frame++;
         Assert.IsFalse(GameInput.InteractPressed());
+        frame++;
+        Assert.IsFalse(GameInput.InteractPressed());
     }
 
     [Test]
@@ -59,6 +64,49 @@ public class GameInputTests
     }
 
     [Test]
+    public void SetterAfterReaderInSameFrameIsSeenNextFrameOnce()
+    {
+        Assert.IsFalse(GameInput.JumpPressed());
+        GameInput.PressJump();
+        frame++;
+        Assert.IsTrue(GameInput.JumpPressed());
+        Assert.IsTrue(GameInput.JumpPressed());
+        frame++;
+        Assert.IsFalse(GameInput.JumpPressed());
+    }
+
+    [Test]
+    public void LateUpdateSetterIsSeenNextFrame()
+    {
+        // Update readers (nothing), then LateUpdate sets, then next frame's Update readers.
+        Assert.IsFalse(GameInput.InteractPressed());
+        GameInput.PressInteract();
+        frame++;
+        time += 0.016f;
+        Assert.IsTrue(GameInput.InteractPressed());
+    }
+
+    [Test]
+    public void UnreadPressExpiresAfterLifetime()
+    {
+        GameInput.PressInteract();
+        frame += 3;
+        time += GameInput.PressLifetime + 0.01f;
+        Assert.IsFalse(GameInput.InteractPressed());
+        frame++;
+        Assert.IsFalse(GameInput.InteractPressed());
+    }
+
+    [Test]
+    public void UnreadPressWithinLifetimeStillFires()
+    {
+        GameInput.PressInteract();
+        frame += 3;
+        time += GameInput.PressLifetime - 0.05f;
+        Assert.IsTrue(GameInput.InteractPressed());
+    }
+
+    [Test]
     public void PressesAreIndependent()
     {
         GameInput.PressJump();
@@ -78,9 +126,10 @@ public class GameInputTests
     }
 
     [Test]
-    public void PressAfterClearIsSeenAgain()
+    public void SecondPressAfterConsumeIsSeenAgain()
     {
         GameInput.PressInteract();
+        Assert.IsTrue(GameInput.InteractPressed());
         frame++;
         GameInput.PressInteract();
         Assert.IsTrue(GameInput.InteractPressed());
@@ -121,10 +170,28 @@ public class TouchModeTests
     }
 
     [Test]
-    public void EmulatedMouseAfterTouchDoesNotFlipMode()
+    public void MouseMoveRightAfterTouchIsIgnored()
     {
-        // The tracker passes mouseMovedWithoutRecentTouch = false while the 0.5 s guard is active.
-        Assert.IsTrue(TouchMode.Next(true, false, false, false));
+        Assert.IsFalse(TouchMode.MouseMovedWithoutRecentTouch(5f, 10.2f, 10f));
+        Assert.IsTrue(TouchMode.MouseMovedWithoutRecentTouch(5f, 10.6f, 10f));
+        Assert.IsFalse(TouchMode.MouseMovedWithoutRecentTouch(0.2f, 20f, 10f));
+    }
+
+    [Test]
+    public void LongDragKeepsGuardAlive()
+    {
+        // Finger goes down at t=10 and stays down for 3 s with compat mouse moves arriving the whole time.
+        float last = TouchMode.UpdateLastTouchTime(-100f, 10f, true, true);
+        for (float t = 10.1f; t <= 13f; t += 0.1f)
+        {
+            last = TouchMode.UpdateLastTouchTime(last, t, false, true);
+            Assert.IsFalse(TouchMode.MouseMovedWithoutRecentTouch(4f, t, last), "t=" + t);
+        }
+
+        // Finger lifts at 13; moves within 0.5 s still ignored, later ones count.
+        last = TouchMode.UpdateLastTouchTime(last, 13.3f, false, false);
+        Assert.IsFalse(TouchMode.MouseMovedWithoutRecentTouch(4f, 13.4f, last));
+        Assert.IsTrue(TouchMode.MouseMovedWithoutRecentTouch(4f, 13.7f, last));
     }
 
     [Test]
