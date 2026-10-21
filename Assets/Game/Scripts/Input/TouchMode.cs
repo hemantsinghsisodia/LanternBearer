@@ -21,8 +21,39 @@ public static class TouchMode
 
     public static bool Active { get; private set; }
 
-    /// <summary>Whether the device looked like a touch device at startup (mobile platform or touch browser). Fixed for the session.</summary>
-    public static bool StartedAsTouch { get; private set; }
+    static bool? started;
+
+    /// <summary>Test seam: how the startup touch check is made. The default asks the platform and the browser.</summary>
+    public static Func<bool> StartDetector = DetectStart;
+
+    static bool DetectStart()
+    {
+        return Initial(Application.isMobilePlatform, BrowserSaysTouch());
+    }
+
+    /// <summary>
+    /// Whether the device looked like a touch device at startup (mobile platform or touch browser). Worked out on first use, so
+    /// it is right even before the first scene loads (GraphicsQuality.Boot runs BeforeSceneLoad), then fixed for the session.
+    /// </summary>
+    public static bool StartedAsTouch
+    {
+        get
+        {
+            if (!started.HasValue)
+            {
+                started = StartDetector();
+            }
+
+            return started.Value;
+        }
+    }
+
+    /// <summary>Test hook: forgets the cached startup check and restores the default detector.</summary>
+    public static void ResetStartForTests()
+    {
+        started = null;
+        StartDetector = DetectStart;
+    }
 
     public static event Action OnChanged;
 
@@ -113,7 +144,6 @@ public static class TouchMode
             return;
         }
 
-        StartedAsTouch = Initial(Application.isMobilePlatform, BrowserSaysTouch());
         Set(StartedAsTouch);
 
         // Domain reload may be disabled, so a tracker from an earlier play session can still be referenced here.

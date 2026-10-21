@@ -64,6 +64,27 @@ public class TouchWordingTests
     }
 
     [Test]
+    public void StartedAsTouchIsDetectedLazilyOnceAndFixed()
+    {
+        int calls = 0;
+        bool answer = true;
+        try
+        {
+            TouchMode.ResetStartForTests();
+            TouchMode.StartDetector = () => { calls++; return answer; };
+            Assert.AreEqual(0, calls, "nothing is detected until the first read");
+            Assert.IsTrue(TouchMode.StartedAsTouch);
+            answer = false;
+            Assert.IsTrue(TouchMode.StartedAsTouch, "fixed for the session once read");
+            Assert.AreEqual(1, calls);
+        }
+        finally
+        {
+            TouchMode.ResetStartForTests();
+        }
+    }
+
+    [Test]
     public void ControlIdParsesBackToAnIndex()
     {
         int index;

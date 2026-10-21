@@ -30,10 +30,10 @@ public sealed class WebBridge : MonoBehaviour
         instance = host.AddComponent<WebBridge>();
     }
 
-    // Called from JavaScript (SendMessage passes the number as an int).
-    public void SetPortrait(int value)
+    // Called from JavaScript. SendMessage delivers a JS number as a float (an int parameter is not guaranteed), so this takes a float.
+    public void SetPortrait(float value)
     {
-        portrait = value != 0;
+        portrait = value > 0.5f;
         if (!portrait)
         {
             applied = false;

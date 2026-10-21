@@ -486,10 +486,10 @@ public class TouchControlsTest
         Assert.IsNotNull(bridge, "the web bridge object exists");
         Component manager = (Component)Find("GameManager");
         Assert.IsFalse(Get<bool>(manager, "IsPaused"));
-        bridge.SendMessage("SetPortrait", (object)1);
+        bridge.SendMessage("SetPortrait", (object)1f, SendMessageOptions.RequireReceiver);
         yield return Frames(2);
         Assert.IsTrue(Get<bool>(manager, "IsPaused"), "portrait opens the pause screen");
-        bridge.SendMessage("SetPortrait", (object)0);
+        bridge.SendMessage("SetPortrait", (object)0f, SendMessageOptions.RequireReceiver);
         yield return Frames(2);
         Assert.IsTrue(Get<bool>(manager, "IsPaused"), "going back to landscape leaves the pause screen for the player");
         manager.GetType().GetMethod("Resume", BindingFlags.Public | BindingFlags.Instance).Invoke(manager, null);

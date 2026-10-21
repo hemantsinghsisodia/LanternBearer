@@ -23,7 +23,7 @@ public class CreditsRoll : MonoBehaviour
     public const float FadeInSeconds = 1f;
     public const float HintFadeSeconds = 0.6f;
     public const float HintAlphaTarget = 0.55f;
-    public const string HintText = "Press any key to skip";
+    public const string HintText = TouchWording.KeyboardCreditsHint;
     public const float ExitFadeSeconds = 0.8f;
     public const string MenuScene = "MainMenu";
     public const string Closing = "Thank you for keeping the light.";
