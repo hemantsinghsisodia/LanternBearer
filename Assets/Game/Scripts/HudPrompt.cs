@@ -16,6 +16,7 @@ sealed class HudPrompt
     readonly TMP_Text text;
     bool shaking;
     bool afford;
+    bool lineTouch;
     bool homeReady;
     int cost = int.MinValue;
     string line;
@@ -93,11 +94,13 @@ sealed class HudPrompt
 
         int nextCost = Mathf.RoundToInt(nearest.FuelCost);
         bool canAfford = lantern != null && lantern.Fuel >= nearest.FuelCost;
-        if (line == null || nextCost != cost || canAfford != afford)
+        bool touch = TouchMode.Active;
+        if (line == null || nextCost != cost || canAfford != afford || touch != lineTouch)
         {
             cost = nextCost;
             afford = canAfford;
-            line = canAfford ? "E  Light beacon (-" + cost + ")" : "Not enough light (-" + cost + ")";
+            lineTouch = touch;
+            line = canAfford ? TouchWording.BeaconLight(touch, cost) : "Not enough light (-" + cost + ")";
             if (text.text != line)
             {
                 text.text = line;

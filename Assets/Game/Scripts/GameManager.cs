@@ -155,6 +155,11 @@ public class GameManager : MonoBehaviour
             return true;
         }
 
+        if (GameInput.TouchPressedThisFrame())
+        {
+            return true;
+        }
+
         Gamepad pad = Gamepad.current;
         return pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
     }

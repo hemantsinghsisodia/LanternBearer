@@ -94,6 +94,27 @@ public static class GameInput
         Set(ref jump);
     }
 
+    /// <summary>True when any finger went down on the touchscreen this frame (dismisses cards, skips the credits).</summary>
+    public static bool TouchPressedThisFrame()
+    {
+        Touchscreen screen = Touchscreen.current;
+        if (screen == null)
+        {
+            return false;
+        }
+
+        var touches = screen.touches;
+        for (int i = 0; i < touches.Count; i++)
+        {
+            if (touches[i].press.wasPressedThisFrame)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static void SetTouchSprint(bool held)
     {
         touchSprint = held;

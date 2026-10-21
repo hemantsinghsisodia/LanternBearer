@@ -3,6 +3,7 @@
     "rootNamespace": "LanternKeeper",
     "references": [
         "LanternKeeper.Logic",
+        "LanternKeeper.Input",
         "LanternKeeper.Look",
         "LanternKeeper.UI",
         "Unity.InputSystem",

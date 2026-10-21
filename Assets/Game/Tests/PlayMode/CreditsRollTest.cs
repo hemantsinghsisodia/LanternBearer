@@ -524,6 +524,61 @@ public class CreditsRollTest
 
     [UnityTest]
     [Timeout(300000)]
+    public IEnumerator TouchscreenTapSkipsAndHintSaysTapToSkip()
+    {
+        yield return Load("Island5");
+        // Game view focus must not decide whether the simulated touchscreen delivers events (as in TouchControlsTest).
+        InputSettings.BackgroundBehavior savedBackground = InputSystem.settings.backgroundBehavior;
+        InputSettings.EditorInputBehaviorInPlayMode savedEditor = InputSystem.settings.editorInputBehaviorInPlayMode;
+        InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+        InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+        Touchscreen screen = InputSystem.AddDevice<Touchscreen>();
+        TouchMode.SetActiveForTests(true);
+        try
+        {
+            CreditsRoll credits = FindCredits();
+            credits.Begin();
+            yield return WaitArmed(credits, 10f);
+            TMPro.TMP_Text hint = null;
+            foreach (TMPro.TMP_Text label in credits.GetComponentsInChildren<TMPro.TMP_Text>(true))
+            {
+                if (label.text.Contains("skip"))
+                {
+                    hint = label;
+                }
+            }
+
+            Assert.IsNotNull(hint, "the skip hint label exists");
+            Assert.AreEqual("Tap to skip", hint.text, "touch mode words the hint as a tap");
+            TouchMode.SetActiveForTests(false);
+            yield return null;
+            Assert.AreEqual("Press any key to skip", hint.text, "and it follows the mode back to the keyboard wording");
+            TouchMode.SetActiveForTests(true);
+            yield return null;
+            Assert.IsFalse(credits.Exiting, "nothing skipped yet");
+            InputSystem.QueueStateEvent(screen, new UnityEngine.InputSystem.LowLevel.TouchState
+            {
+                touchId = 1,
+                phase = UnityEngine.InputSystem.TouchPhase.Began,
+                position = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f),
+                startPosition = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f)
+            });
+            yield return WaitFrames(() => credits.Exiting, 30);
+            Assert.IsTrue(credits.Exiting, "a touchscreen tap skips the credits");
+        }
+        finally
+        {
+            TouchMode.SetActiveForTests(false);
+            InputSystem.RemoveDevice(screen);
+            InputSystem.settings.backgroundBehavior = savedBackground;
+            InputSystem.settings.editorInputBehaviorInPlayMode = savedEditor;
+        }
+
+        yield return WaitForMenu(8f);
+    }
+
+    [UnityTest]
+    [Timeout(300000)]
     public IEnumerator SkipReturnsToMenu()
     {
         yield return Load("Island5");

@@ -207,7 +207,7 @@ public class GreatLamp : MonoBehaviour
     {
         if (open)
         {
-            return PromptText;
+            return TouchWording.GreatLampLight(TouchMode.Active);
         }
 
         int lit = gate != null ? gate.LitCount : 0;
