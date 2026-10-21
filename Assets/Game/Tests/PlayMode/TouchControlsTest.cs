@@ -87,6 +87,9 @@ public class TouchControlsTest
     [SetUp]
     public void SetUp()
     {
+        // Save the input settings first: TearDown writes them back, so nothing that can throw may run before this.
+        savedBackground = InputSystem.settings.backgroundBehavior;
+        savedEditorBehaviour = InputSystem.settings.editorInputBehaviorInPlayMode;
         LitKeyGuard.Save();
         GameInput.ResetForTests();
         savedInts.Clear();
@@ -100,8 +103,6 @@ public class TouchControlsTest
         savedGraphics = PlayerPrefs.GetInt("LanternKeeperGraphics", 0);
         PlayerPrefs.SetInt("LanternKeeperGraphics", 0);
         // Game view focus must not decide whether the simulated devices deliver events.
-        savedBackground = InputSystem.settings.backgroundBehavior;
-        savedEditorBehaviour = InputSystem.settings.editorInputBehaviorInPlayMode;
         InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
         InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
         starts.Clear();
@@ -453,6 +454,45 @@ public class TouchControlsTest
         yield return Tap(2, sprint);
         yield return Frames(2);
         Assert.IsFalse(Get<bool>(overlay, "SprintToggled"), "a normal tap toggles it back off");
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator FingerLiftingInTheShowFrameDoesNotPressAButton()
+    {
+        yield return Prepare();
+        object overlay = Overlay();
+        Vector2 sprint = Get<Vector2>(overlay, "SprintButtonScreenPosition");
+        Component manager = (Component)Find("GameManager");
+        manager.GetType().GetMethod("Pause", BindingFlags.Public | BindingFlags.Instance).Invoke(manager, null);
+        yield return WaitOverlay(false);
+        // The finger goes down on the (hidden) Sprint spot, then lifts in the very update that resumes the game and shows the controls.
+        Touch(1, sprint, UnityEngine.InputSystem.TouchPhase.Began);
+        yield return Frames(2);
+        manager.GetType().GetMethod("Resume", BindingFlags.Public | BindingFlags.Instance).Invoke(manager, null);
+        Touch(1, sprint, UnityEngine.InputSystem.TouchPhase.Ended);
+        yield return WaitOverlay(true);
+        yield return Frames(2);
+        Assert.IsFalse(Get<bool>(overlay, "SprintToggled"), "the lift that shows the overlay must not press Sprint");
+        Assert.IsFalse(GameInput.SprintHeld());
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator WebBridgePortraitPausesTheIslandAndLandscapeDoesNotResume()
+    {
+        yield return Prepare();
+        GameObject bridge = GameObject.Find("LKWebBridge");
+        Assert.IsNotNull(bridge, "the web bridge object exists");
+        Component manager = (Component)Find("GameManager");
+        Assert.IsFalse(Get<bool>(manager, "IsPaused"));
+        bridge.SendMessage("SetPortrait", (object)1);
+        yield return Frames(2);
+        Assert.IsTrue(Get<bool>(manager, "IsPaused"), "portrait opens the pause screen");
+        bridge.SendMessage("SetPortrait", (object)0);
+        yield return Frames(2);
+        Assert.IsTrue(Get<bool>(manager, "IsPaused"), "going back to landscape leaves the pause screen for the player");
+        manager.GetType().GetMethod("Resume", BindingFlags.Public | BindingFlags.Instance).Invoke(manager, null);
     }
 
     [UnityTest]

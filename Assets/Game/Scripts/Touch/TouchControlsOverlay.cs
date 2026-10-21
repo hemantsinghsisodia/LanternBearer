@@ -326,10 +326,8 @@ public sealed class TouchControlsOverlay : MonoBehaviour
         for (int i = 0; i < touches.Count; i++)
         {
             ETouch touch = touches[i];
-            if (touch.phase != ETouchPhase.Ended && touch.phase != ETouchPhase.Canceled)
-            {
-                claims.Ignore(touch.touchId, touch.screenPosition);
-            }
+            // Ended/Canceled too: a finger lifting in the show frame (e.g. the tap that dismissed a card) must not press a button.
+            claims.Ignore(touch.touchId, touch.screenPosition);
         }
     }
 
