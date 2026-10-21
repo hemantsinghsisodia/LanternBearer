@@ -666,7 +666,7 @@ public class AudioManager : MonoBehaviour
 
         RaiseCuePlayed(cue);
         AudioMixerGroup group = GroupFor(c.group);
-        if (group != null)
+        if (group != null && source.outputAudioMixerGroup != group)
         {
             source.outputAudioMixerGroup = group;
         }
@@ -1034,7 +1034,7 @@ public class AudioManager : MonoBehaviour
         source.rolloffMode = rolloff;
         source.minDistance = minDistance;
         source.maxDistance = maxDistance;
-        if (group != null)
+        if (group != null && source.outputAudioMixerGroup != group)
         {
             source.outputAudioMixerGroup = group;
         }

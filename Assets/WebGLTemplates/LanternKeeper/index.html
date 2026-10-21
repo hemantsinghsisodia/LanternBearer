@@ -100,14 +100,17 @@
           // aborts the runtime. Only read it when it is a plain data property (release builds), never through a getter.
           var d = m && Object.getOwnPropertyDescriptor(m, "WEBAudio");
           var ctx = d && d.get === undefined && d.value && d.value.audioContext;
-          if (ctx && ctx.state !== "running") { ctx.resume(); }
+          if (ctx && ctx.state === "suspended") { var r = ctx.resume(); if (r && r.catch) { r.catch(function () { }); } }
         } catch (e) { }
         try {
           var AC = window.AudioContext || window.webkitAudioContext;
           if (AC) {
             var tmp = new AC();
-            if (tmp.state === "suspended") { tmp.resume(); }
-            setTimeout(function () { try { tmp.close(); } catch (e) { } }, 500);
+            // Close the probe context only after resume settles: closing it mid-resume rejects the resume promise
+            // ("Closed before resume completed"), and Unity reports unhandled rejections as a fatal error.
+            var closeTmp = function () { try { var c = tmp.close(); if (c && c.catch) { c.catch(function () { }); } } catch (e) { } };
+            var p = tmp.state === "suspended" ? tmp.resume() : null;
+            if (p && p.then) { p.then(closeTmp, closeTmp); } else { setTimeout(closeTmp, 500); }
           }
         } catch (e) { }
       }
