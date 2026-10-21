@@ -31,6 +31,9 @@ public class CameraFollow : MonoBehaviour
     public static float ExternalYaw;
     public static bool UseExternalYaw;
 
+    /// <summary>Touch drag-look in degrees (x = yaw, y = pitch, positive y looks up). Applied once in ReadLook, then cleared.</summary>
+    public static Vector2 ExternalLookDelta;
+
     public float Yaw
     {
         get { return yaw; }
@@ -219,6 +222,17 @@ public class CameraFollow : MonoBehaviour
             pitch = Mathf.Clamp(pitch - delta.y * mouseSensitivity, minPitch, maxPitch);
         }
 
+        if (ExternalLookDelta != Vector2.zero)
+        {
+            if (!MenuOpen())
+            {
+                yaw += ExternalLookDelta.x;
+                pitch = Mathf.Clamp(pitch - ExternalLookDelta.y, minPitch, maxPitch);
+            }
+
+            ExternalLookDelta = Vector2.zero;
+        }
+
         if (UseExternalYaw)
         {
             yaw = ExternalYaw;
@@ -362,6 +376,12 @@ public class CameraFollow : MonoBehaviour
         }
 
         if (menu || !Application.isFocused)
+        {
+            ReleaseCursor();
+            return;
+        }
+
+        if (TouchMode.Active)
         {
             ReleaseCursor();
             return;

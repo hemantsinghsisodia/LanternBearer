@@ -237,13 +237,7 @@ public class GameManager : MonoBehaviour
         }
 
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            return;
-        }
-
-        bool pauseKey = keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame;
-        if (pauseKey)
+        if (GameInput.PausePressed())
         {
             if (paused)
             {
@@ -260,7 +254,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if (RestartAllowed && keyboard.rKey.wasPressedThisFrame)
+        if (RestartAllowed && keyboard != null && keyboard.rKey.wasPressedThisFrame)
         {
             RestartLevel();
         }

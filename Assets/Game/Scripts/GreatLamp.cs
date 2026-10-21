@@ -195,8 +195,7 @@ public class GreatLamp : MonoBehaviour
         promptShown = true;
         if (open && !manager.IsPaused)
         {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
+            if (GameInput.InteractPressed())
             {
                 TryLight();
             }
