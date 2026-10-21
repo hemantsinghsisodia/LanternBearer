@@ -7,10 +7,17 @@ namespace LanternKeeper.Tests
 public class GraphicsDefaultsTests
 {
     [Test]
-    public void WebDefaultsToMedium()
+    public void DesktopWebDefaultsToMedium()
     {
-        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
-        Assert.AreEqual(1, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer));
+        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer, false));
+        Assert.AreEqual(1, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer, false));
+    }
+
+    [Test]
+    public void MobileWebDefaultsToLow()
+    {
+        Assert.AreEqual(GraphicsDefaults.LowLevel, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer, true));
+        Assert.AreEqual(0, GraphicsDefaults.For(RuntimePlatform.WebGLPlayer, true));
     }
 
     [TestCase(RuntimePlatform.WindowsPlayer)]
@@ -20,8 +27,10 @@ public class GraphicsDefaultsTests
     [TestCase(RuntimePlatform.Android)]
     public void NonWebKeepsMedium(RuntimePlatform platform)
     {
-        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(platform));
-        Assert.AreEqual(1, GraphicsDefaults.For(platform));
+        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(platform, false));
+        Assert.AreEqual(1, GraphicsDefaults.For(platform, false));
+        // Only a mobile browser drops to Low; a native player keeps its own quality levels.
+        Assert.AreEqual(GraphicsDefaults.MediumLevel, GraphicsDefaults.For(platform, true));
     }
 
     // Forward+ lit shaders crash the browser GPU process on WebGL (black canvas, lost context); the web renderer must stay Forward.
@@ -40,7 +49,8 @@ public class GraphicsDefaultsTests
     {
         foreach (RuntimePlatform platform in System.Enum.GetValues(typeof(RuntimePlatform)))
         {
-            Assert.Less(GraphicsDefaults.For(platform), 3, platform.ToString());
+            Assert.Less(GraphicsDefaults.For(platform, false), 3, platform.ToString());
+            Assert.Less(GraphicsDefaults.For(platform, true), 3, platform.ToString());
         }
     }
 

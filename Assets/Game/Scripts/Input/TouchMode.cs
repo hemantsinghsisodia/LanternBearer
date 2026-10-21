@@ -21,6 +21,9 @@ public static class TouchMode
 
     public static bool Active { get; private set; }
 
+    /// <summary>Whether the device looked like a touch device at startup (mobile platform or touch browser). Fixed for the session.</summary>
+    public static bool StartedAsTouch { get; private set; }
+
     public static event Action OnChanged;
 
     public static bool Initial(bool isMobilePlatform, bool browserSaysTouch)
@@ -110,7 +113,8 @@ public static class TouchMode
             return;
         }
 
-        Set(Initial(Application.isMobilePlatform, BrowserSaysTouch()));
+        StartedAsTouch = Initial(Application.isMobilePlatform, BrowserSaysTouch());
+        Set(StartedAsTouch);
 
         // Domain reload may be disabled, so a tracker from an earlier play session can still be referenced here.
         if (tracker != null)
