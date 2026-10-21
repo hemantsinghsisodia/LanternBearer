@@ -19,9 +19,10 @@ public sealed class FingerClaims
         Ignored
     }
 
-    /// <summary>Degrees of camera turn per screen pixel at the reference DPI.</summary>
+    /// <summary>Degrees of camera turn per reference pixel (1080 px screen height).</summary>
     public const float LookDegreesPerPixel = 0.15f;
-    public const float ReferenceDpi = 160f;
+    /// <summary>Screen height the look sensitivity is defined at (the overlay canvas reference height).</summary>
+    public const float ReferenceHeight = 1080f;
 
     struct Claim
     {
@@ -145,11 +146,11 @@ public sealed class FingerClaims
         return region == Region.Look;
     }
 
-    /// <summary>Screen-pixel drag to degrees. DPI-scaled so a swipe of the same physical length turns the same angle on any phone.</summary>
-    public static Vector2 LookDegrees(Vector2 pixelDelta, float dpi)
+    /// <summary>Screen-pixel drag to degrees. The delta is first converted to reference pixels (1080 px screen height), so a swipe of the same fraction of the screen turns the same angle at any resolution.</summary>
+    public static Vector2 LookDegrees(Vector2 pixelDelta, float screenHeight)
     {
-        float scale = dpi > 1f ? Mathf.Clamp(ReferenceDpi / dpi, 0.4f, 1.6f) : 1f;
-        return pixelDelta * (LookDegreesPerPixel * scale);
+        float scale = screenHeight > 1f ? ReferenceHeight / screenHeight : 1f;
+        return pixelDelta * (scale * LookDegreesPerPixel);
     }
 }
 }

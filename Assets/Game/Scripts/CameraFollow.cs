@@ -357,7 +357,7 @@ public class CameraFollow : MonoBehaviour
         return hitTransform == target || hitTransform.IsChildOf(target);
     }
 
-    bool MenuOpen()
+    public static bool MenuOpen()
     {
         GameManager manager = GameManager.Instance;
         if (manager == null)

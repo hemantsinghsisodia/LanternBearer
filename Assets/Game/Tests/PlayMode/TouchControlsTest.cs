@@ -26,6 +26,8 @@ public class TouchControlsTest
     Keyboard addedKeyboard;
     Mouse disabledMouse;
     int savedGraphics;
+    InputSettings.BackgroundBehavior savedBackground;
+    InputSettings.EditorInputBehaviorInPlayMode savedEditorBehaviour;
 
     static Type GameType(string name)
     {
@@ -97,12 +99,19 @@ public class TouchControlsTest
 
         savedGraphics = PlayerPrefs.GetInt("LanternKeeperGraphics", 0);
         PlayerPrefs.SetInt("LanternKeeperGraphics", 0);
+        // Game view focus must not decide whether the simulated devices deliver events.
+        savedBackground = InputSystem.settings.backgroundBehavior;
+        savedEditorBehaviour = InputSystem.settings.editorInputBehaviorInPlayMode;
+        InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+        InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
         starts.Clear();
     }
 
     [UnityTearDown]
     public IEnumerator TearDown()
     {
+        InputSystem.settings.backgroundBehavior = savedBackground;
+        InputSystem.settings.editorInputBehaviorInPlayMode = savedEditorBehaviour;
         if (screen != null)
         {
             InputSystem.RemoveDevice(screen);
@@ -191,6 +200,7 @@ public class TouchControlsTest
         screen = InputSystem.AddDevice<Touchscreen>();
         TouchMode.SetActiveForTests(true);
         yield return WaitOverlay(true);
+        yield return Frames(3);
     }
 
     IEnumerator WaitOverlay(bool shown)
@@ -403,12 +413,9 @@ public class TouchControlsTest
     public IEnumerator KeyboardPressHidesTheOverlay()
     {
         yield return Prepare();
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            addedKeyboard = InputSystem.AddDevice<Keyboard>();
-            keyboard = addedKeyboard;
-        }
+        // A device of its own: the real keyboard obeys editor focus rules and may hold state from earlier tests.
+        addedKeyboard = InputSystem.AddDevice<Keyboard>();
+        Keyboard keyboard = addedKeyboard;
 
         InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.K));
         yield return Frames(2);
@@ -423,6 +430,151 @@ public class TouchControlsTest
         Assert.IsTrue(TouchMode.Active, "a touch switches touch mode back on");
         yield return Lift(1, new Vector2(Screen.width * 0.2f, Screen.height * 0.3f));
         yield return WaitOverlay(true);
+    }
+
+    static Vector2 ExternalMove()
+    {
+        return GetStatic<Vector2>("PlayerController", "ExternalMove");
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator TapShorterThanAFrameStillPressesAButton()
+    {
+        yield return Prepare();
+        object overlay = Overlay();
+        Vector2 sprint = Get<Vector2>(overlay, "SprintButtonScreenPosition");
+        // Began and Ended in the same input update: only the Ended record is visible to the overlay.
+        Touch(1, sprint, UnityEngine.InputSystem.TouchPhase.Began);
+        Touch(1, sprint, UnityEngine.InputSystem.TouchPhase.Ended);
+        yield return Frames(3);
+        Assert.IsTrue(Get<bool>(overlay, "SprintToggled"), "a same-frame tap toggled Sprint");
+        Assert.IsTrue(GameInput.SprintHeld(), "and GameInput sees the sprint");
+        yield return Tap(2, sprint);
+        yield return Frames(2);
+        Assert.IsFalse(Get<bool>(overlay, "SprintToggled"), "a normal tap toggles it back off");
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator StickAndLookWorkAtTheSameTime()
+    {
+        yield return Prepare();
+        Component camera = (Component)Find("CameraFollow");
+        float yawBefore = Get<float>(camera, "Yaw");
+        float w = Screen.width;
+        float h = Screen.height;
+        Vector2 stickFrom = new Vector2(w * 0.2f, h * 0.3f);
+        Vector2 stickTo = stickFrom + new Vector2(0f, h * 0.25f);
+        Vector2 lookFrom = new Vector2(w * 0.65f, h * 0.5f);
+        Vector2 lookTo = lookFrom + new Vector2(w * 0.2f, 0f);
+        Touch(1, stickFrom, UnityEngine.InputSystem.TouchPhase.Began);
+        Touch(2, lookFrom, UnityEngine.InputSystem.TouchPhase.Began);
+        yield return null;
+        Vector2 move = Vector2.zero;
+        for (int i = 1; i <= 8; i++)
+        {
+            float t = i / 8f;
+            Touch(1, Vector2.Lerp(stickFrom, stickTo, t), UnityEngine.InputSystem.TouchPhase.Moved);
+            Touch(2, Vector2.Lerp(lookFrom, lookTo, t), UnityEngine.InputSystem.TouchPhase.Moved);
+            yield return null;
+            move = ExternalMove();
+        }
+
+        Assert.AreNotEqual(Vector2.zero, move, "the stick still drives movement while the other finger looks");
+        Assert.Greater(Mathf.Abs(Mathf.DeltaAngle(yawBefore, Get<float>(camera, "Yaw"))), 2f, "and the camera turned at the same time");
+        yield return Lift(1, stickTo);
+        yield return Lift(2, lookTo);
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator StickFingerDriftingIntoTheRightHalfKeepsMovingAndNeverLooks()
+    {
+        yield return Prepare();
+        Component camera = (Component)Find("CameraFollow");
+        float yawBefore = Get<float>(camera, "Yaw");
+        float w = Screen.width;
+        float h = Screen.height;
+        Vector2 from = new Vector2(w * 0.4f, h * 0.3f);
+        Vector2 to = new Vector2(w * 0.85f, h * 0.55f);
+        yield return Drag(1, from, to, 8, 2);
+        Assert.AreNotEqual(Vector2.zero, ExternalMove(), "the stick finger keeps driving the stick across the middle");
+        Assert.Less(Mathf.Abs(Mathf.DeltaAngle(yawBefore, Get<float>(camera, "Yaw"))), 0.01f, "and never turns the camera");
+        yield return Lift(1, to);
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator CancelledTouchReleasesTheStick()
+    {
+        yield return Prepare();
+        float w = Screen.width;
+        float h = Screen.height;
+        Vector2 from = new Vector2(w * 0.2f, h * 0.3f);
+        Vector2 to = from + new Vector2(0f, h * 0.25f);
+        yield return Drag(1, from, to, 6, 1);
+        Assert.AreNotEqual(Vector2.zero, ExternalMove());
+        Touch(1, to, UnityEngine.InputSystem.TouchPhase.Canceled);
+        yield return Frames(3);
+        Assert.AreEqual(Vector2.zero, ExternalMove(), "a cancelled touch clears ExternalMove");
+        Assert.IsFalse(Get<bool>(Overlay(), "StickActive"));
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator PausingMidDragHidesAndReleasesEverything()
+    {
+        yield return Prepare();
+        float w = Screen.width;
+        float h = Screen.height;
+        Vector2 from = new Vector2(w * 0.2f, h * 0.3f);
+        Vector2 to = from + new Vector2(0f, h * 0.4f);
+        yield return Drag(1, from, to, 6, 1);
+        yield return Seconds(0.7f);
+        Assert.IsTrue(GetStatic<bool>("PlayerController", "ExternalSprint"), "a full push for 0.4 s auto-sprints");
+        Component manager = (Component)Find("GameManager");
+        manager.GetType().GetMethod("Pause", BindingFlags.Public | BindingFlags.Instance).Invoke(manager, null);
+        yield return WaitOverlay(false);
+        Assert.AreEqual(Vector2.zero, ExternalMove(), "hiding clears ExternalMove");
+        Assert.IsFalse(GetStatic<bool>("PlayerController", "ExternalSprint"), "and ExternalSprint");
+        Assert.IsFalse(GameInput.SprintHeld(), "and the touch sprint");
+        Assert.IsFalse(Get<bool>(Overlay(), "StickActive"));
+        yield return Lift(1, to);
+    }
+
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator FocusLossReleasesAStaleFinger()
+    {
+        yield return Prepare();
+        object overlay = Overlay();
+        float w = Screen.width;
+        float h = Screen.height;
+        Vector2 sprint = Get<Vector2>(overlay, "SprintButtonScreenPosition");
+        yield return Tap(2, sprint);
+        yield return Frames(2);
+        Assert.IsTrue(Get<bool>(overlay, "SprintToggled"));
+        Vector2 from = new Vector2(w * 0.2f, h * 0.3f);
+        Vector2 to = from + new Vector2(0f, h * 0.25f);
+        yield return Drag(1, from, to, 6, 1);
+        Assert.AreNotEqual(Vector2.zero, ExternalMove());
+        overlay.GetType().GetMethod("ReleaseAll", BindingFlags.Public | BindingFlags.Instance).Invoke(overlay, null);
+        Assert.AreEqual(Vector2.zero, ExternalMove(), "focus loss clears ExternalMove at once");
+        Assert.IsFalse(Get<bool>(overlay, "SprintToggled"));
+        // The finger never reported Ended (stale), so it keeps arriving: it must stay inert.
+        for (int i = 0; i < 5; i++)
+        {
+            Touch(1, to, UnityEngine.InputSystem.TouchPhase.Stationary);
+            yield return null;
+        }
+
+        Assert.AreEqual(Vector2.zero, ExternalMove(), "a stale finger is not re-claimed");
+        Assert.IsFalse(Get<bool>(overlay, "StickActive"));
+        yield return Lift(1, to);
+        yield return Drag(3, from, to, 4, 1);
+        Assert.AreNotEqual(Vector2.zero, ExternalMove(), "a fresh finger drives the stick again");
+        yield return Lift(3, to);
     }
 
     [UnityTest]

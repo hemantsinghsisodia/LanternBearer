@@ -17,7 +17,9 @@ namespace LanternKeeper
 public sealed class TouchControlsOverlay : MonoBehaviour
 {
     public const float FadeSeconds = 0.15f;
-    const int SortingOrder = 5;
+    // Above the gameplay HUD and its toasts (10), below the intro card (20), credits (25) and result panel (30).
+    const int SortingOrder = 15;
+    const float CreditsRetrySeconds = 1f;
     const float ButtonHitPadding = 1.12f;
 
     enum ButtonKind
@@ -64,6 +66,10 @@ public sealed class TouchControlsOverlay : MonoBehaviour
     bool shown;
     bool sprintOn;
     bool sentSprint;
+    bool enhancedOn;
+    bool ignoreLive;
+    int lastTapId = int.MinValue;
+    float nextCreditsLookup;
     bool ownsMove;
     bool ownsSprint;
     int stickFinger = int.MinValue;
@@ -128,16 +134,73 @@ public sealed class TouchControlsOverlay : MonoBehaviour
 
     void OnEnable()
     {
-        EnhancedTouchSupport.Enable();
+        if (instance != this)
+        {
+            return;
+        }
+
+        TouchMode.OnChanged += OnTouchModeChanged;
     }
 
     void OnDisable()
     {
-        ReleaseAll();
-        if (instance == this)
+        if (instance != this)
+        {
+            return;
+        }
+
+        TouchMode.OnChanged -= OnTouchModeChanged;
+        ReleaseInternal();
+        if (enhancedOn)
         {
             EnhancedTouchSupport.Disable();
+            enhancedOn = false;
         }
+    }
+
+    void OnTouchModeChanged()
+    {
+        if (TouchMode.Active)
+        {
+            EnsureEnhancedTouch();
+        }
+        else
+        {
+            ReleaseInternal();
+        }
+    }
+
+    void EnsureEnhancedTouch()
+    {
+        if (TouchMode.Active && !enhancedOn)
+        {
+            EnhancedTouchSupport.Enable();
+            enhancedOn = true;
+        }
+    }
+
+    // A tab or app switch can swallow the Ended event, leaving a stale finger in activeTouches.
+    void OnApplicationFocus(bool focus)
+    {
+        if (!focus)
+        {
+            ReleaseAll();
+        }
+    }
+
+    void OnApplicationPause(bool paused)
+    {
+        if (paused)
+        {
+            ReleaseAll();
+        }
+    }
+
+    /// <summary>Releases every finger, the stick, the toggled sprint and the External* values. Fingers still down stay inert until they lift.</summary>
+    public void ReleaseAll()
+    {
+        ReleaseInternal();
+        ignoreLive = true;
     }
 
     void OnDestroy()
@@ -158,12 +221,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
             return false;
         }
 
-        if (manager.IsPaused || manager.ControlsLocked || manager.IntroShowing)
-        {
-            return false;
-        }
-
-        if (manager.IsRoundOver && !manager.DawnPlaying)
+        if (CameraFollow.MenuOpen() || manager.ControlsLocked || manager.IntroShowing)
         {
             return false;
         }
@@ -188,7 +246,15 @@ public sealed class TouchControlsOverlay : MonoBehaviour
         if (creditsOwner != manager)
         {
             creditsOwner = manager;
+            credits = null;
+            nextCreditsLookup = 0f;
+        }
+
+        // A null result is not cached: the HUD may build the roll after the first look.
+        if (credits == null && Time.unscaledTime >= nextCreditsLookup)
+        {
             credits = FindFirstObjectByType<CreditsRoll>(FindObjectsInactive.Include);
+            nextCreditsLookup = Time.unscaledTime + CreditsRetrySeconds;
         }
 
         return credits != null && credits.Started;
@@ -196,6 +262,19 @@ public sealed class TouchControlsOverlay : MonoBehaviour
 
     void Update()
     {
+        if (instance != this)
+        {
+            return;
+        }
+
+        // Desktop: nothing to do until touch mode turns on (and nothing left to fade out).
+        if (!TouchMode.Active && !shown && (group == null || group.alpha <= 0f))
+        {
+            return;
+        }
+
+        EnsureEnhancedTouch();
+
         GameManager manager = GameManager.Instance;
         bool show = ShouldShow(manager, CreditsRolling(manager));
         if (show && !built)
@@ -203,16 +282,18 @@ public sealed class TouchControlsOverlay : MonoBehaviour
             Build();
         }
 
-        if (show && !shown)
+        if (show && (!shown || ignoreLive))
         {
             EnterShown();
         }
+
+        ignoreLive = false;
 
         shown = show;
         if (built)
         {
             float target = show ? 1f : 0f;
-            group.alpha = Mathf.MoveTowards(group.alpha, target, Time.unscaledDeltaTime / FadeSeconds);
+            group.alpha = Mathf.MoveTowards(group.alpha, target, Mathf.Min(Time.unscaledDeltaTime, 0.033f) / FadeSeconds);
             bool visible = show || group.alpha > 0f;
             if (content.gameObject.activeSelf != visible)
             {
@@ -222,7 +303,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
 
         if (!show)
         {
-            ReleaseAll();
+            ReleaseInternal();
             return;
         }
 
@@ -268,7 +349,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
         }
 
         float width = Screen.width;
-        float dpi = Screen.dpi;
+        float height = Screen.height;
         float scale = ReferenceScale();
         live.Clear();
         var touches = ETouch.activeTouches;
@@ -288,6 +369,14 @@ public sealed class TouchControlsOverlay : MonoBehaviour
             {
                 if (ended)
                 {
+                    // Began and Ended in the same update: only the Ended record is visible. A tap on a button still counts.
+                    TouchButton tapped = ButtonAt(touch.startScreenPosition);
+                    if (tapped != null && id != lastTapId)
+                    {
+                        lastTapId = id;
+                        Press(tapped);
+                    }
+
                     continue;
                 }
 
@@ -298,6 +387,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
                 if (region == FingerClaims.Region.Button && hit != null)
                 {
                     hit.PressedBy = id;
+                    lastTapId = id;
                     Press(hit);
                 }
                 else if (region == FingerClaims.Region.Stick)
@@ -314,7 +404,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
             }
             else if (FingerClaims.TurnsCamera(region) && delta != Vector2.zero)
             {
-                CameraFollow.ExternalLookDelta += FingerClaims.LookDegrees(delta, dpi);
+                CameraFollow.ExternalLookDelta += FingerClaims.LookDegrees(delta, height);
             }
 
             if (ended)
@@ -395,7 +485,7 @@ public sealed class TouchControlsOverlay : MonoBehaviour
         }
     }
 
-    void ReleaseAll()
+    void ReleaseInternal()
     {
         claims.Clear();
         stick.Up();

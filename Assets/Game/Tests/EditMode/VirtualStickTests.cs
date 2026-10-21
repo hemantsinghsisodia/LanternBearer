@@ -204,12 +204,15 @@ public class FingerClaimsTests
     }
 
     [Test]
-    public void LookDegreesScaleWithDpi()
+    public void LookDegreesAreNormalisedToReferenceHeight()
     {
-        Vector2 atReference = FingerClaims.LookDegrees(new Vector2(100f, 0f), FingerClaims.ReferenceDpi);
+        Vector2 atReference = FingerClaims.LookDegrees(new Vector2(100f, 0f), FingerClaims.ReferenceHeight);
         Assert.AreEqual(15f, atReference.x, 1e-3f);
-        Vector2 dense = FingerClaims.LookDegrees(new Vector2(100f, 0f), FingerClaims.ReferenceDpi * 2f);
-        Assert.AreEqual(7.5f, dense.x, 1e-3f);
+        // Half the height: the same pixel count is twice the swipe, so twice the angle.
+        Vector2 small = FingerClaims.LookDegrees(new Vector2(100f, 0f), FingerClaims.ReferenceHeight * 0.5f);
+        Assert.AreEqual(30f, small.x, 1e-3f);
+        // The same fraction of the screen turns the same angle at any resolution.
+        Assert.AreEqual(FingerClaims.LookDegrees(new Vector2(108f, 0f), 1080f).x, FingerClaims.LookDegrees(new Vector2(216f, 0f), 2160f).x, 1e-3f);
         Vector2 unknown = FingerClaims.LookDegrees(new Vector2(100f, 0f), 0f);
         Assert.AreEqual(15f, unknown.x, 1e-3f);
     }

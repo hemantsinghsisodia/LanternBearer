@@ -10,6 +10,10 @@ static class TouchSprites
     // Pixels per unit in the -1..1 sprite space, for edge anti-aliasing.
     const float Px = Size * 0.5f;
 
+    static readonly float[] JumpTops = { 0.5f, 0.05f };
+    static readonly float[] SprintTips = { 0.45f, 0f };
+    static readonly float[] PauseCentres = { -0.24f, 0.24f };
+
     static Sprite disc;
     static Sprite ring;
     static Sprite jump;
@@ -93,10 +97,9 @@ static class TouchSprites
     static float JumpAlpha(float x, float y)
     {
         float a = 0f;
-        float[] tops = { 0.5f, 0.05f };
-        for (int i = 0; i < tops.Length; i++)
+        for (int i = 0; i < JumpTops.Length; i++)
         {
-            float c = tops[i];
+            float c = JumpTops[i];
             a = Mathf.Max(a, Stroke(x, y, -0.5f, c - 0.45f, 0f, c));
             a = Mathf.Max(a, Stroke(x, y, 0f, c, 0.5f, c - 0.45f));
         }
@@ -107,10 +110,9 @@ static class TouchSprites
     static float SprintAlpha(float x, float y)
     {
         float a = 0f;
-        float[] tips = { 0.45f, 0f };
-        for (int i = 0; i < tips.Length; i++)
+        for (int i = 0; i < SprintTips.Length; i++)
         {
-            float c = tips[i];
+            float c = SprintTips[i];
             a = Mathf.Max(a, Stroke(x, y, c - 0.45f, 0.5f, c, 0f));
             a = Mathf.Max(a, Stroke(x, y, c, 0f, c - 0.45f, -0.5f));
         }
@@ -121,10 +123,9 @@ static class TouchSprites
     static float PauseAlpha(float x, float y)
     {
         float a = 0f;
-        float[] centres = { -0.24f, 0.24f };
-        for (int i = 0; i < centres.Length; i++)
+        for (int i = 0; i < PauseCentres.Length; i++)
         {
-            float sd = Mathf.Max(Mathf.Abs(x - centres[i]) - 0.11f, Mathf.Abs(y) - 0.5f);
+            float sd = Mathf.Max(Mathf.Abs(x - PauseCentres[i]) - 0.11f, Mathf.Abs(y) - 0.5f);
             a = Mathf.Max(a, Cover(sd));
         }
 
