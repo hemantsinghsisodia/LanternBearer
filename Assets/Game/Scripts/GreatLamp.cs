@@ -9,7 +9,7 @@ namespace LanternKeeper
 // stinger (MusicDirector), so the lamp does not play it itself. On Island 5 the visual is the lighthouse (LighthouseInstaller); TryLight also starts its GreatLampBeam.
 public class GreatLamp : MonoBehaviour
 {
-    public const string PromptText = "E  Light the great lamp";
+    public const string PromptText = TouchWording.KeyboardGreatLamp;
 
     [SerializeField] SummitGate gate;
     [SerializeField] float interactRange = 4.5f;
@@ -195,8 +195,7 @@ public class GreatLamp : MonoBehaviour
         promptShown = true;
         if (open && !manager.IsPaused)
         {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
+            if (GameInput.InteractPressed())
             {
                 TryLight();
             }
@@ -208,7 +207,7 @@ public class GreatLamp : MonoBehaviour
     {
         if (open)
         {
-            return PromptText;
+            return TouchWording.GreatLampLight(TouchMode.Active);
         }
 
         int lit = gate != null ? gate.LitCount : 0;

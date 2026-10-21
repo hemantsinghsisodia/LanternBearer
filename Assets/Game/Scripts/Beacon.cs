@@ -251,8 +251,7 @@ public class Beacon : MonoBehaviour
             return;
         }
 
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard != null && keyboard.eKey.wasPressedThisFrame)
+        if (GameInput.InteractPressed())
         {
             TryLight();
         }

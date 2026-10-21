@@ -240,6 +240,11 @@ public class SettingsScreen : MonoBehaviour
                 value = switchRow != null ? switchRow.Index : 0;
             }
             text = SettingsHints.Get(row.HintId, value);
+            int controlIndex;
+            if (TouchMode.Active && SettingsHints.TryControlIndex(row.HintId, out controlIndex))
+            {
+                text = TouchWording.ControlHint(true, controlIndex, text);
+            }
         }
         else if (sectionList != null && controls != null && sectionList.Current >= 0
             && sectionList.Current < sectionList.SectionPanels.Length

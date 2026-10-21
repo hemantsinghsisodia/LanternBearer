@@ -20,6 +20,12 @@ public static class GraphicsQuality
     static GraphicsLevel commandLineLevel;
     static bool missingLogged;
 
+    // Mobile device or touch browser at startup. Fixed for the session so the default does not flip when the player switches input.
+    static bool IsMobile
+    {
+        get { return Application.isMobilePlatform || TouchMode.StartedAsTouch; }
+    }
+
     public static GraphicsLevel Current
     {
         get
@@ -30,7 +36,7 @@ public static class GraphicsQuality
                 return commandLineLevel;
             }
 
-            int value = PlayerPrefs.GetInt(PrefsKey, GraphicsDefaults.For(Application.platform));
+            int value = PlayerPrefs.GetInt(PrefsKey, GraphicsDefaults.For(Application.platform, IsMobile));
             if (value < 0 || value > (int)GraphicsLevel.Ultra)
             {
                 return GraphicsLevel.Medium;

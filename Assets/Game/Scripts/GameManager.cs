@@ -155,6 +155,11 @@ public class GameManager : MonoBehaviour
             return true;
         }
 
+        if (GameInput.TouchPressedThisFrame())
+        {
+            return true;
+        }
+
         Gamepad pad = Gamepad.current;
         return pad != null && (pad.buttonSouth.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
     }
@@ -237,13 +242,7 @@ public class GameManager : MonoBehaviour
         }
 
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            return;
-        }
-
-        bool pauseKey = keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame;
-        if (pauseKey)
+        if (GameInput.PausePressed())
         {
             if (paused)
             {
@@ -260,7 +259,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if (RestartAllowed && keyboard.rKey.wasPressedThisFrame)
+        if (RestartAllowed && keyboard != null && keyboard.rKey.wasPressedThisFrame)
         {
             RestartLevel();
         }

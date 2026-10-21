@@ -241,8 +241,12 @@ public class PlayerController : MonoBehaviour
                 inputZ += 1f;
             }
 
-            sprintHeld = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
-            jumpPressed = keyboard.spaceKey.wasPressedThisFrame;
+        }
+
+        if (!roundOver)
+        {
+            sprintHeld = GameInput.SprintHeld();
+            jumpPressed = GameInput.JumpPressed();
         }
 
         if (ExternalMove.sqrMagnitude > 0.0001f)

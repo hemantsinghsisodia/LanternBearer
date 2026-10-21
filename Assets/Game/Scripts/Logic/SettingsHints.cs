@@ -94,6 +94,14 @@ public static class SettingsHints
         return ControlPrefix + index;
     }
 
+    // The binding index of a Controls row id ("control-3" gives 3), false for any other id.
+    public static bool TryControlIndex(string id, out int index)
+    {
+        index = -1;
+        return id != null && id.StartsWith(ControlPrefix, System.StringComparison.Ordinal)
+            && int.TryParse(id.Substring(ControlPrefix.Length), out index);
+    }
+
     // The hint for a row. valueIndex only matters for Preset and Render scale (out of range is clamped).
     // Returns Neutral for an unknown id.
     public static string Get(string id, int valueIndex)

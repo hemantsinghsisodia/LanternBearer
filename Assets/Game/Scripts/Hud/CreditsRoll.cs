@@ -10,7 +10,7 @@ namespace LanternKeeper
 {
 // The credits roll that follows the Island 5 finale: a column of text scrolls up over a darkened band while the dawn stays visible above
 // and below it. It runs on unscaled time, scrolls at 64 px/s at the 1080p reference height, and ends when the last line leaves the band.
-// Any key, mouse button or gamepad button skips it, but only after ArmSeconds and after every key has been released once, so a key the
+// Any key, mouse button, gamepad button or touchscreen tap skips it, but only after ArmSeconds and after every key has been released once, so a key the
 // player was holding when the finale ended cannot skip it. Both ways out raise ExitStarted (the HUD fades the music) and then
 // MenuRequested (the HUD loads the main menu; without a listener the roll loads it itself).
 // The text is built at run time from Resources/Credits.txt (a copy of CREDITS.txt kept by CreditsSync) through CreditsFormat, and from
@@ -23,7 +23,7 @@ public class CreditsRoll : MonoBehaviour
     public const float FadeInSeconds = 1f;
     public const float HintFadeSeconds = 0.6f;
     public const float HintAlphaTarget = 0.55f;
-    public const string HintText = "Press any key to skip";
+    public const string HintText = TouchWording.KeyboardCreditsHint;
     public const float ExitFadeSeconds = 0.8f;
     public const string MenuScene = "MainMenu";
     public const string Closing = "Thank you for keeping the light.";
@@ -283,6 +283,7 @@ public class CreditsRoll : MonoBehaviour
             edge = AnyInputPressedThisFrame();
         }
 
+        RefreshHintText();
         previousHeld = held;
         if (armed && edge)
         {
@@ -308,6 +309,21 @@ public class CreditsRoll : MonoBehaviour
         if (offset >= scrollLength)
         {
             Exit();
+        }
+    }
+
+    // The skip hint follows the input in use ("Press any key to skip" or "Tap to skip"), live.
+    private void RefreshHintText()
+    {
+        if (skipHint == null || skipHint.Text == null)
+        {
+            return;
+        }
+
+        string wanted = TouchWording.CreditsHint(TouchMode.Active);
+        if (skipHint.Text.text != wanted)
+        {
+            skipHint.Text.text = wanted;
         }
     }
 
@@ -356,6 +372,19 @@ public class CreditsRoll : MonoBehaviour
                 || Hit(mouse.forwardButton, edgeOnly) || Hit(mouse.backButton, edgeOnly)))
         {
             return true;
+        }
+
+        Touchscreen screen = Touchscreen.current;
+        if (screen != null)
+        {
+            var touches = screen.touches;
+            for (int i = 0; i < touches.Count; i++)
+            {
+                if (edgeOnly ? touches[i].press.wasPressedThisFrame : touches[i].isInProgress)
+                {
+                    return true;
+                }
+            }
         }
 
         Gamepad pad = Gamepad.current;

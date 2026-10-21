@@ -24,11 +24,12 @@ sealed class IntroFeed
             return;
         }
 
-        string key = manager.LevelId + (manager.IntroShowing ? "|intro" : "|help");
+        bool touch = TouchMode.Active;
+        string key = manager.LevelId + (manager.IntroShowing ? "|intro" : "|help") + (touch ? "|touch" : "");
         if (!card.IsShowing || key != shownKey)
         {
             shownKey = key;
-            card.Show(manager.IslandLabelHud, manager.IntroLines, manager.IntroShowing ? "Press any key to begin" : "Press any key to go back");
+            card.Show(manager.IslandLabelHud, manager.IntroLines, TouchWording.CardHint(touch, manager.IntroShowing));
         }
 
         if (howToOpen && !manager.IntroShowing && Time.unscaledTime >= pause.HowToUnlockTime && DismissInputPressed())
@@ -51,6 +52,11 @@ sealed class IntroFeed
 
         Mouse mouse = Mouse.current;
         if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+        {
+            return true;
+        }
+
+        if (GameInput.TouchPressedThisFrame())
         {
             return true;
         }
